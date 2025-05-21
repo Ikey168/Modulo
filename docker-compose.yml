@@ -64,6 +64,18 @@ services:
       timeout: 5s
       retries: 5
 
+  flyway:
+    image: flyway/flyway:9
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - modulo-network
+    volumes:
+      - ./database:/flyway/sql
+      - ./flyway.conf:/flyway/conf/flyway.conf
+    command: migrate
+
 volumes:
   postgres_data:
     driver: local
