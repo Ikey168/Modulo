@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      target: builder # Use the builder stage for development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+    command: npm run dev
+
+  backend:
+    volumes:
+      - ./backend:/workspace/app
+      - ~/.m2:/root/.m2
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DEVTOOLS_REMOTE_SECRET=secret
+    ports:
+      - "8080:8080"
+      - "5005:5005" # Debug port
+    command: ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+  db:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=modulodb_dev
+      - POSTGRES_USER=postgres_dev
+      - POSTGRES_PASSWORD=postgres_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_dev_data:
+    driver: local
