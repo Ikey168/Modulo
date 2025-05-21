@@ -10,7 +10,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>frontend</module>
         <module>backend</module>
         <module>smart-contracts</module>
     </modules>
