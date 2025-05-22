@@ -1,7 +1,7 @@
 package com.modulo.controller;
 
 import com.modulo.entity.User;
-import com.modulo.repository.UserRepository;
+import com.modulo.repository.jpa.UserRepository; // Changed import
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -65,8 +65,8 @@ public class UserController {
     @Operation(summary = "Delete a user")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         return userRepository.findById(id)
-                .map(user -> {
-                    userRepository.delete(user);
+                .map(u -> { // Renamed 'user' to 'u' to avoid conflict with the parameter
+                    userRepository.delete(u);
                     return ResponseEntity.ok().<Void>build();
                 })
                 .orElse(ResponseEntity.notFound().build());

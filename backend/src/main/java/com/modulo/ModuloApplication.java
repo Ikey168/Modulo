@@ -2,19 +2,17 @@ package com.modulo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.info.Info;
+// import org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration; // No longer needed
+// import org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration; // No longer needed
+// import org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration; // No longer needed
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@OpenAPIDefinition(
-    info = @Info(
-        title = "Modulo API",
-        version = "1.0",
-        description = "REST API for Modulo application"
-    )
-)
+@EnableJpaRepositories(basePackages = "com.modulo.repository.jpa")
 public class ModuloApplication {
+
     public static void main(String[] args) {
         SpringApplication.run(ModuloApplication.class, args);
     }
+
 }
