@@ -18,6 +18,11 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: test
 
 springdoc:
   api-docs:
@@ -43,3 +48,8 @@ spring:
   h2:
     console:
       enabled: false
+  neo4j:
+    uri: bolt://neo4j:7687
+    authentication:
+      username: neo4j
+      password: test

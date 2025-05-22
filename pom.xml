@@ -4,47 +4,75 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.modulo</groupId>
-    <artifactId>modulo-java</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
 
-    <modules>
-        <module>backend</module>
-        <module>smart-contracts</module>
-    </modules>
+    <groupId>com.modulo</groupId>
+    <artifactId>modulo-parent</artifactId> <!-- Changed artifactId -->
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging> <!-- Changed packaging to pom -->
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter</artifactId>
-                <version>5.10.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <modules>
+        <module>backend</module>
+        <!-- <module>frontend</module> Removed as frontend/pom.xml does not exist -->
+        <module>smart-contracts</module>
+        <!-- Add other modules if they exist at this level -->
+    </modules>
+
+    <!--
+        Dependencies listed here previously were likely meant for the 'backend' module.
+        They should be in backend/pom.xml.
+        The root POM, with packaging 'pom', typically uses <dependencyManagement>
+        to manage versions for submodules, rather than direct <dependencies>.
+        For now, removing them from here to keep this POM clean as an aggregator.
+        The spring-boot-starter-parent already provides a lot of dependency management.
+    -->
 
     <build>
-        <pluginManagement>
+        <pluginManagement> <!-- Use pluginManagement for parent POMs -->
             <plugins>
+                <!--
+                    The spring-boot-maven-plugin should be defined in the
+                    actual Spring Boot application module (e.g., backend/pom.xml),
+                    not in the parent POM if the parent is just an aggregator.
+                    If it were here, it would apply to all modules, which is not desired.
+                    Removing it from the direct <plugins> section of this parent.
+                -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.12.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.2.5</version>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+             <!--
+                Plugins defined directly in <plugins> here would apply to this POM.
+                Since this is a 'pom' packaging, it doesn't have a build lifecycle in the same way.
+                The maven-compiler-plugin was moved to pluginManagement.
+             -->
+        </plugins>
     </build>
+
 </project>
