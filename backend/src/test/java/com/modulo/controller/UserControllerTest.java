@@ -1,10 +1,12 @@
 package com.modulo.controller;
 
+import com.modulo.ModuloApplication; // Import main application
 import com.modulo.entity.User;
-import com.modulo.repository.UserRepository;
+import com.modulo.repository.jpa.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,7 +19,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(UserController.class)
+@SpringBootTest(classes = ModuloApplication.class) // Changed from @WebMvcTest
+@AutoConfigureMockMvc // To provide MockMvc
 public class UserControllerTest {
 
     @Autowired
@@ -58,19 +61,25 @@ public class UserControllerTest {
 
     @Test
     public void createUser_WhenUserValid_ReturnsCreatedUser() throws Exception {
-        User user = new User();
-        user.setUsername("newuser");
-        user.setEmail("new@example.com");
+        User userToCreate = new User(); 
+        userToCreate.setUsername("newuser");
+        userToCreate.setEmail("new@example.com");
+
+        User savedUser = new User(); 
+        savedUser.setId(1L); 
+        savedUser.setUsername("newuser");
+        savedUser.setEmail("new@example.com");
 
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser); 
 
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"newuser\",\"email\":\"new@example.com\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isOk()) 
                 .andExpect(jsonPath("$.username").value("newuser"))
-                .andExpect(jsonPath("$.email").value("new@example.com"));
+                .andExpect(jsonPath("$.email").value("new@example.com"))
+                .andExpect(jsonPath("$.id").value(1L)); // Now expecting ID as controller should return savedUser
     }
 }
