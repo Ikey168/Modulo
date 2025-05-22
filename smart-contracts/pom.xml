@@ -6,8 +6,9 @@
 
     <parent>
         <groupId>com.modulo</groupId>
-        <artifactId>modulo-java</artifactId>
+        <artifactId>modulo-parent</artifactId> <!-- Changed to match root POM's artifactId -->
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath> <!-- Added relativePath -->
     </parent>
 
     <artifactId>smart-contracts</artifactId>
@@ -16,11 +17,14 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.10.3</version>
+            <version>4.10.3</version> <!-- Consider managing this version in parent's dependencyManagement -->
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <!-- Version and scope typically inherited from spring-boot-starter-parent if it were a Spring Boot module -->
+            <!-- For non-Spring Boot modules, version needs to be managed. -->
+            <!-- The parent (spring-boot-starter-parent) does manage junit-jupiter-api and -engine -->
             <scope>test</scope>
         </dependency>
     </dependencies>
