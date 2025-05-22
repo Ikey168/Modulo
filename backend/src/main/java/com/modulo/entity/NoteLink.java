@@ -1,45 +1,35 @@
+/*
 package com.modulo.entity;
 
-import org.neo4j.ogm.annotation.GeneratedValue;
-import org.neo4j.ogm.annotation.Id;
-import org.neo4j.ogm.annotation.RelationshipEntity;
-import org.neo4j.ogm.annotation.StartNode;
-import org.neo4j.ogm.annotation.EndNode;
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.RelationshipProperties;
+import org.springframework.data.neo4j.core.schema.TargetNode;
 
-@RelationshipEntity(type = "LINKS_TO")
+@RelationshipProperties
 public class NoteLink {
 
     @Id
     @GeneratedValue
-    private Long id;
+    private Long id; // Internal ID for the relationship entity itself
 
-    @StartNode
-    private Note source;
-
-    @EndNode
-    private Note target;
-
+    // The 'type' property from the original design, e.g., "RELATED", "REFERENCES", etc.
     private String type;
+
+    @TargetNode
+    private Note target; // The target node of this link
 
     public NoteLink() {
     }
 
-    public NoteLink(Note source, Note target, String type) {
-        this.source = source;
+    // Constructor for creating a link with a type and a target note
+    public NoteLink(Note target, String type) {
         this.target = target;
         this.type = type;
     }
 
     public Long getId() {
         return id;
-    }
-
-    public Note getSource() {
-        return source;
-    }
-
-    public Note getTarget() {
-        return target;
     }
 
     public String getType() {
@@ -49,4 +39,16 @@ public class NoteLink {
     public void setType(String type) {
         this.type = type;
     }
+
+    public Note getTarget() {
+        return target;
+    }
+
+    public void setTarget(Note target) {
+        this.target = target;
+    }
+
+    // The source node is implicit from the entity that holds a collection of these NoteLink objects.
+    // So, getSource() and setSource() are removed.
 }
+*/

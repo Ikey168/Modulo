@@ -2,6 +2,9 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace/app
 
+# Set JAVA_HOME
+ENV JAVA_HOME=/opt/java/openjdk
+
 # Copy maven wrapper and pom.xml first for better layer caching
 COPY mvnw .
 COPY .mvn .mvn
@@ -14,7 +17,7 @@ RUN ./mvnw dependency:go-offline
 COPY src src
 
 # Build application
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean install -DskipTests
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 # Runtime stage

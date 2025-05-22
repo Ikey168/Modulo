@@ -1,4 +1,4 @@
-package com.modulo.repository;
+package com.modulo.repository.jpa; // Corrected package
 
 import com.modulo.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

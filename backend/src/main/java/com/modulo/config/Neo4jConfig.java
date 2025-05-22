@@ -1,3 +1,4 @@
+/*
 package com.modulo.config;
 
 import org.springframework.context.annotation.Bean;
@@ -9,7 +10,7 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 
 @Configuration
-@EnableNeo4jRepositories("com.modulo.repository")
+@EnableNeo4jRepositories(basePackages = "com.modulo.repository.neo4j")
 @EnableNeo4jAuditing
 public class Neo4jConfig {
 
@@ -18,3 +19,4 @@ public class Neo4jConfig {
         return GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "test"));
     }
 }
+*/
