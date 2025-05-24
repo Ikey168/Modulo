@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: my-application-placeholder
+data:
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  LOGGING_LEVEL_ROOT: "INFO"
+  # Add other non-sensitive API properties here
+  # EXAMPLE_PROPERTY: "example_value"
