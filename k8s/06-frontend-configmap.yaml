@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: my-application-placeholder
+data:
+  API_BASE_URL: "/api" # Example, adjust if API is on a different host/path in K8s
+  # For Nginx, you might include nginx.conf content here or mount it
+  # default.conf: |
+  #   server {
+  #     listen 80;
+  #     server_name localhost;
+  #
+  #     location / {
+  #       root /usr/share/nginx/html;
+  #       index index.html index.htm;
+  #       try_files $uri $uri/ /index.html;
+  #     }
+  #
+  #     # Add other Nginx configurations if needed
+  #   }
