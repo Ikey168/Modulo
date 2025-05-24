@@ -8,7 +8,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.3</version>
-        <relativePath/>
+        <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <groupId>com.modulo</groupId>
@@ -27,11 +27,23 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -49,23 +61,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Spring Data Neo4j - Temporarily Commented Out -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-neo4j</artifactId>
-            <version>7.2.3</version>
-        </dependency>
-        -->
-
-        <!-- Correct Neo4j Java Driver - Temporarily Commented Out -->
-        <!--
-        <dependency>
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-        </dependency>
-        -->
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -77,9 +72,14 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <!-- Version will be managed by Spring Boot parent (should be 6.2.2) -->
+            <scope>test</scope>
+        </dependency>
 
-        <!-- JAXB for Jakarta namespace (needed by Spring Boot 3 / Hibernate 6) -->
-        <!-- Version managed by Spring Boot parent -->
+        <!-- JAXB for Jakarta namespace -->
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
@@ -87,30 +87,7 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
-            <!-- This should be the Jakarta-compatible version managed by Spring Boot -->
         </dependency>
-
-        <!-- Removing javax.xml.bind dependencies as they likely conflict -->
-        <!--
-        <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-impl</artifactId>
-            <version>2.3.3</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.activation</groupId>
-            <artifactId>javax.activation-api</artifactId>
-            <version>1.2.0</version>
-            <scope>runtime</scope>
-        </dependency>
-        -->
-
     </dependencies>
 
     <build>
@@ -133,7 +110,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                     <release>17</release>
+                    <release>17</release>
                 </configuration>
             </plugin>
         </plugins>
