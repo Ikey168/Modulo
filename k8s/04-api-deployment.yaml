@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spring-boot-api
-  namespace: my-application-placeholder
+  name: modulo-backend-deployment # Updated to match HPA target
+  namespace: modulo-app # Updated to match HPA target namespace
   labels:
-    app: spring-boot-api
+    app: modulo-backend
 spec:
-  replicas: 1 # Default replicas, can be adjusted
+  replicas: 1 # Default replicas, HPA will manage this
   selector:
     matchLabels:
-      app: spring-boot-api
+      app: modulo-backend
   template:
     metadata:
       labels:
-        app: spring-boot-api
+        app: modulo-backend
     spec:
       containers:
-      - name: api-container
-        image: your-api-image-placeholder:latest # Placeholder image
+      - name: modulo-backend-container # Consistent naming
+        image: moduloacr.azurecr.io/modulo-backend:dev # Using image from Terraform variables, adjust if deployed differently
         ports:
         - containerPort: 8080
         envFrom:

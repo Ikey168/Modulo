@@ -1,7 +1,7 @@
 import { clearCredentials } from '../features/auth/authSlice';
 import { store } from '../store/store';
 
-const API_BASE_URL = 'http://localhost:8081/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 export interface ApiOptions extends RequestInit {
   skipAuth?: boolean;

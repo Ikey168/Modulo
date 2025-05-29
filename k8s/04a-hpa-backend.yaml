@@ -1,0 +1,19 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: modulo-backend-hpa
+  namespace: modulo-app # Assuming your namespace is modulo-app from other k8s files
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: modulo-backend-deployment # This should match your backend Deployment name
+  minReplicas: 1 # Defaulting to 1, can be var.autoscale_min_instances if K8s is also Terraform managed
+  maxReplicas: 3 # Defaulting to 3, can be var.autoscale_max_instances
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75 # Can be var.autoscale_cpu_high_threshold

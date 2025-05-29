@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   frontend:
     build:
+      context: ./frontend # Explicitly set build context
       target: builder # Use the builder stage for development
     volumes:
       - ./frontend:/app
@@ -15,6 +14,7 @@ services:
     command: npm run dev
 
   backend:
+    build: ./backend # Add build context for backend
     volumes:
       - ./backend:/workspace/app
       - ~/.m2:/root/.m2
@@ -27,6 +27,7 @@ services:
     command: ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 
   db:
+    image: postgres:latest # Add postgres image
     ports:
       - "5432:5432"
     environment:

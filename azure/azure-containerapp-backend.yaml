@@ -1,0 +1,52 @@
+$schema: "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+contentVersion: "1.0.0.0"
+resources:
+  - type: "Microsoft.App/containerApps"
+    apiVersion: "2023-05-01"
+    name: "modulo-backend"
+    location: "westeurope"
+    properties:
+      managedEnvironmentId: "/subscriptions/b65f9581-392b-4bba-8019-6c8465e45205/resourceGroups/Modulo/providers/Microsoft.App/managedEnvironments/modulo-backend-env"
+      configuration:
+        ingress:
+          external: true
+          targetPort: 8080
+        registries:
+          - server: "moduloacr.azurecr.io"
+            username: "YOUR_ACR_USERNAME"
+            passwordSecretRef: "acr-pw"
+        secrets:
+          - name: "acr-pw"
+            value: "YOUR_ACR_PASSWORD"
+      template:
+        containers:
+          - name: "modulo-backend-container"
+            image: "moduloacr.azurecr.io/modulo-backend:dev"
+            resources:
+              cpu: 0.5
+              memory: 1.0Gi
+            probes:
+              - type: Liveness
+                httpGet:
+                  path: /actuator/health/liveness
+                  port: 8080
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                failureThreshold: 3
+              - type: Readiness
+                httpGet:
+                  path: /actuator/health/readiness
+                  port: 8080
+                initialDelaySeconds: 10
+                periodSeconds: 5
+                failureThreshold: 3
+        scale:
+          minReplicas: 1
+          maxReplicas: 3
+          rules:
+            - name: cpu-autoscale
+              custom:
+                type: cpu
+                metadata:
+                  type: Utilization
+                  value: "70"
