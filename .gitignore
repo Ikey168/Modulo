@@ -38,4 +38,6 @@ replay_pid*
 
 # OS specific
 .DS_Store
-Thumbs.db
+Thumbs.db.terraform/
+*.tfplan
+
