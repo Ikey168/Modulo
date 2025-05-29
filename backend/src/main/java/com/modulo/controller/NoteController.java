@@ -1,5 +1,7 @@
 package com.modulo.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.modulo.entity.Note;
 // import com.modulo.entity.NoteLink; // Commented out
 // import com.modulo.repository.neo4j.NoteRepository; // Commented out
@@ -14,6 +16,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/notes")
 public class NoteController {
+private static final Logger logger = LoggerFactory.getLogger(NoteController.class);
 
     // private final NoteRepository noteRepository; // Commented out
 
@@ -24,6 +27,7 @@ public class NoteController {
 
     @PostMapping
     public ResponseEntity<Note> createNote(@RequestBody Note note) {
+        logger.info("Attempting to create note with title: {}", note != null ? note.getTitle() : "null");
         // Note savedNote = noteRepository.save(note); // Commented out
         // return new ResponseEntity<>(savedNote, HttpStatus.CREATED); // Commented out
         return new ResponseEntity<>(note, HttpStatus.CREATED); // Temporary: return input note
@@ -57,6 +61,7 @@ public class NoteController {
 
     @GetMapping
     public ResponseEntity<List<Note>> getAllNotes() {
+        logger.info("Attempting to fetch all notes.");
         // List<Note> notes = (List<Note>) noteRepository.findAll(); // Commented out
         // return new ResponseEntity<>(notes, HttpStatus.OK); // Commented out
         return new ResponseEntity<>(Collections.emptyList(), HttpStatus.OK); // Temporary: return empty list
