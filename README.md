@@ -2,6 +2,8 @@
 
 A multi-module Java 21 project that combines frontend, backend, and smart contract capabilities.
 
+# Test commit after history cleanup.
+
 ## Project Structure
 
 - `frontend/` - Frontend module
