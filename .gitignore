@@ -41,3 +41,4 @@ replay_pid*
 Thumbs.db.terraform/
 *.tfplan
 
+.terraform/

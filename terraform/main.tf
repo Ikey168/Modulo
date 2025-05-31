@@ -14,6 +14,7 @@ provider "azurerm" {
   # To manually register providers, use: az provider register --namespace <ProviderName>
   # See: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#resource_provider_registrations
 }
+# Debug resource removed after validation
 
 variable "resource_group_name" {
   description = "The name of the Azure Resource Group."
@@ -30,7 +31,7 @@ variable "location" {
 variable "acr_name" {
   description = "The globally unique name of the Azure Container Registry."
   type        = string
-  default     = "moduloacr" # This ACR should exist or be creatable with this unique name
+  default     = "moduloacr2025test" # This ACR should exist or be creatable with this unique name
 }
 
 variable "app_service_plan_name_backend" {
