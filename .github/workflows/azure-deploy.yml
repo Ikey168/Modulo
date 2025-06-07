@@ -36,7 +36,7 @@ jobs:
     - name: Run tests
       run: |
         cd backend
-        ./mvnw test
+        mvn test
         
     - name: Login to Azure
       uses: azure/login@v1
