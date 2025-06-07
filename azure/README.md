@@ -12,6 +12,7 @@ The deployment includes:
 - **Azure Monitor** for metrics and alerts
 - **Autoscaling** configuration
 - **Health probes** for container management
+- **Infrastructure as Code** with ARM templates
 
 ## Prerequisites
 
@@ -27,9 +28,27 @@ The deployment includes:
 2. **Docker** installed for building images
 3. **kubectl** installed (for AKS deployment)
 
-## Quick Start
+## Deployment Options
 
-### 1. Configure Your Settings
+### Option 1: Complete Infrastructure Deployment (Recommended)
+
+Use ARM templates to deploy all resources with Infrastructure as Code:
+
+```bash
+cd azure
+./deploy-infrastructure.sh
+```
+
+This will create:
+- Resource Group
+- Azure Container Registry
+- App Service Plan & Web App
+- Application Insights & Log Analytics Workspace
+- Monitoring alerts and action groups
+
+### Option 2: Manual Step-by-Step Deployment
+
+#### 1. Configure Your Settings
 
 Update the configuration variables in the deployment scripts:
 
@@ -48,48 +67,68 @@ ACR_NAME="your-acr-name"
 LOCATION="East US"
 ```
 
-**For AKS (`azure/deploy-aks.sh`):**
-```bash
-RESOURCE_GROUP="your-resource-group"
-AKS_CLUSTER_NAME="modulo-aks-cluster"
-ACR_NAME="your-acr-name"
-LOCATION="East US"
-```
+#### 2. Environment Setup
 
-### 2. Build and Push to ACR
+Run the environment configuration script:
 
 ```bash
-cd azure
-./acr-build-push.sh
+./setup-environment.sh
 ```
 
 This script will:
-- Create Azure Container Registry (if needed)
-- Build the Docker image
-- Push to ACR
-- Display the image URL for deployment
+- Retrieve Application Insights configuration
+- Configure ACR authentication
+- Update Kubernetes manifests
+- Generate deployment secrets
 
-### 3. Deploy to Azure
+#### 3. Build and Push to ACR
 
-#### Option A: Azure App Service for Containers (Recommended for simple deployments)
+```bash
+./acr-build-push.sh
+```
 
+#### 4. Deploy to Azure
+
+**For App Service:**
 ```bash
 ./deploy-app-service.sh
 ```
 
-#### Option B: Azure Kubernetes Service (Recommended for complex deployments)
-
+**For AKS:**
 ```bash
 # Deploy AKS cluster and setup
 ./deploy-aks.sh
 
 # Apply Kubernetes manifests
 kubectl apply -f ../k8s/ --namespace modulo
-
-# Check deployment status
-kubectl get pods --namespace modulo
-kubectl get services --namespace modulo
 ```
+
+#### 5. Setup Monitoring and Alerts
+
+```bash
+./setup-monitoring.sh
+```
+
+## Available Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `deploy-infrastructure.sh` | Complete infrastructure deployment with ARM templates |
+| `setup-environment.sh` | Configure Azure environment and secrets |
+| `acr-build-push.sh` | Build and push Docker images to ACR |
+| `deploy-app-service.sh` | Deploy to Azure App Service for Containers |
+| `deploy-aks.sh` | Deploy to Azure Kubernetes Service |
+| `setup-monitoring.sh` | Configure monitoring, alerts, and dashboards |
+
+## Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `infrastructure-template.json` | ARM template for complete infrastructure |
+| `infrastructure-parameters.json` | Parameters for ARM template |
+| `../backend/src/main/resources/application-azure.properties` | Production configuration for Azure |
+| `../.github/workflows/azure-deploy.yml` | GitHub Actions CI/CD for App Service |
+| `../.github/workflows/aks-deploy.yml` | GitHub Actions CI/CD for AKS |
 
 ## Architecture
 
