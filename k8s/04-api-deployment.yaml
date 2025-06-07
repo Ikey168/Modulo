@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spring-boot-api
-  namespace: my-application-placeholder
+  namespace: modulo
   labels:
     app: spring-boot-api
 spec:
-  replicas: 1 # Default replicas, can be adjusted
+  replicas: 2 # Increased for better availability
   selector:
     matchLabels:
       app: spring-boot-api
@@ -17,9 +17,20 @@ spec:
     spec:
       containers:
       - name: api-container
-        image: your-api-image-placeholder:latest # Placeholder image
+        image: your-acr-name.azurecr.io/modulo-backend:latest # Update with your ACR
         ports:
         - containerPort: 8080
+        env:
+        - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: app-insights-secret
+              key: connection-string
+        - name: APPLICATIONINSIGHTS_INSTRUMENTATION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-insights-secret
+              key: instrumentation-key
         envFrom:
         - configMapRef:
             name: api-config
@@ -30,8 +41,8 @@ spec:
             memory: "512Mi"
             cpu: "250m"
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "2Gi"
+            cpu: "1000m"
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness

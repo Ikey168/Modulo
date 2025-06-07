@@ -1,0 +1,94 @@
+name: Deploy to AKS
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'backend/**', 'k8s/**' ]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: your-acr-name
+  RESOURCE_GROUP: your-resource-group
+  AKS_CLUSTER: modulo-aks-cluster
+  IMAGE_NAME: modulo-backend
+  NAMESPACE: modulo
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Run tests
+      run: |
+        cd backend
+        ./mvnw test
+        
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ env.ACR_NAME }}
+        
+    - name: Build and push Docker image
+      run: |
+        cd backend
+        docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest .
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+        
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER }}
+        
+    - name: Update Kubernetes manifests
+      run: |
+        # Update image tag in deployment
+        sed -i "s|${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest|${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/04-api-deployment.yaml
+        
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s/ --namespace ${{ env.NAMESPACE }}
+        
+    - name: Wait for deployment
+      run: |
+        kubectl rollout status deployment/spring-boot-api --namespace ${{ env.NAMESPACE }} --timeout=300s
+        
+    - name: Verify deployment
+      run: |
+        kubectl get pods --namespace ${{ env.NAMESPACE }}
+        kubectl get services --namespace ${{ env.NAMESPACE }}
+        
+        # Wait for service to be ready
+        sleep 30
+        
+        # Get service external IP (if LoadBalancer)
+        EXTERNAL_IP=$(kubectl get service spring-boot-api-service --namespace ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        
+        if [ ! -z "$EXTERNAL_IP" ]; then
+          echo "Testing health endpoint at http://$EXTERNAL_IP:8080/actuator/health"
+          curl -f http://$EXTERNAL_IP:8080/actuator/health || echo "Health check failed, but deployment may still be starting"
+        else
+          echo "Service not exposed externally or still pending. Check with: kubectl get services --namespace ${{ env.NAMESPACE }}"
+        fi
+        
+        echo "✅ AKS deployment completed!"
