@@ -16,7 +16,9 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>17</java.version>
         <lombok.version>1.18.30</lombok.version>
     </properties>
 
@@ -79,23 +81,21 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JAXB for Jakarta namespace -->
+        <!-- CommonMark Java for Markdown parsing -->
         <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>0.21.0</version>
         </dependency>
         <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-tables</artifactId>
+            <version>0.21.0</version>
         </dependency>
-
-        <!-- Azure Application Insights Java Agent (no dependencies needed) -->
-        <!-- The agent will be attached at runtime via JVM arguments -->
-        
-        <!-- Micrometer Azure Monitor registry for Spring Boot Actuator -->
         <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-azure-monitor</artifactId>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-autolink</artifactId>
+            <version>0.21.0</version>
         </dependency>
     </dependencies>
 
@@ -119,7 +119,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>21</release>
+                    <source>17</source>
+                    <target>17</target>
                 </configuration>
             </plugin>
         </plugins>

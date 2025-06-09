@@ -27,6 +27,8 @@ public class Note {
 
     private String content;
 
+    private String markdownContent;
+
     // @Relationship(type = "LINKS_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
 
@@ -37,11 +39,23 @@ public class Note {
     public Note(String title, String content) {
         this.title = title;
         this.content = content;
+        this.markdownContent = content; // Default to content for backward compatibility
+        // this.links = new HashSet<>(); // Neo4j specific
+    }
+
+    public Note(String title, String content, String markdownContent) {
+        this.title = title;
+        this.content = content;
+        this.markdownContent = markdownContent;
         // this.links = new HashSet<>(); // Neo4j specific
     }
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getTitle() {
@@ -58,6 +72,14 @@ public class Note {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getMarkdownContent() {
+        return markdownContent;
+    }
+
+    public void setMarkdownContent(String markdownContent) {
+        this.markdownContent = markdownContent;
     }
 
     /* // Neo4j specific
