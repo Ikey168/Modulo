@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
 import Dashboard from './features/dashboard/Dashboard';
 import Contracts from './features/contracts/Contracts';
+import Notes from './features/notes/Notes';
 import About from './features/about/About';
 import LoginPage from './features/auth/LoginPage';
 import AuthCallbackPage from './features/auth/AuthCallbackPage';
@@ -39,6 +40,16 @@ function App() {
               <RequireAuth>
                 <Layout>
                   <Contracts />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/notes"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <Notes />
                 </Layout>
               </RequireAuth>
             }
