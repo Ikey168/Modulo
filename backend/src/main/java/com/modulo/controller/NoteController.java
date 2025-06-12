@@ -1,64 +1,89 @@
 package com.modulo.controller;
 
 import com.modulo.entity.Note;
-// import com.modulo.entity.NoteLink; // Commented out
-// import com.modulo.repository.neo4j.NoteRepository; // Commented out
+import com.modulo.service.MarkdownService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections; // For empty list
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/notes")
+@CrossOrigin(origins = "http://localhost:5173")
 public class NoteController {
 
-    // private final NoteRepository noteRepository; // Commented out
+    @Autowired
+    private MarkdownService markdownService;
 
-    // Updated constructor
-    public NoteController(/*NoteRepository noteRepository*/) { // Commented out
-        // this.noteRepository = noteRepository; // Commented out
+    // Simple in-memory storage for demo purposes
+    private final List<Note> notes = new ArrayList<>();
+    private final AtomicLong idGenerator = new AtomicLong(1);
+
+    public NoteController() {
+        // Add some sample notes
+        Note sampleNote = new Note();
+        sampleNote.setId(idGenerator.getAndIncrement());
+        sampleNote.setTitle("Welcome to Markdown Editor");
+        sampleNote.setContent("This is your first note!");
+        sampleNote.setMarkdownContent("# Welcome to Markdown Editor\n\nThis is your **first note** with *markdown* support!\n\n## Features\n- Live preview\n- Syntax highlighting\n- Easy editing\n\n```java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n```");
+        notes.add(sampleNote);
     }
 
     @PostMapping
     public ResponseEntity<Note> createNote(@RequestBody Note note) {
-        // Note savedNote = noteRepository.save(note); // Commented out
-        // return new ResponseEntity<>(savedNote, HttpStatus.CREATED); // Commented out
-        return new ResponseEntity<>(note, HttpStatus.CREATED); // Temporary: return input note
+        note.setId(idGenerator.getAndIncrement());
+        notes.add(note);
+        return new ResponseEntity<>(note, HttpStatus.CREATED);
     }
-
-    /* // Commenting out createLink method as it depends on Neo4j components
-    @PostMapping("/{sourceId}/links/{targetId}")
-    public ResponseEntity<String> createLink(@PathVariable Long sourceId, @PathVariable Long targetId, @RequestParam String type) {
-        Optional<Note> sourceOpt = noteRepository.findById(sourceId);
-        Optional<Note> targetOpt = noteRepository.findById(targetId);
-
-        if (sourceOpt.isEmpty() || targetOpt.isEmpty()) {
-            return new ResponseEntity<>("Source or target note not found", HttpStatus.NOT_FOUND);
-        }
-
-        Note source = sourceOpt.get();
-        Note target = targetOpt.get();
-
-        // Create a new NoteLink. The constructor now takes the target node and the type.
-        NoteLink newLink = new NoteLink(target, type);
-
-        // Add the link to the source note's set of links
-        source.addLink(newLink);
-
-        // Save the source note, which will also persist the new relationship
-        noteRepository.save(source);
-
-        return new ResponseEntity<>("Link created successfully", HttpStatus.CREATED);
-    }
-    */
 
     @GetMapping
     public ResponseEntity<List<Note>> getAllNotes() {
-        // List<Note> notes = (List<Note>) noteRepository.findAll(); // Commented out
-        // return new ResponseEntity<>(notes, HttpStatus.OK); // Commented out
-        return new ResponseEntity<>(Collections.emptyList(), HttpStatus.OK); // Temporary: return empty list
+        return new ResponseEntity<>(notes, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Note> getNoteById(@PathVariable Long id) {
+        Optional<Note> note = notes.stream()
+                .filter(n -> n.getId().equals(id))
+                .findFirst();
+        
+        if (note.isPresent()) {
+            return new ResponseEntity<>(note.get(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Note> updateNote(@PathVariable Long id, @RequestBody Note updatedNote) {
+        Optional<Note> existingNote = notes.stream()
+                .filter(n -> n.getId().equals(id))
+                .findFirst();
+        
+        if (existingNote.isPresent()) {
+            Note note = existingNote.get();
+            note.setTitle(updatedNote.getTitle());
+            note.setContent(updatedNote.getContent());
+            note.setMarkdownContent(updatedNote.getMarkdownContent());
+            return new ResponseEntity<>(note, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
+        boolean removed = notes.removeIf(n -> n.getId().equals(id));
+        
+        if (removed) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }

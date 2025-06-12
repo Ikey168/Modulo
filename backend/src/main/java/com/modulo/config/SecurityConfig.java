@@ -34,6 +34,8 @@ public class SecurityConfig {
                     .requestMatchers("/error", "/login").permitAll()
                     .requestMatchers("/oauth2/**", "/login/**").permitAll()
                     .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers("/markdown/**").permitAll() // Allow markdown endpoints
+                    .requestMatchers("/notes/**").permitAll() // Allow notes endpoints for testing
                     .requestMatchers("/logout").authenticated() // Ensure only authenticated users can logout
                     .requestMatchers("/user/me").authenticated()
                     .anyRequest().authenticated();
