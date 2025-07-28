@@ -5,10 +5,10 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Node; // Neo4j
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
-import jakarta.persistence.Entity; // JPA
-import jakarta.persistence.GeneratedValue; // JPA
-import jakarta.persistence.GenerationType; // JPA
-import jakarta.persistence.Id; // JPA
+import javax.persistence.Entity; // JPA
+import javax.persistence.GeneratedValue; // JPA
+import javax.persistence.GenerationType; // JPA
+import javax.persistence.Id; // JPA
 
 import java.util.HashSet;
 import java.util.Set;
