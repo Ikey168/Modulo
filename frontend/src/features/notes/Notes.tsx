@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
@@ -187,13 +188,18 @@ const Notes: React.FC = () => {
     <div className="notes-container">
       <div className="notes-header">
         <h1>Notes</h1>
-        <button
-          onClick={handleCreateNote}
-          className="btn btn-primary"
-          disabled={isCreating || isEditing}
-        >
-          New Note
-        </button>
+        <div className="notes-header-actions">
+          <Link to="/notes-graph" className="btn btn-secondary">
+            View Graph
+          </Link>
+          <button
+            onClick={handleCreateNote}
+            className="btn btn-primary"
+            disabled={isCreating || isEditing}
+          >
+            New Note
+          </button>
+        </div>
       </div>
 
       {error && (
