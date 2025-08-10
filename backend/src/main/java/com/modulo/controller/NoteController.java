@@ -1,64 +1,231 @@
 package com.modulo.controller;
 
 import com.modulo.entity.Note;
-// import com.modulo.entity.NoteLink; // Commented out
-// import com.modulo.repository.neo4j.NoteRepository; // Commented out
+import com.modulo.entity.Tag;
+import com.modulo.repository.NoteRepository;
+import com.modulo.service.TagService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections; // For empty list
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/notes")
+@RequestMapping("/api/notes")
+@CrossOrigin(origins = "*")
 public class NoteController {
 
-    // private final NoteRepository noteRepository; // Commented out
+    private final NoteRepository noteRepository;
+    private final TagService tagService;
 
-    // Updated constructor
-    public NoteController(/*NoteRepository noteRepository*/) { // Commented out
-        // this.noteRepository = noteRepository; // Commented out
+    @Autowired
+    public NoteController(NoteRepository noteRepository, TagService tagService) {
+        this.noteRepository = noteRepository;
+        this.tagService = tagService;
     }
 
     @PostMapping
-    public ResponseEntity<Note> createNote(@RequestBody Note note) {
-        // Note savedNote = noteRepository.save(note); // Commented out
-        // return new ResponseEntity<>(savedNote, HttpStatus.CREATED); // Commented out
-        return new ResponseEntity<>(note, HttpStatus.CREATED); // Temporary: return input note
-    }
-
-    /* // Commenting out createLink method as it depends on Neo4j components
-    @PostMapping("/{sourceId}/links/{targetId}")
-    public ResponseEntity<String> createLink(@PathVariable Long sourceId, @PathVariable Long targetId, @RequestParam String type) {
-        Optional<Note> sourceOpt = noteRepository.findById(sourceId);
-        Optional<Note> targetOpt = noteRepository.findById(targetId);
-
-        if (sourceOpt.isEmpty() || targetOpt.isEmpty()) {
-            return new ResponseEntity<>("Source or target note not found", HttpStatus.NOT_FOUND);
+    public ResponseEntity<Note> createNote(@RequestBody NoteCreateRequest request) {
+        try {
+            Note note = new Note(request.getTitle(), request.getContent(), request.getMarkdownContent());
+            
+            // Handle tags
+            if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
+                Set<Tag> tags = request.getTagNames().stream()
+                    .map(tagService::createOrGetTag)
+                    .collect(Collectors.toSet());
+                note.setTags(tags);
+            }
+            
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
-        Note source = sourceOpt.get();
-        Note target = targetOpt.get();
-
-        // Create a new NoteLink. The constructor now takes the target node and the type.
-        NoteLink newLink = new NoteLink(target, type);
-
-        // Add the link to the source note's set of links
-        source.addLink(newLink);
-
-        // Save the source note, which will also persist the new relationship
-        noteRepository.save(source);
-
-        return new ResponseEntity<>("Link created successfully", HttpStatus.CREATED);
     }
-    */
 
     @GetMapping
     public ResponseEntity<List<Note>> getAllNotes() {
-        // List<Note> notes = (List<Note>) noteRepository.findAll(); // Commented out
-        // return new ResponseEntity<>(notes, HttpStatus.OK); // Commented out
-        return new ResponseEntity<>(Collections.emptyList(), HttpStatus.OK); // Temporary: return empty list
+        try {
+            List<Note> notes = noteRepository.findAllWithTags();
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Note> getNoteById(@PathVariable Long id) {
+        try {
+            Optional<Note> note = noteRepository.findById(id);
+            return note.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Note> updateNote(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            if (request.getTitle() != null) {
+                note.setTitle(request.getTitle());
+            }
+            if (request.getContent() != null) {
+                note.setContent(request.getContent());
+            }
+            if (request.getMarkdownContent() != null) {
+                note.setMarkdownContent(request.getMarkdownContent());
+            }
+
+            // Handle tags update
+            if (request.getTagNames() != null) {
+                Set<Tag> newTags = request.getTagNames().stream()
+                    .map(tagService::createOrGetTag)
+                    .collect(Collectors.toSet());
+                note.getTags().clear();
+                note.setTags(newTags);
+            }
+
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
+        try {
+            if (!noteRepository.existsById(id)) {
+                return ResponseEntity.notFound().build();
+            }
+            noteRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{id}/tags")
+    public ResponseEntity<Note> addTagToNote(@PathVariable Long id, @RequestBody TagAddRequest request) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            Tag tag = tagService.createOrGetTag(request.getTagName());
+            note.addTag(tag);
+            
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{id}/tags/{tagId}")
+    public ResponseEntity<Note> removeTagFromNote(@PathVariable Long id, @PathVariable UUID tagId) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            Optional<Tag> tagOpt = tagService.findById(tagId);
+            
+            if (!noteOpt.isPresent() || !tagOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            Tag tag = tagOpt.get();
+            note.removeTag(tag);
+            
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/tag/{tagName}")
+    public ResponseEntity<List<Note>> getNotesByTag(@PathVariable String tagName) {
+        try {
+            List<Note> notes = noteRepository.findByTagName(tagName);
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Note>> searchNotes(@RequestParam String query) {
+        try {
+            List<Note> notes = noteRepository.findByTitleOrContentContainingIgnoreCase(query);
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Request DTOs
+    public static class NoteCreateRequest {
+        private String title;
+        private String content;
+        private String markdownContent;
+        private Set<String> tagNames;
+
+        // Constructors, getters, and setters
+        public NoteCreateRequest() {}
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+
+        public String getMarkdownContent() { return markdownContent; }
+        public void setMarkdownContent(String markdownContent) { this.markdownContent = markdownContent; }
+
+        public Set<String> getTagNames() { return tagNames; }
+        public void setTagNames(Set<String> tagNames) { this.tagNames = tagNames; }
+    }
+
+    public static class NoteUpdateRequest {
+        private String title;
+        private String content;
+        private String markdownContent;
+        private Set<String> tagNames;
+
+        // Constructors, getters, and setters
+        public NoteUpdateRequest() {}
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+
+        public String getMarkdownContent() { return markdownContent; }
+        public void setMarkdownContent(String markdownContent) { this.markdownContent = markdownContent; }
+
+        public Set<String> getTagNames() { return tagNames; }
+        public void setTagNames(Set<String> tagNames) { this.tagNames = tagNames; }
+    }
+
+    public static class TagAddRequest {
+        private String tagName;
+
+        public TagAddRequest() {}
+
+        public String getTagName() { return tagName; }
+        public void setTagName(String tagName) { this.tagName = tagName; }
     }
 }
