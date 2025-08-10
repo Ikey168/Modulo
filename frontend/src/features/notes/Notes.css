@@ -358,3 +358,167 @@
     color: #e5e7eb;
   }
 }
+
+/* Note Links Manager Styles */
+.note-links-manager {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.note-links-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.note-links-header h3 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.note-links-loading {
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.error-message {
+  padding: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.add-link-form {
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  margin-bottom: 1rem;
+}
+
+.add-link-form h4 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.links-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.links-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.no-links {
+  color: #6b7280;
+  font-style: italic;
+  margin: 0;
+}
+
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.link-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+}
+
+.link-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.link-type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3b82f6;
+  text-transform: uppercase;
+}
+
+.link-target,
+.link-source {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.link-source {
+  color: #059669;
+}
+
+/* Dark mode for note links */
+@media (prefers-color-scheme: dark) {
+  .note-links-manager {
+    background: #4b5563;
+    border-color: #6b7280;
+  }
+
+  .note-links-header h3,
+  .add-link-form h4,
+  .links-section h4 {
+    color: #e5e7eb;
+  }
+
+  .add-link-form,
+  .link-item {
+    background: #374151;
+    border-color: #6b7280;
+  }
+
+  .form-group label {
+    color: #d1d5db;
+  }
+
+  .form-select {
+    background: #374151;
+    border-color: #6b7280;
+    color: #e5e7eb;
+  }
+
+  .link-target,
+  .link-source {
+    color: #e5e7eb;
+  }
+
+  .link-source {
+    color: #10b981;
+  }
+
+  .error-message {
+    background: #7f1d1d;
+    border-color: #dc2626;
+    color: #fca5a5;
+  }
+}

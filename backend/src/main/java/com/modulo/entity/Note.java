@@ -40,6 +40,12 @@ public class Note {
     )
     private Set<Tag> tags = new HashSet<>();
 
+    @OneToMany(mappedBy = "sourceNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<NoteLink> outgoingLinks = new HashSet<>();
+
+    @OneToMany(mappedBy = "targetNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<NoteLink> incomingLinks = new HashSet<>();
+
     // @Relationship(type = "LINKS_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
 
@@ -109,6 +115,42 @@ public class Note {
     public void removeTag(Tag tag) {
         this.tags.remove(tag);
         tag.getNotes().remove(this);
+    }
+
+    public Set<NoteLink> getOutgoingLinks() {
+        return outgoingLinks;
+    }
+
+    public void setOutgoingLinks(Set<NoteLink> outgoingLinks) {
+        this.outgoingLinks = outgoingLinks;
+    }
+
+    public Set<NoteLink> getIncomingLinks() {
+        return incomingLinks;
+    }
+
+    public void setIncomingLinks(Set<NoteLink> incomingLinks) {
+        this.incomingLinks = incomingLinks;
+    }
+
+    public void addOutgoingLink(NoteLink link) {
+        this.outgoingLinks.add(link);
+        link.setSourceNote(this);
+    }
+
+    public void removeOutgoingLink(NoteLink link) {
+        this.outgoingLinks.remove(link);
+        link.setSourceNote(null);
+    }
+
+    public void addIncomingLink(NoteLink link) {
+        this.incomingLinks.add(link);
+        link.setTargetNote(this);
+    }
+
+    public void removeIncomingLink(NoteLink link) {
+        this.incomingLinks.remove(link);
+        link.setTargetNote(null);
     }
 
     /* // Neo4j specific

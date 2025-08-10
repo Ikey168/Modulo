@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
+import NoteLinkManager from './NoteLinkManager';
 import './Notes.css';
 
 interface Tag {
@@ -343,6 +344,15 @@ const Notes: React.FC = () => {
               <div className="note-content">
                 <pre>{selectedNote.content}</pre>
               </div>
+              
+              {/* Note Links Manager */}
+              {selectedNote.id && (
+                <NoteLinkManager
+                  noteId={selectedNote.id}
+                  allNotes={notes.filter(note => note.id !== undefined)}
+                  onLinksChanged={loadNotes}
+                />
+              )}
             </div>
           ) : (
             <div className="note-placeholder">

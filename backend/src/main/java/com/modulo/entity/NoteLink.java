@@ -1,54 +1,88 @@
-/*
 package com.modulo.entity;
 
-import org.springframework.data.neo4j.core.schema.GeneratedValue;
-import org.springframework.data.neo4j.core.schema.Id;
-import org.springframework.data.neo4j.core.schema.RelationshipProperties;
-import org.springframework.data.neo4j.core.schema.TargetNode;
+import javax.persistence.*;
+import java.util.UUID;
 
-@RelationshipProperties
+@Entity
+@Table(name = "note_links", schema = "application")
 public class NoteLink {
 
     @Id
     @GeneratedValue
-    private Long id; // Internal ID for the relationship entity itself
+    @Column(name = "link_id")
+    private UUID id;
 
-    // The 'type' property from the original design, e.g., "RELATED", "REFERENCES", etc.
-    private String type;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_note_id", nullable = false)
+    private Note sourceNote;
 
-    @TargetNode
-    private Note target; // The target node of this link
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_note_id", nullable = false)
+    private Note targetNote;
 
-    public NoteLink() {
+    @Column(name = "link_type", nullable = false)
+    private String linkType;
+
+    // Constructors
+    public NoteLink() {}
+
+    public NoteLink(Note sourceNote, Note targetNote, String linkType) {
+        this.sourceNote = sourceNote;
+        this.targetNote = targetNote;
+        this.linkType = linkType;
     }
 
-    // Constructor for creating a link with a type and a target note
-    public NoteLink(Note target, String type) {
-        this.target = target;
-        this.type = type;
-    }
-
-    public Long getId() {
+    // Getters and Setters
+    public UUID getId() {
         return id;
     }
 
-    public String getType() {
-        return type;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public Note getSourceNote() {
+        return sourceNote;
     }
 
-    public Note getTarget() {
-        return target;
+    public void setSourceNote(Note sourceNote) {
+        this.sourceNote = sourceNote;
     }
 
-    public void setTarget(Note target) {
-        this.target = target;
+    public Note getTargetNote() {
+        return targetNote;
     }
 
-    // The source node is implicit from the entity that holds a collection of these NoteLink objects.
-    // So, getSource() and setSource() are removed.
+    public void setTargetNote(Note targetNote) {
+        this.targetNote = targetNote;
+    }
+
+    public String getLinkType() {
+        return linkType;
+    }
+
+    public void setLinkType(String linkType) {
+        this.linkType = linkType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof NoteLink)) return false;
+        NoteLink noteLink = (NoteLink) o;
+        return id != null && id.equals(noteLink.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return "NoteLink{" +
+                "id=" + id +
+                ", linkType='" + linkType + '\'' +
+                '}';
+    }
 }
-*/
