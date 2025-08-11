@@ -4,6 +4,7 @@ import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.TagService;
+import com.modulo.service.WebSocketNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +20,14 @@ public class NoteController {
 
     private final NoteRepository noteRepository;
     private final TagService tagService;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Autowired
-    public NoteController(NoteRepository noteRepository, TagService tagService) {
+    public NoteController(NoteRepository noteRepository, TagService tagService, 
+                         WebSocketNotificationService webSocketNotificationService) {
         this.noteRepository = noteRepository;
         this.tagService = tagService;
+        this.webSocketNotificationService = webSocketNotificationService;
     }
 
     @PostMapping
@@ -40,6 +44,19 @@ public class NoteController {
             }
             
             Note savedNote = noteRepository.save(note);
+            
+            // Broadcast the note creation via WebSocket
+            List<String> tagNames = savedNote.getTags() != null ? 
+                savedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                new ArrayList<>();
+            webSocketNotificationService.broadcastNoteCreated(
+                savedNote.getId(), 
+                savedNote.getTitle(), 
+                savedNote.getContent(), 
+                tagNames, 
+                "current-user" // TODO: Get actual user ID from security context
+            );
+            
             return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -96,6 +113,19 @@ public class NoteController {
             }
 
             Note savedNote = noteRepository.save(note);
+            
+            // Broadcast the note update via WebSocket
+            List<String> tagNames = savedNote.getTags() != null ? 
+                savedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                new ArrayList<>();
+            webSocketNotificationService.broadcastNoteUpdated(
+                savedNote.getId(), 
+                savedNote.getTitle(), 
+                savedNote.getContent(), 
+                tagNames, 
+                "current-user" // TODO: Get actual user ID from security context
+            );
+            
             return ResponseEntity.ok(savedNote);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -108,7 +138,15 @@ public class NoteController {
             if (!noteRepository.existsById(id)) {
                 return ResponseEntity.notFound().build();
             }
+            
             noteRepository.deleteById(id);
+            
+            // Broadcast the note deletion via WebSocket
+            webSocketNotificationService.broadcastNoteDeleted(
+                id, 
+                "current-user" // TODO: Get actual user ID from security context
+            );
+            
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

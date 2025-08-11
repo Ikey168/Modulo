@@ -1,19 +1,41 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents, useSigma } from '@react-sigma/core';
 import { DirectedGraph } from 'graphology';
 import { api } from '../../services/api';
-import {
-  Note,
-  NoteLink,
-  createGraphFromData,
-  applyCommunityDetection,
+import { useNotesSync } from '../../hooks/useWebSocket';
+import { NoteUpdateMessage } from '../../services/websocket';
+import { 
+  createGraphFromData, 
+  applyCommunityDetection, 
   applyForceAtlas2Layout,
   getGraphStatistics,
   filterGraphByTags,
   searchNodes,
-  LINK_TYPE_COLORS
+  LINK_TYPE_COLORS 
 } from './graphUtils';
 import './NotesGraph.css';
+
+// Type definitions
+interface Tag {
+  id: string;
+  name: string;
+}
+
+interface Note {
+  id: number;
+  title: string;
+  content: string;
+  tags?: Tag[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface NoteLink {
+  id: string;
+  sourceNote: Note;
+  targetNote: Note;
+  linkType: string;
+}
 
 // Import Sigma.js CSS
 import '@react-sigma/core/lib/react-sigma.min.css';
@@ -130,6 +152,27 @@ const NotesGraph: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // WebSocket integration for real-time graph updates
+  const handleGraphUpdate = useCallback((message: NoteUpdateMessage) => {
+    console.log('Received real-time graph update:', message);
+    
+    switch (message.eventType) {
+      case 'NOTE_CREATED':
+      case 'NOTE_UPDATED':
+      case 'NOTE_DELETED':
+      case 'NOTE_LINK_CREATED':
+      case 'NOTE_LINK_DELETED':
+        // Reload graph data for any note or link changes
+        loadData();
+        break;
+        
+      default:
+        console.log('Unknown graph update message type:', message.eventType);
+    }
+  }, []);
+
+  useNotesSync(handleGraphUpdate);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);

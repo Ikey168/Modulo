@@ -2,6 +2,7 @@ package com.modulo.controller;
 
 import com.modulo.entity.NoteLink;
 import com.modulo.service.NoteLinkService;
+import com.modulo.service.WebSocketNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +18,13 @@ import java.util.UUID;
 public class NoteLinkController {
 
     private final NoteLinkService noteLinkService;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Autowired
-    public NoteLinkController(NoteLinkService noteLinkService) {
+    public NoteLinkController(NoteLinkService noteLinkService, 
+                             WebSocketNotificationService webSocketNotificationService) {
         this.noteLinkService = noteLinkService;
+        this.webSocketNotificationService = webSocketNotificationService;
     }
 
     /**
@@ -34,6 +38,16 @@ public class NoteLinkController {
                 request.getTargetNoteId(),
                 request.getLinkType()
             );
+            
+            // Broadcast the note link creation via WebSocket
+            webSocketNotificationService.broadcastNoteLinkCreated(
+                link.getId(),
+                link.getSourceNote().getId(),
+                link.getTargetNote().getId(),
+                link.getLinkType(),
+                "current-user" // TODO: Get actual user ID from security context
+            );
+            
             return ResponseEntity.status(HttpStatus.CREATED).body(link);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -144,7 +158,22 @@ public class NoteLinkController {
     @DeleteMapping("/{linkId}")
     public ResponseEntity<Void> deleteLink(@PathVariable UUID linkId) {
         try {
+            // Get link information before deletion for WebSocket notification
+            Optional<NoteLink> linkOpt = noteLinkService.findById(linkId);
+            
             noteLinkService.deleteLink(linkId);
+            
+            // Broadcast the note link deletion via WebSocket
+            if (linkOpt.isPresent()) {
+                NoteLink link = linkOpt.get();
+                webSocketNotificationService.broadcastNoteLinkDeleted(
+                    link.getId(),
+                    link.getSourceNote().getId(),
+                    link.getTargetNote().getId(),
+                    "current-user" // TODO: Get actual user ID from security context
+                );
+            }
+            
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
