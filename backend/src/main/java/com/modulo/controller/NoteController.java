@@ -5,7 +5,9 @@ import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.TagService;
 import com.modulo.service.WebSocketNotificationService;
+import com.modulo.service.OfflineSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +23,16 @@ public class NoteController {
     private final NoteRepository noteRepository;
     private final TagService tagService;
     private final WebSocketNotificationService webSocketNotificationService;
+    private final OfflineSyncService offlineSyncService;
 
     @Autowired
     public NoteController(NoteRepository noteRepository, TagService tagService, 
-                         WebSocketNotificationService webSocketNotificationService) {
+                         WebSocketNotificationService webSocketNotificationService,
+                         @Autowired(required = false) OfflineSyncService offlineSyncService) {
         this.noteRepository = noteRepository;
         this.tagService = tagService;
         this.webSocketNotificationService = webSocketNotificationService;
+        this.offlineSyncService = offlineSyncService;
     }
 
     @PostMapping
@@ -59,6 +64,23 @@ public class NoteController {
             
             return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
         } catch (Exception e) {
+            // Fallback to offline storage if online operation fails
+            if (offlineSyncService != null) {
+                try {
+                    Set<String> tagNames = request.getTagNames() != null ? 
+                        new HashSet<>(request.getTagNames()) : new HashSet<>();
+                    offlineSyncService.createOfflineNote(
+                        request.getTitle(), 
+                        request.getContent(), 
+                        tagNames
+                    );
+                    // Return 202 Accepted to indicate offline processing
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+                } catch (Exception offlineError) {
+                    // Both online and offline failed
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                }
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

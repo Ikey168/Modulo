@@ -1,0 +1,281 @@
+/* Offline Status Component Styles */
+
+.offline-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.offline-status.offline {
+  background: linear-gradient(135deg, #fef3cd 0%, #f59e0b 20%);
+  border-color: #f59e0b;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+/* Network Status */
+.network-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.network-indicator.online {
+  color: #059669;
+}
+
+.network-indicator.offline {
+  color: #dc2626;
+}
+
+.network-icon {
+  font-size: 1.1rem;
+}
+
+.network-text {
+  font-size: 0.875rem;
+}
+
+/* Sync Status */
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.syncing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.synced {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #059669;
+  font-weight: 500;
+}
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #d97706;
+  font-weight: 500;
+}
+
+.sync-icon {
+  font-size: 1rem;
+}
+
+.sync-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Sync Actions */
+.sync-actions {
+  display: flex;
+  align-items: center;
+}
+
+.sync-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sync-button:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.sync-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Detailed Status */
+.detailed-status {
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Error Display */
+.status-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+.error-icon {
+  font-size: 1rem;
+}
+
+.error-text {
+  flex: 1;
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.125rem;
+  line-height: 1;
+}
+
+.error-dismiss:hover {
+  background: rgba(220, 38, 38, 0.1);
+  border-radius: 3px;
+}
+
+/* Last Updated */
+.last-updated {
+  font-size: 0.625rem;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .offline-status {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .status-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .sync-status {
+    justify-content: flex-start;
+  }
+
+  .detailed-status {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .network-text {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .offline-status {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    border-color: #4b5563;
+    color: #e5e7eb;
+  }
+
+  .offline-status.offline {
+    background: linear-gradient(135deg, #451a03 0%, #92400e 20%);
+    border-color: #92400e;
+  }
+
+  .network-indicator.online {
+    color: #10b981;
+  }
+
+  .network-indicator.offline {
+    color: #ef4444;
+  }
+
+  .syncing {
+    color: #60a5fa;
+  }
+
+  .synced {
+    color: #10b981;
+  }
+
+  .pending {
+    color: #f59e0b;
+  }
+
+  .detailed-status {
+    border-top-color: #4b5563;
+    color: #9ca3af;
+  }
+
+  .status-error {
+    background: #7f1d1d;
+    border-color: #dc2626;
+    color: #fca5a5;
+  }
+
+  .last-updated {
+    color: #6b7280;
+  }
+}
+
+/* Animation for status changes */
+.offline-status {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
