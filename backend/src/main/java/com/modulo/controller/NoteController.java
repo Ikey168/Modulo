@@ -3,11 +3,13 @@ package com.modulo.controller;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
+import com.modulo.service.ConflictResolutionService;
 import com.modulo.service.TagService;
 import com.modulo.service.WebSocketNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -21,13 +23,16 @@ public class NoteController {
     private final NoteRepository noteRepository;
     private final TagService tagService;
     private final WebSocketNotificationService webSocketNotificationService;
+    private final ConflictResolutionService conflictResolutionService;
 
     @Autowired
     public NoteController(NoteRepository noteRepository, TagService tagService, 
-                         WebSocketNotificationService webSocketNotificationService) {
+                         WebSocketNotificationService webSocketNotificationService,
+                         ConflictResolutionService conflictResolutionService) {
         this.noteRepository = noteRepository;
         this.tagService = tagService;
         this.webSocketNotificationService = webSocketNotificationService;
+        this.conflictResolutionService = conflictResolutionService;
     }
 
     @PostMapping
@@ -85,7 +90,65 @@ public class NoteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Note> updateNote(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
+    public ResponseEntity<?> updateNote(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
+        try {
+            // If version is provided, use conflict detection
+            if (request.getVersion() != null) {
+                List<String> tagNames = request.getTagNames() != null ? 
+                    new ArrayList<>(request.getTagNames()) : new ArrayList<>();
+                
+                Note updatedNote = conflictResolutionService.updateNoteWithConflictCheck(
+                    id,
+                    request.getVersion(),
+                    request.getTitle(),
+                    request.getContent(),
+                    request.getMarkdownContent(),
+                    tagNames,
+                    request.getEditor() != null ? request.getEditor() : "unknown-user"
+                );
+                
+                // Broadcast the note update via WebSocket
+                List<String> finalTagNames = updatedNote.getTags() != null ? 
+                    updatedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                    new ArrayList<>();
+                webSocketNotificationService.broadcastNoteUpdated(
+                    updatedNote.getId(), 
+                    updatedNote.getTitle(), 
+                    updatedNote.getContent(), 
+                    finalTagNames, 
+                    request.getEditor() != null ? request.getEditor() : "unknown-user"
+                );
+                
+                return ResponseEntity.ok(updatedNote);
+            } else {
+                // Fallback to original logic for backward compatibility
+                return updateNoteLegacy(id, request);
+            }
+            
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // Return conflict information
+            List<String> tagNames = request.getTagNames() != null ? 
+                new ArrayList<>(request.getTagNames()) : new ArrayList<>();
+            
+            var conflict = conflictResolutionService.checkForConflicts(
+                id,
+                request.getVersion(),
+                request.getTitle(),
+                request.getContent(),
+                tagNames,
+                request.getEditor() != null ? request.getEditor() : "unknown-user"
+            );
+            
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(conflict);
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    private ResponseEntity<Note> updateNoteLegacy(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
         try {
             Optional<Note> noteOpt = noteRepository.findById(id);
             if (!noteOpt.isPresent()) {
@@ -101,6 +164,9 @@ public class NoteController {
             }
             if (request.getMarkdownContent() != null) {
                 note.setMarkdownContent(request.getMarkdownContent());
+            }
+            if (request.getEditor() != null) {
+                note.setLastEditor(request.getEditor());
             }
 
             // Handle tags update
@@ -123,7 +189,7 @@ public class NoteController {
                 savedNote.getTitle(), 
                 savedNote.getContent(), 
                 tagNames, 
-                "current-user" // TODO: Get actual user ID from security context
+                request.getEditor() != null ? request.getEditor() : "unknown-user"
             );
             
             return ResponseEntity.ok(savedNote);
@@ -241,6 +307,8 @@ public class NoteController {
         private String content;
         private String markdownContent;
         private Set<String> tagNames;
+        private Long version;
+        private String editor;
 
         // Constructors, getters, and setters
         public NoteUpdateRequest() {}
@@ -256,6 +324,12 @@ public class NoteController {
 
         public Set<String> getTagNames() { return tagNames; }
         public void setTagNames(Set<String> tagNames) { this.tagNames = tagNames; }
+        
+        public Long getVersion() { return version; }
+        public void setVersion(Long version) { this.version = version; }
+        
+        public String getEditor() { return editor; }
+        public void setEditor(String editor) { this.editor = editor; }
     }
 
     public static class TagAddRequest {
