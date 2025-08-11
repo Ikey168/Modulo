@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
 import Dashboard from './features/dashboard/Dashboard';
 import Contracts from './features/contracts/Contracts';
+import Notes from './features/notes/Notes';
 import About from './features/about/About';
 import LoginPage from './features/auth/LoginPage';
 import AuthCallbackPage from './features/auth/AuthCallbackPage';
@@ -19,6 +20,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<Layout><Home /></Layout>} />
           <Route path="/about" element={<Layout><About /></Layout>} />
+          <Route path="/notes" element={<Layout><Notes /></Layout>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           

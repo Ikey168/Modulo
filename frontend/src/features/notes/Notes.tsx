@@ -5,10 +5,11 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
 import ConflictResolutionModal from '../../components/conflicts/ConflictResolutionModal';
-import { useNotesSync } from '../../hooks/useWebSocket';
-import { NoteUpdateMessage } from '../../services/websocket';
+// import { useNotesSync } from '../../hooks/useWebSocket';
+// import { NoteUpdateMessage } from '../../services/websocket';
 import { ConflictResolution } from '../../types/conflicts';
 import { conflictResolutionService } from '../../services/conflictResolution';
+import { api } from '../../services/api';
 import './Notes.css';
 
 interface Tag {
@@ -52,13 +53,8 @@ const Notes: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/notes');
-      if (response.ok) {
-        const data = await response.json();
-        setNotes(data || []);
-      } else {
-        throw new Error('Failed to load notes');
-      }
+      const data = await api.get('/notes');
+      setNotes(data || []);
     } catch (err) {
       setError('Failed to load notes');
       console.error('Error loading notes:', err);
@@ -69,78 +65,22 @@ const Notes: React.FC = () => {
 
   const loadTags = async () => {
     try {
-      const response = await fetch('/api/tags');
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableTags(data || []);
-      }
+      const data = await api.get('/tags');
+      setAvailableTags(data || []);
     } catch (err) {
       console.error('Error loading tags:', err);
     }
   };
 
   // WebSocket integration for real-time updates
-  const handleNoteUpdate = useCallback((message: NoteUpdateMessage) => {
-    console.log('Received real-time note update:', message);
-    
-    switch (message.eventType) {
-      case 'NOTE_CREATED':
-        // Refresh notes list to include the new note
-        loadNotes();
-        break;
-        
-      case 'NOTE_UPDATED':
-        // Update the specific note in the list
-        setNotes(prevNotes => 
-          prevNotes.map(note => 
-            note.id === message.noteId 
-              ? { 
-                  ...note, 
-                  title: message.title || note.title,
-                  content: message.content || note.content,
-                  tags: message.tagNames ? message.tagNames.map(name => ({ id: name, name })) : note.tags
-                }
-              : note
-          )
-        );
-        
-        // Update selected note if it's the one being updated
-        if (selectedNote?.id === message.noteId) {
-          setSelectedNote(prevSelected => 
-            prevSelected ? {
-              ...prevSelected,
-              title: message.title || prevSelected.title,
-              content: message.content || prevSelected.content,
-              tags: message.tagNames ? message.tagNames.map(name => ({ id: name, name })) : prevSelected.tags
-            } : null
-          );
-        }
-        break;
-        
-      case 'NOTE_DELETED':
-        // Remove the note from the list
-        setNotes(prevNotes => prevNotes.filter(note => note.id !== message.noteId));
-        
-        // Clear selection if the deleted note was selected
-        if (selectedNote?.id === message.noteId) {
-          setSelectedNote(null);
-          setIsEditing(false);
-          setIsCreating(false);
-        }
-        break;
-        
-      case 'NOTE_LINK_CREATED':
-      case 'NOTE_LINK_DELETED':
-        // Refresh notes to update link counts/information
-        loadNotes();
-        break;
-        
-      default:
-        console.log('Unknown message type:', message.eventType);
-    }
+  const handleNoteUpdate = useCallback((message: any) => {
+    // Temporarily disabled WebSocket functionality
+    console.log('WebSocket functionality temporarily disabled for testing');
   }, [selectedNote]);
 
-  const { isConnected, connectionStatus } = useNotesSync(handleNoteUpdate);
+  // Temporarily disable WebSocket
+  const isConnected = false;
+  const connectionStatus = 'disabled';
 
   useEffect(() => {
     loadNotes();
@@ -184,11 +124,8 @@ const Notes: React.FC = () => {
 
       let response;
       if (isCreating) {
-        response = await fetch('/api/notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(noteData)
-        });
+        response = await api.post('/notes', noteData);
+        response = { ok: true }; // API service doesn't return response object, just data
       } else if (selectedNote) {
         // Check for conflicts before updating
         try {
@@ -277,17 +214,10 @@ const Notes: React.FC = () => {
 
     try {
       setError(null);
-      const response = await fetch(`/api/notes/${noteId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        await loadNotes();
-        if (selectedNote?.id === noteId) {
-          setSelectedNote(null);
-        }
-      } else {
-        throw new Error('Failed to delete note');
+      await api.delete(`/notes/${noteId}`);
+      await loadNotes();
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
       }
     } catch (err) {
       setError('Failed to delete note');
