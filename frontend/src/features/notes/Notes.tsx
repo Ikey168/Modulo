@@ -22,6 +22,10 @@ interface Note {
   content: string;
   markdownContent?: string;
   tags?: Tag[];
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  lastEditor?: string;
 }
 
 const Notes: React.FC = () => {
@@ -190,7 +194,7 @@ const Notes: React.FC = () => {
         try {
           const conflictRequest = {
             noteId: selectedNote.id!,
-            expectedVersion: 0, // TODO: Get version from selected note
+            expectedVersion: selectedNote.version || 0,
             title: noteData.title,
             content: noteData.content,
             markdownContent: noteData.markdownContent,
@@ -513,7 +517,6 @@ const Notes: React.FC = () => {
           conflict={conflictResolution}
           onResolve={handleConflictResolve}
           onCancel={handleConflictCancel}
-          userName="Current User" // TODO: Get from auth context
         />
       )}
     </div>

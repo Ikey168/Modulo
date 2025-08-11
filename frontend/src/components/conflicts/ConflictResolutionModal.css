@@ -387,6 +387,333 @@
   }
 }
 
+/* New styles for conflict resolution */
+.conflict-description {
+  color: #92400e;
+  margin: 0.5rem 0 0 0;
+  font-size: 0.875rem;
+}
+
+.conflict-modal-body {
+  padding: 1.5rem 2rem;
+}
+
+.conflict-summary {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.conflict-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.editor-info {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.smart-suggestions {
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.smart-suggestions h3 {
+  margin: 0 0 0.75rem 0;
+  color: #1e40af;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.smart-suggestions ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.smart-suggestions li {
+  margin-bottom: 0.25rem;
+}
+
+.conflict-section {
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.conflict-section h3 {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.conflict-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+}
+
+.conflict-version {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.conflict-version h4 {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.version-content {
+  padding: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: white;
+  min-height: 3rem;
+}
+
+.version-content.current {
+  background: #fef3e2;
+  color: #92400e;
+}
+
+.version-content.incoming {
+  background: #e0f2fe;
+  color: #0c4a6e;
+}
+
+.content-preview {
+  white-space: pre-wrap;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.resolution-options {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resolution-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.resolution-options input[type="radio"] {
+  margin: 0;
+}
+
+.custom-input {
+  margin-top: 0.75rem;
+  padding: 0 1rem 1rem 1rem;
+}
+
+.custom-input input,
+.custom-input textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.custom-input input:focus,
+.custom-input textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.custom-input textarea {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.current-tag {
+  background: #fef3e2;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.incoming-tag {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+
+.merged-tag {
+  background: #f0f9ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.merged-tags-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.conflict-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Dark mode updates */
+@media (prefers-color-scheme: dark) {
+  .conflict-description {
+    color: #fcd34d;
+  }
+
+  .conflict-modal-body {
+    background: #1f2937;
+  }
+
+  .conflict-summary {
+    background: #374151;
+  }
+
+  .editor-info {
+    color: #e5e7eb;
+  }
+
+  .smart-suggestions {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+  }
+
+  .smart-suggestions h3 {
+    color: #bfdbfe;
+  }
+
+  .smart-suggestions ul {
+    color: #bfdbfe;
+  }
+
+  .conflict-comparison {
+    background: #374151;
+  }
+
+  .conflict-version {
+    border-color: #4b5563;
+  }
+
+  .conflict-version h4 {
+    background: #4b5563;
+    color: #e5e7eb;
+    border-bottom-color: #6b7280;
+  }
+
+  .version-content {
+    background: #1f2937;
+    color: #e5e7eb;
+  }
+
+  .version-content.current {
+    background: #451a03;
+    color: #fcd34d;
+  }
+
+  .version-content.incoming {
+    background: #1e3a8a;
+    color: #bfdbfe;
+  }
+
+  .resolution-options label {
+    color: #e5e7eb;
+  }
+
+  .custom-input input,
+  .custom-input textarea {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .custom-input input:focus,
+  .custom-input textarea:focus {
+    border-color: #3b82f6;
+  }
+
+  .current-tag {
+    background: #451a03;
+    color: #fcd34d;
+    border-color: #92400e;
+  }
+
+  .incoming-tag {
+    background: #1e3a8a;
+    color: #bfdbfe;
+    border-color: #3b82f6;
+  }
+
+  .merged-tag {
+    background: #1e3a8a;
+    color: #bfdbfe;
+    border-color: #3b82f6;
+  }
+
+  .merged-tags-preview {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  .conflict-modal-footer {
+    background: #374151;
+    border-top-color: #4b5563;
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .conflict-modal {
@@ -402,21 +729,20 @@
     font-size: 1.25rem;
   }
 
-  .conflict-modal-content {
-    padding: 1.5rem;
+  .conflict-modal-body {
+    padding: 1rem 1.5rem;
   }
 
-  .auto-merge-section {
+  .conflict-info {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
-  .conflict-option label {
-    flex-direction: column;
-    gap: 0.5rem;
+  .conflict-comparison {
+    grid-template-columns: 1fr;
   }
 
-  .conflict-modal-actions {
+  .conflict-modal-footer {
     padding: 1rem 1.5rem;
     flex-direction: column;
   }
