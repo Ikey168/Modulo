@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,9 @@ public class OfflineSyncService {
     private final OfflineNoteRepository offlineNoteRepository;
     private final NoteRepository noteRepository;
     private final TagService tagService;
+
+    @Autowired(required = false)
+    private NetworkDetectionService networkDetectionService;
 
     private volatile boolean syncInProgress = false;
 
@@ -122,10 +126,17 @@ public class OfflineSyncService {
 
     /**
      * Synchronize offline changes with online database
+     * Only runs if network is available
      */
     @Async
     @Scheduled(fixedDelay = 30000) // Run every 30 seconds
     public void syncOfflineChanges() {
+        // Skip sync if network is not available
+        if (networkDetectionService != null && !networkDetectionService.isOnline()) {
+            log.debug("Network not available, skipping sync");
+            return;
+        }
+        
         if (syncInProgress) {
             log.debug("Sync already in progress, skipping");
             return;
@@ -133,7 +144,7 @@ public class OfflineSyncService {
 
         try {
             syncInProgress = true;
-            log.info("Starting offline sync process");
+            log.info("Starting offline sync process (network-aware)");
 
             // Sync pending creations/updates
             syncPendingNotes();
@@ -333,12 +344,95 @@ public class OfflineSyncService {
         return new SyncStatus(pendingSync, pendingDelete, syncInProgress);
     }
 
-    /**
-     * Force immediate sync
+        /**
+     * Force immediate sync (useful for testing and manual triggers)
      */
     public void forcSync() {
         log.info("Forcing immediate sync");
         syncOfflineChanges();
+    }
+
+    /**
+     * Handle network reconnection events - trigger immediate sync
+     */
+    @EventListener
+    @Async
+    public void handleNetworkReconnected(NetworkDetectionService.NetworkReconnectedEvent event) {
+        log.info("Network reconnected event received - triggering priority sync");
+        prioritySync();
+    }
+
+    /**
+     * Handle network disconnection events
+     */
+    @EventListener
+    public void handleNetworkDisconnected(NetworkDetectionService.NetworkDisconnectedEvent event) {
+        log.info("Network disconnected event received - sync will be paused until reconnection");
+    }
+
+    /**
+     * Priority sync that runs immediately when network reconnects
+     * This bypasses the normal scheduling to quickly sync pending changes
+     */
+    @Async
+    public void prioritySync() {
+        if (syncInProgress) {
+            log.debug("Sync already in progress, skipping priority sync");
+            return;
+        }
+
+        try {
+            syncInProgress = true;
+            log.info("Starting PRIORITY sync after network reconnection");
+
+            // Get count of pending changes before sync
+            long pendingCount = getPendingSyncCount();
+            log.info("Found {} pending changes to sync", pendingCount);
+
+            if (pendingCount > 0) {
+                // Sync pending creations/updates first (most important)
+                syncPendingNotes();
+
+                // Sync pending deletions
+                syncPendingDeletions();
+
+                // Pull latest changes from server
+                pullServerChanges();
+
+                // Cleanup old deleted notes
+                cleanupDeletedNotes();
+
+                log.info("Priority sync completed successfully - synced {} changes", pendingCount);
+            } else {
+                log.info("No pending changes found during priority sync");
+            }
+        } catch (Exception e) {
+            log.error("Error during priority sync after network reconnection", e);
+        } finally {
+            syncInProgress = false;
+        }
+    }
+
+    /**
+     * Check if sync is currently in progress
+     */
+    public boolean isSyncInProgress() {
+        return syncInProgress;
+    }
+
+    /**
+     * Get count of pending changes that need to be synced
+     */
+    public long getPendingSyncCount() {
+        try {
+            List<OfflineNote> pendingNotes = offlineNoteRepository.findByStatusIn(
+                List.of(OfflineNote.SyncStatus.PENDING_SYNC, OfflineNote.SyncStatus.PENDING_DELETE)
+            );
+            return pendingNotes.size();
+        } catch (Exception e) {
+            log.error("Error getting pending sync count", e);
+            return 0;
+        }
     }
 
     /**
