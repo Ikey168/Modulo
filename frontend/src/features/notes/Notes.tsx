@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
+import { useNotesSync } from '../../hooks/useWebSocket';
+import { NoteUpdateMessage } from '../../services/websocket';
 import './Notes.css';
 
 interface Tag {
@@ -35,11 +37,6 @@ const Notes: React.FC = () => {
   const [content, setContent] = useState('');
   const [noteTags, setNoteTags] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadNotes();
-    loadTags();
-  }, []);
-
   const loadNotes = async () => {
     try {
       setLoading(true);
@@ -70,6 +67,74 @@ const Notes: React.FC = () => {
       console.error('Error loading tags:', err);
     }
   };
+
+  // WebSocket integration for real-time updates
+  const handleNoteUpdate = useCallback((message: NoteUpdateMessage) => {
+    console.log('Received real-time note update:', message);
+    
+    switch (message.eventType) {
+      case 'NOTE_CREATED':
+        // Refresh notes list to include the new note
+        loadNotes();
+        break;
+        
+      case 'NOTE_UPDATED':
+        // Update the specific note in the list
+        setNotes(prevNotes => 
+          prevNotes.map(note => 
+            note.id === message.noteId 
+              ? { 
+                  ...note, 
+                  title: message.title || note.title,
+                  content: message.content || note.content,
+                  tags: message.tagNames ? message.tagNames.map(name => ({ id: name, name })) : note.tags
+                }
+              : note
+          )
+        );
+        
+        // Update selected note if it's the one being updated
+        if (selectedNote?.id === message.noteId) {
+          setSelectedNote(prevSelected => 
+            prevSelected ? {
+              ...prevSelected,
+              title: message.title || prevSelected.title,
+              content: message.content || prevSelected.content,
+              tags: message.tagNames ? message.tagNames.map(name => ({ id: name, name })) : prevSelected.tags
+            } : null
+          );
+        }
+        break;
+        
+      case 'NOTE_DELETED':
+        // Remove the note from the list
+        setNotes(prevNotes => prevNotes.filter(note => note.id !== message.noteId));
+        
+        // Clear selection if the deleted note was selected
+        if (selectedNote?.id === message.noteId) {
+          setSelectedNote(null);
+          setIsEditing(false);
+          setIsCreating(false);
+        }
+        break;
+        
+      case 'NOTE_LINK_CREATED':
+      case 'NOTE_LINK_DELETED':
+        // Refresh notes to update link counts/information
+        loadNotes();
+        break;
+        
+      default:
+        console.log('Unknown message type:', message.eventType);
+    }
+  }, [selectedNote]);
+
+  const { isConnected, connectionStatus } = useNotesSync(handleNoteUpdate);
+
+  useEffect(() => {
+    loadNotes();
+    loadTags();
+  }, []);
 
   const handleCreateNote = () => {
     setIsCreating(true);
@@ -199,6 +264,12 @@ const Notes: React.FC = () => {
           >
             New Note
           </button>
+          
+          {/* WebSocket Status Indicator */}
+          <div className={`websocket-status ${isConnected ? 'connected' : 'disconnected'}`}>
+            <span className="status-indicator"></span>
+            <span className="status-text">{connectionStatus}</span>
+          </div>
         </div>
       </div>
 
