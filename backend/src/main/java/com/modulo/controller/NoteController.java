@@ -6,7 +6,9 @@ import com.modulo.repository.NoteRepository;
 import com.modulo.service.ConflictResolutionService;
 import com.modulo.service.TagService;
 import com.modulo.service.WebSocketNotificationService;
+import com.modulo.service.OfflineSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -24,15 +26,18 @@ public class NoteController {
     private final TagService tagService;
     private final WebSocketNotificationService webSocketNotificationService;
     private final ConflictResolutionService conflictResolutionService;
+    private final OfflineSyncService offlineSyncService;
 
     @Autowired
     public NoteController(NoteRepository noteRepository, TagService tagService, 
                          WebSocketNotificationService webSocketNotificationService,
-                         ConflictResolutionService conflictResolutionService) {
+                         ConflictResolutionService conflictResolutionService,
+                         @Autowired(required = false) OfflineSyncService offlineSyncService) {
         this.noteRepository = noteRepository;
         this.tagService = tagService;
         this.webSocketNotificationService = webSocketNotificationService;
         this.conflictResolutionService = conflictResolutionService;
+        this.offlineSyncService = offlineSyncService;
     }
 
     @PostMapping
@@ -64,6 +69,23 @@ public class NoteController {
             
             return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
         } catch (Exception e) {
+            // Fallback to offline storage if online operation fails
+            if (offlineSyncService != null) {
+                try {
+                    Set<String> tagNames = request.getTagNames() != null ? 
+                        new HashSet<>(request.getTagNames()) : new HashSet<>();
+                    offlineSyncService.createOfflineNote(
+                        request.getTitle(), 
+                        request.getContent(), 
+                        tagNames
+                    );
+                    // Return 202 Accepted to indicate offline processing
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+                } catch (Exception offlineError) {
+                    // Both online and offline failed
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                }
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -144,7 +166,13 @@ public class NoteController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            // Try offline fallback if main database is unavailable
+            try {
+                offlineSyncService.updateOfflineNote(id, request.getTitle(), request.getContent(), request.getTagNames());
+                return ResponseEntity.accepted().build(); // 202 - changes saved offline
+            } catch (Exception offlineError) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
         }
     }
     
@@ -194,6 +222,26 @@ public class NoteController {
             
             return ResponseEntity.ok(savedNote);
         } catch (Exception e) {
+            // Fallback to offline storage if online operation fails
+            if (offlineSyncService != null) {
+                try {
+                    Set<String> tagNames = request.getTagNames() != null ? 
+                        new HashSet<>(request.getTagNames()) : new HashSet<>();
+                    
+                    // Update offline note
+                    Optional<Note> noteOpt = noteRepository.findById(id);
+                    if (noteOpt.isPresent()) {
+                        Note note = noteOpt.get();
+                        offlineSyncService.saveOffline(note);
+                    }
+                    
+                    // Return 202 Accepted to indicate offline processing
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+                } catch (Exception offlineError) {
+                    // Both online and offline failed
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                }
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -215,7 +263,13 @@ public class NoteController {
             
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            // Try offline fallback if main database is unavailable
+            try {
+                offlineSyncService.deleteOfflineNote(id);
+                return ResponseEntity.accepted().build(); // 202 - deletion queued offline
+            } catch (Exception offlineError) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
         }
     }
 
