@@ -4,8 +4,11 @@ import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
+import ConflictResolutionModal from '../../components/conflicts/ConflictResolutionModal';
 import { useNotesSync } from '../../hooks/useWebSocket';
 import { NoteUpdateMessage } from '../../services/websocket';
+import { ConflictResolution } from '../../types/conflicts';
+import { conflictResolutionService } from '../../services/conflictResolution';
 import './Notes.css';
 
 interface Tag {
@@ -31,6 +34,10 @@ const Notes: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('');
+  
+  // Conflict resolution state
+  const [conflictResolution, setConflictResolution] = useState<ConflictResolution | null>(null);
+  const [showConflictModal, setShowConflictModal] = useState(false);
 
   // Form state for new/editing notes
   const [title, setTitle] = useState('');
@@ -179,11 +186,39 @@ const Notes: React.FC = () => {
           body: JSON.stringify(noteData)
         });
       } else if (selectedNote) {
-        response = await fetch(`/api/notes/${selectedNote.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(noteData)
-        });
+        // Check for conflicts before updating
+        try {
+          const conflictRequest = {
+            noteId: selectedNote.id!,
+            expectedVersion: 0, // TODO: Get version from selected note
+            title: noteData.title,
+            content: noteData.content,
+            markdownContent: noteData.markdownContent,
+            tagNames: noteData.tagNames,
+            editor: "Current User" // TODO: Get from auth context
+          };
+          
+          const result = await conflictResolutionService.updateWithConflictCheck(conflictRequest);
+          
+          if (!result.success && result.conflict) {
+            // Handle conflict - show resolution modal
+            setConflictResolution(result.conflict);
+            setShowConflictModal(true);
+            setSaving(false);
+            return;
+          }
+          
+          response = { ok: true }; // Mock successful response for now
+        } catch (conflictError: any) {
+          if (conflictError.conflict) {
+            // Handle conflict - show resolution modal
+            setConflictResolution(conflictError.conflict);
+            setShowConflictModal(true);
+            setSaving(false);
+            return;
+          }
+          throw conflictError;
+        }
       }
 
       if (response && response.ok) {
@@ -199,6 +234,36 @@ const Notes: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConflictResolve = async (resolution: any) => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      const response = await conflictResolutionService.resolveConflict(resolution);
+      
+      if (response.ok) {
+        await loadNotes();
+        await loadTags();
+        setShowConflictModal(false);
+        setConflictResolution(null);
+        handleCancelEdit();
+      } else {
+        throw new Error('Failed to resolve conflict');
+      }
+    } catch (err) {
+      setError('Failed to resolve conflict');
+      console.error('Error resolving conflict:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConflictCancel = () => {
+    setShowConflictModal(false);
+    setConflictResolution(null);
+    setSaving(false);
   };
 
   const handleDeleteNote = async (noteId: number) => {
@@ -440,6 +505,17 @@ const Notes: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* Conflict Resolution Modal */}
+      {showConflictModal && conflictResolution && (
+        <ConflictResolutionModal
+          isOpen={showConflictModal}
+          conflict={conflictResolution}
+          onResolve={handleConflictResolve}
+          onCancel={handleConflictCancel}
+          userName="Current User" // TODO: Get from auth context
+        />
+      )}
     </div>
   );
 };

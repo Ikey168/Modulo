@@ -6,7 +6,7 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
 import javax.persistence.*; // JPA
-
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,6 +31,19 @@ public class Note {
     @Column(name = "markdown_content", columnDefinition = "TEXT")
     private String markdownContent;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
+
+    @Column(name = "last_editor")
+    private String lastEditor;
+
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "note_tags",
@@ -50,6 +63,8 @@ public class Note {
     // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
 
     public Note() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         // this.links = new HashSet<>(); // Neo4j specific
     }
 
@@ -57,6 +72,8 @@ public class Note {
         this.title = title;
         this.content = content;
         this.markdownContent = content; // Default to content for backward compatibility
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         // this.links = new HashSet<>(); // Neo4j specific
     }
 
@@ -64,7 +81,14 @@ public class Note {
         this.title = title;
         this.content = content;
         this.markdownContent = markdownContent;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         // this.links = new HashSet<>(); // Neo4j specific
+    }
+
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -97,6 +121,38 @@ public class Note {
 
     public void setMarkdownContent(String markdownContent) {
         this.markdownContent = markdownContent;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public String getLastEditor() {
+        return lastEditor;
+    }
+
+    public void setLastEditor(String lastEditor) {
+        this.lastEditor = lastEditor;
     }
 
     public Set<Tag> getTags() {
