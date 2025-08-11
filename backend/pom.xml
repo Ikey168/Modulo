@@ -73,10 +73,11 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.43.2.2</version>
         </dependency>
+        <!-- Use Hibernate 5.x compatible SQLite dialect -->
         <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-community-dialects</artifactId>
-            <version>6.2.2.Final</version>
+            <groupId>com.github.gwenn</groupId>
+            <artifactId>sqlite-dialect</artifactId>
+            <version>0.1.4</version>
         </dependency>
 
         <dependency>

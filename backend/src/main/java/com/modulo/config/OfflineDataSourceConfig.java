@@ -21,6 +21,7 @@ import java.util.Properties;
  * This runs alongside the main H2/PostgreSQL database
  */
 @Configuration
+@ConditionalOnProperty(name = "app.offline.database.enabled", havingValue = "true", matchIfMissing = true)
 @EnableJpaRepositories(
     basePackages = "com.modulo.repository.offline",
     entityManagerFactoryRef = "offlineEntityManagerFactory",
@@ -67,7 +68,7 @@ public class OfflineDataSourceConfig {
         em.setJpaVendorAdapter(vendorAdapter);
 
         Properties properties = new Properties();
-        properties.setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect");
+        properties.setProperty("hibernate.dialect", "org.sqlite.hibernate.dialect.SQLiteDialect");
         properties.setProperty("hibernate.hbm2ddl.auto", "update");
         properties.setProperty("hibernate.show_sql", "false");
         properties.setProperty("hibernate.format_sql", "true");
