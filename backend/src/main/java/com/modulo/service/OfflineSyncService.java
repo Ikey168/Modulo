@@ -8,25 +8,7 @@ import com.modulo.repository.offline.OfflineNoteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.Cond    /**
-     * Status information for sync operations
-     */
-    public static class SyncStatus {
-        public final long pendingSyncCount;
-        public final long pendingDeleteCount;
-        public final boolean syncInProgress;
-        public final String lastSyncTime;
-        public final long totalSyncedCount;
-
-        public SyncStatus(long pendingSyncCount, long pendingDeleteCount, boolean syncInProgress, 
-                         String lastSyncTime, long totalSyncedCount) {
-            this.pendingSyncCount = pendingSyncCount;
-            this.pendingDeleteCount = pendingDeleteCount;
-            this.syncInProgress = syncInProgress;
-            this.lastSyncTime = lastSyncTime;
-            this.totalSyncedCount = totalSyncedCount;
-        }
-    }rty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -351,43 +333,6 @@ public class OfflineSyncService {
         }
     }
 
-    /**
-     * Get sync status information
-     */
-    @Transactional(value = "offlineTransactionManager", readOnly = true)
-    public SyncStatus getSyncStatus() {
-        long pendingSync = offlineNoteRepository.countPendingSyncNotes();
-        long pendingDelete = offlineNoteRepository.countPendingDeleteNotes();
-        
-        // Get last sync time (if available)
-        String lastSyncTime = "Never";
-        try {
-            List<OfflineNote> recentSynced = offlineNoteRepository.findSyncedNotes();
-            if (!recentSynced.isEmpty()) {
-                // Find the most recently synced note
-                OfflineNote mostRecent = recentSynced.stream()
-                    .filter(note -> note.getLastSynced() != null)
-                    .max((a, b) -> a.getLastSynced().compareTo(b.getLastSynced()))
-                    .orElse(null);
-                if (mostRecent != null) {
-                    lastSyncTime = mostRecent.getLastSynced().toString();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Error getting last sync time: {}", e.getMessage());
-        }
-        
-        // Count total synced notes
-        long totalSyncedCount = 0;
-        try {
-            totalSyncedCount = offlineNoteRepository.findSyncedNotes().size();
-        } catch (Exception e) {
-            log.warn("Error getting synced count: {}", e.getMessage());
-        }
-        
-        return new SyncStatus(pendingSync, pendingDelete, syncInProgress, lastSyncTime, totalSyncedCount);
-    }
-
         /**
      * Force immediate sync (useful for testing and manual triggers)
      */
@@ -480,17 +425,47 @@ public class OfflineSyncService {
     }
 
     /**
+     * Get sync status information
+     */
+    @Transactional(value = "offlineTransactionManager", readOnly = true)
+    public SyncStatus getSyncStatus() {
+        long pendingSync = offlineNoteRepository.countPendingSyncNotes();
+        long pendingDelete = offlineNoteRepository.countPendingDeleteNotes();
+        long totalSynced = 0;
+        String lastSyncTime = "N/A";
+        try {
+            // Get total synced notes
+            totalSynced = offlineNoteRepository.findSyncedNotes().size();
+            // Get latest lastSynced timestamp
+            List<OfflineNote> syncedNotes = offlineNoteRepository.findSyncedNotes();
+            lastSyncTime = syncedNotes.stream()
+                .map(OfflineNote::getLastSynced)
+                .filter(java.util.Objects::nonNull)
+                .max(java.time.LocalDateTime::compareTo)
+                .map(java.time.LocalDateTime::toString)
+                .orElse("N/A");
+        } catch (Exception e) {
+            log.error("Error getting sync status details", e);
+        }
+        return new SyncStatus(pendingSync, pendingDelete, syncInProgress, lastSyncTime, totalSynced);
+    }
+
+    /**
      * Sync status information
      */
     public static class SyncStatus {
         public final long pendingSyncCount;
         public final long pendingDeleteCount;
         public final boolean syncInProgress;
+        public final String lastSyncTime;
+        public final long totalSyncedCount;
 
-        public SyncStatus(long pendingSyncCount, long pendingDeleteCount, boolean syncInProgress) {
+        public SyncStatus(long pendingSyncCount, long pendingDeleteCount, boolean syncInProgress, String lastSyncTime, long totalSyncedCount) {
             this.pendingSyncCount = pendingSyncCount;
             this.pendingDeleteCount = pendingDeleteCount;
             this.syncInProgress = syncInProgress;
+            this.lastSyncTime = lastSyncTime;
+            this.totalSyncedCount = totalSyncedCount;
         }
     }
 }

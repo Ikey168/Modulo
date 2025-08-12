@@ -60,9 +60,6 @@ public interface OfflineNoteRepository extends JpaRepository<OfflineNote, Long> 
     @Query("SELECT COUNT(n) FROM OfflineNote n WHERE n.syncStatus = 'PENDING_DELETE' AND n.isDeleted = true")
     long countPendingDeleteNotes();
 
-    // Find notes by sync status list
-    List<OfflineNote> findBySyncStatusIn(List<OfflineNote.SyncStatus> statuses);
-
     // Find notes that haven't been synced for a while
     @Query("SELECT n FROM OfflineNote n WHERE n.lastSynced IS NULL OR n.lastSynced < :threshold")
     List<OfflineNote> findNotSyncedSince(@Param("threshold") LocalDateTime threshold);
@@ -74,4 +71,7 @@ public interface OfflineNoteRepository extends JpaRepository<OfflineNote, Long> 
     // Delete notes that are marked for deletion and already synced
     @Query("DELETE FROM OfflineNote n WHERE n.isDeleted = true AND n.syncStatus = 'SYNCED'")
     void cleanupDeletedSyncedNotes();
+    
+       // Find notes by a list of sync statuses
+       List<OfflineNote> findBySyncStatusIn(List<OfflineNote.SyncStatus> statuses);
 }
