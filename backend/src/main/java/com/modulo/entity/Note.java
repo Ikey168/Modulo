@@ -5,7 +5,7 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Node; // Neo4j
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
-import javax.persistence.*; // JPA
+import jakarta.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
