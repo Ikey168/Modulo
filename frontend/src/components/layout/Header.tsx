@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/store';
 import { selectIsAuthenticated, clearCredentials } from '../../features/auth/authSlice';
 import { NetworkStatusIndicator } from '../network';
 import { ThemeToggle } from '../theme';
+import MobileMenu from './MobileMenu';
 
 const Header: React.FC = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [window.location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
     // Clear frontend state
@@ -37,28 +57,46 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="app-header">
-      <div className="header-content">
-        <h1>Modulo</h1>
-        <div className="header-controls">
-          <ThemeToggle compact={true} showLabels={false} className="header-theme-toggle" />
-          <NetworkStatusIndicator showDetails={true} className="header-network-status" />
-          <nav className="header-nav">
-            <ul>
-              {isAuthenticated ? (
-                <>
-                  <li><a href="/profile">Profile</a></li>
-                  <li><a href="/settings">Settings</a></li>
-                  <li><button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, font: 'inherit' }}>Logout</button></li>
-                </>
-              ) : (
-                <li><a href="/login">Login</a></li>
-              )}
-            </ul>
-          </nav>
+    <>
+      <header className="app-header">
+        <div className="header-content">
+          <h1>Modulo</h1>
+          <div className="header-controls">
+            <ThemeToggle compact={true} showLabels={false} className="header-theme-toggle" />
+            <NetworkStatusIndicator showDetails={true} className="header-network-status" />
+            <nav className="header-nav">
+              <ul>
+                {isAuthenticated ? (
+                  <>
+                    <li><a href="/profile">Profile</a></li>
+                    <li><a href="/settings">Settings</a></li>
+                    <li><button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, font: 'inherit' }}>Logout</button></li>
+                  </>
+                ) : (
+                  <li><a href="/login">Login</a></li>
+                )}
+              </ul>
+            </nav>
+            <button 
+              className="hamburger-button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <div className={`hamburger-icon ${isMobileMenuOpen ? 'open' : ''}`}>
+                <div className="hamburger-line"></div>
+                <div className="hamburger-line"></div>
+                <div className="hamburger-line"></div>
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+      />
+    </>
   );
 };
 

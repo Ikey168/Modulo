@@ -5,7 +5,9 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
 import ConflictResolutionModal from '../../components/conflicts/ConflictResolutionModal';
+import TouchHandler from '../../components/common/TouchHandler';
 import { useNotesSync } from '../../hooks/useWebSocket';
+import { useDeviceInfo } from '../../hooks/useViewport';
 import { NoteUpdateMessage } from '../../services/websocket';
 import { ConflictResolution } from '../../types/conflicts';
 import { conflictResolutionService } from '../../services/conflictResolution';
@@ -28,6 +30,8 @@ const Notes: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const deviceInfo = useDeviceInfo();
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -315,19 +319,27 @@ const Notes: React.FC = () => {
   }
 
   return (
-    <div className="notes-container">
+    <div className={`notes-container ${deviceInfo.isMobile ? 'mobile' : ''}`}>
       <div className="notes-header">
         <h1>Notes</h1>
+        {deviceInfo.isMobile && (
+          <button
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+            className="btn btn-secondary mobile-sidebar-toggle"
+          >
+            {showMobileSidebar ? 'Hide Filters' : 'Show Filters'}
+          </button>
+        )}
         <div className="notes-header-actions">
           <Link to="/notes-graph" className="btn btn-secondary">
-            View Graph
+            {deviceInfo.isMobile ? 'Graph' : 'View Graph'}
           </Link>
           <button
             onClick={handleCreateNote}
-            className="btn btn-primary"
+            className="btn btn-primary btn-mobile"
             disabled={isCreating || isEditing}
           >
-            New Note
+            {deviceInfo.isMobile ? '+' : 'New Note'}
           </button>
           
           {/* WebSocket Status Indicator */}
@@ -346,14 +358,14 @@ const Notes: React.FC = () => {
       )}
 
       <div className="notes-content">
-        <div className="notes-sidebar">
+        <div className={`notes-sidebar ${deviceInfo.isMobile ? (showMobileSidebar ? 'mobile-visible' : 'mobile-hidden') : ''}`}>
           {/* Tag Filter */}
           <div className="tag-filter">
             <h3>Filter by Tag</h3>
             <select
               value={selectedTagFilter}
               onChange={(e) => setSelectedTagFilter(e.target.value)}
-              className="tag-filter-select"
+              className="tag-filter-select mobile-select"
             >
               <option value="">All Notes</option>
               {allUsedTags.map(tagName => (
@@ -371,45 +383,56 @@ const Notes: React.FC = () => {
               <p className="no-notes">No notes found</p>
             ) : (
               filteredNotes.map((note) => (
-                <div
+                <TouchHandler
                   key={note.id}
-                  className={`note-item ${selectedNote?.id === note.id ? 'selected' : ''}`}
-                  onClick={() => !isEditing && !isCreating && setSelectedNote(note)}
+                  onTap={() => !isEditing && !isCreating && setSelectedNote(note)}
+                  onLongPress={() => deviceInfo.isMobile && handleEditNote(note)}
+                  onSwipeLeft={() => deviceInfo.isMobile && note.id && handleDeleteNote(note.id)}
+                  className={`note-item mobile-card ${selectedNote?.id === note.id ? 'selected' : ''}`}
                 >
-                  <h4>{note.title}</h4>
-                  <p>{note.content.substring(0, 100)}...</p>
-                  {note.tags && note.tags.length > 0 && (
-                    <div className="note-tags">
-                      {note.tags.map((tag, index) => (
-                        <span key={index} className="note-tag">
-                          {tag.name}
-                        </span>
-                      ))}
+                  <div className="note-content-preview">
+                    <h4>{note.title}</h4>
+                    <p>{note.content.substring(0, 100)}...</p>
+                    {note.tags && note.tags.length > 0 && (
+                      <div className="note-tags">
+                        {note.tags.map((tag, index) => (
+                          <span key={index} className="note-tag">
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!deviceInfo.isMobile && (
+                    <div className="note-actions">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditNote(note);
+                        }}
+                        className="btn btn-small touch-target"
+                        disabled={isEditing || isCreating}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          note.id && handleDeleteNote(note.id);
+                        }}
+                        className="btn btn-small btn-danger touch-target"
+                        disabled={isEditing || isCreating}
+                      >
+                        Delete
+                      </button>
                     </div>
                   )}
-                  <div className="note-actions">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditNote(note);
-                      }}
-                      className="btn btn-small"
-                      disabled={isEditing || isCreating}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        note.id && handleDeleteNote(note.id);
-                      }}
-                      className="btn btn-small btn-danger"
-                      disabled={isEditing || isCreating}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+                  {deviceInfo.isMobile && (
+                    <div className="mobile-note-hint">
+                      <small>Tap to view • Long press to edit • Swipe left to delete</small>
+                    </div>
+                  )}
+                </TouchHandler>
               ))
             )}
           </div>
