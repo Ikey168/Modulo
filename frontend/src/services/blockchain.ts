@@ -31,6 +31,8 @@ const CONTRACT_CONFIG = {
   addresses: {
     localhost: "0x...", // Local development
     sepolia: "0x...",   // Sepolia testnet
+    mumbai: "0x...",    // Polygon Mumbai testnet
+    polygon: "0x...",   // Polygon mainnet
     mainnet: "0x..."    // Ethereum mainnet
   }
 };
@@ -124,6 +126,10 @@ export class BlockchainService {
         return CONTRACT_CONFIG.addresses.localhost;
       case 11155111: // Sepolia
         return CONTRACT_CONFIG.addresses.sepolia;
+      case 80001: // Mumbai
+        return CONTRACT_CONFIG.addresses.mumbai;
+      case 137: // Polygon
+        return CONTRACT_CONFIG.addresses.polygon;
       case 1: // Mainnet
         return CONTRACT_CONFIG.addresses.mainnet;
       default:
