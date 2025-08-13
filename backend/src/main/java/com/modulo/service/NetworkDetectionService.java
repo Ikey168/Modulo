@@ -3,6 +3,7 @@ package com.modulo.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Service to detect network connectivity changes and trigger sync events
  */
 @Service
+@ConditionalOnProperty(name = "app.offline.database.enabled", havingValue = "true", matchIfMissing = true)
 public class NetworkDetectionService {
 
     private static final Logger logger = LoggerFactory.getLogger(NetworkDetectionService.class);
