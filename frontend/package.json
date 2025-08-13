@@ -13,6 +13,7 @@
     "@react-sigma/core": "^5.0.4",
     "@reduxjs/toolkit": "^2.2.1",
     "@stomp/stompjs": "^7.1.1",
+    "ethers": "^5.7.2",
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-layout-forceatlas2": "^0.10.1",
