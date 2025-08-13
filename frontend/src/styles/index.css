@@ -31,6 +31,46 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-network-status {
+  margin-right: 1rem;
+}
+
+.header-nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.header-nav a,
+.header-nav button {
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.header-nav a:hover,
+.header-nav button:hover {
+  background-color: var(--background-secondary);
+}
+
 .main-nav {
   background-color: var(--primary-color);
   padding: 1rem;

@@ -71,4 +71,7 @@ public interface OfflineNoteRepository extends JpaRepository<OfflineNote, Long> 
     // Delete notes that are marked for deletion and already synced
     @Query("DELETE FROM OfflineNote n WHERE n.isDeleted = true AND n.syncStatus = 'SYNCED'")
     void cleanupDeletedSyncedNotes();
+    
+       // Find notes by a list of sync statuses
+       List<OfflineNote> findBySyncStatusIn(List<OfflineNote.SyncStatus> statuses);
 }

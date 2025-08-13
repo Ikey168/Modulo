@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/store';
 import { selectIsAuthenticated, clearCredentials } from '../../features/auth/authSlice';
+import { NetworkStatusIndicator } from '../network';
 
 const Header: React.FC = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -38,19 +39,22 @@ const Header: React.FC = () => {
     <header className="app-header">
       <div className="header-content">
         <h1>Modulo</h1>
-        <nav className="header-nav">
-          <ul>
-            {isAuthenticated ? (
-              <>
-                <li><a href="/profile">Profile</a></li>
-                <li><a href="/settings">Settings</a></li>
-                <li><button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, font: 'inherit' }}>Logout</button></li>
-              </>
-            ) : (
-              <li><a href="/login">Login</a></li>
-            )}
-          </ul>
-        </nav>
+        <div className="header-controls">
+          <NetworkStatusIndicator showDetails={true} className="header-network-status" />
+          <nav className="header-nav">
+            <ul>
+              {isAuthenticated ? (
+                <>
+                  <li><a href="/profile">Profile</a></li>
+                  <li><a href="/settings">Settings</a></li>
+                  <li><button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, font: 'inherit' }}>Logout</button></li>
+                </>
+              ) : (
+                <li><a href="/login">Login</a></li>
+              )}
+            </ul>
+          </nav>
+        </div>
       </div>
     </header>
   );

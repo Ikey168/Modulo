@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { useEffect } from 'react';
 import { store } from './store/store';
+import { networkStatusService } from './services/networkStatus';
 import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
 import Dashboard from './features/dashboard/Dashboard';
@@ -12,6 +14,16 @@ import OAuth2Redirect from './features/auth/OAuth2Redirect';
 import RequireAuth from './features/auth/RequireAuth';
 
 function App() {
+  useEffect(() => {
+    // Initialize network monitoring when app starts
+    networkStatusService.startMonitoring();
+    
+    // Cleanup on unmount
+    return () => {
+      networkStatusService.stopMonitoring();
+    };
+  }, []);
+
   return (
     <Provider store={store}>
       <Router>
