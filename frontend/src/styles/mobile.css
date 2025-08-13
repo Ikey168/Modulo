@@ -1,0 +1,723 @@
+/* Mobile Responsiveness Enhancements for Modulo App */
+
+/* ==========================================================================
+   Global Mobile Optimizations
+   ========================================================================== */
+
+/* Better mobile scrolling and touch handling */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal scrolling on mobile */
+  overflow-x: hidden;
+}
+
+/* Improved touch targets - minimum 44px for iOS/Android */
+button,
+.btn,
+a,
+input,
+select,
+textarea {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Enhanced touch interactions */
+button,
+.btn,
+.clickable {
+  cursor: pointer;
+  /* Better touch feedback */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  tap-highlight-color: rgba(0, 0, 0, 0.1);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Prevent zoom on input focus (iOS) */
+input,
+select,
+textarea {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+/* ==========================================================================
+   Header Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+    text-align: center;
+    margin: 0;
+  }
+
+  .header-controls {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .header-nav {
+    order: -1;
+    width: 100%;
+  }
+
+  .header-nav ul {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .header-nav a,
+  .header-nav button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+}
+
+/* ==========================================================================
+   Mobile Navigation Enhancements
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .main-nav {
+    padding: 0.75rem;
+  }
+
+  .main-nav ul {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .main-nav a {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    text-align: center;
+    min-width: 80px;
+  }
+}
+
+/* ==========================================================================
+   Content Layout Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  /* Ensure proper spacing for mobile */
+  .notes-container,
+  .dashboard-container,
+  .contracts-container {
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+
+  /* Stack layouts vertically on mobile */
+  .notes-content,
+  .dashboard-grid,
+  .contracts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Form and Input Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  /* Better button spacing on mobile */
+  .form-actions,
+  .button-group {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 1rem;
+    border-radius: 8px;
+  }
+
+  .btn-small {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    width: auto;
+    min-width: 80px;
+  }
+}
+
+/* ==========================================================================
+   Modal and Overlay Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .modal-overlay,
+  .note-modal-overlay {
+    padding: 1rem;
+  }
+
+  .modal,
+  .note-modal {
+    width: calc(100vw - 2rem);
+    max-width: none;
+    max-height: calc(100vh - 2rem);
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .modal-header,
+  .note-modal-header {
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+
+  .modal-content,
+  .note-modal-content {
+    padding: 1rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-close,
+  .note-modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Card and Component Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .card {
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .note-item,
+  .contract-item {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .note-item h4,
+  .contract-item h4 {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .note-actions,
+  .contract-actions {
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .note-actions .btn,
+  .contract-actions .btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+/* ==========================================================================
+   Table Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+    font-size: 0.875rem;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* Stack table data vertically for very small screens */
+  @media (max-width: 480px) {
+    .mobile-table-stack {
+      display: block;
+    }
+
+    .mobile-table-stack thead {
+      display: none;
+    }
+
+    .mobile-table-stack tbody,
+    .mobile-table-stack tr,
+    .mobile-table-stack td {
+      display: block;
+      width: 100%;
+    }
+
+    .mobile-table-stack tr {
+      border: 1px solid var(--color-border-primary);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    .mobile-table-stack td {
+      border: none;
+      padding: 0.25rem 0;
+    }
+
+    .mobile-table-stack td:before {
+      content: attr(data-label) ': ';
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+  }
+}
+
+/* ==========================================================================
+   Theme Toggle Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .theme-toggle-current {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    min-width: 120px;
+  }
+
+  .theme-options {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 2rem);
+    max-width: 320px;
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .theme-option {
+    padding: 0.75rem;
+  }
+
+  .theme-option-name {
+    font-size: 0.875rem;
+  }
+}
+
+/* ==========================================================================
+   Settings Page Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 1rem 0.75rem;
+  }
+
+  .settings-page h1 {
+    font-size: 1.875rem;
+    text-align: center;
+  }
+
+  .settings-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 10px;
+  }
+
+  .theme-options-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .theme-card {
+    border-radius: 10px;
+  }
+
+  .theme-preview-large {
+    height: 140px;
+  }
+
+  .theme-info {
+    padding: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   Network Status Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .network-status-indicator {
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .offline-status {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .status-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .detailed-status {
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: left;
+  }
+}
+
+/* ==========================================================================
+   Typography Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+
+  p,
+  li {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* Improved text readability on mobile */
+  .text-content {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+/* ==========================================================================
+   Loading and Error States Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .loading-text {
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+
+  .error-message {
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .error-alert {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+}
+
+/* ==========================================================================
+   Search and Filter Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .search-container {
+    margin-bottom: 1rem;
+  }
+
+  .search-input {
+    font-size: 16px;
+    padding: 0.75rem;
+    border-radius: 8px;
+    width: 100%;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    font-size: 16px;
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+}
+
+/* ==========================================================================
+   Graph and Visualization Mobile Optimizations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .notes-graph-container {
+    padding: 0.75rem;
+  }
+
+  .notes-graph-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .graph-stats {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .stat {
+    min-width: 120px;
+    text-align: center;
+  }
+
+  .notes-graph-viewport {
+    height: 400px;
+    border-radius: 10px;
+  }
+
+  .notes-graph-legend {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .legend-items {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .graph-search-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .filter-section {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   Accessibility and Performance Optimizations
+   ========================================================================== */
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn,
+  .card,
+  .modal {
+    border-width: 2px;
+  }
+
+  .theme-toggle,
+  .note-item,
+  .contract-item {
+    border-width: 2px;
+  }
+}
+
+/* Dark mode mobile optimizations */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  .app-header {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(17, 24, 39, 0.9);
+  }
+
+  .modal,
+  .note-modal {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-primary);
+  }
+}
+
+/* ==========================================================================
+   iOS Safari Specific Fixes
+   ========================================================================== */
+
+/* Fix for iOS Safari viewport height issue */
+@supports (-webkit-touch-callout: none) {
+  .full-height {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Fix for iOS zoom on input focus */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select,
+  textarea,
+  input[type="text"],
+  input[type="password"],
+  input[type="datetime"],
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"],
+  input[type="number"],
+  input[type="email"],
+  input[type="url"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="color"] {
+    font-size: 16px;
+  }
+}
+
+/* ==========================================================================
+   Android Specific Optimizations
+   ========================================================================== */
+
+/* Better text rendering on Android */
+@media screen and (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1.5) {
+  body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Disable text selection on Android for better UX */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .app-header,
+  .app-footer,
+  .header-controls,
+  .theme-toggle,
+  .network-status {
+    display: none !important;
+  }
+
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: black !important;
+    background: white !important;
+  }
+
+  .main-content {
+    padding: 0;
+    max-width: none;
+  }
+}
