@@ -12,7 +12,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
+import java.util.List;
+import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -40,54 +42,47 @@ class BlockchainControllerTest {
     @WithMockUser
     void testGetNetworkStatus_Success() throws Exception {
         // Given
-        var networkInfo = BlockchainService.NetworkInfo.builder()
-                .connected(true)
-                .networkName("mumbai")
-                .chainId(80001L)
-                .blockNumber(12345L)
-                .gasPrice("20000000000")
-                .build();
+        Map<String, Object> networkStatus = new HashMap<>();
+        networkStatus.put("connected", true);
+        networkStatus.put("networkId", 80001L);
+        networkStatus.put("latestBlock", 12345L);
+        networkStatus.put("gasPrice", "20000000000");
 
-        when(blockchainService.getNetworkInfo()).thenReturn(networkInfo);
+        when(blockchainService.getNetworkStatus()).thenReturn(CompletableFuture.completedFuture(networkStatus));
 
         // When & Then
         mockMvc.perform(get("/api/blockchain/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.connected").value(true))
-                .andExpect(jsonPath("$.networkName").value("mumbai"))
-                .andExpect(jsonPath("$.chainId").value(80001));
+                .andExpect(jsonPath("$.networkId").value(80001));
     }
 
     @Test
     @WithMockUser
     void testGetNetworkStatus_Disconnected() throws Exception {
         // Given
-        var networkInfo = BlockchainService.NetworkInfo.builder()
-                .connected(false)
-                .build();
+        Map<String, Object> networkStatus = new HashMap<>();
+        networkStatus.put("connected", false);
 
-        when(blockchainService.getNetworkInfo()).thenReturn(networkInfo);
+        when(blockchainService.getNetworkStatus()).thenReturn(CompletableFuture.completedFuture(networkStatus));
 
         // When & Then
         mockMvc.perform(get("/api/blockchain/status"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpected(jsonPath("$.connected").value(false))
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.connected").value(false));
     }
 
     @Test
     @WithMockUser
     void testRegisterNote_Success() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-        
-        var result = BlockchainService.TransactionResult.builder()
-                .success(true)
-                .noteId(123L)
-                .transactionHash("0x1234567890abcdef")
-                .build();
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("noteId", 123L);
+        result.put("transactionHash", "0x1234567890abcdef");
+        result.put("contentHash", "0xabcd1234");
 
-        when(blockchainService.registerNote(anyString(), anyString()))
+        when(blockchainService.registerNote(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(result));
 
         var request = Map.of(
@@ -108,30 +103,8 @@ class BlockchainControllerTest {
 
     @Test
     @WithMockUser
-    void testRegisterNote_ServiceUnavailable() throws Exception {
-        // Given
-        when(blockchainService.isAvailable()).thenReturn(false);
-
-        var request = Map.of(
-                "content", "Test note content",
-                "title", "Test Note Title"
-        );
-
-        // When & Then
-        mockMvc.perform(post("/api/blockchain/notes/register")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.error").value("Blockchain service unavailable"));
-    }
-
-    @Test
-    @WithMockUser
     void testRegisterNote_ValidationError() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-
         var request = Map.of(
                 "content", "", // Empty content should fail validation
                 "title", "Test Note Title"
@@ -149,16 +122,13 @@ class BlockchainControllerTest {
     @WithMockUser
     void testVerifyNote_Success() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-        
-        var result = BlockchainService.VerificationResult.builder()
-                .exists(true)
-                .noteId(123L)
-                .owner("0x1234567890abcdef")
-                .timestamp(System.currentTimeMillis())
-                .build();
+        Map<String, Object> result = new HashMap<>();
+        result.put("exists", true);
+        result.put("owner", "testuser");
+        result.put("contentHash", "0xabcd1234");
+        result.put("verified", true);
 
-        when(blockchainService.verifyNote(anyString()))
+        when(blockchainService.verifyNote(anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(result));
 
         var request = Map.of("content", "Test note content");
@@ -170,42 +140,36 @@ class BlockchainControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exists").value(true))
-                .andExpect(jsonPath("$.noteId").value(123))
-                .andExpect(jsonPath("$.owner").value("0x1234567890abcdef"));
+                .andExpect(jsonPath("$.owner").value("testuser"));
     }
 
     @Test
     @WithMockUser
     void testGetNoteById_Success() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-        
-        var note = BlockchainService.NoteDetails.builder()
-                .id(123L)
-                .contentHash("0xabcdef")
-                .title("Test Note")
-                .owner("0x1234567890abcdef")
-                .timestamp(System.currentTimeMillis())
-                .build();
+        Map<String, Object> note = new HashMap<>();
+        note.put("noteId", 123L);
+        note.put("owner", "testuser");
+        note.put("contentHash", "0xabcdef");
+        note.put("timestamp", System.currentTimeMillis());
 
-        when(blockchainService.getNoteById(123L))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(note)));
+        when(blockchainService.getNoteById(eq(123L), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(note));
 
         // When & Then
         mockMvc.perform(get("/api/blockchain/notes/123"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(123))
-                .andExpect(jsonPath("$.title").value("Test Note"))
-                .andExpect(jsonPath("$.owner").value("0x1234567890abcdef"));
+                .andExpect(jsonPath("$.noteId").value(123))
+                .andExpect(jsonPath("$.owner").value("testuser"));
     }
 
     @Test
     @WithMockUser
     void testGetNoteById_NotFound() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-        when(blockchainService.getNoteById(999L))
-                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+        Map<String, Object> emptyResult = new HashMap<>();
+        when(blockchainService.getNoteById(eq(999L), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(emptyResult));
 
         // When & Then
         mockMvc.perform(get("/api/blockchain/notes/999"))
@@ -216,23 +180,29 @@ class BlockchainControllerTest {
     @WithMockUser
     void testGetMyNotes_Success() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
-        when(blockchainService.getMyNotes())
-                .thenReturn(CompletableFuture.completedFuture(Arrays.asList(1L, 2L, 3L)));
+        List<Map<String, Object>> notes = new ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            Map<String, Object> note = new HashMap<>();
+            note.put("noteId", (long) i);
+            note.put("owner", "testuser");
+            note.put("contentHash", "0x" + i);
+            notes.add(note);
+        }
+
+        when(blockchainService.getUserNotes(anyString()))
+                .thenReturn(CompletableFuture.completedFuture(notes));
 
         // When & Then
         mockMvc.perform(get("/api/blockchain/notes/my-notes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.noteIds").isArray())
-                .andExpect(jsonPath("$.noteIds.length()").value(3))
-                .andExpected(jsonPath("$.count").value(3));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(3));
     }
 
     @Test
     @WithMockUser
     void testGetTotalNoteCount_Success() throws Exception {
         // Given
-        when(blockchainService.isAvailable()).thenReturn(true);
         when(blockchainService.getTotalNoteCount())
                 .thenReturn(CompletableFuture.completedFuture(42L));
 
@@ -246,7 +216,7 @@ class BlockchainControllerTest {
     @WithMockUser
     void testGenerateHash_Success() throws Exception {
         // Given
-        when(blockchainService.generateNoteHash("test content"))
+        when(blockchainService.generateContentHash("test content"))
                 .thenReturn("0x1234567890abcdef");
 
         var request = Map.of("content", "test content");
