@@ -121,41 +121,6 @@
             <artifactId>commonmark-ext-autolink</artifactId>
             <version>0.21.0</version>
         </dependency>
-
-        <!-- Web3j for Ethereum blockchain integration -->
-        <dependency>
-            <groupId>org.web3j</groupId>
-            <artifactId>core</artifactId>
-            <version>4.10.3</version>
-        </dependency>
-        <dependency>
-            <groupId>org.web3j</groupId>
-            <artifactId>crypto</artifactId>
-            <version>4.10.3</version>
-        </dependency>
-        <dependency>
-            <groupId>org.web3j</groupId>
-            <artifactId>utils</artifactId>
-            <version>4.10.3</version>
-        </dependency>
-        <dependency>
-            <groupId>org.web3j</groupId>
-            <artifactId>contracts</artifactId>
-            <version>4.10.3</version>
-        </dependency>
-
-        <!-- Jackson for JSON processing (web3j compatibility) -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        
-        <!-- Bouncy Castle for cryptographic operations -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.70</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -181,35 +146,6 @@
                     <source>11</source>
                     <target>11</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.web3j</groupId>
-                <artifactId>web3j-maven-plugin</artifactId>
-                <version>4.10.3</version>
-                <configuration>
-                    <packageName>com.modulo.blockchain.contracts</packageName>
-                    <sourceDestination>src/main/java</sourceDestination>
-                    <nativeJavaType>true</nativeJavaType>
-                    <outputFormat>java</outputFormat>
-                    <soliditySourceFiles>
-                        <directory>${project.basedir}/../smart-contracts/contracts</directory>
-                        <includes>
-                            <include>**/*.sol</include>
-                        </includes>
-                        <excludes>
-                            <exclude>**/*-Remix.sol</exclude>
-                        </excludes>
-                    </soliditySourceFiles>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>generate-contract-wrappers</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>generate-sources</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

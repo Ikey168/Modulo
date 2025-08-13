@@ -1,39 +1,48 @@
-# Blockchain Integration - Spring Boot Backend
+# Blockchain Integration - Spring Boot Backend (PLACEHOLDER)
 
-This module provides blockchain integration for the Modulo application, enabling note registration and verification on the Polygon network using web3j.
+This document outlines the planned blockchain integration for the Modulo application using web3j to interact with smart contracts on the Polygon network.
 
-## Overview
+## ⚠️ Current Status: PLACEHOLDER IMPLEMENTATION
 
-The blockchain integration allows users to:
-- Register notes on the blockchain for integrity verification
-- Verify note existence and ownership
-- Update note content (owner only)
-- Query blockchain state and statistics
+The blockchain integration is currently in placeholder status due to compatibility issues between web3j versions and Java 11.
 
-## Architecture
+### Issues Encountered
 
-### Components
+1. **Java Version Compatibility**: 
+   - web3j 4.10.x requires Java 17 (class file version 61.0)
+   - Current project uses Java 11 (class file version 55.0)
+   - web3j 4.8.x and earlier should support Java 11 but need testing
 
-1. **BlockchainConfig** - Web3j configuration and bean definitions
-2. **BlockchainService** - Core blockchain interaction service
-3. **BlockchainController** - REST API endpoints
-4. **AsyncConfig** - Asynchronous processing configuration
+2. **Maven Plugin Compatibility**:
+   - web3j-maven-plugin has similar Java version requirements
+   - Contract wrapper generation requires alternative approach
 
-### Dependencies
+### Planned Implementation
 
-- **web3j-core (4.10.3)** - Ethereum/Polygon blockchain interaction
-- **web3j-crypto (4.10.3)** - Cryptographic operations
-- **web3j-utils (4.10.3)** - Utility functions
-- **web3j-contracts (4.10.3)** - Smart contract interaction
+The full blockchain integration would provide:
 
-## Configuration
+#### Features
+- **Note Registration**: Register note hashes on Polygon blockchain for integrity verification
+- **Note Verification**: Verify note existence and ownership on-chain
+- **Transaction Management**: Handle blockchain transactions asynchronously
+- **Network Monitoring**: Check blockchain connectivity and status
+- **Gas Management**: Optimize transaction costs and retry logic
 
-### Application Properties
+#### Architecture
+- **BlockchainService**: Core service for smart contract interaction
+- **BlockchainController**: REST API endpoints for blockchain operations
+- **BlockchainConfig**: Web3j client and network configuration
+- **Contract Wrappers**: Java interfaces for NoteRegistry smart contract
+
+### Configuration Required
 
 ```properties
-# Blockchain Configuration
+# Blockchain Network Configuration
 blockchain.network.rpc-url=https://rpc-mumbai.maticvigil.com
 blockchain.network.chain-id=80001
+blockchain.network.name=mumbai
+
+# Smart Contract Configuration
 blockchain.contract.address=${SMART_CONTRACT_ADDRESS}
 blockchain.private-key=${PRIVATE_KEY}
 
@@ -44,157 +53,84 @@ blockchain.gas.limit=3000000
 
 ### Environment Variables
 
-- `SMART_CONTRACT_ADDRESS` - Deployed NoteRegistry contract address
-- `PRIVATE_KEY` - Private key for transaction signing (should be funded with MATIC)
+- `SMART_CONTRACT_ADDRESS`: Deployed NoteRegistry contract address on Mumbai testnet
+- `PRIVATE_KEY`: Private key for transaction signing (must have MATIC funds)
 
-## API Endpoints
+### API Endpoints (Planned)
 
-### Network Status
-```
-GET /api/blockchain/status
-```
-Returns blockchain connectivity and network information.
+- `POST /api/blockchain/notes/register` - Register note on blockchain
+- `POST /api/blockchain/notes/verify` - Verify note existence
+- `GET /api/blockchain/notes/{id}` - Get note details
+- `GET /api/blockchain/notes/my-notes` - Get user's notes
+- `GET /api/blockchain/status` - Network connectivity status
 
-### Note Registration
-```
-POST /api/blockchain/notes/register
-Content-Type: application/json
+### Dependencies (When Implemented)
 
-{
-  "content": "Note content to register",
-  "title": "Note title"
-}
-```
-
-### Note Verification
-```
-POST /api/blockchain/notes/verify
-Content-Type: application/json
-
-{
-  "content": "Note content to verify"
-}
+```xml
+<!-- Web3j dependencies (Java 11 compatible version) -->
+<dependency>
+    <groupId>org.web3j</groupId>
+    <artifactId>core</artifactId>
+    <version>4.8.7</version>
+</dependency>
+<dependency>
+    <groupId>org.web3j</groupId>
+    <artifactId>crypto</artifactId>
+    <version>4.8.7</version>
+</dependency>
 ```
 
-### Note Details
-```
-GET /api/blockchain/notes/{noteId}
-```
+### Next Steps
 
-### User Notes
-```
-GET /api/blockchain/notes/my-notes
-```
+1. **Resolve Compatibility Issues**:
+   - Test web3j 4.8.x with Java 11
+   - Alternative: Upgrade project to Java 17
+   - Alternative: Use HTTP calls to blockchain RPC
 
-### Note Count
-```
-GET /api/blockchain/notes/count
-```
+2. **Deploy Smart Contract**:
+   - Deploy NoteRegistry contract to Polygon Mumbai
+   - Verify contract on PolygonScan
+   - Fund deployer account with MATIC
 
-### Update Note
-```
-PUT /api/blockchain/notes/{noteId}
-Content-Type: application/json
+3. **Generate Contract Wrappers**:
+   - Use web3j CLI tools instead of Maven plugin
+   - Manually create contract interfaces
+   - Test contract interaction
 
-{
-  "newContent": "Updated note content"
-}
-```
+4. **Implement Service Layer**:
+   - Complete BlockchainService implementation
+   - Add async transaction handling
+   - Implement error handling and retries
 
-### Generate Hash
-```
-POST /api/blockchain/hash
-Content-Type: application/json
+5. **Create API Layer**:
+   - Implement BlockchainController
+   - Add input validation
+   - Create comprehensive tests
 
-{
-  "content": "Content to hash"
-}
-```
+6. **Integration Testing**:
+   - Test with Mumbai testnet
+   - Load testing with multiple transactions
+   - Error scenario testing
 
-## Smart Contract Integration
+### Alternative Implementations
 
-The service integrates with the NoteRegistry smart contract deployed on Polygon Mumbai testnet. The contract provides:
+If web3j compatibility cannot be resolved:
 
-- `registerNote(bytes32 contentHash, string title)` - Register a new note
-- `verifyNote(bytes32 contentHash)` - Verify note existence
-- `getNoteById(uint256 noteId)` - Get note details
-- `updateNote(uint256 noteId, bytes32 newContentHash)` - Update note content
-- `getNotesOwnedBy(address owner)` - Get notes by owner
-- `getTotalNoteCount()` - Get total note count
+1. **Direct HTTP/RPC Calls**: Use Spring WebClient to call blockchain RPC methods
+2. **Microservice Architecture**: Separate blockchain service with compatible Java version
+3. **Ethereum Libraries**: Use other Java Ethereum libraries like EthereumJ
 
-## Testing
+### Current Placeholder Service
 
-### Unit Tests
-```bash
-mvn test -Dtest=BlockchainControllerTest
-```
+The current implementation includes:
+- `BlockchainService` with placeholder methods
+- Proper logging for future implementation tracking
+- Documentation of intended functionality
 
-### Integration Tests
-```bash
-# Requires network connectivity to Polygon Mumbai
-mvn test -Dtest=BlockchainServiceIntegrationTest
-```
+This ensures the application compiles and runs while blockchain integration is pending.
 
-## Security Considerations
+### Related Work
 
-1. **Private Key Management**: Never commit private keys to version control
-2. **Rate Limiting**: Implement rate limiting for blockchain operations
-3. **Input Validation**: All user inputs are validated before blockchain interaction
-4. **Error Handling**: Graceful handling of network failures and transaction errors
-
-## Gas Optimization
-
-- Gas price is configurable via properties
-- Gas limit is set per operation type
-- Failed transactions are logged for analysis
-- Retry logic for network failures
-
-## Monitoring
-
-The service provides:
-- Health check endpoint (`/api/blockchain/status`)
-- Detailed logging of all blockchain operations
-- Metrics for transaction success/failure rates
-- Error tracking and alerting
-
-## Development
-
-### Local Development
-1. Set up environment variables
-2. Ensure network connectivity to Polygon Mumbai
-3. Fund the account with Mumbai MATIC tokens
-4. Deploy the smart contract (see `smart-contracts/` directory)
-
-### Adding New Features
-1. Update the smart contract if needed
-2. Regenerate contract wrappers using web3j Maven plugin
-3. Implement new service methods
-4. Add corresponding REST endpoints
-5. Update tests and documentation
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Connection Refused**: Check RPC URL and network connectivity
-2. **Insufficient Funds**: Ensure account has enough MATIC for gas
-3. **Transaction Failed**: Check gas limits and contract address
-4. **Slow Responses**: Network congestion, consider increasing timeouts
-
-### Logs
-```bash
-# View blockchain service logs
-docker logs modulo-backend | grep blockchain
-
-# View transaction details
-docker logs modulo-backend | grep "transaction"
-```
-
-## Future Enhancements
-
-- [ ] Support for multiple networks (mainnet, other testnets)
-- [ ] Batch operations for multiple notes
-- [ ] Event listening for real-time updates
-- [ ] Caching layer for frequently accessed data
-- [ ] Integration with existing note management system
-- [ ] Enhanced error recovery and retry mechanisms
+- **Issue #34**: ✅ Polygon Mumbai deployment infrastructure (completed)
+- **Issue #35**: 🟡 Spring Boot blockchain integration (in progress)
+- **Smart Contracts**: NoteRegistry.sol implemented and ready for deployment
