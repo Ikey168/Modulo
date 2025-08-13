@@ -104,11 +104,12 @@ npm run node
 npm run deploy:local
 ```
 
-### Testnet Deployment
-1. Configure your `.env` file with Sepolia network details
-2. Deploy to Sepolia testnet:
+### Testnet Deployment (Mumbai)
+1. Configure your `.env` file with Mumbai network details
+2. Get test MATIC from [Polygon Faucet](https://faucet.polygon.technology/)
+3. Deploy to Mumbai testnet:
 ```bash
-npm run deploy:testnet
+npm run deploy:mumbai
 ```
 
 ### Mainnet Deployment
@@ -117,6 +118,30 @@ npm run deploy:testnet
 ```bash
 npm run deploy
 ```
+
+## Mumbai Testnet Quick Start
+
+For quick testing on Polygon Mumbai testnet:
+
+1. **Setup Mumbai in MetaMask**:
+   - Network: Mumbai Testnet
+   - RPC URL: `https://rpc-mumbai.maticvigil.com/`
+   - Chain ID: `80001`
+   - Currency: `MATIC`
+
+2. **Get Test MATIC**: Visit [faucet.polygon.technology](https://faucet.polygon.technology/)
+
+3. **Deploy Contract**:
+   ```bash
+   npm run deploy:mumbai
+   ```
+
+4. **Test Contract**:
+   ```bash
+   npm run interact:mumbai
+   ```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 
 ## Contract Interface
 
