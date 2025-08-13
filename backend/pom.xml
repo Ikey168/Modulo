@@ -67,18 +67,15 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- SQLite Database for offline storage -->
+        <!-- SQLite Database for offline storage - commented out for now due to Hibernate 6 compatibility -->
+        <!--
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.43.2.2</version>
         </dependency>
-        <!-- Use Hibernate 5.x compatible SQLite dialect -->
-        <dependency>
-            <groupId>com.github.gwenn</groupId>
-            <artifactId>sqlite-dialect</artifactId>
-            <version>0.1.4</version>
-        </dependency>
+        -->
+        <!-- Note: SQLite dialect will be added back when a Hibernate 6 compatible version is available -->
 
         <dependency>
             <groupId>org.projectlombok</groupId>

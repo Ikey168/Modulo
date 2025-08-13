@@ -26,7 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Unit tests for BlockchainController
  */
-@WebMvcTest(BlockchainController.class)
+@WebMvcTest(controllers = BlockchainController.class, 
+    excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration.class
+    })
 class BlockchainControllerTest {
 
     @Autowired
