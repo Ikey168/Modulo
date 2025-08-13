@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Unit tests for BlockchainController
@@ -55,7 +56,11 @@ class BlockchainControllerTest {
         when(blockchainService.getNetworkStatus()).thenReturn(CompletableFuture.completedFuture(networkStatus));
 
         // When & Then
-        mockMvc.perform(get("/api/blockchain/status"))
+        MvcResult mvcResult = mockMvc.perform(get("/api/blockchain/status"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.connected").value(true))
                 .andExpect(jsonPath("$.networkId").value(80001));
@@ -71,7 +76,11 @@ class BlockchainControllerTest {
         when(blockchainService.getNetworkStatus()).thenReturn(CompletableFuture.completedFuture(networkStatus));
 
         // When & Then
-        mockMvc.perform(get("/api/blockchain/status"))
+        MvcResult mvcResult = mockMvc.perform(get("/api/blockchain/status"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.connected").value(false));
     }
