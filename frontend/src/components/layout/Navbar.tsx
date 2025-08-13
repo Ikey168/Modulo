@@ -34,6 +34,9 @@ const Navbar = () => {
             <Link to="/about" className="hover:text-gray-300">
               About
             </Link>
+            <Link to="/settings" className="hover:text-gray-300">
+              Settings
+            </Link>
           </div>
 
           <div className="flex items-center space-x-4">

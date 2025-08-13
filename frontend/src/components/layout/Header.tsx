@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/store';
 import { selectIsAuthenticated, clearCredentials } from '../../features/auth/authSlice';
 import { NetworkStatusIndicator } from '../network';
+import { ThemeToggle } from '../theme';
 
 const Header: React.FC = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -40,6 +41,7 @@ const Header: React.FC = () => {
       <div className="header-content">
         <h1>Modulo</h1>
         <div className="header-controls">
+          <ThemeToggle compact={true} showLabels={false} className="header-theme-toggle" />
           <NetworkStatusIndicator showDetails={true} className="header-network-status" />
           <nav className="header-nav">
             <ul>
