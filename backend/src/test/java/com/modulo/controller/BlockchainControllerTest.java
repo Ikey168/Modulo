@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.service.BlockchainService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -26,11 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Unit tests for BlockchainController
  */
-@WebMvcTest(controllers = BlockchainController.class, 
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration.class
-    })
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(locations = "classpath:application-test.properties")
 class BlockchainControllerTest {
 
     @Autowired
