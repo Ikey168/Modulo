@@ -24,16 +24,16 @@ public class SecurityConfig {
         logger.debug("Configuring HttpSecurity");
         
         http
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/", "/index.html", "/static/**", 
+            .authorizeRequests(authz -> authz
+                .antMatchers("/actuator/**").permitAll()
+                .antMatchers("/", "/index.html", "/static/**", 
                     "/favicon.ico", "/manifest.json", "/logo*.png",
                     "/*.js", "/*.css").permitAll()
-                .requestMatchers("/error", "/login").permitAll()
-                .requestMatchers("/oauth2/**", "/login/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/logout").authenticated() // Ensure only authenticated users can logout
-                .requestMatchers("/user/me").authenticated()
+                .antMatchers("/error", "/login").permitAll()
+                .antMatchers("/oauth2/**", "/login/**").permitAll()
+                .antMatchers("/api/public/**").permitAll()
+                .antMatchers("/logout").authenticated() // Ensure only authenticated users can logout
+                .antMatchers("/user/me").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/actuator/**", "/logout")
+                .ignoringAntMatchers("/actuator/**", "/logout")
                 .disable() // Temporarily disabled for testing
             )
             .cors(cors -> {}); // Enable CORS processing
