@@ -28,27 +28,11 @@ public class PluginConfig {
     @Autowired
     private UserService userService;
     
-    /**
-     * Plugin event bus for event handling
-     */
-    @Bean
-    @Scope("singleton")
-    public PluginEventBus pluginEventBus() {
-        logger.info("Creating Plugin Event Bus");
-        return new PluginEventBus();
-    }
+    @Autowired
+    private PluginEventBus pluginEventBus;
     
-    /**
-     * Plugin security manager for permission control
-     */
-    @Bean
-    @Scope("singleton")
-    public PluginSecurityManager pluginSecurityManager() {
-        logger.info("Creating Plugin Security Manager");
-        PluginSecurityManager securityManager = new PluginSecurityManager();
-        securityManager.initialize();
-        return securityManager;
-    }
+    @Autowired
+    private PluginSecurityManager pluginSecurityManager;
     
     /**
      * Note API for plugins

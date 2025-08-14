@@ -141,7 +141,7 @@ public class UserService {
     /**
      * Add custom attribute to user
      */
-    public void addCustomAttribute(Long userId, String key, Object value) {
+    public void addCustomAttribute(Long userId, String key, String value) {
         Optional<User> userOpt = findById(userId);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -234,8 +234,14 @@ public class UserService {
                 user.setPreferences(new HashMap<>());
             }
             
+            // Convert Object values to String (JSON serialization can be added here)
+            Map<String, String> stringPreferences = new HashMap<>();
+            for (Map.Entry<String, Object> entry : preferences.entrySet()) {
+                stringPreferences.put(entry.getKey(), entry.getValue() != null ? entry.getValue().toString() : null);
+            }
+            
             // Update preferences
-            user.getPreferences().putAll(preferences);
+            user.getPreferences().putAll(stringPreferences);
             user.setUpdatedAt(LocalDateTime.now());
             
             entityManager.merge(user);

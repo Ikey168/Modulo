@@ -38,10 +38,8 @@ public class PluginRegistry {
     public Long registerPlugin(Plugin plugin, Map<String, Object> config) {
         logger.info("Registering plugin: {}", plugin.getInfo().getName());
         
-        String sql = """
-            INSERT INTO plugin_registry (name, version, description, author, type, runtime, status, config, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
-            """;
+        String sql = "INSERT INTO plugin_registry (name, version, description, author, type, runtime, status, config, created_at, updated_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)";
         
         LocalDateTime now = LocalDateTime.now();
         String configJson = config != null ? convertToJson(config) : "{}";
@@ -154,11 +152,9 @@ public class PluginRegistry {
      * @return List of plugin events
      */
     public List<PluginEventEntry> getPluginEvents(String pluginId) {
-        String sql = """
-            SELECT pe.* FROM plugin_events pe
-            JOIN plugin_registry pr ON pe.plugin_id = pr.id
-            WHERE pr.name = ?
-            """;
+        String sql = "SELECT pe.* FROM plugin_events pe " +
+                    "JOIN plugin_registry pr ON pe.plugin_id = pr.id " +
+                    "WHERE pr.name = ?";
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PluginEventEntry entry = new PluginEventEntry();
@@ -177,11 +173,9 @@ public class PluginRegistry {
      * @return List of plugin permissions
      */
     public List<PluginPermissionEntry> getPluginPermissions(String pluginId) {
-        String sql = """
-            SELECT pp.* FROM plugin_permissions pp
-            JOIN plugin_registry pr ON pp.plugin_id = pr.id
-            WHERE pr.name = ?
-            """;
+        String sql = "SELECT pp.* FROM plugin_permissions pp " +
+                    "JOIN plugin_registry pr ON pp.plugin_id = pr.id " +
+                    "WHERE pr.name = ?";
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             PluginPermissionEntry entry = new PluginPermissionEntry();

@@ -41,13 +41,13 @@ public class User {
     @CollectionTable(name = "user_custom_attributes", joinColumns = @JoinColumn(name = "user_id"))
     @MapKeyColumn(name = "attribute_key")
     @Column(name = "attribute_value", columnDefinition = "TEXT")
-    private Map<String, Object> customAttributes = new HashMap<>();
+    private Map<String, String> customAttributes = new HashMap<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "user_preferences", joinColumns = @JoinColumn(name = "user_id"))
     @MapKeyColumn(name = "preference_key")
     @Column(name = "preference_value", columnDefinition = "TEXT")
-    private Map<String, Object> preferences = new HashMap<>();
+    private Map<String, String> preferences = new HashMap<>();
 
     public User() {
         this.createdAt = LocalDateTime.now();
@@ -131,19 +131,19 @@ public class User {
         this.lastLoginAt = lastLoginAt;
     }
 
-    public Map<String, Object> getCustomAttributes() {
+    public Map<String, String> getCustomAttributes() {
         return customAttributes;
     }
 
-    public void setCustomAttributes(Map<String, Object> customAttributes) {
+    public void setCustomAttributes(Map<String, String> customAttributes) {
         this.customAttributes = customAttributes;
     }
 
-    public Map<String, Object> getPreferences() {
+    public Map<String, String> getPreferences() {
         return preferences;
     }
 
-    public void setPreferences(Map<String, Object> preferences) {
+    public void setPreferences(Map<String, String> preferences) {
         this.preferences = preferences;
     }
 }

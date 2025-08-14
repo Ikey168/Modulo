@@ -59,7 +59,7 @@ public class Note {
     @CollectionTable(name = "note_metadata", schema = "application", joinColumns = @JoinColumn(name = "note_id"))
     @MapKeyColumn(name = "metadata_key")
     @Column(name = "metadata_value", columnDefinition = "TEXT")
-    private Map<String, Object> metadata = new HashMap<>();
+    private Map<String, String> metadata = new HashMap<>();
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
@@ -202,11 +202,11 @@ public class Note {
         this.lastViewedAt = lastViewedAt;
     }
 
-    public Map<String, Object> getMetadata() {
+    public Map<String, String> getMetadata() {
         return metadata;
     }
 
-    public void setMetadata(Map<String, Object> metadata) {
+    public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
     }
 

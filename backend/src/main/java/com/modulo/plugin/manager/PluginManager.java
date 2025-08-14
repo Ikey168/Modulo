@@ -4,6 +4,7 @@ import com.modulo.plugin.api.*;
 import com.modulo.plugin.event.PluginEventBus;
 import com.modulo.plugin.event.SystemEvent;
 import com.modulo.plugin.registry.PluginRegistry;
+import com.modulo.plugin.registry.PluginRegistryEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

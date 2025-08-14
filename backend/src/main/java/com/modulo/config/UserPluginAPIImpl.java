@@ -102,7 +102,9 @@ public class UserPluginAPIImpl implements UserPluginAPI {
         try {
             Optional<User> currentUser = getCurrentUser();
             if (currentUser.isPresent()) {
-                userService.addCustomAttribute(currentUser.get().getId(), key, value);
+                // Convert Object to String for compatibility with entity mapping
+                String stringValue = value != null ? value.toString() : null;
+                userService.addCustomAttribute(currentUser.get().getId(), key, stringValue);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to add custom attribute: " + e.getMessage());

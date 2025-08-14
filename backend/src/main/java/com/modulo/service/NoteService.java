@@ -177,8 +177,14 @@ public class NoteService {
                 note.setMetadata(new HashMap<>());
             }
             
+            // Convert Object values to String (JSON serialization can be added here)
+            Map<String, String> stringMetadata = new HashMap<>();
+            for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+                stringMetadata.put(entry.getKey(), entry.getValue() != null ? entry.getValue().toString() : null);
+            }
+            
             // Add new metadata
-            note.getMetadata().putAll(metadata);
+            note.getMetadata().putAll(stringMetadata);
             note.setUpdatedAt(LocalDateTime.now());
             
             entityManager.merge(note);
@@ -194,7 +200,12 @@ public class NoteService {
     public Map<String, Object> getMetadata(Long noteId) {
         Optional<Note> note = findById(noteId);
         if (note.isPresent() && note.get().getMetadata() != null) {
-            return new HashMap<>(note.get().getMetadata());
+            // Convert Map<String, String> to Map<String, Object> for backward compatibility
+            Map<String, Object> objectMetadata = new HashMap<>();
+            for (Map.Entry<String, String> entry : note.get().getMetadata().entrySet()) {
+                objectMetadata.put(entry.getKey(), entry.getValue());
+            }
+            return objectMetadata;
         }
         return new HashMap<>();
     }

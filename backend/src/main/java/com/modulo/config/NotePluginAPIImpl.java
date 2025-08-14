@@ -91,10 +91,10 @@ public class NotePluginAPIImpl implements NotePluginAPI {
             return noteService.getAttachments(noteId).stream()
                 .map(attachment -> new AttachmentMetadata(
                     attachment.getId(),
-                    attachment.getFilename(),
+                    attachment.getOriginalFilename(),
                     attachment.getContentType(),
-                    attachment.getSize(),
-                    attachment.getUrl()
+                    attachment.getFileSize(),
+                    attachment.getBlobUrl()
                 ))
                 .collect(Collectors.toList());
         } catch (Exception e) {
