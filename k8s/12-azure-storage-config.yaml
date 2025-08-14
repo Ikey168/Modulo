@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-storage-secret
+  namespace: modulo
+  labels:
+    app: modulo
+    component: storage
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual values
+  # echo -n "your-connection-string" | base64
+  connection-string: ""
+  # echo -n "your-account-key" | base64
+  account-key: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-storage-config
+  namespace: modulo
+  labels:
+    app: modulo
+    component: storage
+data:
+  account-name: "modulostorage"
+  container-name: "attachments"
+  use-managed-identity: "true"
+  max-file-size: "10485760"
+  cdn-endpoint: ""
+  allowed-content-types: "image/jpeg,image/png,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"

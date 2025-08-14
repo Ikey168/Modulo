@@ -5,7 +5,7 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Node; // Neo4j
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
-import jakarta.persistence.*; // JPA
+import javax.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -53,11 +53,17 @@ public class Note {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    @OneToMany(mappedBy = "sourceNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
+    @OneToMany(mappedBy = "sourceNote", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<NoteLink> outgoingLinks = new HashSet<>();
 
-    @OneToMany(mappedBy = "targetNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.INCOMING) // Neo4j
+    @OneToMany(mappedBy = "targetNote", fetch = FetchType.LAZY)
     private Set<NoteLink> incomingLinks = new HashSet<>();
+
+    // Attachments relationship
+    @OneToMany(mappedBy = "note", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Attachment> attachments = new HashSet<>();
 
     // @Relationship(type = "LINKS_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
@@ -207,6 +213,24 @@ public class Note {
     public void removeIncomingLink(NoteLink link) {
         this.incomingLinks.remove(link);
         link.setTargetNote(null);
+    }
+
+    public Set<Attachment> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(Set<Attachment> attachments) {
+        this.attachments = attachments;
+    }
+
+    public void addAttachment(Attachment attachment) {
+        this.attachments.add(attachment);
+        attachment.setNote(this);
+    }
+
+    public void removeAttachment(Attachment attachment) {
+        this.attachments.remove(attachment);
+        attachment.setNote(null);
     }
 
     /* // Neo4j specific

@@ -13,8 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -271,7 +271,7 @@ class NoteVerificationRequest {
 
 @lombok.Data
 class NoteIntegrityRequest {
-    @jakarta.validation.constraints.NotNull(message = "Note ID cannot be null")
+    @javax.validation.constraints.NotNull(message = "Note ID cannot be null")
     private Long noteId;
     
     @NotBlank(message = "Current content cannot be blank")

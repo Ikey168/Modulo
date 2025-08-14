@@ -36,6 +36,49 @@ spec:
             secretKeyRef:
               name: modulo-secrets
               key: redis-url
+        # Azure Blob Storage Configuration
+        - name: AZURE_STORAGE_ACCOUNT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: account-name
+        - name: AZURE_STORAGE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: azure-storage-secret
+              key: connection-string
+              optional: true
+        - name: AZURE_STORAGE_ACCOUNT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: azure-storage-secret
+              key: account-key
+              optional: true
+        - name: AZURE_STORAGE_USE_MANAGED_IDENTITY
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: use-managed-identity
+        - name: AZURE_STORAGE_CONTAINER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: container-name
+        - name: AZURE_STORAGE_MAX_FILE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: max-file-size
+        - name: AZURE_CDN_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: cdn-endpoint
+        - name: AZURE_STORAGE_ALLOWED_CONTENT_TYPES
+          valueFrom:
+            configMapKeyRef:
+              name: azure-storage-config
+              key: allowed-content-types
         resources:
           requests:
             cpu: 100m
