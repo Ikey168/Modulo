@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: modulo-postgres-read-replicas
+  namespace: modulo
+  labels:
+    app: postgresql
+    component: read-replica
+spec:
+  serviceName: postgres-read-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+      component: read-replica
+  template:
+    metadata:
+      labels:
+        app: postgresql
+        component: read-replica
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: modulo
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: modulo-postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: modulo-postgres-credentials
+              key: password
+        - name: POSTGRES_REPLICATION_MODE
+          value: slave
+        - name: POSTGRES_REPLICATION_USER
+          value: replicator
+        - name: POSTGRES_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: modulo-postgres-credentials
+              key: replication-password
+        - name: POSTGRES_MASTER_SERVICE
+          value: modulo-postgres-cluster-rw
+        ports:
+        - containerPort: 5432
+          name: postgres
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 800m
+            memory: 1Gi
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-read-service
+  namespace: modulo
+  labels:
+    app: postgresql
+    component: read-replica
+spec:
+  selector:
+    app: postgresql
+    component: read-replica
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  type: ClusterIP
