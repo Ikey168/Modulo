@@ -1,0 +1,66 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: modulo-api-metrics
+  namespace: modulo
+  labels:
+    app: modulo-api
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: modulo-api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-metrics
+  namespace: modulo
+  labels:
+    app: postgresql
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: postgresql
+  endpoints:
+  - port: postgres
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: modulo-scaling-alerts
+  namespace: modulo
+  labels:
+    app: modulo
+    monitoring: prometheus
+spec:
+  groups:
+  - name: modulo.scaling
+    rules:
+    - alert: HighAPILoad
+      expr: rate(http_requests_total[5m]) > 100
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High API load detected"
+        description: "API is receiving {{ $value }} requests/sec"
+    
+    - alert: DatabaseConnectionsHigh
+      expr: postgres_stat_database_numbackends > 150
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High database connections"
+        description: "Database has {{ $value }} active connections"

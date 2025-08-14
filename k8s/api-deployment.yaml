@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modulo-api
+  namespace: modulo
+  labels:
+    app: modulo-api
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: modulo-api
+  template:
+    metadata:
+      labels:
+        app: modulo-api
+        tier: backend
+    spec:
+      containers:
+      - name: api
+        image: modulo/api:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: modulo-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: modulo-secrets
+              key: redis-url
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modulo-api-service
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  selector:
+    app: modulo-api
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  type: ClusterIP
