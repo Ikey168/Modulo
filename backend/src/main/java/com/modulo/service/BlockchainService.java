@@ -54,6 +54,69 @@ public class BlockchainService {
     }
 
     /**
+     * Verify note integrity by comparing current content with blockchain hash
+     */
+    public CompletableFuture<Map<String, Object>> verifyNoteIntegrity(Long noteId, String currentContent, String username) {
+        log.info("Placeholder: Verifying note integrity for noteId: {}, user: {}", noteId, username);
+        
+        return CompletableFuture.supplyAsync(() -> {
+            // Simulate fetching note from blockchain
+            Map<String, Object> blockchainNote = simulateBlockchainNoteFetch(noteId, username);
+            
+            if (blockchainNote == null) {
+                throw new RuntimeException("Note not found on blockchain");
+            }
+            
+            // Generate hash for current content
+            String currentContentHash = generateContentHash(currentContent);
+            String blockchainContentHash = (String) blockchainNote.get("contentHash");
+            
+            // Compare hashes for integrity verification
+            boolean integrityValid = currentContentHash.equals(blockchainContentHash);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("noteId", noteId);
+            result.put("integrityValid", integrityValid);
+            result.put("currentContentHash", currentContentHash);
+            result.put("blockchainContentHash", blockchainContentHash);
+            result.put("owner", blockchainNote.get("owner"));
+            result.put("registrationTimestamp", blockchainNote.get("timestamp"));
+            result.put("lastVerified", System.currentTimeMillis());
+            
+            if (integrityValid) {
+                result.put("status", "VERIFIED");
+                result.put("message", "Note integrity verified successfully");
+            } else {
+                result.put("status", "MODIFIED");
+                result.put("message", "Note content has been modified since blockchain registration");
+            }
+            
+            log.info("Placeholder: Note integrity verification completed for noteId: {}, result: {}", noteId, integrityValid ? "VALID" : "INVALID");
+            return result;
+        });
+    }
+    
+    /**
+     * Simulate fetching a note from blockchain (placeholder)
+     */
+    private Map<String, Object> simulateBlockchainNoteFetch(Long noteId, String username) {
+        // Simulate note existence check
+        if (noteId <= 0 || noteId > 1000) {
+            return null; // Note not found
+        }
+        
+        Map<String, Object> blockchainNote = new HashMap<>();
+        blockchainNote.put("noteId", noteId);
+        blockchainNote.put("owner", username);
+        // Simulate original content hash (would be different if content changed)
+        blockchainNote.put("contentHash", "0x" + noteId.toString());
+        blockchainNote.put("timestamp", System.currentTimeMillis() - (noteId * 1000));
+        blockchainNote.put("transactionHash", "0xtx" + noteId);
+        
+        return blockchainNote;
+    }
+
+    /**
      * Get note details by ID (placeholder)
      */
     public CompletableFuture<Map<String, Object>> getNoteById(Long noteId, String username) {

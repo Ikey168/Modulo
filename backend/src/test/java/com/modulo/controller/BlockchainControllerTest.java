@@ -167,6 +167,105 @@ class BlockchainControllerTest {
 
     @Test
     @WithMockUser
+    void testVerifyNoteIntegrity_Valid() throws Exception {
+        // Arrange
+        Map<String, Object> response = Map.of(
+            "noteId", 123L,
+            "integrityValid", true,
+            "currentContentHash", "0x7b",
+            "blockchainContentHash", "0x7b",
+            "status", "VERIFIED",
+            "message", "Note integrity verified successfully"
+        );
+
+        when(blockchainService.verifyNoteIntegrity(eq(123L), anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(response));
+
+        var request = Map.of(
+            "noteId", 123L,
+            "currentContent", "test content"
+        );
+
+        // Act & Assert
+        MvcResult mvcResult = mockMvc.perform(post("/api/blockchain/notes/verify-integrity")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.noteId").value(123))
+                .andExpect(jsonPath("$.integrityValid").value(true))
+                .andExpect(jsonPath("$.status").value("VERIFIED"))
+                .andExpect(jsonPath("$.message").value("Note integrity verified successfully"));
+    }
+
+    @Test
+    @WithMockUser
+    void testVerifyNoteIntegrity_Modified() throws Exception {
+        // Arrange
+        Map<String, Object> response = Map.of(
+            "noteId", 123L,
+            "integrityValid", false,
+            "currentContentHash", "0x7c",
+            "blockchainContentHash", "0x7b",
+            "status", "MODIFIED",
+            "message", "Note content has been modified since blockchain registration"
+        );
+
+        when(blockchainService.verifyNoteIntegrity(eq(123L), anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(response));
+
+        var request = Map.of(
+            "noteId", 123L,
+            "currentContent", "modified content"
+        );
+
+        // Act & Assert
+        MvcResult mvcResult = mockMvc.perform(post("/api/blockchain/notes/verify-integrity")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.noteId").value(123))
+                .andExpect(jsonPath("$.integrityValid").value(false))
+                .andExpect(jsonPath("$.status").value("MODIFIED"))
+                .andExpect(jsonPath("$.message").value("Note content has been modified since blockchain registration"));
+    }
+
+    @Test
+    @WithMockUser
+    void testVerifyNoteIntegrity_NotFound() throws Exception {
+        // Arrange
+        when(blockchainService.verifyNoteIntegrity(eq(999L), anyString(), anyString()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Note not found on blockchain")));
+
+        var request = Map.of(
+            "noteId", 999L,
+            "currentContent", "test content"
+        );
+
+        // Act & Assert
+        MvcResult mvcResult = mockMvc.perform(post("/api/blockchain/notes/verify-integrity")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Note not found on blockchain"));
+    }
+
+    @Test
+    @WithMockUser
     void testGetNoteById_Success() throws Exception {
         // Given
         Map<String, Object> note = new HashMap<>();
