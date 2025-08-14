@@ -120,6 +120,10 @@ public class AttachmentService {
                 .collect(Collectors.toList());
     }
 
+    public List<Attachment> findByNoteId(Long noteId) {
+        return attachmentRepository.findByNoteIdAndIsActiveTrue(noteId);
+    }
+
     public AttachmentDto getAttachmentById(Long attachmentId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Attachment not found with id: " + attachmentId));
