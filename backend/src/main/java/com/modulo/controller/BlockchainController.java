@@ -82,6 +82,36 @@ public class BlockchainController {
             });
     }
 
+    @PostMapping("/notes/verify-integrity")
+    @Operation(summary = "Verify note integrity", description = "Compares current note content with blockchain hash to verify integrity")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Integrity verification completed"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "404", description = "Note not found on blockchain"),
+        @ApiResponse(responseCode = "500", description = "Service unavailable")
+    })
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> verifyNoteIntegrity(
+            @Valid @RequestBody NoteIntegrityRequest request,
+            Authentication authentication) {
+        
+        log.info("Verifying note integrity for user: {}, noteId: {}", authentication.getName(), request.getNoteId());
+
+        return blockchainService.verifyNoteIntegrity(request.getNoteId(), request.getCurrentContent(), authentication.getName())
+            .thenApply(result -> {
+                log.info("Note integrity verification completed: {}", result);
+                return ResponseEntity.ok(result);
+            })
+            .exceptionally(throwable -> {
+                log.error("Failed to verify note integrity: {}", throwable.getMessage());
+                if (throwable.getMessage().contains("not found")) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Note not found on blockchain"));
+                }
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to verify note integrity: " + throwable.getMessage()));
+            });
+    }
+
     @GetMapping("/notes/{id}")
     @Operation(summary = "Get note by ID", description = "Retrieves note details by blockchain ID")
     @ApiResponses(value = {
@@ -237,6 +267,15 @@ class NoteRegistrationRequest {
 class NoteVerificationRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
+}
+
+@lombok.Data
+class NoteIntegrityRequest {
+    @jakarta.validation.constraints.NotNull(message = "Note ID cannot be null")
+    private Long noteId;
+    
+    @NotBlank(message = "Current content cannot be blank")
+    private String currentContent;
 }
 
 @lombok.Data
