@@ -1,0 +1,660 @@
+/* Plugin Manager Styles */
+
+.plugin-manager {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.plugin-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.plugin-manager-header h1 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.plugin-manager-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.install-btn, .refresh-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.install-btn {
+  background: #007bff;
+  color: white;
+}
+
+.install-btn:hover {
+  background: #0056b3;
+}
+
+.refresh-btn {
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.refresh-btn:hover {
+  background: #e9ecef;
+}
+
+/* Error Banner */
+.error-banner {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #f5c6cb;
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #721c24;
+}
+
+/* Plugin Filters */
+.plugin-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.filter-btn:hover {
+  background: #f8f9fa;
+}
+
+.filter-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Plugin Grid */
+.plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+/* Empty State */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 64px 32px;
+  color: #6c757d;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  color: #495057;
+}
+
+.empty-state p {
+  margin: 0 0 24px 0;
+  font-size: 1.1rem;
+}
+
+/* Plugin Card */
+.plugin-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.plugin-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.plugin-card.active {
+  border-left: 4px solid #28a745;
+}
+
+.plugin-card.inactive {
+  border-left: 4px solid #6c757d;
+}
+
+.plugin-card.error {
+  border-left: 4px solid #dc3545;
+}
+
+.plugin-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.plugin-icon {
+  font-size: 2rem;
+  margin-right: 12px;
+}
+
+.plugin-info {
+  flex: 1;
+}
+
+.plugin-name {
+  margin: 0 0 4px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.plugin-version {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.plugin-status {
+  margin-left: auto;
+}
+
+.status-indicator {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.plugin-card-body {
+  margin-bottom: 16px;
+}
+
+.plugin-description {
+  margin: 0 0 12px 0;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.plugin-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.plugin-type {
+  text-transform: capitalize;
+}
+
+/* Plugin Actions */
+.plugin-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.primary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.secondary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.start-btn {
+  background: #28a745;
+  color: white;
+  flex: 1;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.stop-btn {
+  background: #ffc107;
+  color: #212529;
+  flex: 1;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: #e0a800;
+}
+
+.details-btn {
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  flex: 1;
+}
+
+.details-btn:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.uninstall-btn {
+  background: #dc3545;
+  color: white;
+  flex: 1;
+}
+
+.uninstall-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Plugin Details */
+.plugin-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dee2e6;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.detail-row label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.detail-row span {
+  color: #6c757d;
+  text-align: right;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.jar-path {
+  font-family: monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.permissions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.permission-tag {
+  background: #e9ecef;
+  color: #495057;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Loading Spinner */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px;
+  color: #6c757d;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Plugin Installer Modal */
+.plugin-installer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.plugin-installer-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.installer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  margin-bottom: 24px;
+}
+
+.installer-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+}
+
+.installer-body {
+  padding: 0 24px;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+/* File Upload Section */
+.file-upload-section {
+  margin-bottom: 24px;
+}
+
+.file-upload-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.file-drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.file-drop-zone:hover {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.file-drop-zone.drag-over {
+  border-color: #007bff;
+  background: #e3f2fd;
+  transform: scale(1.02);
+}
+
+.file-drop-zone.has-file {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.file-upload-prompt {
+  color: #6c757d;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.file-icon {
+  font-size: 2rem;
+}
+
+.file-info {
+  flex: 1;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.file-size {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.remove-file-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.remove-file-btn:hover {
+  background: #c82333;
+}
+
+/* Config Section */
+.config-section {
+  margin-bottom: 24px;
+}
+
+.config-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.config-error {
+  color: #dc3545;
+  font-weight: normal;
+}
+
+.config-textarea {
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.config-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.config-textarea.invalid {
+  border-color: #dc3545;
+}
+
+.config-help {
+  display: block;
+  margin-top: 6px;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+/* Installer Footer */
+.installer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 24px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.installer-footer .install-btn {
+  padding: 10px 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .plugin-manager {
+    padding: 16px;
+  }
+
+  .plugin-manager-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .plugin-manager-actions {
+    justify-content: center;
+  }
+
+  .plugin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plugin-filters {
+    flex-wrap: wrap;
+  }
+
+  .plugin-card-actions {
+    flex-direction: column;
+  }
+
+  .primary-actions,
+  .secondary-actions {
+    flex-direction: column;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detail-row span {
+    text-align: left;
+    margin-left: 0;
+  }
+
+  .permissions-list {
+    justify-content: flex-start;
+  }
+
+  .plugin-installer-modal {
+    width: 95%;
+    margin: 16px;
+  }
+
+  .installer-footer {
+    flex-direction: column-reverse;
+  }
+}
