@@ -9,6 +9,8 @@ import javax.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 // @Node // Neo4j
 @Entity // JPA
@@ -43,6 +45,21 @@ public class Note {
 
     @Column(name = "last_editor")
     private String lastEditor;
+
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Column(name = "is_public")
+    private Boolean isPublic = false;
+
+    @Column(name = "last_viewed_at")
+    private LocalDateTime lastViewedAt;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "note_metadata", schema = "application", joinColumns = @JoinColumn(name = "note_id"))
+    @MapKeyColumn(name = "metadata_key")
+    @Column(name = "metadata_value", columnDefinition = "TEXT")
+    private Map<String, Object> metadata = new HashMap<>();
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
@@ -159,6 +176,38 @@ public class Note {
 
     public void setLastEditor(String lastEditor) {
         this.lastEditor = lastEditor;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Boolean getIsPublic() {
+        return isPublic;
+    }
+
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    public LocalDateTime getLastViewedAt() {
+        return lastViewedAt;
+    }
+
+    public void setLastViewedAt(LocalDateTime lastViewedAt) {
+        this.lastViewedAt = lastViewedAt;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
     }
 
     public Set<Tag> getTags() {
