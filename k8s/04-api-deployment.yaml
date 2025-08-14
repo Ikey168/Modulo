@@ -17,25 +17,28 @@ spec:
     spec:
       containers:
       - name: api-container
-        image: your-acr-name.azurecr.io/modulo-backend:latest # Update with your ACR
+        image: modulo-backend:latest # Update with your registry
         ports:
         - containerPort: 8080
         env:
-        - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+        - name: SPRING_DATASOURCE_URL
           valueFrom:
             secretKeyRef:
-              name: app-insights-secret
-              key: connection-string
-        - name: APPLICATIONINSIGHTS_INSTRUMENTATION_KEY
+              name: api-secret
+              key: DATABASE_URL
+        - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:
-              name: app-insights-secret
-              key: instrumentation-key
+              name: api-secret
+              key: DATABASE_USERNAME
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: DATABASE_PASSWORD
         envFrom:
         - configMapRef:
             name: api-config
-        - secretRef:
-            name: api-secret
         resources:
           requests:
             memory: "512Mi"
@@ -47,7 +50,16 @@ spec:
           httpGet:
             path: /actuator/health/liveness
             port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
           initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 3
           periodSeconds: 10
           failureThreshold: 3
         readinessProbe:

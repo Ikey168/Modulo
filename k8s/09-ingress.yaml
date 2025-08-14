@@ -2,15 +2,19 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: app-ingress
-  namespace: my-application-placeholder
+  namespace: modulo
   annotations:
     # Use appropriate annotations for your Ingress controller
-    # e.g., for Nginx Ingress:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2 # if paths need rewriting
-    # kubernetes.io/ingress.class: "nginx" # if you have multiple ingress controllers
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
+  tls:
+  - hosts:
+    - modulo-api.example.com
+    secretName: modulo-tls
   rules:
-  - host: app.example-placeholder.com # Placeholder hostname
+  - host: modulo-api.example.com
     http:
       paths:
       - path: /api(/|$)(.*) # Routes /api and /api/* to API service
@@ -27,7 +31,3 @@ spec:
             name: frontend-service
             port:
               number: 80
-  # tls: # Optional: Add TLS configuration if needed
-  # - hosts:
-  #   - app.example-placeholder.com
-  #   secretName: app-tls-secret # Assumes a secret 'app-tls-secret' with TLS cert and key exists

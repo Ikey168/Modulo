@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: spring-boot-api-monitor
+  namespace: modulo
+  labels:
+    app: spring-boot-api
+spec:
+  selector:
+    matchLabels:
+      app: spring-boot-api
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-monitor
+  namespace: modulo
+  labels:
+    app: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  endpoints:
+  - port: postgres
+    interval: 30s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-spring-boot
+  namespace: modulo
+  labels:
+    grafana_dashboard: "1"
+data:
+  spring-boot-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Modulo Spring Boot Metrics",
+        "tags": ["modulo", "spring-boot"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "HTTP Requests Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_server_requests_seconds_count[5m])",
+                "legendFormat": "{{method}} {{uri}}"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m])",
+                "legendFormat": "Avg Response Time"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "JVM Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes",
+                "legendFormat": "{{area}} {{id}}"
+              }
+            ]
+          }
+        ]
+      }
+    }
