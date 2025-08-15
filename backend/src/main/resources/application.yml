@@ -24,6 +24,12 @@ spring:
       username: neo4j
       password: test
 
+# gRPC Server Configuration
+grpc:
+  server:
+    port: 9090
+    enable-reflection: true
+
 springdoc:
   api-docs:
     path: /api-docs
@@ -53,3 +59,8 @@ spring:
     authentication:
       username: neo4j
       password: test
+
+grpc:
+  server:
+    port: 9090
+    enable-reflection: true
