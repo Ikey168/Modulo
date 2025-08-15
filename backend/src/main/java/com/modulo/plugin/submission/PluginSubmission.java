@@ -2,6 +2,7 @@ package com.modulo.plugin.submission;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Represents a plugin submission from a developer
@@ -37,11 +38,17 @@ public class PluginSubmission {
     @Column(length = 500)
     private String documentationUrl;
     
+    @Column(length = 500)
+    private String sourceCodeUrl;
+    
     @Column(length = 50)
     private String licenseType;
     
     @Column(length = 500)
     private String tags;
+    
+    @Column(length = 500)
+    private String requiredPermissions;
     
     @Column(length = 50)
     private String minPlatformVersion;
@@ -51,6 +58,12 @@ public class PluginSubmission {
     
     @Column(length = 1000)
     private String jarFilePath;
+    
+    @Column(length = 500)
+    private String iconFilePath;
+    
+    @Column(length = 2000)
+    private String screenshotPaths;
     
     private long fileSize;
     
@@ -68,6 +81,7 @@ public class PluginSubmission {
     private LocalDateTime approvedAt;
     private LocalDateTime rejectedAt;
     private LocalDateTime publishedAt;
+    private LocalDateTime reviewedAt;
     
     @Column(length = 2000)
     private String reviewNotes;
@@ -83,16 +97,8 @@ public class PluginSubmission {
     
     @Column(nullable = false)
     private boolean compatibilityCheckPassed = false;
-    private String reviewerId;
-    private LocalDateTime submittedAt;
-    private LocalDateTime reviewedAt;
-    private LocalDateTime publishedAt;
     
-    // Validation results
-    private boolean securityCheckPassed;
-    private boolean compatibilityCheckPassed;
-    private List<String> validationErrors;
-    private List<String> validationWarnings;
+    private String reviewerId;
     
     // Constructors
     public PluginSubmission() {
@@ -108,12 +114,12 @@ public class PluginSubmission {
     }
     
     // Getters and Setters
-    public String getId() {
-        return id;
+    public String getSubmissionId() {
+        return submissionId;
     }
     
-    public void setId(String id) {
-        this.id = id;
+    public void setSubmissionId(String submissionId) {
+        this.submissionId = submissionId;
     }
     
     public String getDeveloperName() {
@@ -164,11 +170,11 @@ public class PluginSubmission {
         this.category = category;
     }
     
-    public List<String> getTags() {
+    public String getTags() {
         return tags;
     }
     
-    public void setTags(List<String> tags) {
+    public void setTags(String tags) {
         this.tags = tags;
     }
     
@@ -212,12 +218,20 @@ public class PluginSubmission {
         this.minPlatformVersion = minPlatformVersion;
     }
     
-    public List<String> getRequiredPermissions() {
+    public String getRequiredPermissions() {
         return requiredPermissions;
     }
     
-    public void setRequiredPermissions(List<String> requiredPermissions) {
+    public void setRequiredPermissions(String requiredPermissions) {
         this.requiredPermissions = requiredPermissions;
+    }
+    
+    public String getMaxPlatformVersion() {
+        return maxPlatformVersion;
+    }
+    
+    public void setMaxPlatformVersion(String maxPlatformVersion) {
+        this.maxPlatformVersion = maxPlatformVersion;
     }
     
     public String getJarFilePath() {
@@ -236,11 +250,11 @@ public class PluginSubmission {
         this.iconFilePath = iconFilePath;
     }
     
-    public List<String> getScreenshotPaths() {
+    public String getScreenshotPaths() {
         return screenshotPaths;
     }
     
-    public void setScreenshotPaths(List<String> screenshotPaths) {
+    public void setScreenshotPaths(String screenshotPaths) {
         this.screenshotPaths = screenshotPaths;
     }
     
@@ -300,6 +314,30 @@ public class PluginSubmission {
         this.reviewedAt = reviewedAt;
     }
     
+    public LocalDateTime getReviewStartedAt() {
+        return reviewStartedAt;
+    }
+    
+    public void setReviewStartedAt(LocalDateTime reviewStartedAt) {
+        this.reviewStartedAt = reviewStartedAt;
+    }
+    
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+    
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+    
+    public LocalDateTime getRejectedAt() {
+        return rejectedAt;
+    }
+    
+    public void setRejectedAt(LocalDateTime rejectedAt) {
+        this.rejectedAt = rejectedAt;
+    }
+    
     public LocalDateTime getPublishedAt() {
         return publishedAt;
     }
@@ -324,19 +362,19 @@ public class PluginSubmission {
         this.compatibilityCheckPassed = compatibilityCheckPassed;
     }
     
-    public List<String> getValidationErrors() {
+    public String getValidationErrors() {
         return validationErrors;
     }
     
-    public void setValidationErrors(List<String> validationErrors) {
+    public void setValidationErrors(String validationErrors) {
         this.validationErrors = validationErrors;
     }
     
-    public List<String> getValidationWarnings() {
+    public String getValidationWarnings() {
         return validationWarnings;
     }
     
-    public void setValidationWarnings(List<String> validationWarnings) {
+    public void setValidationWarnings(String validationWarnings) {
         this.validationWarnings = validationWarnings;
     }
     
@@ -345,7 +383,7 @@ public class PluginSubmission {
      */
     public boolean isValidationPassed() {
         return securityCheckPassed && compatibilityCheckPassed && 
-               (validationErrors == null || validationErrors.isEmpty());
+               (validationErrors == null || validationErrors.trim().isEmpty());
     }
     
     /**

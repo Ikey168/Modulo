@@ -5,6 +5,7 @@ package com.modulo.plugin.submission;
  */
 public enum SubmissionStatus {
     PENDING_REVIEW("Pending Review", "Submission is waiting for initial review"),
+    IN_REVIEW("In Review", "Submission is currently being reviewed"),
     UNDER_REVIEW("Under Review", "Submission is currently being reviewed"),
     VALIDATION_FAILED("Validation Failed", "Submission failed security or compatibility checks"),
     CHANGES_REQUESTED("Changes Requested", "Reviewer has requested changes to the submission"),
@@ -47,6 +48,6 @@ public enum SubmissionStatus {
      * Check if the status is a pending state
      */
     public boolean isPending() {
-        return this == PENDING_REVIEW || this == UNDER_REVIEW;
+        return this == PENDING_REVIEW || this == IN_REVIEW || this == UNDER_REVIEW;
     }
 }
