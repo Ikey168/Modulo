@@ -257,19 +257,26 @@ public class BlockchainController {
 // Request/Response DTOs
 
 @lombok.Data
-@lombok.Data
 class NoteRegistrationRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
     
     @NotBlank(message = "Title cannot be blank")
     private String title;
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 }
 
 @lombok.Data
 class NoteVerificationRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 }
 
 @lombok.Data
@@ -279,16 +286,27 @@ class NoteIntegrityRequest {
     
     @NotBlank(message = "Current content cannot be blank")
     private String currentContent;
+
+    public Long getNoteId() { return noteId; }
+    public void setNoteId(Long noteId) { this.noteId = noteId; }
+    public String getCurrentContent() { return currentContent; }
+    public void setCurrentContent(String currentContent) { this.currentContent = currentContent; }
 }
 
 @lombok.Data
 class NoteUpdateRequest {
     @NotBlank(message = "New content cannot be blank")
     private String newContent;
+
+    public String getNewContent() { return newContent; }
+    public void setNewContent(String newContent) { this.newContent = newContent; }
 }
 
 @lombok.Data
 class HashRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 }
