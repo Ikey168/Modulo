@@ -32,9 +32,25 @@ const Navbar = () => {
                 <Link to="/plugins" className="hover:text-gray-300">
                   Plugins
                 </Link>
-                <Link to="/marketplace" className="hover:text-gray-300">
-                  Marketplace
-                </Link>
+                <div className="relative group">
+                  <Link to="/plugins/marketplace" className="hover:text-gray-300 flex items-center">
+                    Marketplace
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </Link>
+                  <div className="absolute left-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <Link to="/plugins/marketplace" className="block px-4 py-2 text-sm hover:bg-gray-600 rounded-t-md">
+                      Browse Marketplace
+                    </Link>
+                    <Link to="/plugins/submit" className="block px-4 py-2 text-sm hover:bg-gray-600">
+                      Submit Plugin
+                    </Link>
+                    <Link to="/plugins/my-submissions" className="block px-4 py-2 text-sm hover:bg-gray-600 rounded-b-md">
+                      My Submissions
+                    </Link>
+                  </div>
+                </div>
               </>
             )}
             <Link to="/about" className="hover:text-gray-300">

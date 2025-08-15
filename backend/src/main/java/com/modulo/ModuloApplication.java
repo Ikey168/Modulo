@@ -2,6 +2,7 @@ package com.modulo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 // import org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration; // No longer needed
 // import org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration; // No longer needed
 // import org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration; // No longer needed
@@ -13,12 +14,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableJpaRepositories(
-    basePackages = "com.modulo.repository", 
+    basePackages = {"com.modulo.repository", "com.modulo.plugin.submission"}, 
     excludeFilters = @ComponentScan.Filter(
         type = FilterType.REGEX, 
         pattern = "com\\.modulo\\.repository\\.offline\\..*"
     )
 )
+@EntityScan({"com.modulo.model", "com.modulo.entity", "com.modulo.plugin.submission"})
 @EnableAsync
 @EnableScheduling
 public class ModuloApplication {
