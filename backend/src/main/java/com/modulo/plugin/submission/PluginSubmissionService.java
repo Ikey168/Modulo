@@ -40,7 +40,7 @@ public class PluginSubmissionService {
     /**
      * Submit a new plugin for review
      */
-    public PluginSubmission submitPlugin(PluginSubmissionRequest request, MultipartFile jarFile) {
+    public PluginSubmission submitPlugin(PluginSubmissionRequest request, MultipartFile jarFile) throws PluginException {
         logger.info("Processing plugin submission: {}", request.getPluginName());
         
         try {
@@ -103,7 +103,7 @@ public class PluginSubmissionService {
     /**
      * Update submission status
      */
-    public PluginSubmission updateSubmissionStatus(String submissionId, SubmissionStatus newStatus, String reviewNotes) {
+    public PluginSubmission updateSubmissionStatus(String submissionId, SubmissionStatus newStatus, String reviewNotes) throws PluginException {
         Optional<PluginSubmission> optionalSubmission = submissionRepository.findById(submissionId);
         
         if (optionalSubmission.isEmpty()) {
@@ -145,10 +145,10 @@ public class PluginSubmissionService {
         return submission;
     }
     
-    /**
-     * Resubmit a plugin with updated information
+        /**
+     * Resubmit a plugin with a new JAR file
      */
-    public PluginSubmission resubmitPlugin(String submissionId, PluginSubmissionRequest request, MultipartFile newJarFile) {
+    public PluginSubmission resubmitPlugin(String submissionId, PluginSubmissionRequest request, MultipartFile newJarFile) throws PluginException {
         Optional<PluginSubmission> optionalSubmission = submissionRepository.findById(submissionId);
         
         if (optionalSubmission.isEmpty()) {
@@ -205,7 +205,7 @@ public class PluginSubmissionService {
     /**
      * Delete a submission
      */
-    public void deleteSubmission(String submissionId) {
+    public void deleteSubmission(String submissionId) throws PluginException {
         Optional<PluginSubmission> optionalSubmission = submissionRepository.findById(submissionId);
         
         if (optionalSubmission.isEmpty()) {
@@ -303,17 +303,29 @@ public class PluginSubmissionService {
             
             // If validation passed, move to in-review status
             if (result.isValid()) {
-                updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.IN_REVIEW, 
-                                     "Validation passed, ready for manual review");
+                try {
+                    updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.IN_REVIEW, 
+                                         "Validation passed, ready for manual review");
+                } catch (PluginException pe) {
+                    logger.error("Failed to update submission status to IN_REVIEW: {}", submission.getSubmissionId(), pe);
+                }
             } else {
-                updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.REJECTED, 
-                                     "Validation failed: " + String.join(", ", result.getErrors()));
+                try {
+                    updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.REJECTED, 
+                                         "Validation failed: " + String.join(", ", result.getErrors()));
+                } catch (PluginException pe) {
+                    logger.error("Failed to update submission status to REJECTED: {}", submission.getSubmissionId(), pe);
+                }
             }
             
         } catch (Exception e) {
             logger.error("Validation failed for submission: {}", submission.getSubmissionId(), e);
-            updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.REJECTED, 
-                                 "Validation process failed: " + e.getMessage());
+            try {
+                updateSubmissionStatus(submission.getSubmissionId(), SubmissionStatus.REJECTED, 
+                                     "Validation process failed: " + e.getMessage());
+            } catch (PluginException pe) {
+                logger.error("Failed to update submission status after validation failure: {}", submission.getSubmissionId(), pe);
+            }
         }
     }
     
