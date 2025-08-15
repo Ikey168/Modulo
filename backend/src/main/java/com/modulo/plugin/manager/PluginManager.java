@@ -110,6 +110,59 @@ public class PluginManager {
     }
     
     /**
+     * Install a remote plugin
+     * @param plugin Already loaded plugin instance
+     * @param remoteUrl Original remote URL
+     * @param config Plugin configuration
+     * @return Plugin ID if successful
+     * @throws PluginException if installation fails
+     */
+    public String installRemotePlugin(Plugin plugin, String remoteUrl, Map<String, Object> config) 
+            throws PluginException {
+        PluginInfo info = plugin.getInfo();
+        String pluginId = info.getName();
+        
+        logger.info("Installing remote plugin: {} from URL: {}", pluginId, remoteUrl);
+        
+        try {
+            // Validate plugin
+            validatePlugin(plugin);
+            
+            // Additional security checks for remote plugins
+            if (!securityManager.canInstallPlugin(pluginId, plugin.getRequiredPermissions())) {
+                throw new PluginException("Insufficient permissions to install remote plugin: " + pluginId);
+            }
+            
+            // Register plugin with remote URL info
+            Long registryId = pluginRegistry.registerPlugin(plugin, config);
+            
+            // Update registry entry with remote source information
+            pluginRegistry.updatePluginRemoteInfo(pluginId, remoteUrl);
+            
+            // Initialize and start plugin
+            plugin.initialize(config);
+            plugin.start();
+            
+            // Track plugin
+            activePlugins.put(pluginId, plugin);
+            pluginStatuses.put(pluginId, PluginStatus.ACTIVE);
+            
+            // Subscribe to events
+            subscribeToEvents(plugin);
+            
+            // Publish installation event with remote source info
+            eventBus.publish(new SystemEvent.RemotePluginInstalled(pluginId, info.getVersion(), remoteUrl));
+            
+            logger.info("Remote plugin {} installed and started successfully from {}", pluginId, remoteUrl);
+            return pluginId;
+            
+        } catch (Exception e) {
+            logger.error("Failed to install remote plugin {} from {}", pluginId, remoteUrl, e);
+            throw new PluginException("Failed to install remote plugin: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Uninstall a plugin
      * @param pluginId Plugin ID to uninstall
      * @throws PluginException if uninstallation fails

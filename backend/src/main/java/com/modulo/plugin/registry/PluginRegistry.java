@@ -147,6 +147,17 @@ public class PluginRegistry {
     }
     
     /**
+     * Update plugin remote source information
+     * @param pluginId Plugin ID
+     * @param remoteUrl Remote URL where plugin was downloaded from
+     */
+    public void updatePluginRemoteInfo(String pluginId, String remoteUrl) {
+        String sql = "UPDATE plugin_registry SET endpoint = ?, updated_at = ? WHERE name = ?";
+        jdbcTemplate.update(sql, remoteUrl, LocalDateTime.now(), pluginId);
+        logger.debug("Updated plugin {} remote source info: {}", pluginId, remoteUrl);
+    }
+    
+    /**
      * Get plugin events
      * @param pluginId Plugin ID
      * @return List of plugin events
