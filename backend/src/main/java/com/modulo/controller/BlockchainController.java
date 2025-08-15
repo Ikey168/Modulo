@@ -7,7 +7,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,12 +24,13 @@ import java.util.concurrent.CompletableFuture;
  * REST Controller for blockchain operations
  * Provides endpoints for note registration, verification, and management on blockchain
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/blockchain")
 @RequiredArgsConstructor
 @Tag(name = "Blockchain", description = "Blockchain operations for note management")
 public class BlockchainController {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockchainController.class);
 
     private final BlockchainService blockchainService;
 
@@ -254,6 +256,7 @@ public class BlockchainController {
 
 // Request/Response DTOs
 
+@lombok.Data
 @lombok.Data
 class NoteRegistrationRequest {
     @NotBlank(message = "Content cannot be blank")
