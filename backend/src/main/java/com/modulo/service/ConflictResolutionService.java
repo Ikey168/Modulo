@@ -5,7 +5,8 @@ import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,8 +21,9 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ConflictResolutionService {
+    
+    private static final Logger log = LoggerFactory.getLogger(ConflictResolutionService.class);
     
     private final NoteRepository noteRepository;
     private final TagService tagService;

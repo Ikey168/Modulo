@@ -91,6 +91,29 @@ public abstract class SystemEvent extends PluginEvent {
     }
     
     /**
+     * Event fired when a remote plugin is installed
+     */
+    public static class RemotePluginInstalled extends SystemEvent {
+        private final String pluginId;
+        private final String version;
+        private final String remoteUrl;
+        
+        public RemotePluginInstalled(String pluginId, String version, String remoteUrl) {
+            super("system.remote_plugin_installed", "system");
+            this.pluginId = pluginId;
+            this.version = version;
+            this.remoteUrl = remoteUrl;
+            addMetadata("pluginId", pluginId);
+            addMetadata("version", version);
+            addMetadata("remoteUrl", remoteUrl);
+        }
+        
+        public String getPluginId() { return pluginId; }
+        public String getVersion() { return version; }
+        public String getRemoteUrl() { return remoteUrl; }
+    }
+    
+    /**
      * Event fired when a scheduled task executes
      */
     public static class ScheduledTaskExecuted extends SystemEvent {
