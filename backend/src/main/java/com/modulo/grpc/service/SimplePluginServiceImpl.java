@@ -32,7 +32,7 @@ public class SimplePluginServiceImpl extends PluginServiceGrpc.PluginServiceImpl
             if (plugin != null) {
                 // Convert string parameters to Object map
                 Map<String, Object> params = new HashMap<>();
-                request.getParametersMap().forEach(params::put);
+                request.getConfigMap().forEach(params::put);
                 
                 plugin.initialize(params);
                 
@@ -203,7 +203,7 @@ public class SimplePluginServiceImpl extends PluginServiceGrpc.PluginServiceImpl
             }
             
             HealthCheckResponse response = HealthCheckResponse.newBuilder()
-                .setHealthy(isHealthy)
+                .setHealth(isHealthy ? HealthStatus.HEALTHY : HealthStatus.UNHEALTHY)
                 .setMessage(message)
                 .build();
             
@@ -213,7 +213,7 @@ public class SimplePluginServiceImpl extends PluginServiceGrpc.PluginServiceImpl
             logger.error("Failed to check plugin health: {}", request.getPluginId(), e);
             
             HealthCheckResponse response = HealthCheckResponse.newBuilder()
-                .setHealthy(false)
+                .setHealth(HealthStatus.UNHEALTHY)
                 .setMessage("Health check failed: " + e.getMessage())
                 .build();
             
@@ -303,7 +303,7 @@ public class SimplePluginServiceImpl extends PluginServiceGrpc.PluginServiceImpl
             if (plugin != null) {
                 // Convert string config to Object map
                 Map<String, Object> config = new HashMap<>();
-                request.getConfigurationMap().forEach(config::put);
+                request.getConfigMap().forEach(config::put);
                 
                 plugin.initialize(config);
                 
