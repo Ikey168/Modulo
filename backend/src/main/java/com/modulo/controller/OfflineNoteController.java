@@ -3,7 +3,8 @@ package com.modulo.controller;
 import com.modulo.entity.offline.OfflineNote;
 import com.modulo.service.OfflineSyncService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +20,10 @@ import java.util.*;
 @RequestMapping("/api/offline/notes")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
-@Slf4j
 @ConditionalOnProperty(name = "app.offline.database.enabled", havingValue = "true", matchIfMissing = true)
 public class OfflineNoteController {
+
+    private static final Logger log = LoggerFactory.getLogger(OfflineNoteController.class);
 
     private final OfflineSyncService offlineSyncService;
 

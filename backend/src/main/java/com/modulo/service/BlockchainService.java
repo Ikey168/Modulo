@@ -1,6 +1,7 @@
 package com.modulo.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
@@ -15,9 +16,10 @@ import java.util.ArrayList;
  * This service provides placeholder implementations for blockchain operations
  * while the full web3j integration is being implemented.
  */
-@Slf4j
 @Service
 public class BlockchainService {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockchainService.class);
 
     /**
      * Register a note on the blockchain (placeholder)
