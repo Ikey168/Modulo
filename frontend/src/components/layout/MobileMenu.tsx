@@ -87,6 +87,16 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                     📋 Contracts
                   </Link>
                 </li>
+                <li>
+                  <Link to="/plugins" onClick={handleLinkClick} className="mobile-menu-link">
+                    🔌 Plugins
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/marketplace" onClick={handleLinkClick} className="mobile-menu-link">
+                    🛒 Marketplace
+                  </Link>
+                </li>
                 <li className="menu-divider" />
                 <li>
                   <Link to="/profile" onClick={handleLinkClick} className="mobile-menu-link">
