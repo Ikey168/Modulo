@@ -257,7 +257,6 @@ public class BlockchainController {
 // Request/Response DTOs
 
 @lombok.Data
-@lombok.Data
 class NoteRegistrationRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
