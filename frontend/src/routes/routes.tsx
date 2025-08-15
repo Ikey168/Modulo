@@ -12,6 +12,8 @@ const LoginPage = React.lazy(() => import('../features/auth/LoginPage')); // Add
 const AuthCallbackPage = React.lazy(() => import('../features/auth/AuthCallbackPage')); // Added
 const PluginManager = React.lazy(() => import('../features/plugins/PluginManager'));
 const PluginMarketplace = React.lazy(() => import('../features/plugins/PluginMarketplace'));
+const PluginSubmission = React.lazy(() => import('../features/PluginSubmission'));
+const MySubmissions = React.lazy(() => import('../features/MySubmissions'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -25,6 +27,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/notes-graph" element={<NotesGraph />} />
         <Route path="/contracts" element={<Contracts />} />
         <Route path="/plugins" element={<PluginManager />} />
+        <Route path="/plugins/marketplace" element={<PluginMarketplace />} />
+        <Route path="/plugins/submit" element={<PluginSubmission />} />
+        <Route path="/plugins/my-submissions" element={<MySubmissions />} />
         <Route path="/marketplace" element={<PluginMarketplace />} />
         <Route path="/about" element={<About />} />
       </Routes>
