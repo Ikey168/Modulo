@@ -1,0 +1,244 @@
+syntax = "proto3";
+
+package com.modulo.plugin.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.modulo.plugin.grpc";
+option java_outer_classname = "UserPluginServiceProto";
+
+// Service for User-related plugin operations
+service UserPluginService {
+  // User lifecycle events
+  rpc OnUserCreated(UserCreatedEvent) returns (UserEventResponse);
+  rpc OnUserUpdated(UserUpdatedEvent) returns (UserEventResponse);
+  rpc OnUserDeleted(UserDeletedEvent) returns (UserEventResponse);
+  rpc OnUserLogin(UserLoginEvent) returns (UserEventResponse);
+  rpc OnUserLogout(UserLogoutEvent) returns (UserEventResponse);
+  
+  // User operations
+  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+  rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
+  
+  // User analytics and insights
+  rpc GetUserActivity(GetUserActivityRequest) returns (GetUserActivityResponse);
+  rpc GetUserInsights(GetUserInsightsRequest) returns (GetUserInsightsResponse);
+  rpc GenerateUserReport(GenerateUserReportRequest) returns (GenerateUserReportResponse);
+}
+
+// User event messages
+message UserCreatedEvent {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string username = 3;
+  string email = 4;
+  string display_name = 5;
+  int64 created_at = 6;
+  map<string, string> custom_attributes = 7;
+}
+
+message UserUpdatedEvent {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string username = 3;
+  string email = 4;
+  string display_name = 5;
+  int64 updated_at = 6;
+  map<string, string> custom_attributes = 7;
+  repeated string changed_fields = 8;
+}
+
+message UserDeletedEvent {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string username = 3;
+  int64 deleted_at = 4;
+}
+
+message UserLoginEvent {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string username = 3;
+  int64 login_at = 4;
+  string ip_address = 5;
+  string user_agent = 6;
+}
+
+message UserLogoutEvent {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string username = 3;
+  int64 logout_at = 4;
+  int64 session_duration_seconds = 5;
+}
+
+message UserEventResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> result_metadata = 3;
+}
+
+// User profile operations
+message GetUserProfileRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  repeated string requested_fields = 3;
+}
+
+message GetUserProfileResponse {
+  bool success = 1;
+  string message = 2;
+  UserProfile profile = 3;
+}
+
+message UpdateUserProfileRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  UserProfile profile_updates = 3;
+  bool merge_with_existing = 4;
+}
+
+message UpdateUserProfileResponse {
+  bool success = 1;
+  string message = 2;
+  UserProfile updated_profile = 3;
+}
+
+// User preferences operations
+message GetUserPreferencesRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  repeated string preference_keys = 3;
+}
+
+message GetUserPreferencesResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> preferences = 3;
+}
+
+message UpdateUserPreferencesRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  map<string, string> preferences = 3;
+  bool merge_with_existing = 4;
+}
+
+message UpdateUserPreferencesResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> updated_preferences = 3;
+}
+
+// User analytics operations
+message GetUserActivityRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+  repeated string activity_types = 5;
+  int32 limit = 6;
+}
+
+message GetUserActivityResponse {
+  bool success = 1;
+  string message = 2;
+  repeated UserActivity activities = 3;
+  ActivitySummary summary = 4;
+}
+
+message GetUserInsightsRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  repeated string insight_types = 3;
+  int64 analysis_period_days = 4;
+}
+
+message GetUserInsightsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated UserInsight insights = 3;
+  map<string, string> insight_metadata = 4;
+}
+
+message GenerateUserReportRequest {
+  string plugin_id = 1;
+  int64 user_id = 2;
+  string report_type = 3;
+  int64 start_time = 4;
+  int64 end_time = 5;
+  map<string, string> report_params = 6;
+}
+
+message GenerateUserReportResponse {
+  bool success = 1;
+  string message = 2;
+  UserReport report = 3;
+  string report_url = 4;
+}
+
+// Data structures
+message UserProfile {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  string display_name = 4;
+  string first_name = 5;
+  string last_name = 6;
+  string profile_picture_url = 7;
+  string bio = 8;
+  string timezone = 9;
+  string language = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+  int64 last_login_at = 13;
+  map<string, string> custom_attributes = 14;
+  repeated string roles = 15;
+}
+
+message UserActivity {
+  int64 id = 1;
+  int64 user_id = 2;
+  string activity_type = 3;
+  string description = 4;
+  int64 timestamp = 5;
+  map<string, string> activity_data = 6;
+  string ip_address = 7;
+  string user_agent = 8;
+}
+
+message ActivitySummary {
+  int32 total_activities = 1;
+  map<string, int32> activity_counts_by_type = 2;
+  int64 first_activity_time = 3;
+  int64 last_activity_time = 4;
+  int32 unique_days_active = 5;
+}
+
+message UserInsight {
+  string type = 1;
+  string title = 2;
+  string description = 3;
+  double score = 4;
+  map<string, string> details = 5;
+  repeated string recommendations = 6;
+}
+
+message UserReport {
+  string id = 1;
+  string type = 2;
+  string title = 3;
+  int64 generated_at = 4;
+  int64 period_start = 5;
+  int64 period_end = 6;
+  map<string, string> summary_metrics = 7;
+  repeated ReportSection sections = 8;
+}
+
+message ReportSection {
+  string title = 1;
+  string content = 2;
+  repeated string charts = 3;
+  map<string, string> data = 4;
+}

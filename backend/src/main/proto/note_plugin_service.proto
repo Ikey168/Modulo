@@ -1,0 +1,199 @@
+syntax = "proto3";
+
+package com.modulo.plugin.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.modulo.plugin.grpc";
+option java_outer_classname = "NotePluginServiceProto";
+
+// Service for Note-related plugin operations
+service NotePluginService {
+  // Note lifecycle events
+  rpc OnNoteCreated(NoteCreatedEvent) returns (NoteEventResponse);
+  rpc OnNoteUpdated(NoteUpdatedEvent) returns (NoteEventResponse);
+  rpc OnNoteDeleted(NoteDeletedEvent) returns (NoteEventResponse);
+  
+  // Note operations
+  rpc ProcessNote(ProcessNoteRequest) returns (ProcessNoteResponse);
+  rpc SearchNotes(SearchNotesRequest) returns (SearchNotesResponse);
+  rpc TransformNote(TransformNoteRequest) returns (TransformNoteResponse);
+  
+  // Note analysis and enhancement
+  rpc AnalyzeContent(AnalyzeContentRequest) returns (AnalyzeContentResponse);
+  rpc GenerateTags(GenerateTagsRequest) returns (GenerateTagsResponse);
+  rpc ExtractMetadata(ExtractMetadataRequest) returns (ExtractMetadataResponse);
+}
+
+// Note event messages
+message NoteCreatedEvent {
+  string plugin_id = 1;
+  int64 note_id = 2;
+  string title = 3;
+  string content = 4;
+  string author = 5;
+  int64 created_at = 6;
+  map<string, string> metadata = 7;
+  repeated string tags = 8;
+}
+
+message NoteUpdatedEvent {
+  string plugin_id = 1;
+  int64 note_id = 2;
+  string title = 3;
+  string content = 4;
+  string author = 5;
+  int64 updated_at = 6;
+  map<string, string> metadata = 7;
+  repeated string tags = 8;
+  repeated string changed_fields = 9;
+}
+
+message NoteDeletedEvent {
+  string plugin_id = 1;
+  int64 note_id = 2;
+  string title = 3;
+  string author = 4;
+  int64 deleted_at = 5;
+}
+
+message NoteEventResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> result_metadata = 3;
+}
+
+// Note operation messages
+message ProcessNoteRequest {
+  string plugin_id = 1;
+  int64 note_id = 2;
+  string operation = 3;
+  map<string, string> parameters = 4;
+  NoteData note_data = 5;
+}
+
+message ProcessNoteResponse {
+  bool success = 1;
+  string message = 2;
+  NoteData processed_note = 3;
+  map<string, string> result_metadata = 4;
+}
+
+message SearchNotesRequest {
+  string plugin_id = 1;
+  string query = 2;
+  SearchCriteria criteria = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message SearchNotesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated NoteData notes = 3;
+  int32 total_count = 4;
+  map<string, string> search_metadata = 5;
+}
+
+message TransformNoteRequest {
+  string plugin_id = 1;
+  NoteData input_note = 2;
+  string transformation_type = 3;
+  map<string, string> transformation_params = 4;
+}
+
+message TransformNoteResponse {
+  bool success = 1;
+  string message = 2;
+  NoteData transformed_note = 3;
+  map<string, string> transformation_metadata = 4;
+}
+
+// Content analysis
+message AnalyzeContentRequest {
+  string plugin_id = 1;
+  string content = 2;
+  repeated string analysis_types = 3;
+  map<string, string> analysis_params = 4;
+}
+
+message AnalyzeContentResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> analysis_results = 3;
+  repeated ContentInsight insights = 4;
+}
+
+message GenerateTagsRequest {
+  string plugin_id = 1;
+  string title = 2;
+  string content = 3;
+  int32 max_tags = 4;
+  repeated string existing_tags = 5;
+}
+
+message GenerateTagsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string suggested_tags = 3;
+  map<string, double> tag_confidence = 4;
+}
+
+message ExtractMetadataRequest {
+  string plugin_id = 1;
+  string content = 2;
+  repeated string metadata_types = 3;
+}
+
+message ExtractMetadataResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> extracted_metadata = 3;
+  repeated MetadataField metadata_fields = 4;
+}
+
+// Data structures
+message NoteData {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+  string author = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+  map<string, string> metadata = 7;
+  repeated string tags = 8;
+  repeated AttachmentData attachments = 9;
+}
+
+message AttachmentData {
+  int64 id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 file_size = 4;
+  string file_path = 5;
+  map<string, string> metadata = 6;
+}
+
+message SearchCriteria {
+  repeated string tags = 1;
+  string author = 2;
+  int64 created_after = 3;
+  int64 created_before = 4;
+  int64 updated_after = 5;
+  int64 updated_before = 6;
+  map<string, string> metadata_filters = 7;
+  bool include_content = 8;
+}
+
+message ContentInsight {
+  string type = 1;
+  string description = 2;
+  double confidence = 3;
+  map<string, string> details = 4;
+}
+
+message MetadataField {
+  string key = 1;
+  string value = 2;
+  string type = 3;
+  double confidence = 4;
+}

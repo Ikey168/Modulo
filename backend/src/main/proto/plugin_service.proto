@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package com.modulo.plugin.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.modulo.plugin.grpc";
+option java_outer_classname = "PluginServiceProto";
+
+// Plugin Service for communication between Modulo and gRPC plugins
+service PluginService {
+  // Plugin lifecycle operations
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+  
+  // Plugin status and health checks
+  rpc GetStatus(StatusRequest) returns (StatusResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  
+  // Plugin capabilities and information
+  rpc GetInfo(InfoRequest) returns (InfoResponse);
+  rpc GetCapabilities(CapabilitiesRequest) returns (CapabilitiesResponse);
+  
+  // Plugin configuration management
+  rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+  rpc GetConfiguration(GetConfigurationRequest) returns (GetConfigurationResponse);
+  
+  // Plugin execution methods
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+  rpc ExecuteStream(stream ExecuteStreamRequest) returns (stream ExecuteStreamResponse);
+}
+
+// Plugin initialization request
+message InitializeRequest {
+  string plugin_id = 1;
+  map<string, string> config = 2;
+  string modulo_version = 3;
+  repeated string required_permissions = 4;
+}
+
+message InitializeResponse {
+  bool success = 1;
+  string message = 2;
+  string plugin_version = 3;
+  repeated string granted_permissions = 4;
+}
+
+// Plugin lifecycle requests/responses
+message StartRequest {
+  string plugin_id = 1;
+}
+
+message StartResponse {
+  bool success = 1;
+  string message = 2;
+  PluginStatus status = 3;
+}
+
+message StopRequest {
+  string plugin_id = 1;
+  bool force = 2;
+}
+
+message StopResponse {
+  bool success = 1;
+  string message = 2;
+  PluginStatus status = 3;
+}
+
+message ShutdownRequest {
+  string plugin_id = 1;
+  int32 timeout_seconds = 2;
+}
+
+message ShutdownResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Status and health check
+message StatusRequest {
+  string plugin_id = 1;
+}
+
+message StatusResponse {
+  PluginStatus status = 1;
+  string message = 2;
+  int64 uptime_seconds = 3;
+  map<string, string> metrics = 4;
+}
+
+message HealthCheckRequest {
+  string plugin_id = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus health = 1;
+  string message = 2;
+  int64 response_time_ms = 3;
+  map<string, string> details = 4;
+}
+
+// Plugin information
+message InfoRequest {
+  string plugin_id = 1;
+}
+
+message InfoResponse {
+  string name = 1;
+  string description = 2;
+  string version = 3;
+  string author = 4;
+  PluginType type = 5;
+  repeated string dependencies = 6;
+  repeated string required_permissions = 7;
+  map<string, string> metadata = 8;
+}
+
+// Plugin capabilities
+message CapabilitiesRequest {
+  string plugin_id = 1;
+}
+
+message CapabilitiesResponse {
+  repeated string supported_operations = 1;
+  repeated string supported_events = 2;
+  map<string, string> configuration_schema = 3;
+  bool supports_streaming = 4;
+  bool supports_async_execution = 5;
+}
+
+// Configuration management
+message ConfigureRequest {
+  string plugin_id = 1;
+  map<string, string> config = 2;
+  bool merge_with_existing = 3;
+}
+
+message ConfigureResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> applied_config = 3;
+}
+
+message GetConfigurationRequest {
+  string plugin_id = 1;
+}
+
+message GetConfigurationResponse {
+  map<string, string> config = 1;
+  map<string, string> schema = 2;
+}
+
+// Plugin execution
+message ExecuteRequest {
+  string plugin_id = 1;
+  string operation = 2;
+  map<string, string> parameters = 3;
+  bytes payload = 4;
+  int32 timeout_seconds = 5;
+}
+
+message ExecuteResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> result_metadata = 3;
+  bytes result_payload = 4;
+  string error_code = 5;
+}
+
+// Streaming execution
+message ExecuteStreamRequest {
+  string plugin_id = 1;
+  string operation = 2;
+  map<string, string> parameters = 3;
+  bytes chunk_data = 4;
+  bool is_final_chunk = 5;
+}
+
+message ExecuteStreamResponse {
+  bool success = 1;
+  string message = 2;
+  bytes chunk_data = 3;
+  bool is_final_chunk = 4;
+  string error_code = 5;
+}
+
+// Enums
+enum PluginStatus {
+  UNKNOWN = 0;
+  INITIALIZING = 1;
+  ACTIVE = 2;
+  INACTIVE = 3;
+  STARTING = 4;
+  STOPPING = 5;
+  ERROR = 6;
+  SUSPENDED = 7;
+}
+
+enum HealthStatus {
+  HEALTHY = 0;
+  UNHEALTHY = 1;
+  DEGRADED = 2;
+  UNKNOWN_HEALTH = 3;
+}
+
+enum PluginType {
+  UNKNOWN_TYPE = 0;
+  USER_INTERFACE = 1;
+  DATA_PROCESSOR = 2;
+  INTEGRATION = 3;
+  UTILITY = 4;
+  MIDDLEWARE = 5;
+  ANALYTICS = 6;
+}
