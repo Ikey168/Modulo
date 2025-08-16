@@ -45,9 +45,9 @@ RUN addgroup -g 1001 -S appgroup && \
 # Use non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:80/health || exit 1
+# Health check - check main page instead of /health endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:80/ || exit 1
 
 # Expose port
 EXPOSE 80
