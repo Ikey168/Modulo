@@ -270,3 +270,39 @@ select:focus {
 [data-theme="dark"] {
   color-scheme: dark;
 }
+
+/* Wallet Info Header Styles */
+.wallet-info-header {
+  display: flex;
+  align-items: center;
+  margin: 0 1rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.wallet-info-header .wallet-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.wallet-info-header .address {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.wallet-info-header .balance {
+  font-weight: 600;
+  color: var(--color-brand-primary);
+}
+
+@media (max-width: 768px) {
+  .wallet-info-header {
+    display: none; /* Hide in mobile to save space */
+  }
+}

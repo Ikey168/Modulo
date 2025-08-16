@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../../store/store';
-import { selectIsAuthenticated, clearCredentials } from '../../features/auth/authSlice';
+import { useAuth } from '../../features/auth/useAuth';
 import './MobileMenu.css';
 
 interface MobileMenuProps {
@@ -10,20 +9,11 @@ interface MobileMenuProps {
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const dispatch = useAppDispatch();
+  const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      await fetch('http://localhost:8080/logout', { 
-        method: 'POST',
-      });
-    } catch (error) {
-      console.error('Logout failed on backend:', error);
-    }
-    
-    dispatch(clearCredentials());
+    await logout();
     navigate('/login');
     onClose();
   };
