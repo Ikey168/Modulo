@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../../store/store';
-import { selectIsAuthenticated, clearCredentials } from '../../features/auth/authSlice';
+import { useAuth } from '../../features/auth/useAuth';
 import { NetworkStatusIndicator } from '../network';
 import { ThemeToggle } from '../theme';
 import MobileMenu from './MobileMenu';
 
 const Header: React.FC = () => {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const dispatch = useAppDispatch();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -31,29 +29,19 @@ const Header: React.FC = () => {
   }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
-    // Clear frontend state
-    dispatch(clearCredentials());
-
-    // Call backend logout endpoint
-    // Spring Security's default logout is a GET to /logout,
-    // but it's better to use POST for logout to prevent CSRF if not using CSRF tokens for GET.
-    // For simplicity with default GET /logout:
-    try {
-      // Note: fetch to /logout will invalidate the session cookie.
-      // The response might be a redirect to the login page by Spring Security.
-      // We don't strictly need to await this if we are redirecting client-side immediately after.
-      await fetch('http://localhost:8080/logout', { 
-        method: 'POST', // Or GET if Spring Security default is used and CSRF is handled.
-                        // If POST, ensure backend is configured for POST logout and CSRF token is sent if enabled.
-        // headers: { 'X-CSRF-TOKEN': 'your_csrf_token_if_needed' } // Example for POST with CSRF
-      });
-    } catch (error) {
-      console.error('Logout failed on backend:', error);
-      // Still proceed with client-side logout
-    }
-    
-    // Redirect to login page
+    await logout();
     navigate('/login');
+  };
+
+  const formatWalletAddress = (address: string | undefined): string => {
+    if (!address) return '';
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const formatBalance = (balance: string | undefined): string => {
+    if (!balance) return '0.0000';
+    const num = parseFloat(balance);
+    return num.toFixed(4);
   };
 
   return (
@@ -64,6 +52,20 @@ const Header: React.FC = () => {
           <div className="header-controls">
             <ThemeToggle compact={true} showLabels={false} className="header-theme-toggle" />
             <NetworkStatusIndicator showDetails={true} className="header-network-status" />
+            
+            {/* MetaMask Wallet Info */}
+            {isAuthenticated && user?.authProvider === 'metamask' && (
+              <div className="wallet-info-header">
+                <div className="wallet-address">
+                  <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.8 3.6L14.4 8.4L15.6 5.4L20.8 3.6ZM3.2 3.6L8.4 5.4L9.6 8.4L3.2 3.6ZM18.4 15.6L20.8 20.4L15.6 18.6L18.4 15.6ZM5.6 15.6L8.4 18.6L3.2 20.4L5.6 15.6ZM9.6 9.6L12 11.1L14.4 9.6L13.2 12L12 14.4L10.8 12L9.6 9.6ZM8.4 13.2L6 16.8L9.6 15.6L8.4 13.2ZM15.6 13.2L14.4 15.6L18 16.8L15.6 13.2Z" />
+                  </svg>
+                  <span className="address">{formatWalletAddress(user.walletAddress)}</span>
+                  <span className="balance">{formatBalance(user.walletBalance)} ETH</span>
+                </div>
+              </div>
+            )}
+            
             <nav className="header-nav">
               <ul>
                 {isAuthenticated ? (
