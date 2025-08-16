@@ -1,0 +1,26 @@
+{
+  "release-type": "node",
+  "package-name": "modulo",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "changelog-sections": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug Fixes"},
+    {"type": "chore", "section": "Miscellaneous"},
+    {"type": "docs", "section": "Documentation"},
+    {"type": "style", "section": "Styles"},
+    {"type": "refactor", "section": "Code Refactoring"},
+    {"type": "perf", "section": "Performance Improvements"},
+    {"type": "test", "section": "Tests"},
+    {"type": "build", "section": "Build System"},
+    {"type": "ci", "section": "Continuous Integration"}
+  ],
+  "extra-files": [
+    {
+      "type": "xml",
+      "path": "backend/pom.xml",
+      "xpath": "/project/version"
+    },
+    "frontend/package.json"
+  ]
+}
