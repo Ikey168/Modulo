@@ -1,0 +1,173 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+          package-name: modulo
+          
+  build-and-attach:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2
+            
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          
+      - name: Build backend JAR
+        run: |
+          cd backend
+          mvn clean package -DskipTests
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build and export backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          outputs: type=docker,dest=/tmp/backend-image.tar
+          tags: modulo-backend:${{ needs.release-please.outputs.tag_name }}
+          
+      - name: Build and export frontend Docker image  
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          outputs: type=docker,dest=/tmp/frontend-image.tar
+          tags: modulo-frontend:${{ needs.release-please.outputs.tag_name }}
+          
+      - name: Install Syft for SBOM generation
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          
+      - name: Generate SBOM for backend JAR
+        run: |
+          syft backend/target/*.jar -o cyclonedx-json=backend-sbom.json
+          
+      - name: Generate SBOM for backend Docker image
+        run: |
+          syft /tmp/backend-image.tar -o cyclonedx-json=backend-docker-sbom.json
+          
+      - name: Generate SBOM for frontend Docker image
+        run: |
+          syft /tmp/frontend-image.tar -o cyclonedx-json=frontend-docker-sbom.json
+          
+      - name: Create Docker image digests
+        run: |
+          backend_digest=$(docker load -i /tmp/backend-image.tar | grep 'sha256:' | cut -d' ' -f3)
+          frontend_digest=$(docker load -i /tmp/frontend-image.tar | grep 'sha256:' | cut -d' ' -f3)
+          
+          echo "Backend Docker Image: modulo-backend:${{ needs.release-please.outputs.tag_name }}" > docker-digests.txt
+          echo "Backend Digest: ${backend_digest}" >> docker-digests.txt
+          echo "Frontend Docker Image: modulo-frontend:${{ needs.release-please.outputs.tag_name }}" >> docker-digests.txt  
+          echo "Frontend Digest: ${frontend_digest}" >> docker-digests.txt
+          echo "Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> docker-digests.txt
+          
+      - name: Find JAR file
+        id: find_jar
+        run: |
+          jar_file=$(find backend/target -name "*.jar" -not -name "*sources.jar" -not -name "*javadoc.jar" | head -1)
+          echo "jar_path=${jar_file}" >> $GITHUB_OUTPUT
+          echo "jar_name=$(basename ${jar_file})" >> $GITHUB_OUTPUT
+          
+      - name: Upload JAR to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ${{ steps.find_jar.outputs.jar_path }}
+          asset_name: modulo-backend-${{ needs.release-please.outputs.tag_name }}.jar
+          asset_content_type: application/java-archive
+          
+      - name: Upload backend JAR SBOM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./backend-sbom.json
+          asset_name: modulo-backend-${{ needs.release-please.outputs.tag_name }}-sbom.json
+          asset_content_type: application/json
+          
+      - name: Upload backend Docker SBOM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./backend-docker-sbom.json
+          asset_name: modulo-backend-docker-${{ needs.release-please.outputs.tag_name }}-sbom.json
+          asset_content_type: application/json
+          
+      - name: Upload frontend Docker SBOM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./frontend-docker-sbom.json
+          asset_name: modulo-frontend-docker-${{ needs.release-please.outputs.tag_name }}-sbom.json
+          asset_content_type: application/json
+          
+      - name: Upload Docker digests to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./docker-digests.txt
+          asset_name: docker-image-digests-${{ needs.release-please.outputs.tag_name }}.txt
+          asset_content_type: text/plain
