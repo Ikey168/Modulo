@@ -1,20 +1,24 @@
-# Build stage
+# Dependencies stage - Multi-arch compatible
 FROM node:21-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
 
-# Source stage
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Build stage
 FROM node:21-alpine AS builder
 WORKDIR /app
+
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set build arguments for environment variables
-ARG VITE_API_URL
+ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=${VITE_API_URL}
 
-# Build application
+# Build application with optimizations
 RUN npm run build
 
 # Production stage
