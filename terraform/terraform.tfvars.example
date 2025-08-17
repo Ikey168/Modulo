@@ -1,0 +1,93 @@
+# Example Terraform Variables File
+# Copy this file and customize for your environment
+
+# Basic Configuration (REQUIRED)
+app_name    = "modulo"
+environment = "dev"  # or "staging", "prod"
+location    = "East US"  # or your preferred Azure region
+
+# Database Configuration (REQUIRED)
+# You must set TF_VAR_administrator_password as environment variable
+# administrator_password is set via environment variable for security
+
+# Database sizing - adjust based on environment needs
+db_sku_name              = "B_Standard_B1ms"   # Basic for dev, GP_Standard_D2s_v3 for prod
+db_storage_mb            = 32768               # 32 GB for dev, 131072 (128 GB) for prod
+db_backup_retention_days = 7                   # 7 for dev, 35 for prod
+db_geo_redundant_backup  = false               # false for dev, true for prod
+db_enable_high_availability = false            # false for dev, true for prod
+create_test_database     = true                # true for dev, false for prod
+
+# Storage Configuration
+storage_account_tier        = "Standard"
+storage_replication_type    = "LRS"            # LRS for dev, GRS for prod
+storage_enable_versioning   = true
+storage_container_names     = ["uploads", "documents", "backups", "logs"]
+
+# Monitoring Configuration
+log_retention_days          = 30               # 30 for dev, 365 for prod
+app_insights_retention_days = 30               # 30 for dev, 365 for prod
+app_insights_daily_cap_gb   = 10               # 10 for dev, 100 for prod
+
+# Alert Configuration (REQUIRED)
+# Set via environment variable: TF_VAR_alert_email_recipients
+# Example: export TF_VAR_alert_email_recipients='{"team":"alerts@company.com"}'
+
+# Alert thresholds - adjust based on environment
+response_time_threshold_ms    = 5000           # 5s for dev, 3s for prod
+failure_rate_threshold        = 10             # 10 for dev, 5 for prod
+database_cpu_threshold        = 80             # 80 for dev, 70 for prod
+
+# Network Configuration (optional customization)
+vnet_address_space     = ["10.0.0.0/16"]      # Adjust if conflicts with existing networks
+app_subnet_cidr        = "10.0.1.0/24"
+database_subnet_cidr   = "10.0.2.0/24"
+
+# Security Configuration
+allow_azure_services = true                    # true for dev, false for prod
+enable_private_endpoint = false                # false for dev, true for prod
+
+# Features (optional)
+create_monitoring_workbook = true
+enable_backup = false                          # false for dev, true for prod
+
+# Common tags
+common_tags = {
+  Environment = "dev"                          # Match with environment variable
+  Project     = "modulo"
+  Owner       = "your-team"
+  CostCenter  = "development"
+}
+
+# Advanced Configuration (optional)
+
+# Storage lifecycle rules
+storage_lifecycle_rules = [
+  {
+    name                          = "default-lifecycle"
+    enabled                       = true
+    prefix_match                  = ["logs/", "temp/"]
+    blob_types                    = ["blockBlob"]
+    tier_to_cool_after_days      = 30
+    tier_to_archive_after_days   = 90
+    delete_after_days            = 365
+    snapshot_delete_after_days   = 30
+    version_delete_after_days    = 30
+  }
+]
+
+# Development access (uncomment and set your IP for dev environments)
+# development_ip_range = "YOUR.IP.ADDRESS/32"
+
+# Additional monitoring settings
+enable_performance_alerts = true
+enable_log_alerts        = false               # false for dev to reduce noise
+enable_database_alerts   = true
+enable_storage_alerts    = false               # false for dev
+
+# Maintenance window (optional)
+# maintenance_window = {
+#   day_of_week  = 0  # Sunday
+#   start_hour   = 3  # 3 AM
+#   start_minute = 0
+# }
