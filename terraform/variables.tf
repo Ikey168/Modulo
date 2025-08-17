@@ -293,3 +293,28 @@ variable "create_monitoring_workbook" {
   type        = bool
   default     = true
 }
+
+variable "management_ip_range" {
+  description = "IP range allowed for management access (SSH)"
+  type        = string
+  default     = "0.0.0.0/0"  # Should be restricted in production
+}
+
+# Legacy variable names for backward compatibility
+variable "app_subnet_cidr" {
+  description = "Legacy: Use app_subnet_address_prefixes instead"
+  type        = string
+  default     = null
+}
+
+variable "database_subnet_cidr" {
+  description = "Legacy: Use db_subnet_address_prefixes instead"
+  type        = string
+  default     = null
+}
+
+variable "enable_backup" {
+  description = "Enable backup for resources"
+  type        = bool
+  default     = false
+}

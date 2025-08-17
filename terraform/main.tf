@@ -47,16 +47,17 @@ resource "azurerm_resource_group" "main" {
 module "network" {
   source = "./modules/network"
 
-  app_name           = var.app_name
-  environment        = var.environment
-  location           = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  common_tags        = var.common_tags
+  app_name                     = var.app_name
+  environment                  = var.environment
+  location                     = azurerm_resource_group.main.location
+  resource_group_name          = azurerm_resource_group.main.name
+  common_tags                  = var.common_tags
   
   # Network configuration
-  vnet_address_space     = var.vnet_address_space
-  app_subnet_cidr        = var.app_subnet_address_prefixes[0]
-  database_subnet_cidr   = var.db_subnet_address_prefixes[0]
+  vnet_address_space           = var.vnet_address_space
+  app_subnet_address_prefixes  = var.app_subnet_address_prefixes
+  db_subnet_address_prefixes   = var.db_subnet_address_prefixes
+  management_ip_range          = var.management_ip_range
 }
 
 # Database module

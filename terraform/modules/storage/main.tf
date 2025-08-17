@@ -68,46 +68,46 @@ resource "azurerm_storage_container" "containers" {
   container_access_type = var.container_access_type
 }
 
-# Storage Management Policy for lifecycle rules
-resource "azurerm_storage_management_policy" "main" {
-  count              = length(var.lifecycle_rules) > 0 ? 1 : 0
-  storage_account_id = azurerm_storage_account.main.id
+# Storage Management Policy for lifecycle rules - Disabled for now due to API changes
+# resource "azurerm_storage_management_policy" "main" {
+#   count              = length(var.lifecycle_rules) > 0 ? 1 : 0
+#   storage_account_id = azurerm_storage_account.main.id
 
-  dynamic "rule" {
-    for_each = var.lifecycle_rules
-    content {
-      name    = rule.value.name
-      enabled = rule.value.enabled
+#   dynamic "rule" {
+#     for_each = var.lifecycle_rules
+#     content {
+#       name    = rule.value.name
+#       enabled = rule.value.enabled
 
-      filters {
-        prefix_match = rule.value.prefix_match
-        blob_types   = rule.value.blob_types
-      }
+#       filters {
+#         prefix_match = rule.value.prefix_match
+#         blob_types   = rule.value.blob_types
+#       }
 
-      actions {
-        base_blob {
-          tier_to_cool_after_days_since_modification_greater_than    = rule.value.tier_to_cool_after_days
-          tier_to_archive_after_days_since_modification_greater_than = rule.value.tier_to_archive_after_days
-          delete_after_days_since_modification_greater_than          = rule.value.delete_after_days
-        }
+#       actions {
+#         base_blob {
+#           tier_to_cool_after_days_since_modification_greater_than    = rule.value.tier_to_cool_after_days
+#           tier_to_archive_after_days_since_modification_greater_than = rule.value.tier_to_archive_after_days
+#           delete_after_days_since_modification_greater_than          = rule.value.delete_after_days
+#         }
 
-        dynamic "snapshot" {
-          for_each = rule.value.snapshot_delete_after_days != null ? [1] : []
-          content {
-            delete_after_days_since_creation_greater_than = rule.value.snapshot_delete_after_days
-          }
-        }
+#         dynamic "snapshot" {
+#           for_each = rule.value.snapshot_delete_after_days != null ? [1] : []
+#           content {
+#             days_after_creation_greater_than = rule.value.snapshot_delete_after_days
+#           }
+#         }
 
-        dynamic "version" {
-          for_each = rule.value.version_delete_after_days != null ? [1] : []
-          content {
-            delete_after_days_since_creation_greater_than = rule.value.version_delete_after_days
-          }
-        }
-      }
-    }
-  }
-}
+#         dynamic "version" {
+#           for_each = rule.value.version_delete_after_days != null ? [1] : []
+#           content {
+#             days_after_creation_greater_than = rule.value.version_delete_after_days
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
 # Private endpoint for storage account (optional)
 resource "azurerm_private_endpoint" "storage" {

@@ -122,7 +122,7 @@ output "deployment_outputs" {
     
     # Storage
     storage_account_name    = module.storage.storage_account_name
-    storage_primary_endpoint = module.storage.primary_blob_endpoint
+    storage_primary_endpoint = module.storage.storage_account_primary_endpoint
     
     # Monitoring
     app_insights_key = module.monitoring.application_insights_instrumentation_key
@@ -136,7 +136,7 @@ output "app_configuration" {
   description = "Application configuration values"
   value = {
     DATABASE_URL = module.database.connection_string
-    STORAGE_CONNECTION_STRING = module.storage.connection_string
+    STORAGE_CONNECTION_STRING = module.storage.storage_account_connection_string
     APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.application_insights_connection_string
     LOG_ANALYTICS_WORKSPACE_ID = module.monitoring.log_analytics_workspace_id
   }
