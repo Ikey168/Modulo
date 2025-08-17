@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: modulo-api-stable
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: modulo-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modulo-api-canary
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: modulo-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modulo-api-active
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: modulo-api

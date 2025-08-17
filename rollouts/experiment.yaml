@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Experiment
+metadata:
+  name: modulo-api-experiment
+  namespace: modulo
+spec:
+  duration: 5m
+  progressDeadlineSeconds: 300
+  templates:
+  - name: canary
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: modulo-api
+          experiment: canary
+      spec:
+        containers:
+        - name: modulo-api
+          image: moduloapi:canary
+          ports:
+          - name: http
+            containerPort: 8080
+          env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: "experiment"
+          - name: ERROR_INJECTION_RATE
+            value: "0.1"  # Inject 10% error rate for testing
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+  analyses:
+  - name: canary-analysis
+    templateName: success-rate
+    args:
+    - name: service-name
+      value: modulo-api-experiment

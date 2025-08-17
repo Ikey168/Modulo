@@ -120,3 +120,43 @@ monitoring:
   enabled: true
   port: 8080
   path: /actuator/prometheus
+
+# Argo Rollouts Configuration
+rollouts:
+  enabled: false  # Set to true to use Rollouts instead of Deployment
+  strategy: canary  # Options: canary, blueGreen
+  
+  canary:
+    steps:
+      - setWeight: 10
+      - pause: {duration: 30s}
+      - setWeight: 20
+      - pause: {duration: 30s}
+      - setWeight: 40
+      - pause: {duration: 30s}
+      - setWeight: 60
+      - pause: {duration: 30s}
+      - setWeight: 80
+      - pause: {duration: 30s}
+    
+    trafficRouting: true
+    
+    analysis:
+      enabled: true
+      templates:
+        - name: success-rate
+        - name: latency
+      args:
+        - name: service-name
+          value: modulo-api
+      startingStep: 2
+  
+  blueGreen:
+    autoPromotionEnabled: false
+    scaleDownDelaySeconds: 300
+    analysis:
+      templates:
+        - name: success-rate
+      args:
+        - name: service-name
+          value: modulo-api

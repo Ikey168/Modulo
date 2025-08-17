@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  namespace: modulo
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: success-rate
+    # Check success rate every 30 seconds for 5 minutes
+    interval: 30s
+    count: 10
+    successCondition: result[0] >= 0.95  # 95% success rate required
+    failureLimit: 3  # Fail after 3 consecutive failures
+    provider:
+      prometheus:
+        address: http://prometheus-server.monitoring.svc.cluster.local:80
+        query: |
+          sum(rate(http_requests_total{job="{{args.service-name}}",code!~"5.."}[2m])) / 
+          sum(rate(http_requests_total{job="{{args.service-name}}"}[2m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency
+  namespace: modulo
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: latency-p95
+    # Check 95th percentile latency
+    interval: 30s
+    count: 10
+    successCondition: result[0] <= 0.5  # 500ms max latency
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://prometheus-server.monitoring.svc.cluster.local:80
+        query: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket{job="{{args.service-name}}"}[2m])) by (le)
+          )

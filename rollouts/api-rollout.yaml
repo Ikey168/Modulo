@@ -1,0 +1,110 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: modulo-api-rollout
+  namespace: modulo
+spec:
+  replicas: 3
+  strategy:
+    canary:
+      # Canary steps with progressive traffic shifting
+      steps:
+      - setWeight: 10  # Start with 10% traffic to canary
+      - pause: {duration: 30s}  # Wait 30 seconds
+      - setWeight: 20  # Increase to 20%
+      - pause: {duration: 30s}
+      - setWeight: 40  # Increase to 40%
+      - pause: {duration: 30s}
+      - setWeight: 60  # Increase to 60%
+      - pause: {duration: 30s}
+      - setWeight: 80  # Increase to 80%
+      - pause: {duration: 30s}
+      # Final step: 100% traffic to new version (automatic)
+      
+      # Traffic routing
+      trafficRouting:
+        nginx:
+          stableIngress: modulo-api-stable
+          annotationPrefix: nginx.ingress.kubernetes.io
+          additionalIngressAnnotations:
+            canary-by-header: X-Canary
+            canary-by-header-value: "true"
+      
+      # Analysis for automatic promotion/abort
+      analysis:
+        templates:
+        - templateName: success-rate
+        - templateName: latency
+        args:
+        - name: service-name
+          value: modulo-api-rollout
+        startingStep: 2  # Start analysis at 20% traffic
+        
+      # Anti-affinity for canary pods
+      antiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution: {}
+        preferredDuringSchedulingIgnoredDuringExecution:
+          weight: 1
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: modulo-api
+            topologyKey: kubernetes.io/hostname
+            
+  selector:
+    matchLabels:
+      app: modulo-api
+  template:
+    metadata:
+      labels:
+        app: modulo-api
+    spec:
+      containers:
+      - name: modulo-api
+        image: moduloapi:latest
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        - name: SERVER_PORT
+          value: "8080"
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        # Resources
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        # Security
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      securityContext:
+        fsGroup: 2000
