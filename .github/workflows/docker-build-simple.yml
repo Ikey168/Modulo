@@ -39,8 +39,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=ref,event=pr,prefix=pr-
+            type=sha,format=short,prefix=sha-
 
       - name: Build Docker image (single arch for testing)
         uses: docker/build-push-action@v5
@@ -73,8 +73,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=ref,event=pr,prefix=pr-
+            type=sha,format=short,prefix=sha-
 
       - name: Build Docker image (single arch for testing)
         uses: docker/build-push-action@v5
