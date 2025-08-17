@@ -52,6 +52,11 @@ module "network" {
   location           = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   common_tags        = var.common_tags
+  
+  # Network configuration
+  vnet_address_space     = var.vnet_address_space
+  app_subnet_cidr        = var.app_subnet_address_prefixes[0]
+  database_subnet_cidr   = var.db_subnet_address_prefixes[0]
 }
 
 # Database module
