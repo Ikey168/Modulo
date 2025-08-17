@@ -32,7 +32,7 @@ const TouchHandler: React.FC<TouchHandlerProps> = ({
   doubleTapDelay = 300,
 }) => {
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<number>(0);
   const [isPressed, setIsPressed] = useState(false);
 

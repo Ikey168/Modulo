@@ -1,23 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { uploadIcon, checkIcon, alertIcon, infoIcon } from '../components/Icons';
-import { submissionService, SubmissionFormData } from '../services/SubmissionService';
+import { submissionService, SubmissionFormData as ImportedSubmissionFormData } from '../services/SubmissionService';
 import '../styles/PluginSubmission.css';
 
-interface SubmissionFormData {
-  pluginName: string;
-  version: string;
-  description: string;
-  category: string;
-  developerName: string;
-  developerEmail: string;
-  homepageUrl: string;
-  documentationUrl: string;
-  licenseType: string;
-  tags: string;
-  minPlatformVersion: string;
-  maxPlatformVersion: string;
-}
+type SubmissionFormData = ImportedSubmissionFormData;
 
 interface SubmissionResponse {
   submissionId: string;

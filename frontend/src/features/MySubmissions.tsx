@@ -1,39 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   clockIcon, 
   checkIcon, 
   xIcon, 
   eyeIcon, 
-  uploadIcon, 
-  downloadIcon,
+  uploadIcon,
   refreshIcon
 } from '../components/Icons';
-import { submissionService, PluginSubmission } from '../services/SubmissionService';
+import { submissionService, PluginSubmission as ImportedPluginSubmission } from '../services/SubmissionService';
 import '../styles/MySubmissions.css';
 
-interface PluginSubmission {
-  submissionId: string;
-  pluginName: string;
-  version: string;
-  description: string;
-  category: string;
-  developerName: string;
-  developerEmail: string;
-  status: string;
-  submittedAt: string;
-  reviewStartedAt?: string;
-  approvedAt?: string;
-  rejectedAt?: string;
-  publishedAt?: string;
-  reviewNotes?: string;
-  validationErrors?: string;
-  validationWarnings?: string;
-  securityCheckPassed: boolean;
-  compatibilityCheckPassed: boolean;
-  fileSize: number;
-  checksum: string;
-}
+type PluginSubmission = ImportedPluginSubmission;
 
 const STATUS_CONFIG = {
   PENDING_REVIEW: {

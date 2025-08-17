@@ -5,20 +5,22 @@ WORKDIR /workspace/app
 # Set JAVA_HOME
 ENV JAVA_HOME=/opt/java/openjdk
 
-# Copy maven wrapper and pom.xml first for better layer caching
-COPY mvnw .
-COPY .mvn .mvn
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy pom.xml first for better layer caching
 COPY pom.xml .
 
-# Make mvnw executable and download dependencies
-RUN chmod +x ./mvnw && ./mvnw dependency:go-offline
+# Download dependencies using Maven
+RUN mvn dependency:go-offline
 
 # Copy source code
 COPY src src
 
 # Build application with optimizations
-RUN ./mvnw clean install -DskipTests -Dmaven.compiler.release=21
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+RUN mvn clean install -DskipTests -Dmaven.compiler.release=21
 
 # Runtime stage - Multi-arch with enhanced security
 FROM eclipse-temurin:21-jre-jammy
