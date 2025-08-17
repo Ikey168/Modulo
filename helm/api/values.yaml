@@ -1,0 +1,122 @@
+# Default values for modulo-api
+# This is a YAML-formatted file.
+
+replicaCount: 2
+
+image:
+  repository: moduloapi
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.modulo.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: modulo-api-tls
+      hosts:
+        - api.modulo.local
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application configuration
+config:
+  port: 8080
+  profile: production
+  database:
+    host: postgresql
+    port: 5432
+    name: modulo
+    username: modulo_user
+    # password: managed via secret
+
+# Environment variables
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "{{ .Values.config.profile }}"
+  - name: SERVER_PORT
+    value: "{{ .Values.config.port }}"
+  - name: DATABASE_HOST
+    value: "{{ .Values.config.database.host }}"
+  - name: DATABASE_PORT
+    value: "{{ .Values.config.database.port }}"
+  - name: DATABASE_NAME
+    value: "{{ .Values.config.database.name }}"
+  - name: DATABASE_USERNAME
+    value: "{{ .Values.config.database.username }}"
+  - name: DATABASE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: database-secret
+        key: password
+
+# Health checks
+healthCheck:
+  enabled: true
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 60
+    periodSeconds: 10
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 30
+    periodSeconds: 5
+
+# Monitoring
+monitoring:
+  enabled: true
+  port: 8080
+  path: /actuator/prometheus
