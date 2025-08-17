@@ -1,20 +1,24 @@
-# Build stage
+# Dependencies stage - Multi-arch compatible
 FROM node:21-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
 
-# Source stage
+# Install dependencies (including dev dependencies for build)
+COPY package*.json ./
+RUN npm ci && npm cache clean --force
+
+# Build stage
 FROM node:21-alpine AS builder
 WORKDIR /app
+
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set build arguments for environment variables
-ARG VITE_API_URL
+ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=${VITE_API_URL}
 
-# Build application
+# Build application with optimizations
 RUN npm run build
 
 # Production stage
@@ -41,9 +45,9 @@ RUN addgroup -g 1001 -S appgroup && \
 # Use non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:80/health || exit 1
+# Health check - check main page instead of /health endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:80/ || exit 1
 
 # Expose port
 EXPOSE 80

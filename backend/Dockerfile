@@ -1,53 +1,68 @@
-# Build stage
+# Build stage - Multi-arch compatible
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace/app
 
 # Set JAVA_HOME
 ENV JAVA_HOME=/opt/java/openjdk
 
-# Copy maven wrapper and pom.xml first for better layer caching
-COPY mvnw .
-COPY .mvn .mvn
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy pom.xml first for better layer caching
 COPY pom.xml .
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline
+# Download dependencies using Maven
+RUN mvn dependency:go-offline
 
 # Copy source code
 COPY src src
 
-# Build application
-RUN ./mvnw clean install -DskipTests
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+# Build application with optimizations
+RUN mvn clean install -DskipTests -Dmaven.compiler.release=21
 
-# Runtime stage
+# Runtime stage - Multi-arch with enhanced security
 FROM eclipse-temurin:21-jre-jammy
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install required packages and clean up in single layer for efficiency
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        tzdata && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
 
-# Create non-root user for security (recommended for Azure)
-RUN useradd -ms /bin/bash springuser
+# Create non-root user with specific UID/GID for consistency across platforms
+RUN groupadd -r -g 1001 springuser && \
+    useradd -r -g springuser -u 1001 -m -d /home/springuser -s /bin/bash springuser
+
+# Set working directory
 WORKDIR /home/springuser
 
-VOLUME /tmp
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/springuser/app /tmp/spring-boot && \
+    chown -R springuser:springuser /home/springuser /tmp/spring-boot
 
-# Copy application from build stage
-COPY --from=build /workspace/app/target/*.jar app.jar
-COPY --from=build /workspace/app/target/dependency /app/dependency
+# Copy application from build stage with proper ownership
+COPY --from=build --chown=springuser:springuser /workspace/app/target/*.jar /home/springuser/app/app.jar
 
-# Set permissions
-RUN chown -R springuser:springuser /home/springuser && \
-    chmod -R 755 /home/springuser
-
+# Switch to non-root user early
 USER springuser
 
-# Expose default Spring Boot port
+# Set up volume for temporary files
+VOLUME ["/tmp"]
+
+# Expose port
 EXPOSE 8080
 
-# Healthcheck for container
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Define entry point with JVM optimization for containers
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=70.0", "-jar", "app.jar"]
+# Set JVM options for better container performance and security
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom -Dspring.profiles.active=production"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /home/springuser/app/app.jar"]

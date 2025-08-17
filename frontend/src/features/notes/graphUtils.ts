@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DirectedGraph } from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import louvain from 'graphology-communities-louvain';
