@@ -60,7 +60,7 @@ output "database_connection_string" {
 
 output "database_admin_username" {
   description = "Administrator username for the PostgreSQL server"
-  value       = module.database.admin_username
+  value       = module.database.administrator_login
 }
 
 # Storage Outputs
@@ -71,12 +71,12 @@ output "storage_account_name" {
 
 output "storage_account_primary_endpoint" {
   description = "Primary blob endpoint of the storage account"
-  value       = module.storage.primary_blob_endpoint
+  value       = module.storage.storage_account_primary_endpoint
 }
 
 output "storage_account_connection_string" {
   description = "Connection string for the storage account"
-  value       = module.storage.connection_string
+  value       = module.storage.storage_account_connection_string
   sensitive   = true
 }
 
