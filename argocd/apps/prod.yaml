@@ -1,0 +1,48 @@
+# Production Applications
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: modulo-api-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ikey168/Modulo.git
+    targetRevision: main
+    path: helm/api
+    helm:
+      valueFiles:
+        - ../environments/api-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: modulo-prod
+  syncPolicy:
+    automated:
+      prune: false  # Manual approval for production
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: modulo-web-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ikey168/Modulo.git
+    targetRevision: main
+    path: helm/web
+    helm:
+      valueFiles:
+        - ../environments/web-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: modulo-prod
+  syncPolicy:
+    automated:
+      prune: false  # Manual approval for production
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

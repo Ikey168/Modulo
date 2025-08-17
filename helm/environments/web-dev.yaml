@@ -1,0 +1,33 @@
+# Development Environment Values for Modulo Web
+replicaCount: 1
+
+image:
+  tag: "dev-latest"
+
+ingress:
+  hosts:
+    - host: web-dev.modulo.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: modulo-web-dev-tls
+      hosts:
+        - web-dev.modulo.local
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+env:
+  - name: VITE_API_URL
+    value: "https://api-dev.modulo.local"
+  - name: VITE_ENV
+    value: "development"

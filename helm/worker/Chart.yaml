@@ -1,0 +1,21 @@
+apiVersion: v2
+name: modulo-worker
+description: A Helm chart for Modulo background worker service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - modulo
+  - worker
+  - background
+
+home: https://github.com/Ikey168/Modulo
+sources:
+  - https://github.com/Ikey168/Modulo
+
+maintainers:
+  - name: Ikey168
+    email: ikey168@example.com
+
+dependencies: []

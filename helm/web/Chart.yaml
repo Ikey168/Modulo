@@ -1,0 +1,22 @@
+apiVersion: v2
+name: modulo-web
+description: A Helm chart for Modulo frontend web service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - modulo
+  - web
+  - react
+  - frontend
+
+home: https://github.com/Ikey168/Modulo
+sources:
+  - https://github.com/Ikey168/Modulo
+
+maintainers:
+  - name: Ikey168
+    email: ikey168@example.com
+
+dependencies: []
