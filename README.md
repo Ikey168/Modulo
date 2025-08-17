@@ -2,6 +2,8 @@
 
 A comprehensive note-taking and knowledge management application with blockchain integration, real-time synchronization, and multi-database support.
 
+<!-- Updated for Issue #97 multi-arch Docker builds with SBOM -->
+
 [![CI/CD](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml)
 [![Release](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
