@@ -2,7 +2,7 @@ name: 'Terraform Infrastructure'
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, "*-*" ]
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
