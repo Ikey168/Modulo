@@ -5,7 +5,31 @@ variable "app_name" {
   default     = "modulo"
 }
 
-variable "environment" {
+var  validation {
+    condition = contains(["LRS", "GRS", "RAGRS", "ZRS", "GZRS", "RAGZRS"], var.storage_replication_type)
+    error_message = "Storage replication type must be LRS, GRS, RAGRS, ZRS, GZRS, or RAGZRS."
+  }
+}
+
+variable "storage_enable_versioning" {
+  description = "Enable blob versioning"
+  type        = bool
+  default     = true
+}
+
+variable "storage_enable_change_feed" {
+  description = "Enable blob change feed"
+  type        = bool
+  default     = false
+}
+
+variable "storage_container_names" {
+  description = "List of container names to create"
+  type        = list(string)
+  default     = ["uploads", "documents", "backups", "logs"]
+}
+
+variable "storage_enable_https" {environment" {
   description = "Environment name (dev, staging, prod)"
   type        = string
   validation {
@@ -114,6 +138,18 @@ variable "db_version" {
   }
 }
 
+variable "db_enable_high_availability" {
+  description = "Enable high availability for PostgreSQL server"
+  type        = bool
+  default     = false
+}
+
+variable "create_test_database" {
+  description = "Create additional test database"
+  type        = bool
+  default     = false
+}
+
 # Storage Configuration
 variable "storage_account_tier" {
   description = "Performance tier for storage account"
@@ -180,6 +216,113 @@ variable "enable_monitoring_alerts" {
 
 variable "alert_email_recipients" {
   description = "Email addresses for alert notifications"
-  type        = list(string)
-  default     = []
+  type        = map(string)
+  default     = {}
+}
+
+# Additional monitoring variables
+variable "log_analytics_sku" {
+  description = "Log Analytics workspace SKU"
+  type        = string
+  default     = "PerGB2018"
+  validation {
+    condition     = contains(["Free", "Standalone", "PerNode", "PerGB2018"], var.log_analytics_sku)
+    error_message = "Log Analytics SKU must be Free, Standalone, PerNode, or PerGB2018."
+  }
+}
+
+variable "app_insights_retention_days" {
+  description = "Application Insights retention in days"
+  type        = number
+  default     = 90
+  validation {
+    condition     = var.app_insights_retention_days >= 30 && var.app_insights_retention_days <= 730
+    error_message = "Application Insights retention must be between 30 and 730 days."
+  }
+}
+
+variable "app_insights_daily_cap_gb" {
+  description = "Application Insights daily cap in GB"
+  type        = number
+  default     = 100
+}
+
+variable "enable_performance_alerts" {
+  description = "Enable performance monitoring alerts"
+  type        = bool
+  default     = true
+}
+
+variable "response_time_threshold_ms" {
+  description = "Response time threshold in milliseconds"
+  type        = number
+  default     = 5000
+}
+
+variable "failure_rate_threshold" {
+  description = "Failure rate threshold (count per 5 minutes)"
+  type        = number
+  default     = 10
+}
+
+variable "enable_log_alerts" {
+  description = "Enable log-based alerts"
+  type        = bool
+  default     = true
+}
+
+variable "error_spike_threshold" {
+  description = "Error spike threshold (errors per 5 minutes)"
+  type        = number
+  default     = 50
+}
+
+variable "enable_database_alerts" {
+  description = "Enable database monitoring alerts"
+  type        = bool
+  default     = true
+}
+
+variable "database_cpu_threshold" {
+  description = "Database CPU usage threshold percentage"
+  type        = number
+  default     = 80
+  validation {
+    condition     = var.database_cpu_threshold >= 0 && var.database_cpu_threshold <= 100
+    error_message = "Database CPU threshold must be between 0 and 100."
+  }
+}
+
+variable "database_connections_threshold" {
+  description = "Database connections threshold"
+  type        = number
+  default     = 80
+}
+
+variable "enable_storage_alerts" {
+  description = "Enable storage monitoring alerts"
+  type        = bool
+  default     = true
+}
+
+variable "storage_availability_threshold" {
+  description = "Storage availability threshold percentage"
+  type        = number
+  default     = 99.9
+  validation {
+    condition     = var.storage_availability_threshold >= 0 && var.storage_availability_threshold <= 100
+    error_message = "Storage availability threshold must be between 0 and 100."
+  }
+}
+
+variable "create_monitoring_workbook" {
+  description = "Create monitoring workbook dashboard"
+  type        = bool
+  default     = true
+}
+
+variable "allow_azure_services" {
+  description = "Allow Azure services to access the database"
+  type        = bool
+  default     = true
 }
