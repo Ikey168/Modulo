@@ -71,25 +71,21 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
-          outputs: ${{ github.event_name == 'pull_request' && 'type=docker,dest=/tmp/backend-image.tar' || '' }}
 
       - name: Install Syft for SBOM generation
+        if: github.event_name != 'pull_request'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Generate SBOM for backend image (from registry)
+      - name: Generate SBOM for backend image
         if: github.event_name != 'pull_request'
         run: |
-          # Use the main tag for SBOM generation
+          # Use the first tag for SBOM generation
           main_tag=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
           syft ${main_tag} -o cyclonedx-json=backend-sbom.json
 
-      - name: Generate SBOM for backend image (from tar)
-        if: github.event_name == 'pull_request'
-        run: |
-          syft /tmp/backend-image.tar -o cyclonedx-json=backend-sbom.json
-
       - name: Upload SBOM as artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: backend-sbom
@@ -155,27 +151,23 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
-          outputs: ${{ github.event_name == 'pull_request' && 'type=docker,dest=/tmp/frontend-image.tar' || '' }}
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:8080' }}
 
       - name: Install Syft for SBOM generation
+        if: github.event_name != 'pull_request'
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Generate SBOM for frontend image (from registry)
+      - name: Generate SBOM for frontend image
         if: github.event_name != 'pull_request'
         run: |
-          # Use the main tag for SBOM generation
+          # Use the first tag for SBOM generation
           main_tag=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
           syft ${main_tag} -o cyclonedx-json=frontend-sbom.json
 
-      - name: Generate SBOM for frontend image (from tar)
-        if: github.event_name == 'pull_request'
-        run: |
-          syft /tmp/frontend-image.tar -o cyclonedx-json=frontend-sbom.json
-
       - name: Upload SBOM as artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-sbom
