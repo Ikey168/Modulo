@@ -1,0 +1,136 @@
+{{- if .Values.rollouts.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "modulo-api.fullname" . }}
+  labels:
+    {{- include "modulo-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- if eq .Values.rollouts.strategy "canary" }}
+    canary:
+      steps:
+        {{- range .Values.rollouts.canary.steps }}
+        - setWeight: {{ .setWeight }}
+        {{- if .pause }}
+        - pause: {{ .pause | toYaml | nindent 12 }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.rollouts.canary.analysis.enabled }}
+      analysis:
+        templates:
+        {{- range .Values.rollouts.canary.analysis.templates }}
+        - templateName: {{ .name }}
+        {{- end }}
+        args:
+        {{- range .Values.rollouts.canary.analysis.args }}
+        - name: {{ .name }}
+          value: {{ .value }}
+        {{- end }}
+        startingStep: {{ .Values.rollouts.canary.analysis.startingStep }}
+      {{- end }}
+      {{- if .Values.rollouts.canary.trafficRouting }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ include "modulo-api.fullname" . }}-stable
+          annotationPrefix: nginx.ingress.kubernetes.io
+          additionalIngressAnnotations:
+            canary-by-header: X-Canary
+            canary-by-header-value: "true"
+      {{- end }}
+    {{- else if eq .Values.rollouts.strategy "blueGreen" }}
+    blueGreen:
+      activeService: {{ include "modulo-api.fullname" . }}-active
+      previewService: {{ include "modulo-api.fullname" . }}-preview
+      autoPromotionEnabled: {{ .Values.rollouts.blueGreen.autoPromotionEnabled }}
+      scaleDownDelaySeconds: {{ .Values.rollouts.blueGreen.scaleDownDelaySeconds }}
+      prePromotionAnalysis:
+        templates:
+        {{- range .Values.rollouts.blueGreen.analysis.templates }}
+        - templateName: {{ .name }}
+        {{- end }}
+        args:
+        {{- range .Values.rollouts.blueGreen.analysis.args }}
+        - name: {{ .name }}
+          value: {{ .value }}
+        {{- end }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "modulo-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "modulo-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "modulo-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- if .Values.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.readiness.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- else }}
+# Regular Deployment when rollouts are disabled
+{{- include "modulo-api.deployment" . }}
+{{- end }}

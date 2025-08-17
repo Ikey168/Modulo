@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: modulo-api-rollout
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  selector:
+    matchLabels:
+      app: modulo-api
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: modulo-api-rollout-alerts
+  namespace: modulo
+  labels:
+    app: modulo-api
+spec:
+  groups:
+  - name: modulo-api-rollout
+    rules:
+    - alert: RolloutHighErrorRate
+      expr: |
+        (
+          sum(rate(http_requests_total{job="modulo-api-rollout",code=~"5.."}[2m])) /
+          sum(rate(http_requests_total{job="modulo-api-rollout"}[2m]))
+        ) > 0.05
+      for: 1m
+      labels:
+        severity: critical
+        service: modulo-api
+      annotations:
+        summary: "High error rate detected during rollout"
+        description: "Rollout {{ $labels.instance }} has error rate above 5% for more than 1 minute"
+    
+    - alert: RolloutHighLatency
+      expr: |
+        histogram_quantile(0.95, 
+          sum(rate(http_request_duration_seconds_bucket{job="modulo-api-rollout"}[2m])) by (le)
+        ) > 0.5
+      for: 1m
+      labels:
+        severity: warning
+        service: modulo-api
+      annotations:
+        summary: "High latency detected during rollout"
+        description: "Rollout {{ $labels.instance }} has 95th percentile latency above 500ms"
+    
+    - alert: RolloutStuck
+      expr: |
+        (
+          time() - kube_deployment_status_observed_generation{deployment="modulo-api-rollout"}
+        ) > 600
+      for: 2m
+      labels:
+        severity: warning
+        service: modulo-api
+      annotations:
+        summary: "Rollout appears to be stuck"
+        description: "Rollout {{ $labels.deployment }} has not progressed for more than 10 minutes"
