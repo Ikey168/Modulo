@@ -1,0 +1,115 @@
+# OWASP ZAP Active Scan Rules Configuration
+# Format: action	plugin_id	name	description
+# Actions: IGNORE, INFO, WARN, FAIL
+# This file configures which security findings from active scans should be treated as blocking issues
+
+# Critical/High-severity active scan findings that must block PRs
+FAIL	40012	Cross Site Scripting (Reflected)
+FAIL	40013	Session Fixation
+FAIL	40014	Cross Site Scripting (Persistent)
+FAIL	40015	LDAP Injection
+FAIL	40016	Cross Site Scripting (Persistent) - Prime
+FAIL	40017	Cross Site Scripting (Persistent) - Spider
+FAIL	40018	SQL Injection
+FAIL	40019	SQL Injection - PostgreSQL
+FAIL	40020	SQL Injection - Hypersonic SQL
+FAIL	40021	SQL Injection - Oracle
+FAIL	40022	SQL Injection - MySQL
+FAIL	40023	SQL Injection - SQLite
+FAIL	40024	SQL Injection - MS SQL Server
+FAIL	40025	SQL Injection - DB2
+FAIL	40026	SQL Injection - SAP MaxDB
+FAIL	40027	SQL Injection - Sybase
+FAIL	40028	SQL Injection - Informix
+FAIL	40029	SQL Injection - HSQLDB
+FAIL	90018	SQL Injection - Authentication Bypass
+FAIL	90019	Code Injection
+FAIL	90020	Command Injection
+FAIL	90021	XPath Injection
+FAIL	90022	Application Error Disclosure
+FAIL	90023	XML External Entity Attack
+FAIL	90024	Generic Padding Oracle
+FAIL	90025	Expression Language Injection
+FAIL	90026	SOAP Action Spoofing
+FAIL	90027	Cookie Slack Detector
+FAIL	90028	Insecure HTTP Method
+FAIL	90029	CSRF
+FAIL	90030	CRLF Injection
+FAIL	7	Remote File Inclusion
+FAIL	43	Source Code Disclosure - PHP
+FAIL	6	Path Traversal
+FAIL	42	Source Code Disclosure - ASP
+FAIL	41	Source Code Disclosure - JSP
+FAIL	39	Server Side Include
+FAIL	5	Buffer Overflow
+FAIL	50000	Active Scan Rules Release Status
+FAIL	0	Directory Browsing
+FAIL	3	Session ID in URL Rewrite
+FAIL	50001	Script Active Scan Rules
+
+# Authentication and Session Management Issues
+FAIL	10055	CSP: Wildcard Directive
+FAIL	10202	Absence of Anti-CSRF Tokens
+FAIL	90001	Insecure JSF ViewState
+FAIL	90033	Loosely Scoped Cookie
+
+# Injection Vulnerabilities
+FAIL	40008	Parameter Tampering
+FAIL	40009	Server Side Include
+FAIL	40010	Cross Site Scripting (Persistent) - Prime
+FAIL	40011	Cross Site Scripting (Persistent) - Spider
+
+# Information Disclosure
+FAIL	10023	Information Disclosure - Debug Error Messages
+FAIL	10025	Information Disclosure - Sensitive Information in URL
+FAIL	10027	Information Disclosure - Suspicious Comments
+FAIL	90022	Application Error Disclosure
+
+# Security Headers and Configuration
+FAIL	10020	X-Frame-Options Header Not Set
+FAIL	10021	X-Content-Type-Options Header Missing
+FAIL	10035	Strict-Transport-Security Header Not Set
+FAIL	10038	Content Security Policy (CSP) Header Not Set
+
+# Medium-severity issues that should generate warnings
+WARN	10003	Vulnerable JS Library
+WARN	10015	Incomplete or No Cache-control and Pragma HTTP Header Set
+WARN	10016	Web Browser XSS Protection Not Enabled
+WARN	10017	Cross-Domain JavaScript Source File Inclusion
+WARN	10039	Content Security Policy (CSP) Header Not Set
+WARN	10054	Cookie Without SameSite Attribute
+WARN	10095	Backup File Disclosure
+WARN	10104	User Agent Fuzzer
+WARN	40007	Information Disclosure - Suspicious Comments
+WARN	90011	Charset Mismatch (Header Versus Meta Content-Type Charset)
+WARN	90017	Cross-Domain Misconfiguration
+
+# Low-severity informational findings
+INFO	10004	X-Content-Type-Options Header Missing
+INFO	10010	Cookie No Secure Flag
+INFO	10011	Cookie Without HttpOnly Flag
+INFO	10019	Content-Type Header Missing
+INFO	10049	Content Cacheability
+INFO	10094	Base64 Disclosure
+INFO	10096	Timestamp Disclosure
+INFO	10097	Hash Disclosure
+INFO	10101	Insecure HTTP Method
+INFO	10103	Weak HTTP Method
+
+# Issues to ignore during active scanning (acceptable risks or false positives)
+IGNORE	2	Private IP Disclosure
+IGNORE	10001	Secure Cookie Not Set (Informational)
+IGNORE	10002	Private IP Disclosure
+IGNORE	10005	X-Frame-Options Header Not Set (Non-HTML)
+IGNORE	10006	X-Content-Type-Options Header Missing (Non-HTML)
+IGNORE	10007	Secure Pages Include Mixed Content (Informational)
+IGNORE	10008	Open Redirect (Informational)
+IGNORE	10012	Password Autocomplete in Browser
+IGNORE	10013	Weak HTTP Method
+IGNORE	10014	HTTP Parameter Pollution
+IGNORE	10091	Charset Mismatch
+IGNORE	10092	WSDL File Disclosure
+IGNORE	10093	Application Error Disclosure
+
+# Development/Testing specific ignores
+IGNORE	50003	Stats Passive Scan Rule
