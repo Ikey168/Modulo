@@ -1,0 +1,38 @@
+# CodeQL Configuration for Modulo
+# This configuration enables comprehensive security analysis for Java and JavaScript/TypeScript
+
+name: "Modulo Security Analysis"
+
+# Disable default queries and use specific query suites
+disable-default-queries: false
+
+# Query suites to run
+queries:
+  - uses: security-and-quality
+
+# Path filters to focus on relevant code
+paths:
+  - "backend/src/**"
+  - "frontend/src/**"
+  - "frontend/*.ts"
+  - "frontend/*.tsx"
+  - "frontend/*.js"
+  - "frontend/*.jsx"
+
+# Paths to ignore completely
+paths-ignore:
+  - "backend/target/**"
+  - "frontend/node_modules/**"
+  - "frontend/dist/**"
+  - "frontend/build/**"
+  - ".github/**"
+  - "k8s/**"
+  - "azure/**"
+  - "terraform/**"
+  - "scripts/**"
+  - "docs/**"
+  - "**/*.md"
+  - "**/*.txt"
+
+# Language-specific configuration
+# Using default security packs to avoid complex pack specifications

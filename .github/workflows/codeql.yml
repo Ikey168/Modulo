@@ -1,0 +1,209 @@
+name: "CodeQL Code Scanning"
+
+on:
+  push:
+    branches: [ "main", "develop", "feature/*", "*-*" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Run CodeQL analysis weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  analyze:
+    name: "CodeQL Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java', 'javascript' ]
+        include:
+          - language: java
+            build-mode: manual
+            source-path: './backend'
+            build-command: 'mvn clean compile -DskipTests'
+          - language: javascript
+            build-mode: none
+            source-path: './frontend'
+            build-command: ''
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Initializes the CodeQL tools for scanning
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Use default queries plus security-and-quality query suite
+        queries: security-and-quality
+        config-file: ./.github/codeql/codeql-config.yml
+
+    # Java-specific build setup
+    - name: Set up JDK 11 (Java)
+      if: matrix.language == 'java'
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    # TypeScript/JavaScript-specific setup (no build required for CodeQL)
+    - name: Set up Node.js (JavaScript/TypeScript)
+      if: matrix.language == 'javascript'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    # Manual build for Java
+    - name: Build Java application
+      if: matrix.language == 'java'
+      run: |
+        cd backend
+        mvn clean compile -DskipTests -Dmaven.compiler.debug=true
+      timeout-minutes: 10
+
+    # Perform CodeQL Analysis
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+        upload: true
+        output: sarif-results
+        checkout_path: ${{ github.workspace }}
+
+    # Upload SARIF results as artifacts for review
+    - name: Upload SARIF results as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: codeql-sarif-${{ matrix.language }}
+        path: sarif-results
+        retention-days: 30
+
+    # Check for high-severity findings and fail PR if found
+    - name: Check for high-severity security findings
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "Checking for high-severity security findings..."
+        
+        # Download and check SARIF results for high-severity issues
+        if [ -d "sarif-results" ]; then
+          echo "Scanning SARIF results for high-severity findings..."
+          
+          # Look for high-severity security issues in SARIF files
+          HIGH_SEV_COUNT=$(find sarif-results -name "*.sarif" -exec jq -r '
+            .runs[]?.results[]? | 
+            select(.level == "error" and (.ruleId | contains("security"))) |
+            .level
+          ' {} \; 2>/dev/null | wc -l)
+          
+          echo "High-severity security findings: $HIGH_SEV_COUNT"
+          
+          if [ "$HIGH_SEV_COUNT" -gt 0 ]; then
+            echo "❌ Found $HIGH_SEV_COUNT high-severity security finding(s)"
+            echo "Please review and fix these security issues before merging:"
+            echo ""
+            echo "🔍 Security findings summary:"
+            find sarif-results -name "*.sarif" -exec jq -r '
+              .runs[]?.results[]? | 
+              select(.level == "error" and (.ruleId | contains("security"))) |
+              "- " + .ruleId + ": " + .message.text + " (File: " + .locations[0].physicalLocation.artifactLocation.uri + ")"
+            ' {} \; 2>/dev/null || echo "  (See CodeQL results tab for details)"
+            echo ""
+            echo "📋 Next steps:"
+            echo "1. Review CodeQL findings in the Security tab"
+            echo "2. Fix high-severity security issues"  
+            echo "3. Re-run CodeQL analysis"
+            echo "4. Merge only after all high-severity issues are resolved"
+            exit 1
+          else
+            echo "✅ No high-severity security findings detected"
+          fi
+        else
+          echo "⚠️  No SARIF results found, CodeQL analysis may have failed"
+        fi
+
+  # Job to provide overall status for branch protection rules
+  codeql-status:
+    name: "CodeQL Status Check"
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: always()
+    steps:
+    - name: Check CodeQL Analysis Status
+      run: |
+        if [ "${{ needs.analyze.result }}" = "success" ]; then
+          echo "✅ CodeQL analysis completed successfully"
+          echo "🔒 All security checks passed"
+        elif [ "${{ needs.analyze.result }}" = "failure" ]; then
+          echo "❌ CodeQL analysis failed or found high-severity issues"
+          echo "🛡️  Security gate: High-severity findings must be resolved"
+          exit 1
+        else
+          echo "⚠️  CodeQL analysis completed with warnings"
+          echo "Please review CodeQL results in the Security tab"
+        fi
+
+  # Notify about CodeQL results
+  notify-results:
+    name: "Notify CodeQL Results"
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    - name: Comment on PR with CodeQL status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const analysisResult = '${{ needs.analyze.result }}';
+          let message = '';
+          
+          if (analysisResult === 'success') {
+            message = `## 🔒 CodeQL Security Scan - ✅ PASSED
+            
+            **Status**: All security checks completed successfully
+            **Languages Analyzed**: Java, TypeScript/JavaScript
+            **Query Suite**: security-and-quality
+            
+            ✅ No high-severity security findings detected
+            ✅ Code is safe to merge from security perspective
+            
+            📊 **View detailed results**: [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)`;
+          } else {
+            message = `## 🔒 CodeQL Security Scan - ❌ FAILED
+            
+            **Status**: High-severity security findings detected
+            **Languages Analyzed**: Java, TypeScript/JavaScript
+            **Query Suite**: security-and-quality
+            
+            ❌ High-severity security issues must be resolved before merging
+            
+            📋 **Required Actions**:
+            1. Review findings in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)
+            2. Fix all high-severity security issues
+            3. Re-run CodeQL analysis
+            4. Ensure all security checks pass
+            
+            🛡️ **Security Gate**: This PR cannot be merged until all high-severity security findings are resolved.`;
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: message
+          });
