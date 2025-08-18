@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "created": "2025-08-18T00:00:00Z",
+    "version": "1.0.0",
+    "environment": "development",
+    "git_commit": "initial",
+    "slo_thresholds": {
+      "read_latency_p95": 200,
+      "write_latency_p95": 500,
+      "sync_latency_p95": 1000,
+      "availability": 99.9,
+      "websocket_latency_p95": 200,
+      "connection_success_rate": 99
+    },
+    "note": "Initial baseline - to be updated with real test data"
+  },
+  "baselines": {
+    "read_latency_p95": {
+      "min": 80,
+      "max": 180,
+      "avg": 130,
+      "p50": 120,
+      "p95": 160,
+      "p99": 170,
+      "samples": 1
+    },
+    "write_latency_p95": {
+      "min": 200,
+      "max": 450,
+      "avg": 320,
+      "p50": 310,
+      "p95": 420,
+      "p99": 440,
+      "samples": 1
+    },
+    "sync_latency_p95": {
+      "min": 500,
+      "max": 900,
+      "avg": 700,
+      "p50": 680,
+      "p95": 850,
+      "p99": 880,
+      "samples": 1
+    },
+    "error_rate": {
+      "min": 0,
+      "max": 0.05,
+      "avg": 0.01,
+      "p50": 0,
+      "p95": 0.02,
+      "p99": 0.04,
+      "samples": 1
+    }
+  },
+  "slo_compliance": {
+    "read_latency_p95": {
+      "threshold": 200,
+      "baseline_p95": 160,
+      "compliant": true,
+      "margin": 40
+    },
+    "write_latency_p95": {
+      "threshold": 500,
+      "baseline_p95": 420,
+      "compliant": true,
+      "margin": 80
+    },
+    "sync_latency_p95": {
+      "threshold": 1000,
+      "baseline_p95": 850,
+      "compliant": true,
+      "margin": 150
+    },
+    "availability": {
+      "threshold": 99.9,
+      "baseline_p95": 99.99,
+      "compliant": true,
+      "margin": 0.09
+    }
+  },
+  "test_results": {}
+}

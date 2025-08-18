@@ -1,0 +1,465 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "🎯 SLO Overview - Service Level Objectives",
+    "tags": ["slo", "error-budget", "burn-rate", "reliability"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "🎯 SLO Compliance Status",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "📖 Read Latency SLO (P95 < 200ms)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "modulo:slo:read_latency_compliance",
+            "legendFormat": "Compliance %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "✏️ Write Latency SLO (P95 < 500ms)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "modulo:slo:write_latency_compliance",
+            "legendFormat": "Compliance %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "🔄 Sync Latency SLO (P95 < 1000ms)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "modulo:slo:sync_latency_compliance",
+            "legendFormat": "Compliance %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1}
+      },
+      {
+        "id": 5,
+        "title": "🟢 Availability SLO (> 99.9%)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "modulo:slo:availability_compliance",
+            "legendFormat": "Compliance %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 99.5},
+                {"color": "green", "value": 99.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 1}
+      },
+      {
+        "id": 6,
+        "title": "🔥 Error Budget Burn Rate",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+      },
+      {
+        "id": 7,
+        "title": "📖 Read Latency Error Budget Burn",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:slo:read_latency_burn_rate_5m",
+            "legendFormat": "5m burn rate"
+          },
+          {
+            "expr": "modulo:slo:read_latency_burn_rate_1h",
+            "legendFormat": "1h burn rate"
+          },
+          {
+            "expr": "modulo:slo:read_latency_burn_rate_6h",
+            "legendFormat": "6h burn rate"
+          },
+          {
+            "expr": "modulo:slo:read_latency_burn_rate_24h",
+            "legendFormat": "24h burn rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Burn Rate (x normal)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 1,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 6,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 14.4,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+      },
+      {
+        "id": 8,
+        "title": "✏️ Write Latency Error Budget Burn",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:slo:write_latency_burn_rate_5m",
+            "legendFormat": "5m burn rate"
+          },
+          {
+            "expr": "modulo:slo:write_latency_burn_rate_1h",
+            "legendFormat": "1h burn rate"
+          },
+          {
+            "expr": "modulo:slo:write_latency_burn_rate_6h",
+            "legendFormat": "6h burn rate"
+          },
+          {
+            "expr": "modulo:slo:write_latency_burn_rate_24h",
+            "legendFormat": "24h burn rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Burn Rate (x normal)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 1,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 6,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 14.4,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+      },
+      {
+        "id": 9,
+        "title": "🔄 Sync Latency Error Budget Burn",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:slo:sync_latency_burn_rate_5m",
+            "legendFormat": "5m burn rate"
+          },
+          {
+            "expr": "modulo:slo:sync_latency_burn_rate_1h",
+            "legendFormat": "1h burn rate"
+          },
+          {
+            "expr": "modulo:slo:sync_latency_burn_rate_6h",
+            "legendFormat": "6h burn rate"
+          },
+          {
+            "expr": "modulo:slo:sync_latency_burn_rate_24h",
+            "legendFormat": "24h burn rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Burn Rate (x normal)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 1,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 6,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 14.4,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "🟢 Availability Error Budget Burn",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:slo:availability_burn_rate_5m",
+            "legendFormat": "5m burn rate"
+          },
+          {
+            "expr": "modulo:slo:availability_burn_rate_1h",
+            "legendFormat": "1h burn rate"
+          },
+          {
+            "expr": "modulo:slo:availability_burn_rate_6h",
+            "legendFormat": "6h burn rate"
+          },
+          {
+            "expr": "modulo:slo:availability_burn_rate_24h",
+            "legendFormat": "24h burn rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Burn Rate (x normal)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 10,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 60,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 144,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18}
+      },
+      {
+        "id": 11,
+        "title": "📊 SLI Performance Trends",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26}
+      },
+      {
+        "id": 12,
+        "title": "📖 Read Latency P95 Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:sli:read_p95_latency",
+            "legendFormat": "P95 Read Latency"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Latency (ms)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 200,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 27}
+      },
+      {
+        "id": 13,
+        "title": "✏️ Write Latency P95 Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:sli:write_p95_latency",
+            "legendFormat": "P95 Write Latency"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Latency (ms)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 500,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 27}
+      },
+      {
+        "id": 14,
+        "title": "🔄 Sync Latency P95 Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:sli:sync_p95_latency",
+            "legendFormat": "P95 Sync Latency"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Latency (ms)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 1000,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 35}
+      },
+      {
+        "id": 15,
+        "title": "🟢 Availability Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "modulo:sli:availability",
+            "legendFormat": "Availability %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Availability (%)",
+            "min": 99,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 99.9,
+            "colorMode": "critical",
+            "op": "lt"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 35}
+      },
+      {
+        "id": 16,
+        "title": "🚨 Active SLO Alerts",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 43}
+      },
+      {
+        "id": 17,
+        "title": "🔥 Burn Rate Alerts Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertname=~\".*SLOBurnRate.*\"}",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "__name__": true,
+                "job": true,
+                "instance": true
+              },
+              "renameByName": {
+                "alertname": "Alert",
+                "alertstate": "State",
+                "severity": "Severity",
+                "slo": "SLO"
+              }
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 44}
+      }
+    ],
+    "time": {"from": "now-6h", "to": "now"},
+    "refresh": "30s"
+  }
+}
