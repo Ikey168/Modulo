@@ -79,7 +79,7 @@ jobs:
       if: matrix.language == 'javascript'
       run: |
         cd frontend
-        npm ci
+        npm ci --ignore-scripts
         npm run build
       timeout-minutes: 10
 
