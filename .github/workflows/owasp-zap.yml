@@ -96,13 +96,13 @@ jobs:
           echo "Staging environment configured"
           cat .env.staging
 
-      - name: Build staging application
+      - name: Build application
         run: |
           echo "Building staging environment..."
           
           # Build backend
           cd backend
-          ./mvnw clean package -DskipTests -P staging
+          mvn clean package -DskipTests
           cd ..
           
           # Build frontend  
