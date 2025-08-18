@@ -32,7 +32,7 @@ jobs:
           - language: javascript
             build-mode: none
             source-path: './frontend'
-            build-command: 'npm ci && npm run build'
+            build-command: ''
 
     steps:
     - name: Checkout repository
@@ -43,7 +43,6 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        source-root: ${{ matrix.source-path }}
         # Use default queries plus security-and-quality query suite
         queries: security-and-quality
         config-file: ./.github/codeql/codeql-config.yml
@@ -57,7 +56,7 @@ jobs:
         distribution: 'temurin'
         cache: 'maven'
 
-    # TypeScript/JavaScript-specific build setup  
+    # TypeScript/JavaScript-specific setup (no build required for CodeQL)
     - name: Set up Node.js (JavaScript/TypeScript)
       if: matrix.language == 'javascript'
       uses: actions/setup-node@v4
@@ -72,15 +71,6 @@ jobs:
       run: |
         cd backend
         mvn clean compile -DskipTests -Dmaven.compiler.debug=true
-      timeout-minutes: 10
-
-    # Build TypeScript/JavaScript application
-    - name: Build frontend application
-      if: matrix.language == 'javascript'
-      run: |
-        cd frontend
-        npm ci --ignore-scripts
-        npm run build
       timeout-minutes: 10
 
     # Perform CodeQL Analysis

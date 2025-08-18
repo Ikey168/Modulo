@@ -14,6 +14,10 @@ queries:
 paths:
   - "backend/src/**"
   - "frontend/src/**"
+  - "frontend/*.ts"
+  - "frontend/*.tsx"
+  - "frontend/*.js"
+  - "frontend/*.jsx"
 
 # Paths to ignore completely
 paths-ignore:
