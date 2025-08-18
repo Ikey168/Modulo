@@ -252,6 +252,8 @@ spec:
           mountPath: /var/lib/grafana/dashboards/db
         - name: dashboards-sync
           mountPath: /var/lib/grafana/dashboards/sync
+        - name: dashboards-slo
+          mountPath: /var/lib/grafana/dashboards/slo
         - name: storage
           mountPath: /var/lib/grafana
         resources:
@@ -322,6 +324,12 @@ spec:
           items:
           - key: sync-blockchain.json
             path: sync-blockchain.json
+      - name: dashboards-slo
+        configMap:
+          name: grafana-dashboards-slo
+          items:
+          - key: slo-overview.json
+            path: slo-overview.json
       - name: storage
         emptyDir: {}
 ---
