@@ -58,6 +58,8 @@ public class TracingAspect {
 
     @Around("@within(org.springframework.stereotype.Service) && " +
             "!@annotation(com.modulo.aspect.NoTrace) && " +
+            "!target(com.modulo.service.TracingService) && " +
+            "!target(com.modulo.service.ObservabilityService) && " +
             "execution(public * *(..))")
     public Object traceServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         String className = joinPoint.getTarget().getClass().getSimpleName();
