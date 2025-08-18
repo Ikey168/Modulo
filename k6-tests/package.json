@@ -1,7 +1,7 @@
 {
   "name": "modulo-k6-tests",
   "version": "1.0.0",
-  "description": "k6 Load Testing Suite for Modulo with SLO-aligned thresholds",
+  "description": "k6 Load Testing Suite for Modulo with SLO-aligned thresholds and synthetic monitoring",
   "scripts": {
     "test:crud": "k6 run tests/crud-operations.js",
     "test:sync": "k6 run tests/sync-operations.js",
@@ -10,10 +10,14 @@
     "test:smoke": "k6 run --vus 1 --duration 30s tests/crud-operations.js",
     "test:load": "k6 run --vus 10 --duration 5m tests/crud-operations.js",
     "test:stress": "k6 run --vus 50 --duration 2m tests/crud-operations.js",
+    "synthetic:journey": "k6 run synthetic/user-journey.js",
+    "synthetic:uptime": "k6 run synthetic/uptime-probe.js",
+    "monitor:uptime": "k6 run --env TARGET_URL=${TARGET_URL:-http://localhost:8080} synthetic/uptime-probe.js",
+    "monitor:journey": "k6 run --env TARGET_URL=${TARGET_URL:-http://localhost:8080} --env FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000} synthetic/user-journey.js",
     "baseline:save": "node scripts/save-baseline.js",
     "baseline:compare": "node scripts/compare-baseline.js"
   },
-  "keywords": ["k6", "load-testing", "performance", "slo", "modulo"],
+  "keywords": ["k6", "load-testing", "performance", "slo", "modulo", "synthetic-monitoring"],
   "author": "Modulo Team",
   "license": "MIT"
 }

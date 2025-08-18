@@ -300,6 +300,80 @@ npm run baseline:compare # Compare against baseline
 
 See [Performance Testing Guide](docs/PERFORMANCE_TESTING.md) for detailed information.
 
+## 🔍 Synthetic Monitoring & Uptime
+
+Modulo includes comprehensive synthetic monitoring to ensure service availability and validate user journeys:
+
+### 🎯 Key Features
+
+- **99.9% Uptime SLO**: Continuous monitoring with health probe validation
+- **End-to-End Journey Testing**: Complete user flows (login → create note → sync → search)
+- **Real-time Alerting**: Immediate notification on SLO violations
+- **Multiple Environments**: Staging, production, and development monitoring
+- **Automated Scheduling**: Business hours (5min) and off-hours (15min) monitoring
+
+### 🚀 Quick Start
+
+```bash
+cd k6-tests
+
+# Local uptime monitoring
+npm run synthetic:uptime
+
+# Local user journey testing
+npm run synthetic:journey
+
+# Production monitoring
+npm run monitor:uptime -- --env TARGET_URL=https://api.modulo.app
+npm run monitor:journey -- --env TARGET_URL=https://api.modulo.app --env FRONTEND_URL=https://modulo.app
+```
+
+### 🔄 Monitoring Types
+
+| Type | Frequency | Duration | Focus |
+|------|-----------|----------|-------|
+| **Uptime Probe** | Every 5s | Continuous | Health endpoints, availability |
+| **User Journey** | Every 5m | 30m sessions | End-to-end functionality |
+| **Extended** | Post-deploy | 60m sessions | Comprehensive validation |
+
+### 🎯 SLO Compliance
+
+| Metric | SLO Target | Monitoring |
+|--------|------------|------------|
+| Application Uptime | > 99.9% | Health probes every 5 seconds |
+| Journey Success Rate | > 99.9% | E2E tests every 5 minutes |
+| Response Time P95 | < 2000ms | Continuous probe monitoring |
+| Journey Duration P95 | < 10000ms | Full user flow validation |
+
+### 🤖 Automated Monitoring
+
+**GitHub Actions Schedule:**
+- **Business Hours** (9 AM - 6 PM UTC, Mon-Fri): Every 5 minutes
+- **Off Hours & Weekends**: Every 15 minutes  
+- **Post-Deployment**: Immediate validation after staging/production deploys
+- **Manual Triggers**: On-demand with environment selection
+
+**Health Endpoints:**
+- `/api/actuator/health/liveness` - Pod liveness (Kubernetes integration)
+- `/api/actuator/health/readiness` - Service readiness (traffic routing)
+- `/api/actuator/health` - Overall application health
+- `/api/health/detailed` - Comprehensive health checks (database, memory, services)
+
+### 🚨 Alerting & SLO Violations
+
+**Automatic Alerts:**
+- Uptime drops below 99.9%
+- User journey success rate < 99.9%
+- Response times exceed P95 thresholds
+- Health endpoint failures
+
+**Integration Ready:**
+- GitHub Actions workflow failure notifications
+- PagerDuty, Slack, or custom webhook integration
+- Detailed monitoring artifacts and reports
+
+See [Synthetic Monitoring Guide](k6-tests/synthetic/README.md) for detailed information.
+
 ## Authentication
 
 Modulo supports multiple authentication methods:
