@@ -1,0 +1,383 @@
+name: 🔍 Synthetic User Journey Monitoring
+
+on:
+  # Scheduled monitoring
+  schedule:
+    # Run every 5 minutes during business hours (9 AM - 6 PM UTC)
+    - cron: '*/5 9-18 * * 1-5'
+    # Run every 15 minutes outside business hours and weekends
+    - cron: '*/15 0-8,19-23 * * *'
+    - cron: '*/15 * * * 0,6'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      test_type:
+        description: 'Type of synthetic test'
+        required: true
+        default: 'full_journey'
+        type: choice
+        options:
+          - uptime_probe
+          - full_journey
+          - extended_monitoring
+      duration:
+        description: 'Test duration (minutes)'
+        required: false
+        default: '5'
+
+  # Trigger on deployment
+  workflow_run:
+    workflows: ["🚀 Deploy to Staging", "🚀 Deploy to Production"]
+    types:
+      - completed
+
+env:
+  NODE_VERSION: 18
+  K6_VERSION: v0.46.0
+
+jobs:
+  setup:
+    name: 🔧 Setup Monitoring Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      target_url: ${{ steps.config.outputs.target_url }}
+      frontend_url: ${{ steps.config.outputs.frontend_url }}
+      test_type: ${{ steps.config.outputs.test_type }}
+      duration: ${{ steps.config.outputs.duration }}
+      environment: ${{ steps.config.outputs.environment }}
+    
+    steps:
+      - name: 📋 Configure Monitoring Parameters
+        id: config
+        run: |
+          # Determine environment
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENVIRONMENT="${{ inputs.environment }}"
+            TEST_TYPE="${{ inputs.test_type }}"
+            DURATION="${{ inputs.duration }}"
+          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            if [[ "${{ github.event.workflow_run.name }}" == *"Production"* ]]; then
+              ENVIRONMENT="production"
+            else
+              ENVIRONMENT="staging"
+            fi
+            TEST_TYPE="full_journey"
+            DURATION="10"
+          else
+            # Scheduled run
+            ENVIRONMENT="staging"
+            TEST_TYPE="uptime_probe"
+            DURATION="5"
+          fi
+          
+          # Set URLs based on environment
+          case "$ENVIRONMENT" in
+            "production")
+              TARGET_URL="https://api.modulo.app"
+              FRONTEND_URL="https://modulo.app"
+              ;;
+            "staging")
+              TARGET_URL="https://staging-api.modulo.app"
+              FRONTEND_URL="https://staging.modulo.app"
+              ;;
+            *)
+              TARGET_URL="http://localhost:8080"
+              FRONTEND_URL="http://localhost:3000"
+              ;;
+          esac
+          
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          echo "target_url=$TARGET_URL" >> $GITHUB_OUTPUT
+          echo "frontend_url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "test_type=$TEST_TYPE" >> $GITHUB_OUTPUT
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Environment: $ENVIRONMENT"
+          echo "🌐 Target URL: $TARGET_URL"
+          echo "🖥️  Frontend URL: $FRONTEND_URL"
+          echo "🧪 Test Type: $TEST_TYPE"
+          echo "⏱️  Duration: ${DURATION}m"
+
+  uptime-monitoring:
+    name: 🔍 Uptime Monitoring
+    runs-on: ubuntu-latest
+    needs: setup
+    if: contains(needs.setup.outputs.test_type, 'uptime_probe') || contains(needs.setup.outputs.test_type, 'extended_monitoring')
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          k6 version
+
+      - name: 🔍 Run Uptime Monitoring
+        env:
+          TARGET_URL: ${{ needs.setup.outputs.target_url }}
+          FRONTEND_URL: ${{ needs.setup.outputs.frontend_url }}
+        run: |
+          cd k6-tests
+          
+          # Configure duration
+          DURATION="${{ needs.setup.outputs.duration }}m"
+          sed -i "s/duration: '60m'/duration: '$DURATION'/" synthetic/uptime-probe.js
+          
+          echo "🚀 Starting uptime monitoring for $DURATION"
+          echo "🎯 Target: $TARGET_URL"
+          
+          # Run uptime probe with summary output
+          k6 run \
+            --env TARGET_URL="$TARGET_URL" \
+            --env FRONTEND_URL="$FRONTEND_URL" \
+            --summary-trend-stats="avg,min,med,max,p(90),p(95),p(99)" \
+            --out json=results/uptime-monitoring-$(date +%Y%m%d-%H%M%S).json \
+            synthetic/uptime-probe.js
+
+      - name: 📊 Process Monitoring Results
+        if: always()
+        run: |
+          cd k6-tests
+          
+          # Find the latest results file
+          LATEST_RESULT=$(ls -t results/uptime-monitoring-*.json 2>/dev/null | head -n 1)
+          
+          if [[ -f "$LATEST_RESULT" ]]; then
+            echo "📈 Processing monitoring results from: $LATEST_RESULT"
+            
+            # Extract key metrics
+            SUCCESS_RATE=$(jq -r '.metrics.probe_success_rate.values.rate // "N/A"' "$LATEST_RESULT")
+            AVG_RESPONSE_TIME=$(jq -r '.metrics.probe_response_time.values.avg // "N/A"' "$LATEST_RESULT")
+            P95_RESPONSE_TIME=$(jq -r '.metrics.probe_response_time.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            FAILURES=$(jq -r '.metrics.probe_failures.values.count // 0' "$LATEST_RESULT")
+            ATTEMPTS=$(jq -r '.metrics.probe_attempts.values.count // 0' "$LATEST_RESULT")
+            
+            # Calculate uptime percentage
+            if [[ "$SUCCESS_RATE" != "N/A" ]]; then
+              UPTIME_PERCENT=$(echo "$SUCCESS_RATE * 100" | bc -l | xargs printf "%.3f")
+            else
+              UPTIME_PERCENT="N/A"
+            fi
+            
+            echo "## 🔍 Uptime Monitoring Results" > monitoring_summary.md
+            echo "" >> monitoring_summary.md
+            echo "| Metric | Value |" >> monitoring_summary.md
+            echo "|--------|-------|" >> monitoring_summary.md
+            echo "| 🎯 Environment | ${{ needs.setup.outputs.environment }} |" >> monitoring_summary.md
+            echo "| ⏱️ Duration | ${{ needs.setup.outputs.duration }}m |" >> monitoring_summary.md
+            echo "| 📊 Uptime | ${UPTIME_PERCENT}% |" >> monitoring_summary.md
+            echo "| 🔢 Total Probes | $ATTEMPTS |" >> monitoring_summary.md
+            echo "| ❌ Failures | $FAILURES |" >> monitoring_summary.md
+            echo "| ⚡ Avg Response | ${AVG_RESPONSE_TIME}ms |" >> monitoring_summary.md
+            echo "| 📈 P95 Response | ${P95_RESPONSE_TIME}ms |" >> monitoring_summary.md
+            echo "" >> monitoring_summary.md
+            
+            # Check SLO violations
+            if [[ "$SUCCESS_RATE" != "N/A" ]] && (( $(echo "$SUCCESS_RATE < 0.999" | bc -l) )); then
+              echo "🚨 **SLO VIOLATION**: Uptime below 99.9% threshold!" >> monitoring_summary.md
+              echo "uptime_slo_violated=true" >> $GITHUB_ENV
+            fi
+            
+            cat monitoring_summary.md
+          else
+            echo "⚠️ No monitoring results found"
+          fi
+
+      - name: 🚨 Alert on SLO Violations
+        if: env.uptime_slo_violated == 'true'
+        run: |
+          echo "🚨 CRITICAL: Uptime SLO violation detected!"
+          echo "Current uptime is below the 99.9% SLO threshold."
+          echo "This indicates a service availability issue that requires immediate attention."
+          exit 1
+
+      - name: 📤 Upload Monitoring Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uptime-monitoring-results-${{ needs.setup.outputs.environment }}-${{ github.run_number }}
+          path: |
+            k6-tests/results/uptime-monitoring-*.json
+            monitoring_summary.md
+          retention-days: 30
+
+  synthetic-journey:
+    name: 🧭 Synthetic User Journey
+    runs-on: ubuntu-latest
+    needs: setup
+    if: contains(needs.setup.outputs.test_type, 'full_journey') || contains(needs.setup.outputs.test_type, 'extended_monitoring')
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          k6 version
+
+      - name: 🧭 Run Synthetic User Journey
+        env:
+          TARGET_URL: ${{ needs.setup.outputs.target_url }}
+          FRONTEND_URL: ${{ needs.setup.outputs.frontend_url }}
+        run: |
+          cd k6-tests
+          
+          # Configure duration
+          DURATION="${{ needs.setup.outputs.duration }}m"
+          sed -i "s/duration: '30m'/duration: '$DURATION'/" synthetic/user-journey.js
+          
+          echo "🚀 Starting synthetic user journey for $DURATION"
+          echo "🎯 Target: $TARGET_URL"
+          echo "🌐 Frontend: $FRONTEND_URL"
+          
+          # Run synthetic journey
+          k6 run \
+            --env TARGET_URL="$TARGET_URL" \
+            --env FRONTEND_URL="$FRONTEND_URL" \
+            --summary-trend-stats="avg,min,med,max,p(90),p(95),p(99)" \
+            --out json=results/synthetic-journey-$(date +%Y%m%d-%H%M%S).json \
+            synthetic/user-journey.js
+
+      - name: 📊 Analyze Journey Results
+        if: always()
+        run: |
+          cd k6-tests
+          
+          # Find the latest results file
+          LATEST_RESULT=$(ls -t results/synthetic-journey-*.json 2>/dev/null | head -n 1)
+          
+          if [[ -f "$LATEST_RESULT" ]]; then
+            echo "📈 Analyzing journey results from: $LATEST_RESULT"
+            
+            # Extract journey metrics
+            JOURNEY_SUCCESS_RATE=$(jq -r '.metrics.synthetic_journey_success_rate.values.rate // "N/A"' "$LATEST_RESULT")
+            JOURNEY_DURATION_P95=$(jq -r '.metrics.synthetic_journey_duration.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            LOGIN_DURATION_P95=$(jq -r '.metrics.synthetic_login_duration.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            NOTE_CREATION_P95=$(jq -r '.metrics.synthetic_note_creation_duration.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            SYNC_DURATION_P95=$(jq -r '.metrics.synthetic_sync_duration.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            SEARCH_DURATION_P95=$(jq -r '.metrics.synthetic_search_duration.values["p(95)"] // "N/A"' "$LATEST_RESULT")
+            
+            TOTAL_JOURNEYS=$(jq -r '.metrics.synthetic_journey_attempts.values.count // 0' "$LATEST_RESULT")
+            SUCCESSFUL_JOURNEYS=$(jq -r '.metrics.synthetic_journey_successes.values.count // 0' "$LATEST_RESULT")
+            FAILED_JOURNEYS=$(jq -r '.metrics.synthetic_journey_failures.values.count // 0' "$LATEST_RESULT")
+            
+            echo "## 🧭 Synthetic User Journey Results" > journey_summary.md
+            echo "" >> journey_summary.md
+            echo "| Journey Step | P95 Duration |" >> journey_summary.md
+            echo "|--------------|--------------|" >> journey_summary.md
+            echo "| 🔐 Login Flow | ${LOGIN_DURATION_P95}ms |" >> journey_summary.md
+            echo "| 📝 Note Creation | ${NOTE_CREATION_P95}ms |" >> journey_summary.md
+            echo "| 🔄 Sync Operation | ${SYNC_DURATION_P95}ms |" >> journey_summary.md
+            echo "| 🔍 Search Function | ${SEARCH_DURATION_P95}ms |" >> journey_summary.md
+            echo "| 🎯 Full Journey | ${JOURNEY_DURATION_P95}ms |" >> journey_summary.md
+            echo "" >> journey_summary.md
+            echo "| Summary | Value |" >> journey_summary.md
+            echo "|---------|-------|" >> journey_summary.md
+            echo "| 🎯 Environment | ${{ needs.setup.outputs.environment }} |" >> journey_summary.md
+            echo "| 📊 Success Rate | $(echo "$JOURNEY_SUCCESS_RATE * 100" | bc -l | xargs printf "%.3f")% |" >> journey_summary.md
+            echo "| 🔢 Total Journeys | $TOTAL_JOURNEYS |" >> journey_summary.md
+            echo "| ✅ Successful | $SUCCESSFUL_JOURNEYS |" >> journey_summary.md
+            echo "| ❌ Failed | $FAILED_JOURNEYS |" >> journey_summary.md
+            echo "" >> journey_summary.md
+            
+            # Check for SLO violations
+            VIOLATIONS=""
+            if [[ "$JOURNEY_SUCCESS_RATE" != "N/A" ]] && (( $(echo "$JOURNEY_SUCCESS_RATE < 0.999" | bc -l) )); then
+              VIOLATIONS="$VIOLATIONS\n- Journey success rate below 99.9%"
+            fi
+            if [[ "$JOURNEY_DURATION_P95" != "N/A" ]] && (( $(echo "$JOURNEY_DURATION_P95 > 10000" | bc -l) )); then
+              VIOLATIONS="$VIOLATIONS\n- Journey P95 duration above 10s"
+            fi
+            
+            if [[ -n "$VIOLATIONS" ]]; then
+              echo "🚨 **SLO VIOLATIONS DETECTED**:" >> journey_summary.md
+              echo -e "$VIOLATIONS" >> journey_summary.md
+              echo "journey_slo_violated=true" >> $GITHUB_ENV
+            fi
+            
+            cat journey_summary.md
+          else
+            echo "⚠️ No journey results found"
+          fi
+
+      - name: 🚨 Alert on Journey SLO Violations
+        if: env.journey_slo_violated == 'true'
+        run: |
+          echo "🚨 CRITICAL: Synthetic journey SLO violations detected!"
+          echo "User journey performance is below acceptable thresholds."
+          echo "This indicates potential user experience degradation."
+          exit 1
+
+      - name: 📤 Upload Journey Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-journey-results-${{ needs.setup.outputs.environment }}-${{ github.run_number }}
+          path: |
+            k6-tests/results/synthetic-journey-*.json
+            journey_summary.md
+          retention-days: 30
+
+  alert-summary:
+    name: 📊 Monitoring Summary
+    runs-on: ubuntu-latest
+    needs: [setup, uptime-monitoring, synthetic-journey]
+    if: always()
+    
+    steps:
+      - name: 📋 Generate Monitoring Summary
+        run: |
+          echo "## 🔍 Synthetic Monitoring Summary" > monitoring_summary.md
+          echo "" >> monitoring_summary.md
+          echo "**Environment:** ${{ needs.setup.outputs.environment }}" >> monitoring_summary.md
+          echo "**Duration:** ${{ needs.setup.outputs.duration }}m" >> monitoring_summary.md
+          echo "**Test Type:** ${{ needs.setup.outputs.test_type }}" >> monitoring_summary.md
+          echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> monitoring_summary.md
+          echo "" >> monitoring_summary.md
+          
+          # Job statuses
+          echo "| Job | Status |" >> monitoring_summary.md
+          echo "|-----|--------|" >> monitoring_summary.md
+          echo "| 🔍 Uptime Monitoring | ${{ needs.uptime-monitoring.result }} |" >> monitoring_summary.md
+          echo "| 🧭 Synthetic Journey | ${{ needs.synthetic-journey.result }} |" >> monitoring_summary.md
+          echo "" >> monitoring_summary.md
+          
+          # Overall health assessment
+          if [[ "${{ needs.uptime-monitoring.result }}" == "success" && "${{ needs.synthetic-journey.result }}" == "success" ]]; then
+            echo "🟢 **Overall Status: HEALTHY**" >> monitoring_summary.md
+            echo "All synthetic monitoring checks passed successfully." >> monitoring_summary.md
+          elif [[ "${{ needs.uptime-monitoring.result }}" == "failure" || "${{ needs.synthetic-journey.result }}" == "failure" ]]; then
+            echo "🔴 **Overall Status: CRITICAL**" >> monitoring_summary.md
+            echo "One or more synthetic monitoring checks failed. Immediate attention required." >> monitoring_summary.md
+          else
+            echo "🟡 **Overall Status: WARNING**" >> monitoring_summary.md
+            echo "Synthetic monitoring completed with warnings or was skipped." >> monitoring_summary.md
+          fi
+          
+          cat monitoring_summary.md
+
+      - name: 📤 Upload Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-summary-${{ needs.setup.outputs.environment }}-${{ github.run_number }}
+          path: monitoring_summary.md
+          retention-days: 90
