@@ -51,9 +51,10 @@ public class OpenTelemetryConfig {
                 .setResource(resource)
                 .build();
 
+        // For tests, don't register globally to avoid conflicts
         return OpenTelemetrySdk.builder()
                 .setTracerProvider(tracerProvider)
-                .buildAndRegisterGlobal();
+                .build();
     }
 
     @Bean
