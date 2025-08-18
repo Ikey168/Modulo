@@ -8,33 +8,15 @@ disable-default-queries: false
 
 # Query suites to run
 queries:
-  - name: "Security queries"
-    uses: security-extended
-  - name: "Quality queries" 
-    uses: code-scanning
-  - name: "Performance queries"
-    uses: security-and-quality
+  - uses: security-and-quality
 
 # Path filters to focus on relevant code
 paths:
-  - "backend/src"
-  - "frontend/src"
-  - "!**/node_modules"
-  - "!**/target"
-  - "!**/*.min.js"
-  - "!**/dist"
-  - "!**/build"
+  - "backend/src/**"
+  - "frontend/src/**"
 
 # Paths to ignore completely
 paths-ignore:
-  - "**/*.md"
-  - "**/*.txt"
-  - "**/docs/**"
-  - "**/test/**/*.js"
-  - "**/tests/**/*.js"
-  - "**/__tests__/**"
-  - "**/mock/**"
-  - "**/mocks/**"
   - "backend/target/**"
   - "frontend/node_modules/**"
   - "frontend/dist/**"
@@ -44,30 +26,9 @@ paths-ignore:
   - "azure/**"
   - "terraform/**"
   - "scripts/**"
+  - "docs/**"
+  - "**/*.md"
+  - "**/*.txt"
 
 # Language-specific configuration
-packs:
-  # Java security packs
-  java:
-    - "codeql/java-queries:AlertSuppression.ql"
-    - "codeql/java-queries:Security/CWE"
-    - "codeql/java-queries:Security/CWE/CWE-079"
-    - "codeql/java-queries:Security/CWE/CWE-089"  
-    - "codeql/java-queries:Security/CWE/CWE-094"
-    - "codeql/java-queries:Security/CWE/CWE-295"
-    - "codeql/java-queries:Security/CWE/CWE-502"
-    - "codeql/java-queries:Security/CWE/CWE-078"
-    - "codeql/java-queries:Security/CWE/CWE-022"
-  
-  # JavaScript/TypeScript security packs  
-  javascript:
-    - "codeql/javascript-queries:AlertSuppression.ql"
-    - "codeql/javascript-queries:Security/CWE"
-    - "codeql/javascript-queries:Security/CWE/CWE-079"
-    - "codeql/javascript-queries:Security/CWE/CWE-089"
-    - "codeql/javascript-queries:Security/CWE/CWE-094" 
-    - "codeql/javascript-queries:Security/CWE/CWE-295"
-    - "codeql/javascript-queries:Security/CWE/CWE-078"
-    - "codeql/javascript-queries:Security/CWE/CWE-022"
-    - "codeql/javascript-queries:Security/CWE/CWE-601"
-    - "codeql/javascript-queries:Security/CWE/CWE-116"
+# Using default security packs to avoid complex pack specifications
