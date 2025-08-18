@@ -110,7 +110,7 @@ jobs:
       - name: 🐳 Start Services with Docker Compose
         run: |
           echo "🚀 Starting Modulo stack for testing..."
-          docker-compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml up -d
           
           echo "⏳ Waiting for services to be ready..."
           sleep 60
@@ -130,7 +130,7 @@ jobs:
           
           if [ $attempt -eq $max_attempts ]; then
             echo "❌ Backend failed to start"
-            docker-compose logs
+            docker compose logs
             exit 1
           fi
 
@@ -167,8 +167,12 @@ jobs:
           
       - name: 📦 Install k6
         run: |
-          curl -L "https://github.com/grafana/k6/releases/download/${{ env.K6_VERSION }}/k6-${{ env.K6_VERSION }}-linux-amd64.tar.gz" | tar xz
-          sudo mv k6-${{ env.K6_VERSION }}-linux-amd64/k6 /usr/local/bin/
+          # Install k6 using official GPG key and repository
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
           k6 version
           
       - name: 📦 Install Dependencies
@@ -421,5 +425,5 @@ jobs:
       - name: 🛑 Stop Docker Services
         run: |
           echo "🛑 Stopping test environment..."
-          docker-compose -f docker-compose.yml down -v
+          docker compose -f docker-compose.yml down -v
           docker system prune -f

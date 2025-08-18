@@ -78,7 +78,7 @@ A comprehensive note-taking and knowledge management application with blockchain
    npm run dev
 
    # Database (PostgreSQL)
-   docker-compose up postgres
+   docker compose up postgres
    ```
 
 ## Available Scripts
@@ -160,10 +160,10 @@ See [Conventional Commits Guide](docs/CONVENTIONAL_COMMITS.md) for details.
 
 ```bash
 # Production
-docker-compose up -d
+docker compose up -d
 
 # Development  
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### Kubernetes
