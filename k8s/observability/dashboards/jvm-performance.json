@@ -1,0 +1,282 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Modulo - JVM Performance",
+    "tags": ["modulo", "jvm", "performance"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "☕ JVM Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "Heap Memory Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(jvm_memory_used_bytes{application=\"modulo-backend\", area=\"heap\"} / jvm_memory_max_bytes{application=\"modulo-backend\", area=\"heap\"}) * 100",
+            "legendFormat": "Heap Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 85}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "GC Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_collection_seconds_count{application=\"modulo-backend\"}[5m])",
+            "legendFormat": "GC/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "ops",
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "Thread Count",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "jvm_threads_current{application=\"modulo-backend\"}",
+            "legendFormat": "Threads",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "short",
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 200}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1}
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "process_cpu_usage{application=\"modulo-backend\"} * 100",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 85}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 1}
+      },
+      {
+        "id": 10,
+        "title": "🧠 Memory Details",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+        "collapsed": false
+      },
+      {
+        "id": 11,
+        "title": "JVM Memory Areas",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{application=\"modulo-backend\"}",
+            "legendFormat": "{{ area }} - {{ id }}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Bytes", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+      },
+      {
+        "id": 12,
+        "title": "Garbage Collection Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_collection_seconds_sum{application=\"modulo-backend\"}[5m])",
+            "legendFormat": "{{ gc }} GC Time/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+      },
+      {
+        "id": 20,
+        "title": "🧵 Threading",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+        "collapsed": false
+      },
+      {
+        "id": 21,
+        "title": "Thread States",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_threads_states{application=\"modulo-backend\"}",
+            "legendFormat": "{{ state }}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Threads", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19}
+      },
+      {
+        "id": 22,
+        "title": "Class Loading",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_classes_loaded{application=\"modulo-backend\"}",
+            "legendFormat": "Classes Loaded",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(jvm_classes_unloaded_total{application=\"modulo-backend\"}[5m])",
+            "legendFormat": "Classes Unloaded/sec",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {"label": "Count", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "refresh": "10s"
+  }
+}

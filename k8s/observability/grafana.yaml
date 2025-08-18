@@ -244,6 +244,14 @@ spec:
           mountPath: /etc/grafana/provisioning/dashboards
         - name: dashboards
           mountPath: /var/lib/grafana/dashboards
+        - name: dashboards-app
+          mountPath: /var/lib/grafana/dashboards/app
+        - name: dashboards-jvm
+          mountPath: /var/lib/grafana/dashboards/jvm
+        - name: dashboards-db
+          mountPath: /var/lib/grafana/dashboards/db
+        - name: dashboards-sync
+          mountPath: /var/lib/grafana/dashboards/sync
         - name: storage
           mountPath: /var/lib/grafana
         resources:
@@ -290,6 +298,30 @@ spec:
           items:
           - key: modulo-overview.json
             path: modulo-overview.json
+      - name: dashboards-app
+        configMap:
+          name: grafana-dashboards-app
+          items:
+          - key: app-performance.json
+            path: app-performance.json
+      - name: dashboards-jvm
+        configMap:
+          name: grafana-dashboards-jvm
+          items:
+          - key: jvm-performance.json
+            path: jvm-performance.json
+      - name: dashboards-db
+        configMap:
+          name: grafana-dashboards-db
+          items:
+          - key: database-performance.json
+            path: database-performance.json
+      - name: dashboards-sync
+        configMap:
+          name: grafana-dashboards-sync
+          items:
+          - key: sync-blockchain.json
+            path: sync-blockchain.json
       - name: storage
         emptyDir: {}
 ---

@@ -1,0 +1,71 @@
+# Ignore unnecessary files to speed up Docker build
+target/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.tgz
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Maven
+.m2/
+
+# Test results
+TEST-*.xml
+surefire-reports/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Docker files themselves
+Dockerfile*
+.dockerignore
+
+# Spring Boot DevTools
+.spring-boot-devtools.properties
+
+# Application properties with secrets
+application-local.properties
+application-dev.properties
+application-test.properties
+
+# Coverage reports
+jacoco.exec
+coverage/
+
+# Node modules (if any)
+node_modules/
+
+# Backup files
+*.bak
+*.backup

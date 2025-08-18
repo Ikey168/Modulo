@@ -181,6 +181,61 @@ cd azure
 ./deploy-app-service.sh
 ```
 
+## Observability & Monitoring
+
+Modulo includes a comprehensive observability stack with **Golden Signals monitoring**, distributed tracing, and alerting:
+
+### 🚀 Golden Signals Dashboards
+
+- **🔥 Application Performance**: Request rate, error rate, P95 latency, CPU/memory saturation
+- **☕ JVM Performance**: Heap usage, GC metrics, thread states, class loading
+- **🗄️ Database Performance**: Connection pool monitoring, query performance, HikariCP metrics  
+- **🔗 Sync & Blockchain**: WebSocket connections, blockchain transactions, sync operations
+
+### 📊 Technology Stack
+
+- **Prometheus**: Metrics collection and alerting (v2.47.2)
+- **Grafana**: Dashboard visualization (v10.1.5)
+- **Alertmanager**: Alert routing and notifications (v0.26.0)
+- **Tempo**: Distributed tracing with OpenTelemetry
+- **Loki**: Log aggregation and correlation
+
+### 🚨 Alerting Rules
+
+**Golden Signal Alerts:**
+- High error rate (>5% critical, >1% warning)
+- High P95 latency (>1000ms critical, >500ms warning)
+- CPU/Memory saturation (>85%)
+- Database connection pool alerts
+- WebSocket connection monitoring
+- Blockchain operation failures
+
+### Quick Start
+
+```bash
+# Deploy observability stack
+cd k8s
+./deploy-observability.sh
+
+# Access dashboards
+kubectl port-forward -n observability svc/grafana 3000:3000 &
+kubectl port-forward -n observability svc/prometheus 9090:9090 &
+kubectl port-forward -n observability svc/alertmanager 9093:9093 &
+```
+
+**Dashboard Access:**
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090  
+- Alertmanager: http://localhost:9093
+
+**Test Alert:**
+```bash
+# Simulate high error rate to test alerting
+curl -X POST http://localhost:8080/api/test/error-rate
+```
+
+For detailed configuration, see [Observability Documentation](k8s/observability/README.md).
+
 ## Authentication
 
 Modulo supports multiple authentication methods:

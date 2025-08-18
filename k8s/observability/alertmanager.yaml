@@ -1,0 +1,216 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: observability
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@modulo.io'
+      smtp_auth_username: 'alerts@modulo.io'
+      smtp_auth_password: 'password'
+
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          repeat_interval: 15m
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+          repeat_interval: 1h
+
+    receivers:
+      - name: 'web.hook'
+        webhook_configs:
+          - url: 'http://webhook-service:9093/webhook'
+            send_resolved: true
+            title: 'Modulo Alert'
+            text: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              {{ end }}
+
+      - name: 'critical-alerts'
+        webhook_configs:
+          - url: 'http://webhook-service:9093/webhook'
+            send_resolved: true
+            title: '🚨 CRITICAL: Modulo Alert'
+            text: |
+              {{ range .Alerts }}
+              🚨 CRITICAL ALERT 🚨
+              
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              Time: {{ .StartsAt }}
+              {{ end }}
+        # Example Slack configuration (uncomment and configure as needed)
+        # slack_configs:
+        #   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        #     channel: '#alerts'
+        #     title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        #     text: |
+        #       {{ range .Alerts }}
+        #       *Alert:* {{ .Annotations.summary }}
+        #       *Description:* {{ .Annotations.description }}
+        #       *Severity:* {{ .Labels.severity }}
+        #       {{ end }}
+
+      - name: 'warning-alerts'
+        webhook_configs:
+          - url: 'http://webhook-service:9093/webhook'
+            send_resolved: true
+            title: '⚠️ WARNING: Modulo Alert'
+            text: |
+              {{ range .Alerts }}
+              ⚠️ WARNING ALERT ⚠️
+              
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              Time: {{ .StartsAt }}
+              {{ end }}
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'cluster', 'service']
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.26.0
+        args:
+          - '--config.file=/etc/alertmanager/alertmanager.yml'
+          - '--storage.path=/alertmanager'
+          - '--web.external-url=http://localhost:9093'
+          - '--web.listen-address=0.0.0.0:9093'
+          - '--log.level=info'
+        ports:
+        - containerPort: 9093
+          name: web
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alertmanager
+        - name: storage
+          mountPath: /alertmanager
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 50m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9093
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9093
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: alertmanager-config
+      - name: storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: observability
+  labels:
+    app: alertmanager
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9093"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9093
+    targetPort: 9093
+    protocol: TCP
+    name: web
+  selector:
+    app: alertmanager
+
+---
+# Simple webhook receiver for testing alerts
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-service
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-service
+  template:
+    metadata:
+      labels:
+        app: webhook-service
+    spec:
+      containers:
+      - name: webhook
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo 'Alert webhook received' | nc -l -p 9093; done"]
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 10m
+          limits:
+            memory: 64Mi
+            cpu: 50m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-service
+  namespace: observability
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9093
+    targetPort: 9093
+    protocol: TCP
+  selector:
+    app: webhook-service
