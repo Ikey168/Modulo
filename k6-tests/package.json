@@ -13,9 +13,6 @@
     "baseline:save": "node scripts/save-baseline.js",
     "baseline:compare": "node scripts/compare-baseline.js"
   },
-  "devDependencies": {
-    "k6": "^0.46.0"
-  },
   "keywords": ["k6", "load-testing", "performance", "slo", "modulo"],
   "author": "Modulo Team",
   "license": "MIT"
