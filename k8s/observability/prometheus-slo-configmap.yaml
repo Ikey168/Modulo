@@ -1,0 +1,556 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-slo-rules
+  namespace: observability
+  labels:
+    app: prometheus
+    component: server
+data:
+  slo-rules.yaml: |
+    groups:
+      # SLI Recording Rules
+      - name: modulo.sli.recording
+        interval: 30s
+        rules:
+          # Read Latency SLI
+          - record: modulo:sli:read_p95_latency
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(http_server_requests_seconds_bucket{
+                  application="modulo-backend",
+                  uri=~"/api/notes/.*",
+                  method="GET"
+                }[5m])) by (le)
+              ) * 1000
+
+          # Write Latency SLI  
+          - record: modulo:sli:write_p95_latency
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(http_server_requests_seconds_bucket{
+                  application="modulo-backend",
+                  uri=~"/api/notes.*",
+                  method=~"POST|PUT|DELETE"
+                }[5m])) by (le)
+              ) * 1000
+
+          # Sync Latency SLI
+          - record: modulo:sli:sync_p95_latency
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(modulo_blockchain_sync_duration_seconds_bucket[5m])) by (le)
+              ) * 1000
+
+          # Availability SLI
+          - record: modulo:sli:availability
+            expr: |
+              (
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend",
+                  status!~"5.."
+                }[5m])) /
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend"
+                }[5m]))
+              ) * 100
+
+      # SLO Compliance Rules
+      - name: modulo.slo.compliance
+        interval: 60s
+        rules:
+          # Read Latency SLO Compliance
+          - record: modulo:slo:read_latency_compliance
+            expr: |
+              (
+                sum(rate(http_server_requests_seconds_bucket{
+                  application="modulo-backend",
+                  uri=~"/api/notes/.*",
+                  method="GET",
+                  le="0.2"
+                }[5m])) /
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend", 
+                  uri=~"/api/notes/.*",
+                  method="GET"
+                }[5m]))
+              ) * 100
+
+          # Write Latency SLO Compliance
+          - record: modulo:slo:write_latency_compliance
+            expr: |
+              (
+                sum(rate(http_server_requests_seconds_bucket{
+                  application="modulo-backend",
+                  uri=~"/api/notes.*",
+                  method=~"POST|PUT|DELETE",
+                  le="0.5"
+                }[5m])) /
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend",
+                  uri=~"/api/notes.*", 
+                  method=~"POST|PUT|DELETE"
+                }[5m]))
+              ) * 100
+
+          # Sync Latency SLO Compliance
+          - record: modulo:slo:sync_latency_compliance
+            expr: |
+              (
+                sum(rate(modulo_blockchain_sync_duration_seconds_bucket{le="1"}[5m])) /
+                sum(rate(modulo_blockchain_sync_duration_seconds_count[5m]))
+              ) * 100
+
+          # Availability SLO Compliance
+          - record: modulo:slo:availability_compliance
+            expr: |
+              (
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend",
+                  status!~"5.."
+                }[5m])) /
+                sum(rate(http_server_requests_seconds_count{
+                  application="modulo-backend"
+                }[5m]))
+              ) * 100
+
+      # Burn Rate Calculation Rules
+      - name: modulo.slo.burn_rate
+        interval: 60s
+        rules:
+          # Read Latency Burn Rates
+          - record: modulo:slo:read_latency_burn_rate_5m
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET",
+                    le="0.2"
+                  }[5m])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*", 
+                    method="GET"
+                  }[5m]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:read_latency_burn_rate_1h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET",
+                    le="0.2"
+                  }[1h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET"
+                  }[1h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:read_latency_burn_rate_6h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET",
+                    le="0.2"
+                  }[6h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET"
+                  }[6h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:read_latency_burn_rate_24h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET",
+                    le="0.2"
+                  }[24h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes/.*",
+                    method="GET"
+                  }[24h]))
+                )
+              ) / (1 - 0.99)
+
+          # Write Latency Burn Rates
+          - record: modulo:slo:write_latency_burn_rate_5m
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE",
+                    le="0.5"
+                  }[5m])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE"
+                  }[5m]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:write_latency_burn_rate_1h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE",
+                    le="0.5"
+                  }[1h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE"
+                  }[1h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:write_latency_burn_rate_6h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE",
+                    le="0.5"
+                  }[6h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE"
+                  }[6h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:write_latency_burn_rate_24h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_bucket{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE",
+                    le="0.5"
+                  }[24h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    uri=~"/api/notes.*",
+                    method=~"POST|PUT|DELETE"
+                  }[24h]))
+                )
+              ) / (1 - 0.99)
+
+          # Sync Latency Burn Rates
+          - record: modulo:slo:sync_latency_burn_rate_5m
+            expr: |
+              (
+                1 - (
+                  sum(rate(modulo_blockchain_sync_duration_seconds_bucket{le="1"}[5m])) /
+                  sum(rate(modulo_blockchain_sync_duration_seconds_count[5m]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:sync_latency_burn_rate_1h
+            expr: |
+              (
+                1 - (
+                  sum(rate(modulo_blockchain_sync_duration_seconds_bucket{le="1"}[1h])) /
+                  sum(rate(modulo_blockchain_sync_duration_seconds_count[1h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:sync_latency_burn_rate_6h
+            expr: |
+              (
+                1 - (
+                  sum(rate(modulo_blockchain_sync_duration_seconds_bucket{le="1"}[6h])) /
+                  sum(rate(modulo_blockchain_sync_duration_seconds_count[6h]))
+                )
+              ) / (1 - 0.99)
+
+          - record: modulo:slo:sync_latency_burn_rate_24h
+            expr: |
+              (
+                1 - (
+                  sum(rate(modulo_blockchain_sync_duration_seconds_bucket{le="1"}[24h])) /
+                  sum(rate(modulo_blockchain_sync_duration_seconds_count[24h]))
+                )
+              ) / (1 - 0.99)
+
+          # Availability Burn Rates
+          - record: modulo:slo:availability_burn_rate_5m
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    status!~"5.."
+                  }[5m])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend"
+                  }[5m]))
+                )
+              ) / (1 - 0.999)
+
+          - record: modulo:slo:availability_burn_rate_1h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    status!~"5.."
+                  }[1h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend"
+                  }[1h]))
+                )
+              ) / (1 - 0.999)
+
+          - record: modulo:slo:availability_burn_rate_6h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    status!~"5.."
+                  }[6h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend"
+                  }[6h]))
+                )
+              ) / (1 - 0.999)
+
+          - record: modulo:slo:availability_burn_rate_24h
+            expr: |
+              (
+                1 - (
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend",
+                    status!~"5.."
+                  }[24h])) /
+                  sum(rate(http_server_requests_seconds_count{
+                    application="modulo-backend"
+                  }[24h]))
+                )
+              ) / (1 - 0.999)
+
+      # Multi-Window Burn Rate Alerting Rules
+      - name: modulo.slo.alerts  
+        interval: 30s
+        rules:
+          # Read Latency Critical Burn Rate Alert (14.4x in 5m + 6x in 1h)
+          - alert: ReadLatencySLOBurnRateCritical
+            expr: |
+              modulo:slo:read_latency_burn_rate_5m > 14.4
+              and
+              modulo:slo:read_latency_burn_rate_1h > 6
+            for: 2m
+            labels:
+              severity: critical
+              slo: read_latency
+              team: platform
+            annotations:
+              summary: "🔥 CRITICAL: Read latency SLO burn rate extremely high"
+              description: "Read latency error budget is burning at {{ $value | humanize }}x normal rate. At this rate, the monthly error budget will be exhausted in {{ with query \"86400 / on() (modulo:slo:read_latency_burn_rate_5m * 2592000)\" }}{{ . | first | value | humanizeDuration }}{{ end }}."
+              impact: "Customer experience severely degraded - immediate action required"
+              runbook: "https://wiki.company.com/slo/read-latency-runbook"
+
+          # Read Latency Warning Burn Rate Alert (6x in 30m + 1.5x in 6h)  
+          - alert: ReadLatencySLOBurnRateWarning
+            expr: |
+              modulo:slo:read_latency_burn_rate_5m > 6
+              and
+              modulo:slo:read_latency_burn_rate_6h > 1.5
+            for: 15m
+            labels:
+              severity: warning
+              slo: read_latency
+              team: platform
+            annotations:
+              summary: "⚠️ WARNING: Read latency SLO burn rate high"
+              description: "Read latency error budget is burning at {{ $value | humanize }}x normal rate. Monitor and investigate if rate continues."
+              impact: "Potential customer impact if trend continues"
+              runbook: "https://wiki.company.com/slo/read-latency-runbook"
+
+          # Read Latency Ticket Burn Rate Alert (1.5x in 24h)
+          - alert: ReadLatencySLOBurnRateTicket
+            expr: modulo:slo:read_latency_burn_rate_24h > 1.5
+            for: 1h
+            labels:
+              severity: ticket
+              slo: read_latency
+              team: platform
+            annotations:
+              summary: "📋 TICKET: Read latency SLO burn rate elevated"
+              description: "Read latency error budget is burning at {{ $value | humanize }}x normal rate over 24h. Create ticket for investigation."
+              impact: "Error budget consumption tracking"
+              runbook: "https://wiki.company.com/slo/read-latency-runbook"
+
+          # Write Latency Critical Burn Rate Alert
+          - alert: WriteLatencySLOBurnRateCritical
+            expr: |
+              modulo:slo:write_latency_burn_rate_5m > 14.4
+              and
+              modulo:slo:write_latency_burn_rate_1h > 6
+            for: 2m
+            labels:
+              severity: critical
+              slo: write_latency
+              team: platform
+            annotations:
+              summary: "🔥 CRITICAL: Write latency SLO burn rate extremely high"
+              description: "Write latency error budget is burning at {{ $value | humanize }}x normal rate. Immediate action required."
+              impact: "Customer write operations severely degraded"
+              runbook: "https://wiki.company.com/slo/write-latency-runbook"
+
+          # Write Latency Warning Burn Rate Alert
+          - alert: WriteLatencySLOBurnRateWarning
+            expr: |
+              modulo:slo:write_latency_burn_rate_5m > 6
+              and
+              modulo:slo:write_latency_burn_rate_6h > 1.5
+            for: 15m
+            labels:
+              severity: warning
+              slo: write_latency
+              team: platform
+            annotations:
+              summary: "⚠️ WARNING: Write latency SLO burn rate high"
+              description: "Write latency error budget is burning at {{ $value | humanize }}x normal rate. Monitor closely."
+              impact: "Potential customer write latency impact"
+              runbook: "https://wiki.company.com/slo/write-latency-runbook"
+
+          # Write Latency Ticket Burn Rate Alert
+          - alert: WriteLatencySLOBurnRateTicket
+            expr: modulo:slo:write_latency_burn_rate_24h > 1.5
+            for: 1h
+            labels:
+              severity: ticket
+              slo: write_latency
+              team: platform
+            annotations:
+              summary: "📋 TICKET: Write latency SLO burn rate elevated"
+              description: "Write latency error budget consumption requires investigation."
+              impact: "Error budget tracking and optimization needed"
+              runbook: "https://wiki.company.com/slo/write-latency-runbook"
+
+          # Sync Latency Critical Burn Rate Alert
+          - alert: SyncLatencySLOBurnRateCritical
+            expr: |
+              modulo:slo:sync_latency_burn_rate_5m > 14.4
+              and
+              modulo:slo:sync_latency_burn_rate_1h > 6
+            for: 2m
+            labels:
+              severity: critical
+              slo: sync_latency
+              team: platform
+            annotations:
+              summary: "🔥 CRITICAL: Blockchain sync latency SLO burn rate extremely high"
+              description: "Blockchain sync latency error budget burning at {{ $value | humanize }}x normal rate. Sync performance severely degraded."
+              impact: "Blockchain data synchronization severely impacted"
+              runbook: "https://wiki.company.com/slo/sync-latency-runbook"
+
+          # Sync Latency Warning Burn Rate Alert
+          - alert: SyncLatencySLOBurnRateWarning
+            expr: |
+              modulo:slo:sync_latency_burn_rate_5m > 6
+              and
+              modulo:slo:sync_latency_burn_rate_6h > 1.5
+            for: 15m
+            labels:
+              severity: warning
+              slo: sync_latency
+              team: platform
+            annotations:
+              summary: "⚠️ WARNING: Blockchain sync latency SLO burn rate high"
+              description: "Blockchain sync latency error budget burning at {{ $value | humanize }}x normal rate."
+              impact: "Potential blockchain sync delays"
+              runbook: "https://wiki.company.com/slo/sync-latency-runbook"
+
+          # Sync Latency Ticket Burn Rate Alert
+          - alert: SyncLatencySLOBurnRateTicket
+            expr: modulo:slo:sync_latency_burn_rate_24h > 1.5
+            for: 1h
+            labels:
+              severity: ticket
+              slo: sync_latency
+              team: platform
+            annotations:
+              summary: "📋 TICKET: Blockchain sync latency SLO burn rate elevated"
+              description: "Blockchain sync latency requires performance investigation."
+              impact: "Sync performance optimization needed"
+              runbook: "https://wiki.company.com/slo/sync-latency-runbook"
+
+          # Availability Critical Burn Rate Alert (144x in 5m + 60x in 1h)
+          - alert: AvailabilitySLOBurnRateCritical
+            expr: |
+              modulo:slo:availability_burn_rate_5m > 144
+              and
+              modulo:slo:availability_burn_rate_1h > 60
+            for: 2m
+            labels:
+              severity: critical
+              slo: availability
+              team: platform
+            annotations:
+              summary: "🔥 CRITICAL: Availability SLO burn rate extremely high"
+              description: "Availability error budget burning at {{ $value | humanize }}x normal rate. Major service disruption detected."
+              impact: "Service likely unavailable to customers"
+              runbook: "https://wiki.company.com/slo/availability-runbook"
+
+          # Availability Warning Burn Rate Alert (60x in 30m + 15x in 6h)
+          - alert: AvailabilitySLOBurnRateWarning
+            expr: |
+              modulo:slo:availability_burn_rate_5m > 60
+              and
+              modulo:slo:availability_burn_rate_6h > 15
+            for: 15m
+            labels:
+              severity: warning
+              slo: availability
+              team: platform
+            annotations:
+              summary: "⚠️ WARNING: Availability SLO burn rate high"
+              description: "Availability error budget burning at {{ $value | humanize }}x normal rate. Service experiencing errors."
+              impact: "Elevated error rates affecting customers"
+              runbook: "https://wiki.company.com/slo/availability-runbook"
+
+          # Availability Ticket Burn Rate Alert (15x in 24h)
+          - alert: AvailabilitySLOBurnRateTicket
+            expr: modulo:slo:availability_burn_rate_24h > 15
+            for: 1h
+            labels:
+              severity: ticket
+              slo: availability
+              team: platform
+            annotations:
+              summary: "📋 TICKET: Availability SLO burn rate elevated"
+              description: "Availability error budget consumption elevated over 24h period. Investigate error patterns."
+              impact: "Error rate investigation needed"
+              runbook: "https://wiki.company.com/slo/availability-runbook"
