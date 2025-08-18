@@ -1,0 +1,439 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-slo-rules
+  namespace: observability
+data:
+  slo-recording-rules.yml: |
+    groups:
+    # 📊 SLI Recording Rules - Pre-calculate expensive queries
+    - name: modulo.sli.recording
+      interval: 30s
+      rules:
+      
+      # 📖 Read Performance SLI
+      - record: modulo:sli:read_p95_latency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{
+              application="modulo-backend",
+              method="GET",
+              status!~"[45].*"
+            }[5m])) by (le)
+          ) * 1000
+      
+      - record: modulo:sli:read_success_rate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend",
+            method="GET",
+            status!~"[45].*"
+          }[5m])) / 
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend",
+            method="GET"
+          }[5m])) * 100
+
+      # ✏️ Write Performance SLI
+      - record: modulo:sli:write_p95_latency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{
+              application="modulo-backend",
+              method=~"POST|PUT|DELETE",
+              status!~"[45].*"
+            }[5m])) by (le)
+          ) * 1000
+      
+      - record: modulo:sli:write_success_rate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend",
+            method=~"POST|PUT|DELETE",
+            status!~"[45].*"
+          }[5m])) / 
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend",
+            method=~"POST|PUT|DELETE"
+          }[5m])) * 100
+
+      # 🔄 Sync Performance SLI
+      - record: modulo:sli:sync_p95_latency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(modulo_sync_operations_duration_seconds_bucket{
+              status="success"
+            }[5m])) by (le)
+          ) * 1000
+      
+      - record: modulo:sli:sync_success_rate
+        expr: |
+          sum(rate(modulo_sync_operations_completed_total{
+            status="success"
+          }[5m])) / 
+          sum(rate(modulo_sync_operations_completed_total[5m])) * 100
+
+      # 🟢 Availability SLI
+      - record: modulo:sli:availability
+        expr: |
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend",
+            status!~"[45].*"
+          }[5m])) / 
+          sum(rate(http_server_requests_seconds_count{
+            application="modulo-backend"
+          }[5m])) * 100
+
+    # 🎯 SLO Compliance Recording Rules
+    - name: modulo.slo.compliance
+      interval: 1m
+      rules:
+      
+      # Read SLO Compliance (Target: P95 < 200ms)
+      - record: modulo:slo:read_latency_compliance
+        expr: |
+          (modulo:sli:read_p95_latency < 200) * 100
+      
+      # Write SLO Compliance (Target: P95 < 500ms)
+      - record: modulo:slo:write_latency_compliance
+        expr: |
+          (modulo:sli:write_p95_latency < 500) * 100
+      
+      # Sync SLO Compliance (Target: P95 < 1000ms)
+      - record: modulo:slo:sync_latency_compliance
+        expr: |
+          (modulo:sli:sync_p95_latency < 1000) * 100
+      
+      # Availability SLO Compliance (Target: > 99.9%)
+      - record: modulo:slo:availability_compliance
+        expr: |
+          (modulo:sli:availability > 99.9) * 100
+
+    # 🔥 Error Budget Burn Rate Calculations
+    - name: modulo.slo.burn_rate
+      interval: 1m
+      rules:
+      
+      # Read Latency Error Budget Burn Rates
+      - record: modulo:slo:read_latency_burn_rate_5m
+        expr: |
+          (1 - (modulo:slo:read_latency_compliance / 100)) * 100 / 5
+      
+      - record: modulo:slo:read_latency_burn_rate_30m
+        expr: |
+          (1 - (avg_over_time(modulo:slo:read_latency_compliance[30m]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:read_latency_burn_rate_1h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:read_latency_compliance[1h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:read_latency_burn_rate_6h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:read_latency_compliance[6h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:read_latency_burn_rate_24h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:read_latency_compliance[24h]) / 100)) * 100 / 5
+
+      # Write Latency Error Budget Burn Rates
+      - record: modulo:slo:write_latency_burn_rate_5m
+        expr: |
+          (1 - (modulo:slo:write_latency_compliance / 100)) * 100 / 5
+      
+      - record: modulo:slo:write_latency_burn_rate_30m
+        expr: |
+          (1 - (avg_over_time(modulo:slo:write_latency_compliance[30m]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:write_latency_burn_rate_1h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:write_latency_compliance[1h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:write_latency_burn_rate_6h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:write_latency_compliance[6h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:write_latency_burn_rate_24h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:write_latency_compliance[24h]) / 100)) * 100 / 5
+
+      # Sync Latency Error Budget Burn Rates
+      - record: modulo:slo:sync_latency_burn_rate_5m
+        expr: |
+          (1 - (modulo:slo:sync_latency_compliance / 100)) * 100 / 5
+      
+      - record: modulo:slo:sync_latency_burn_rate_30m
+        expr: |
+          (1 - (avg_over_time(modulo:slo:sync_latency_compliance[30m]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:sync_latency_burn_rate_1h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:sync_latency_compliance[1h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:sync_latency_burn_rate_6h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:sync_latency_compliance[6h]) / 100)) * 100 / 5
+      
+      - record: modulo:slo:sync_latency_burn_rate_24h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:sync_latency_compliance[24h]) / 100)) * 100 / 5
+
+      # Availability Error Budget Burn Rates
+      - record: modulo:slo:availability_burn_rate_5m
+        expr: |
+          (1 - (modulo:slo:availability_compliance / 100)) * 100 / 0.1
+      
+      - record: modulo:slo:availability_burn_rate_30m
+        expr: |
+          (1 - (avg_over_time(modulo:slo:availability_compliance[30m]) / 100)) * 100 / 0.1
+      
+      - record: modulo:slo:availability_burn_rate_1h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:availability_compliance[1h]) / 100)) * 100 / 0.1
+      
+      - record: modulo:slo:availability_burn_rate_6h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:availability_compliance[6h]) / 100)) * 100 / 0.1
+      
+      - record: modulo:slo:availability_burn_rate_24h
+        expr: |
+          (1 - (avg_over_time(modulo:slo:availability_compliance[24h]) / 100)) * 100 / 0.1
+
+  slo-alerting-rules.yml: |
+    groups:
+    # 🚨 Multi-Window Burn-Rate Alerts - Read Latency SLO
+    - name: modulo.slo.read_latency.alerts
+      interval: 1m
+      rules:
+      
+      # Critical: Fast burn (exhausts budget in 2 hours)
+      - alert: ReadLatencySLOBurnRateCritical
+        expr: |
+          (
+            modulo:slo:read_latency_burn_rate_5m > (14.4 * 1) and
+            modulo:slo:read_latency_burn_rate_1h > (14.4 * 1)
+          ) or (
+            modulo:slo:read_latency_burn_rate_30m > (6 * 1) and
+            modulo:slo:read_latency_burn_rate_6h > (6 * 1)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          slo: read_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "🚨 CRITICAL: Read Latency SLO burn rate is critically high"
+          description: |
+            Read latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 read latency: {{ printf "%.0f" (query "modulo:sli:read_p95_latency") }}ms (target: <200ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            IMMEDIATE ACTION REQUIRED - Page on-call engineer.
+          runbook_url: "https://runbooks.modulo.io/slo/read-latency-critical"
+          dashboard_url: "https://grafana.modulo.io/d/slo-overview/slo-overview"
+
+      # Warning: Moderate burn (exhausts budget in 5 hours)  
+      - alert: ReadLatencySLOBurnRateWarning
+        expr: |
+          modulo:slo:read_latency_burn_rate_30m > (6 * 1) and
+          modulo:slo:read_latency_burn_rate_6h > (6 * 1)
+        for: 5m
+        labels:
+          severity: warning
+          slo: read_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "⚠️ WARNING: Read Latency SLO burn rate is elevated"
+          description: |
+            Read latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 read latency: {{ printf "%.0f" (query "modulo:sli:read_p95_latency") }}ms (target: <200ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            Investigation required within 30 minutes.
+          runbook_url: "https://runbooks.modulo.io/slo/read-latency-warning"
+
+      # Ticket: Slow burn (normal consumption)
+      - alert: ReadLatencySLOBurnRateTicket
+        expr: |
+          modulo:slo:read_latency_burn_rate_24h > (1 * 1)
+        for: 30m
+        labels:
+          severity: ticket
+          slo: read_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "📋 TICKET: Read Latency SLO burn rate indicates budget depletion"
+          description: |
+            Read latency SLO is consuming error budget at the normal rate.
+            Current P95 read latency: {{ printf "%.0f" (query "modulo:sli:read_p95_latency") }}ms (target: <200ms)
+            
+            Create ticket for investigation during business hours.
+          runbook_url: "https://runbooks.modulo.io/slo/read-latency-ticket"
+
+    # 🚨 Multi-Window Burn-Rate Alerts - Write Latency SLO
+    - name: modulo.slo.write_latency.alerts
+      interval: 1m
+      rules:
+      
+      # Critical: Fast burn (exhausts budget in 2 hours)
+      - alert: WriteLatencySLOBurnRateCritical
+        expr: |
+          (
+            modulo:slo:write_latency_burn_rate_5m > (14.4 * 1) and
+            modulo:slo:write_latency_burn_rate_1h > (14.4 * 1)
+          ) or (
+            modulo:slo:write_latency_burn_rate_30m > (6 * 1) and
+            modulo:slo:write_latency_burn_rate_6h > (6 * 1)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          slo: write_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "🚨 CRITICAL: Write Latency SLO burn rate is critically high"
+          description: |
+            Write latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 write latency: {{ printf "%.0f" (query "modulo:sli:write_p95_latency") }}ms (target: <500ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            IMMEDIATE ACTION REQUIRED - Page on-call engineer.
+          runbook_url: "https://runbooks.modulo.io/slo/write-latency-critical"
+
+      # Warning: Moderate burn (exhausts budget in 5 hours)
+      - alert: WriteLatencySLOBurnRateWarning
+        expr: |
+          modulo:slo:write_latency_burn_rate_30m > (6 * 1) and
+          modulo:slo:write_latency_burn_rate_6h > (6 * 1)
+        for: 5m
+        labels:
+          severity: warning
+          slo: write_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "⚠️ WARNING: Write Latency SLO burn rate is elevated"
+          description: |
+            Write latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 write latency: {{ printf "%.0f" (query "modulo:sli:write_p95_latency") }}ms (target: <500ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            Investigation required within 30 minutes.
+          runbook_url: "https://runbooks.modulo.io/slo/write-latency-warning"
+
+      # Ticket: Slow burn (normal consumption)
+      - alert: WriteLatencySLOBurnRateTicket
+        expr: |
+          modulo:slo:write_latency_burn_rate_24h > (1 * 1)
+        for: 30m
+        labels:
+          severity: ticket
+          slo: write_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "📋 TICKET: Write Latency SLO burn rate indicates budget depletion"
+          description: |
+            Write latency SLO is consuming error budget at the normal rate.
+            Current P95 write latency: {{ printf "%.0f" (query "modulo:sli:write_p95_latency") }}ms (target: <500ms)
+            
+            Create ticket for investigation during business hours.
+          runbook_url: "https://runbooks.modulo.io/slo/write-latency-ticket"
+
+    # 🚨 Multi-Window Burn-Rate Alerts - Sync Latency SLO
+    - name: modulo.slo.sync_latency.alerts
+      interval: 1m
+      rules:
+      
+      # Critical: Fast burn (exhausts budget in 2 hours)
+      - alert: SyncLatencySLOBurnRateCritical
+        expr: |
+          (
+            modulo:slo:sync_latency_burn_rate_5m > (14.4 * 1) and
+            modulo:slo:sync_latency_burn_rate_1h > (14.4 * 1)
+          ) or (
+            modulo:slo:sync_latency_burn_rate_30m > (6 * 1) and
+            modulo:slo:sync_latency_burn_rate_6h > (6 * 1)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          slo: sync_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "🚨 CRITICAL: Sync Latency SLO burn rate is critically high"
+          description: |
+            Sync latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 sync latency: {{ printf "%.0f" (query "modulo:sli:sync_p95_latency") }}ms (target: <1000ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            IMMEDIATE ACTION REQUIRED - Page on-call engineer.
+          runbook_url: "https://runbooks.modulo.io/slo/sync-latency-critical"
+
+      # Warning: Moderate burn (exhausts budget in 5 hours)
+      - alert: SyncLatencySLOBurnRateWarning
+        expr: |
+          modulo:slo:sync_latency_burn_rate_30m > (6 * 1) and
+          modulo:slo:sync_latency_burn_rate_6h > (6 * 1)
+        for: 5m
+        labels:
+          severity: warning
+          slo: sync_latency
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "⚠️ WARNING: Sync Latency SLO burn rate is elevated"
+          description: |
+            Sync latency SLO is burning error budget at {{ $value }}x the normal rate.
+            Current P95 sync latency: {{ printf "%.0f" (query "modulo:sli:sync_p95_latency") }}ms (target: <1000ms)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 100 $value) }} hours if this continues.
+            
+            Investigation required within 30 minutes.
+          runbook_url: "https://runbooks.modulo.io/slo/sync-latency-warning"
+
+    # 🚨 Multi-Window Burn-Rate Alerts - Availability SLO
+    - name: modulo.slo.availability.alerts
+      interval: 1m
+      rules:
+      
+      # Critical: Fast burn (exhausts budget in 2 hours)
+      - alert: AvailabilitySLOBurnRateCritical
+        expr: |
+          (
+            modulo:slo:availability_burn_rate_5m > (14.4 * 10) and
+            modulo:slo:availability_burn_rate_1h > (14.4 * 10)
+          ) or (
+            modulo:slo:availability_burn_rate_30m > (6 * 10) and
+            modulo:slo:availability_burn_rate_6h > (6 * 10)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          slo: availability
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "🚨 CRITICAL: Availability SLO burn rate is critically high"
+          description: |
+            Availability SLO is burning error budget at {{ $value }}x the normal rate.
+            Current availability: {{ printf "%.2f" (query "modulo:sli:availability") }}% (target: >99.9%)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 10 $value) }} hours if this continues.
+            
+            IMMEDIATE ACTION REQUIRED - Page on-call engineer.
+          runbook_url: "https://runbooks.modulo.io/slo/availability-critical"
+
+      # Warning: Moderate burn (exhausts budget in 5 hours)
+      - alert: AvailabilitySLOBurnRateWarning
+        expr: |
+          modulo:slo:availability_burn_rate_30m > (6 * 10) and
+          modulo:slo:availability_burn_rate_6h > (6 * 10)
+        for: 5m
+        labels:
+          severity: warning
+          slo: availability
+          error_budget_remaining: "{{ $value }}"
+        annotations:
+          summary: "⚠️ WARNING: Availability SLO burn rate is elevated"
+          description: |
+            Availability SLO is burning error budget at {{ $value }}x the normal rate.
+            Current availability: {{ printf "%.2f" (query "modulo:sli:availability") }}% (target: >99.9%)
+            Error budget will be exhausted in approximately {{ printf "%.1f" (div 10 $value) }} hours if this continues.
+            
+            Investigation required within 30 minutes.
+          runbook_url: "https://runbooks.modulo.io/slo/availability-warning"

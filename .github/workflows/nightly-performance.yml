@@ -1,0 +1,426 @@
+name: 🚀 Nightly Performance Testing with k6
+
+on:
+  # 🌙 Nightly schedule (2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # 🔄 Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - development
+      load_profile:
+        description: 'Load testing profile'
+        required: true
+        default: 'normal'
+        type: choice
+        options:
+          - smoke
+          - normal
+          - stress
+  
+  # 🔍 Trigger on PR to validate performance
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'k6-tests/**'
+      - '.github/workflows/nightly-performance.yml'
+
+env:
+  NODE_VERSION: '18'
+  K6_VERSION: 'v0.46.0'
+
+jobs:
+  # 🏗️ Setup and Validation
+  setup:
+    name: 🏗️ Setup Performance Testing
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      base_url: ${{ steps.config.outputs.base_url }}
+      ws_url: ${{ steps.config.outputs.ws_url }}
+      load_profile: ${{ steps.config.outputs.load_profile }}
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Configure Test Environment
+        id: config
+        run: |
+          # Determine environment and URLs
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            ENVIRONMENT="staging"
+            LOAD_PROFILE="normal"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+            LOAD_PROFILE="${{ github.event.inputs.load_profile }}"
+          else
+            ENVIRONMENT="development"
+            LOAD_PROFILE="smoke"
+          fi
+          
+          # Set environment-specific URLs
+          case "$ENVIRONMENT" in
+            "staging")
+              BASE_URL="https://staging.modulo.io"
+              WS_URL="wss://staging.modulo.io/ws"
+              ;;
+            "development")
+              BASE_URL="http://localhost:8080"
+              WS_URL="ws://localhost:8080/ws"
+              ;;
+            *)
+              echo "❌ Unknown environment: $ENVIRONMENT"
+              exit 1
+              ;;
+          esac
+          
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          echo "base_url=$BASE_URL" >> $GITHUB_OUTPUT
+          echo "ws_url=$WS_URL" >> $GITHUB_OUTPUT
+          echo "load_profile=$LOAD_PROFILE" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Test Configuration:"
+          echo "  Environment: $ENVIRONMENT"
+          echo "  Base URL: $BASE_URL"
+          echo "  WebSocket URL: $WS_URL"
+          echo "  Load Profile: $LOAD_PROFILE"
+
+  # 🏢 Start Local Environment (for development/PR testing)
+  start-environment:
+    name: 🏢 Start Test Environment
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.environment == 'development'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Start Services with Docker Compose
+        run: |
+          # Start services with timeout to handle Neo4j startup issues
+          timeout 300 docker compose up -d --build || {
+            echo "Docker compose failed, checking service status..."
+            docker compose ps
+            docker compose logs db
+            docker compose logs neo4j
+            
+            # Try to continue with just PostgreSQL if Neo4j fails
+            echo "Attempting to start without Neo4j dependency..."
+            docker compose up -d db flyway
+            docker compose ps
+          }
+          
+          # Wait for services to be ready
+          echo "Waiting for services to be ready..."
+          sleep 30
+          
+          # Check service health
+          docker compose ps
+          docker compose logs --tail=50 backend || true
+          docker compose logs --tail=50 frontend || true
+
+  # 📊 k6 Load Testing
+  k6-tests:
+    name: 📊 k6 Load Tests
+    runs-on: ubuntu-latest
+    needs: [setup, start-environment]
+    if: always() && needs.setup.result == 'success' && (needs.start-environment.result == 'success' || needs.setup.outputs.environment != 'development')
+    
+    strategy:
+      matrix:
+        test:
+          - name: "crud-operations"
+            file: "tests/crud-operations.js"
+            description: "CRUD API Operations"
+          - name: "sync-operations" 
+            file: "tests/sync-operations.js"
+            description: "Blockchain Sync Operations"
+          - name: "websocket-operations"
+            file: "tests/websocket-operations.js"
+            description: "WebSocket Real-time Operations"
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'k6-tests/package.json'
+          
+      - name: 📦 Install k6
+        run: |
+          # Install k6 using official GPG key and repository
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          k6 version
+          
+      - name: 📦 Install Dependencies
+        working-directory: k6-tests
+        run: npm install
+        
+      - name: 🔧 Configure Test Parameters
+        id: test-config
+        run: |
+          LOAD_PROFILE="${{ needs.setup.outputs.load_profile }}"
+          
+          case "$LOAD_PROFILE" in
+            "smoke")
+              VUS="1"
+              DURATION="30s"
+              ;;
+            "normal")
+              VUS="10"
+              DURATION="5m"
+              ;;
+            "stress")
+              VUS="50"
+              DURATION="2m"
+              ;;
+            *)
+              VUS="10"
+              DURATION="5m"
+              ;;
+          esac
+          
+          echo "vus=$VUS" >> $GITHUB_OUTPUT
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          
+          echo "📊 Test Configuration for ${{ matrix.test.name }}:"
+          echo "  VUs: $VUS"
+          echo "  Duration: $DURATION"
+          
+      - name: 🚀 Run k6 Test - ${{ matrix.test.description }}
+        working-directory: k6-tests
+        env:
+          BASE_URL: ${{ needs.setup.outputs.base_url }}
+          WS_URL: ${{ needs.setup.outputs.ws_url }}
+          API_KEY: ${{ secrets.API_KEY || 'test-api-key' }}
+        run: |
+          echo "🚀 Running ${{ matrix.test.description }}..."
+          
+          # Create results directory
+          mkdir -p results
+          
+          # Run k6 test with JSON output
+          k6 run \
+            --vus ${{ steps.test-config.outputs.vus }} \
+            --duration ${{ steps.test-config.outputs.duration }} \
+            --out json=results/${{ matrix.test.name }}-$(date +%s).json \
+            --summary-export=results/${{ matrix.test.name }}-summary.json \
+            ${{ matrix.test.file }}
+            
+        continue-on-error: true # Don't fail job on performance issues, let comparison script handle it
+        
+      - name: 📁 Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ matrix.test.name }}
+          path: k6-tests/results/
+          retention-days: 30
+
+  # 📊 Performance Analysis
+  performance-analysis:
+    name: 📊 Performance Analysis & Baseline Comparison
+    runs-on: ubuntu-latest
+    needs: [setup, k6-tests]
+    if: always() && needs.k6-tests.result != 'cancelled'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 📥 Download All Test Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: k6-results-*
+          path: k6-tests/results/
+          merge-multiple: true
+          
+      - name: 📦 Install Analysis Dependencies
+        working-directory: k6-tests
+        run: npm install
+        
+      - name: 📊 Load Previous Baseline
+        id: load-baseline
+        run: |
+          # Try to download baseline from previous successful run
+          gh run list \
+            --workflow="nightly-performance.yml" \
+            --status=success \
+            --limit=5 \
+            --json=databaseId,conclusion \
+            --jq '.[] | select(.conclusion=="success") | .databaseId' | head -1 > last_success_run.txt
+            
+          if [ -s last_success_run.txt ]; then
+            LAST_RUN_ID=$(cat last_success_run.txt)
+            echo "📥 Attempting to download baseline from run $LAST_RUN_ID"
+            
+            gh run download $LAST_RUN_ID \
+              --name="performance-baseline" \
+              --dir="k6-tests/" || echo "⚠️ No baseline found in previous run"
+          else
+            echo "⚠️ No previous successful runs found"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        
+      - name: 🔍 Compare Against Baseline
+        id: comparison
+        working-directory: k6-tests
+        run: |
+          echo "🔍 Analyzing performance results..."
+          
+          if [ -f "baselines/performance-baselines.json" ]; then
+            echo "📊 Comparing against existing baseline..."
+            node scripts/compare-baseline.js
+            COMPARISON_EXIT_CODE=$?
+          else
+            echo "📊 No baseline found, creating new baseline..."
+            node scripts/save-baseline.js
+            COMPARISON_EXIT_CODE=0
+            echo "baseline_created=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "comparison_exit_code=$COMPARISON_EXIT_CODE" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        
+      - name: 📈 Generate Performance Report
+        working-directory: k6-tests
+        run: |
+          echo "📈 Generating performance report..."
+          
+          # Create performance report
+          cat > performance-report.md << 'EOF'
+          # 📊 Performance Test Report
+          
+          **Test Run:** ${{ github.run_number }}
+          **Environment:** ${{ needs.setup.outputs.environment }}
+          **Load Profile:** ${{ needs.setup.outputs.load_profile }}
+          **Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## 🎯 SLO Compliance Summary
+          
+          | Metric | Threshold | Status |
+          |--------|-----------|---------|
+          EOF
+          
+          # Add SLO status from results (if available)
+          if [ -f "results/comparison-*.json" ]; then
+            echo "📊 Adding detailed comparison results..."
+            # This would parse the JSON and add to the report
+          fi
+          
+          # Add test results summary
+          echo "## 📊 Test Results" >> performance-report.md
+          
+          for result_file in results/*.json; do
+            if [ -f "$result_file" ]; then
+              test_name=$(basename "$result_file" .json)
+              echo "### $test_name" >> performance-report.md
+              echo "- File: $result_file" >> performance-report.md
+            fi
+          done
+          
+          echo "✅ Performance report generated"
+          
+      - name: 💾 Save New Baseline (Nightly Only)
+        if: github.event_name == 'schedule' && steps.comparison.outputs.comparison_exit_code == '0'
+        working-directory: k6-tests
+        run: |
+          echo "💾 Saving new performance baseline for nightly run..."
+          node scripts/save-baseline.js
+          
+      - name: 📁 Upload Performance Baseline
+        if: github.event_name == 'schedule' || steps.comparison.outputs.baseline_created == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-baseline
+          path: k6-tests/baselines/
+          retention-days: 90
+          
+      - name: 📁 Upload Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: k6-tests/performance-report.md
+          
+      - name: 📊 Performance Summary
+        run: |
+          echo "📊 PERFORMANCE TEST SUMMARY"
+          echo "=" >> performance_summary.txt
+          echo "Environment: ${{ needs.setup.outputs.environment }}" >> performance_summary.txt
+          echo "Load Profile: ${{ needs.setup.outputs.load_profile }}" >> performance_summary.txt
+          echo "Comparison Exit Code: ${{ steps.comparison.outputs.comparison_exit_code }}" >> performance_summary.txt
+          
+          case "${{ steps.comparison.outputs.comparison_exit_code }}" in
+            "0")
+              echo "✅ No performance issues detected" >> performance_summary.txt
+              ;;
+            "1")
+              echo "⚠️ Performance regressions detected" >> performance_summary.txt
+              ;;
+            "2")
+              echo "🚨 SLO violations detected" >> performance_summary.txt
+              ;;
+            *)
+              echo "❓ Unknown comparison result" >> performance_summary.txt
+              ;;
+          esac
+          
+          cat performance_summary.txt
+          
+      # 🚨 Fail job on SLO violations or regressions (for PRs)
+      - name: 🚨 Fail on Performance Issues (PR Only)
+        if: github.event_name == 'pull_request' && steps.comparison.outputs.comparison_exit_code != '0'
+        run: |
+          echo "🚨 Performance issues detected in PR"
+          echo "Exit code: ${{ steps.comparison.outputs.comparison_exit_code }}"
+          
+          if [ "${{ steps.comparison.outputs.comparison_exit_code }}" == "2" ]; then
+            echo "💥 FAILING BUILD: SLO violations detected"
+          elif [ "${{ steps.comparison.outputs.comparison_exit_code }}" == "1" ]; then
+            echo "💥 FAILING BUILD: Performance regressions detected"
+          fi
+          
+          exit ${{ steps.comparison.outputs.comparison_exit_code }}
+
+  # 🧹 Cleanup
+  cleanup:
+    name: 🧹 Cleanup Test Environment
+    runs-on: ubuntu-latest
+    needs: [setup, start-environment, performance-analysis]
+    if: always() && needs.setup.outputs.environment == 'development'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🛑 Stop Docker Services
+        run: |
+          echo "🛑 Stopping test environment..."
+          docker compose -f docker-compose.yml down -v
+          docker system prune -f

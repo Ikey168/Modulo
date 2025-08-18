@@ -1,0 +1,19 @@
+{
+  "name": "modulo-k6-tests",
+  "version": "1.0.0",
+  "description": "k6 Load Testing Suite for Modulo with SLO-aligned thresholds",
+  "scripts": {
+    "test:crud": "k6 run tests/crud-operations.js",
+    "test:sync": "k6 run tests/sync-operations.js",
+    "test:websocket": "k6 run tests/websocket-operations.js",
+    "test:all": "npm run test:crud && npm run test:sync && npm run test:websocket",
+    "test:smoke": "k6 run --vus 1 --duration 30s tests/crud-operations.js",
+    "test:load": "k6 run --vus 10 --duration 5m tests/crud-operations.js",
+    "test:stress": "k6 run --vus 50 --duration 2m tests/crud-operations.js",
+    "baseline:save": "node scripts/save-baseline.js",
+    "baseline:compare": "node scripts/compare-baseline.js"
+  },
+  "keywords": ["k6", "load-testing", "performance", "slo", "modulo"],
+  "author": "Modulo Team",
+  "license": "MIT"
+}

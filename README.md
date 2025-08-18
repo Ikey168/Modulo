@@ -78,7 +78,7 @@ A comprehensive note-taking and knowledge management application with blockchain
    npm run dev
 
    # Database (PostgreSQL)
-   docker-compose up postgres
+   docker compose up postgres
    ```
 
 ## Available Scripts
@@ -160,10 +160,10 @@ See [Conventional Commits Guide](docs/CONVENTIONAL_COMMITS.md) for details.
 
 ```bash
 # Production
-docker-compose up -d
+docker compose up -d
 
 # Development  
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### Kubernetes
@@ -235,6 +235,70 @@ curl -X POST http://localhost:8080/api/test/error-rate
 ```
 
 For detailed configuration, see [Observability Documentation](k8s/observability/README.md).
+
+## 📊 Performance Testing & Load Testing
+
+Modulo includes comprehensive performance testing using k6 to validate SLO compliance and detect regressions:
+
+### 🎯 Key Features
+
+- **SLO-Aligned Tests**: k6 thresholds directly map to service level objectives
+- **Nightly Baselines**: Automated performance baseline creation and comparison
+- **Regression Detection**: Fail builds on performance degradations >15%
+- **SLO Validation**: Block deployments on SLO violations
+- **Multi-Profile Testing**: Smoke, normal load, and stress testing
+
+### 🚀 Quick Start
+
+```bash
+cd k6-tests
+npm install
+
+# Run performance tests locally
+npm run test:crud        # CRUD API operations
+npm run test:sync        # Blockchain sync operations  
+npm run test:websocket   # WebSocket real-time features
+
+# Run all tests
+npm run test:all
+
+# Baseline management
+npm run baseline:save    # Save current results as baseline
+npm run baseline:compare # Compare against baseline
+```
+
+### 📊 Test Profiles
+
+| Profile | VUs | Duration | Use Case |
+|---------|-----|----------|----------|
+| **Smoke** | 1 | 30s | PR validation |
+| **Normal** | 10 | 5m | Nightly baselines |
+| **Stress** | 50 | 2m | Capacity planning |
+
+### 🎯 SLO Compliance
+
+| Test Type | SLO Metric | Threshold | k6 Threshold |
+|-----------|------------|-----------|--------------|
+| CRUD Operations | Read P95 Latency | < 200ms | `p(95)<200` |
+| CRUD Operations | Write P95 Latency | < 500ms | `p(95)<500` |
+| Sync Operations | Sync P95 Latency | < 1000ms | `p(95)<1000` |
+| All Operations | Availability | > 99.9% | `rate<0.001` |
+
+### 🔄 CI/CD Integration
+
+**Nightly Performance Testing:**
+- Schedule: 2 AM UTC daily
+- Environment: Staging  
+- Profile: Normal load (10 VUs, 5 minutes)
+- Artifacts: Baselines, results, reports (30-90 day retention)
+
+**PR Performance Validation:**
+- Trigger: Backend/frontend changes
+- Environment: Development (Docker)
+- Profile: Smoke testing (1 VU, 30 seconds)
+- Failure: SLO violations or >15% regressions
+
+See [Performance Testing Guide](docs/PERFORMANCE_TESTING.md) for detailed information.
 
 ## Authentication
 
