@@ -1,0 +1,834 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-app
+  namespace: observability
+data:
+  app-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "🚀 Application Performance - Golden Signals",
+        "tags": ["modulo", "golden-signals", "application"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "🔥 Golden Signals Overview",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{application=\"modulo-backend\"}[5m]))",
+                "legendFormat": "req/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 100}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(sum(rate(http_server_requests_seconds_count{application=\"modulo-backend\", status=~\"[4-5].*\"}[5m])) / sum(rate(http_server_requests_seconds_count{application=\"modulo-backend\"}[5m]))) * 100",
+                "legendFormat": "error %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+          },
+          {
+            "id": 4,
+            "title": "P95 Latency (ms)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"modulo-backend\"}[5m])) by (le)) * 1000",
+                "legendFormat": "p95 ms"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 500},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1}
+          },
+          {
+            "id": 5,
+            "title": "CPU Saturation %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"modulo\", container=\"backend\"}[5m])) * 100",
+                "legendFormat": "cpu %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 1}
+          },
+          {
+            "id": 6,
+            "title": "📈 Request Metrics by Endpoint",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+          },
+          {
+            "id": 7,
+            "title": "Request Rate by Endpoint",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{application=\"modulo-backend\"}[5m])) by (uri)",
+                "legendFormat": "{{uri}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+          },
+          {
+            "id": 8,
+            "title": "Response Time Percentiles",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application=\"modulo-backend\"}[5m])) by (le)) * 1000",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"modulo-backend\"}[5m])) by (le)) * 1000",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"modulo-backend\"}[5m])) by (le)) * 1000",
+                "legendFormat": "P99"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+          },
+          {
+            "id": 9,
+            "title": "📊 Business Metrics",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}
+          },
+          {
+            "id": 10,
+            "title": "Notes Operations",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_notes_created_total[5m])",
+                "legendFormat": "Created"
+              },
+              {
+                "expr": "rate(modulo_notes_updated_total[5m])",
+                "legendFormat": "Updated"
+              },
+              {
+                "expr": "rate(modulo_notes_deleted_total[5m])",
+                "legendFormat": "Deleted"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19}
+          },
+          {
+            "id": 11,
+            "title": "WebSocket Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "modulo_websocket_connections_total",
+                "legendFormat": "Active Connections"
+              },
+              {
+                "expr": "rate(modulo_websocket_messages_sent_total[5m])",
+                "legendFormat": "Messages/sec (out)"
+              },
+              {
+                "expr": "rate(modulo_websocket_messages_received_total[5m])",
+                "legendFormat": "Messages/sec (in)"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "10s"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-jvm
+  namespace: observability
+data:
+  jvm-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "☕ JVM Performance Monitoring",
+        "tags": ["modulo", "jvm", "performance"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "🧠 Memory Management",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Heap Usage %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(jvm_memory_used_bytes{application=\"modulo-backend\", area=\"heap\"} / jvm_memory_max_bytes{application=\"modulo-backend\", area=\"heap\"}) * 100",
+                "legendFormat": "heap %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+          },
+          {
+            "id": 3,
+            "title": "Non-Heap Usage %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(jvm_memory_used_bytes{application=\"modulo-backend\", area=\"nonheap\"} / jvm_memory_max_bytes{application=\"modulo-backend\", area=\"nonheap\"}) * 100",
+                "legendFormat": "non-heap %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 80},
+                    {"color": "red", "value": 90}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+          },
+          {
+            "id": 4,
+            "title": "Memory Areas",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{application=\"modulo-backend\"}",
+                "legendFormat": "{{area}} - {{id}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1}
+          },
+          {
+            "id": 5,
+            "title": "🗑️ Garbage Collection",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+          },
+          {
+            "id": 6,
+            "title": "GC Time Distribution",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(jvm_gc_collection_seconds_sum{application=\"modulo-backend\"}[5m])",
+                "legendFormat": "{{gc}} GC Time/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+          },
+          {
+            "id": 7,
+            "title": "GC Collections/sec",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(jvm_gc_collection_seconds_count{application=\"modulo-backend\"}[5m])",
+                "legendFormat": "{{gc}} Collections/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+          },
+          {
+            "id": 8,
+            "title": "🧵 Threading & Classes",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}
+          },
+          {
+            "id": 9,
+            "title": "Thread States",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "jvm_threads_states_threads{application=\"modulo-backend\"}",
+                "legendFormat": "{{state}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19}
+          },
+          {
+            "id": 10,
+            "title": "Classes Loaded",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "jvm_classes_loaded_classes{application=\"modulo-backend\"}",
+                "legendFormat": "Loaded Classes"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+          },
+          {
+            "id": 11,
+            "title": "🔧 System Resources",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27}
+          },
+          {
+            "id": 12,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "process_cpu_usage{application=\"modulo-backend\"}",
+                "legendFormat": "Process CPU"
+              },
+              {
+                "expr": "system_cpu_usage{application=\"modulo-backend\"}",
+                "legendFormat": "System CPU"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+          },
+          {
+            "id": 13,
+            "title": "File Descriptors",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "process_files_open_files{application=\"modulo-backend\"}",
+                "legendFormat": "Open Files"
+              },
+              {
+                "expr": "process_files_max_files{application=\"modulo-backend\"}",
+                "legendFormat": "Max Files"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-db
+  namespace: observability
+data:
+  database-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "🗄️ Database Performance",
+        "tags": ["modulo", "database", "hikaricp"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "🏊 Connection Pool Metrics",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Pool Usage %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(hikaricp_connections_active{application=\"modulo-backend\"} / hikaricp_connections_max{application=\"modulo-backend\"}) * 100",
+                "legendFormat": "pool %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+          },
+          {
+            "id": 3,
+            "title": "Active Connections",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "hikaricp_connections_active{application=\"modulo-backend\"}",
+                "legendFormat": "active"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+          },
+          {
+            "id": 4,
+            "title": "Connection Pool Overview",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "hikaricp_connections_active{application=\"modulo-backend\"}",
+                "legendFormat": "Active"
+              },
+              {
+                "expr": "hikaricp_connections_idle{application=\"modulo-backend\"}",
+                "legendFormat": "Idle"
+              },
+              {
+                "expr": "hikaricp_connections_max{application=\"modulo-backend\"}",
+                "legendFormat": "Max"
+              },
+              {
+                "expr": "hikaricp_connections_min{application=\"modulo-backend\"}",
+                "legendFormat": "Min"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1}
+          },
+          {
+            "id": 5,
+            "title": "⏱️ Connection Timing",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+          },
+          {
+            "id": 6,
+            "title": "Connection Acquisition Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P99"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+          },
+          {
+            "id": 7,
+            "title": "Connection Usage Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(hikaricp_connections_usage_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(hikaricp_connections_usage_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(hikaricp_connections_usage_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+                "legendFormat": "P99"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+          },
+          {
+            "id": 8,
+            "title": "📊 Query Performance",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}
+          },
+          {
+            "id": 9,
+            "title": "Query Duration Distribution",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+                "legendFormat": "P99"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19}
+          },
+          {
+            "id": 10,
+            "title": "Query Rate by Operation",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_database_queries_total[5m])",
+                "legendFormat": "{{operation}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+          },
+          {
+            "id": 11,
+            "title": "⚠️ Connection Pool Health",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27}
+          },
+          {
+            "id": 12,
+            "title": "Connection Timeouts",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(hikaricp_connections_timeout_total{application=\"modulo-backend\"}[5m])",
+                "legendFormat": "Timeouts/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+          },
+          {
+            "id": 13,
+            "title": "Connection Creation Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(hikaricp_connections_creation_seconds_count{application=\"modulo-backend\"}[5m])",
+                "legendFormat": "Connections Created/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-sync
+  namespace: observability
+data:
+  sync-blockchain.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "🔗 Sync & Blockchain Operations",
+        "tags": ["modulo", "websocket", "blockchain", "sync"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "🌐 WebSocket Activity",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Active Connections",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "modulo_websocket_connections_total",
+                "legendFormat": "connections"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 500},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+          },
+          {
+            "id": 3,
+            "title": "Message Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(modulo_websocket_messages_sent_total[5m]) + rate(modulo_websocket_messages_received_total[5m])",
+                "legendFormat": "msgs/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+          },
+          {
+            "id": 4,
+            "title": "WebSocket Message Flow",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_websocket_messages_sent_total[5m])",
+                "legendFormat": "Messages Out/sec"
+              },
+              {
+                "expr": "rate(modulo_websocket_messages_received_total[5m])",
+                "legendFormat": "Messages In/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1}
+          },
+          {
+            "id": 5,
+            "title": "🔗 Blockchain Operations",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+          },
+          {
+            "id": 6,
+            "title": "Transaction Success Rate %",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(rate(modulo_blockchain_transactions_total{status=\"success\"}[5m]) / rate(modulo_blockchain_transactions_total[5m])) * 100",
+                "legendFormat": "success %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 10}
+          },
+          {
+            "id": 7,
+            "title": "Transaction Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(modulo_blockchain_transactions_total[5m])",
+                "legendFormat": "tx/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 10}
+          },
+          {
+            "id": 8,
+            "title": "Blockchain Transactions",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_blockchain_transactions_total{status=\"success\"}[5m])",
+                "legendFormat": "Success/sec"
+              },
+              {
+                "expr": "rate(modulo_blockchain_transactions_total{status=\"failed\"}[5m])",
+                "legendFormat": "Failed/sec"
+              },
+              {
+                "expr": "rate(modulo_blockchain_transactions_total{status=\"pending\"}[5m])",
+                "legendFormat": "Pending/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+          },
+          {
+            "id": 9,
+            "title": "🔄 Sync Operations",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}
+          },
+          {
+            "id": 10,
+            "title": "Pending Operations",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "modulo_sync_operations_pending",
+                "legendFormat": "pending"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 100}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 19}
+          },
+          {
+            "id": 11,
+            "title": "Sync Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "modulo_sync_last_success_timestamp",
+                "legendFormat": "last sync"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 19}
+          },
+          {
+            "id": 12,
+            "title": "Sync Operations Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_sync_operations_completed_total{status=\"success\"}[5m])",
+                "legendFormat": "Success/sec"
+              },
+              {
+                "expr": "rate(modulo_sync_operations_completed_total{status=\"failed\"}[5m])",
+                "legendFormat": "Failed/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+          },
+          {
+            "id": 13,
+            "title": "💾 Network & Storage",
+            "type": "row",
+            "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27}
+          },
+          {
+            "id": 14,
+            "title": "Network Status",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "modulo_network_status{status=\"online\"}",
+                "legendFormat": "Online"
+              },
+              {
+                "expr": "modulo_network_status{status=\"offline\"}",
+                "legendFormat": "Offline"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+          },
+          {
+            "id": 15,
+            "title": "Offline Storage Operations",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(modulo_offline_storage_operations_total{operation=\"store\"}[5m])",
+                "legendFormat": "Store/sec"
+              },
+              {
+                "expr": "rate(modulo_offline_storage_operations_total{operation=\"retrieve\"}[5m])",
+                "legendFormat": "Retrieve/sec"
+              },
+              {
+                "expr": "rate(modulo_offline_storage_operations_total{operation=\"sync\"}[5m])",
+                "legendFormat": "Sync/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "15s"
+      }
+    }

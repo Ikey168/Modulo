@@ -15,6 +15,12 @@ data:
     rule_files:
       - "/etc/prometheus/rules/*.yml"
 
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
@@ -97,52 +103,272 @@ data:
 
   alerts.yml: |
     groups:
-    - name: modulo.alerts
+    - name: modulo.golden-signals
+      interval: 30s
       rules:
+      # 🔥 GOLDEN SIGNAL: ERROR RATE
       - alert: HighErrorRate
-        expr: rate(modulo_api_errors_total[5m]) > 0.1
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{application="modulo-backend", status=~"[4-5].*"}[5m])) / 
+            sum(rate(http_server_requests_seconds_count{application="modulo-backend"}[5m]))
+          ) * 100 > 5
         for: 2m
         labels:
-          severity: warning
+          severity: critical
+          golden_signal: error_rate
         annotations:
-          summary: "High error rate detected"
-          description: "Error rate is {{ $value }} errors per second"
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value }}% (threshold: 5%)"
+          runbook_url: "https://runbooks.modulo.io/high-error-rate"
 
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 1
+      - alert: ModerateErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{application="modulo-backend", status=~"[4-5].*"}[5m])) / 
+            sum(rate(http_server_requests_seconds_count{application="modulo-backend"}[5m]))
+          ) * 100 > 1
         for: 5m
         labels:
           severity: warning
+          golden_signal: error_rate
         annotations:
-          summary: "High latency detected"
-          description: "95th percentile latency is {{ $value }} seconds"
+          summary: "Moderate HTTP error rate detected"
+          description: "Error rate is {{ $value }}% (threshold: 1%)"
+          runbook_url: "https://runbooks.modulo.io/moderate-error-rate"
 
+      # 🔥 GOLDEN SIGNAL: LATENCY (P95)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{application="modulo-backend"}[5m])) by (le)
+          ) * 1000 > 1000
+        for: 5m
+        labels:
+          severity: critical
+          golden_signal: latency
+        annotations:
+          summary: "High P95 latency detected"
+          description: "95th percentile latency is {{ $value }}ms (threshold: 1000ms)"
+          runbook_url: "https://runbooks.modulo.io/high-latency"
+
+      - alert: ModerateLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{application="modulo-backend"}[5m])) by (le)
+          ) * 1000 > 500
+        for: 5m
+        labels:
+          severity: warning
+          golden_signal: latency
+        annotations:
+          summary: "Moderate P95 latency detected"
+          description: "95th percentile latency is {{ $value }}ms (threshold: 500ms)"
+          runbook_url: "https://runbooks.modulo.io/moderate-latency"
+
+      # 🔥 GOLDEN SIGNAL: TRAFFIC (Request Rate)
+      - alert: LowTraffic
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="modulo-backend"}[5m])) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          golden_signal: traffic
+        annotations:
+          summary: "Low traffic detected"
+          description: "Request rate is {{ $value }} req/sec (threshold: 0.1)"
+          runbook_url: "https://runbooks.modulo.io/low-traffic"
+
+      - alert: HighTraffic
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="modulo-backend"}[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          golden_signal: traffic
+        annotations:
+          summary: "High traffic detected"
+          description: "Request rate is {{ $value }} req/sec (threshold: 100)"
+          runbook_url: "https://runbooks.modulo.io/high-traffic"
+
+      # 🔥 GOLDEN SIGNAL: SATURATION
+      - alert: HighCPUSaturation
+        expr: |
+          avg(rate(container_cpu_usage_seconds_total{namespace="modulo", container="backend"}[5m])) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          golden_signal: saturation
+        annotations:
+          summary: "High CPU saturation detected"
+          description: "CPU usage is {{ $value }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.modulo.io/high-cpu"
+
+      - alert: HighMemorySaturation
+        expr: |
+          (
+            avg(container_memory_usage_bytes{namespace="modulo", container="backend"}) / 
+            avg(container_spec_memory_limit_bytes{namespace="modulo", container="backend"})
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          golden_signal: saturation
+        annotations:
+          summary: "High memory saturation detected"
+          description: "Memory usage is {{ $value }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.modulo.io/high-memory"
+
+      - alert: HighJVMHeapUsage
+        expr: |
+          (
+            jvm_memory_used_bytes{application="modulo-backend", area="heap"} / 
+            jvm_memory_max_bytes{application="modulo-backend", area="heap"}
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          golden_signal: saturation
+        annotations:
+          summary: "High JVM heap usage detected"
+          description: "JVM heap usage is {{ $value }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.modulo.io/high-jvm-heap"
+
+    - name: modulo.database
+      interval: 30s
+      rules:
+      # Database Connection Pool Saturation
+      - alert: DatabaseConnectionPoolHigh
+        expr: |
+          (
+            hikaricp_connections_active{application="modulo-backend"} / 
+            hikaricp_connections_max{application="modulo-backend"}
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool usage high"
+          description: "Connection pool usage is {{ $value }}% (threshold: 80%)"
+          runbook_url: "https://runbooks.modulo.io/db-connections"
+
+      - alert: DatabaseConnectionPoolCritical
+        expr: |
+          (
+            hikaricp_connections_active{application="modulo-backend"} / 
+            hikaricp_connections_max{application="modulo-backend"}
+          ) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool usage critical"
+          description: "Connection pool usage is {{ $value }}% (threshold: 90%)"
+          runbook_url: "https://runbooks.modulo.io/db-connections-critical"
+
+      # Database Query Performance
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)
+          ) * 1000 > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}ms (threshold: 1000ms)"
+          runbook_url: "https://runbooks.modulo.io/slow-queries"
+
+    - name: modulo.business
+      interval: 30s
+      rules:
+      # Business Logic Alerts
+      - alert: WebSocketConnectionsHigh
+        expr: |
+          sum(modulo_websocket_connections_total) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "{{ $value }} WebSocket connections active (threshold: 1000)"
+          runbook_url: "https://runbooks.modulo.io/websocket-connections"
+
+      - alert: BlockchainOperationFailures
+        expr: |
+          rate(modulo_blockchain_transactions_total{status="failed"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: blockchain
+        annotations:
+          summary: "High blockchain operation failure rate"
+          description: "{{ $value }} blockchain operations failing per second"
+          runbook_url: "https://runbooks.modulo.io/blockchain-failures"
+
+      - alert: SyncOperationBacklog
+        expr: |
+          modulo_sync_operations_pending > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: sync
+        annotations:
+          summary: "Sync operation backlog detected"
+          description: "{{ $value }} sync operations pending (threshold: 100)"
+          runbook_url: "https://runbooks.modulo.io/sync-backlog"
+
+    - name: modulo.infrastructure
+      interval: 30s
+      rules:
+      # Service Availability
       - alert: ServiceDown
-        expr: up == 0
+        expr: |
+          up{job=~"modulo.*"} == 0
         for: 1m
         labels:
           severity: critical
+          component: infrastructure
         annotations:
           summary: "Service is down"
           description: "{{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://runbooks.modulo.io/service-down"
 
-      - alert: HighMemoryUsage
-        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+      # Pod Restart Frequency
+      - alert: HighPodRestartRate
+        expr: |
+          rate(kube_pod_container_status_restarts_total{namespace="modulo"}[15m]) > 0.1
         for: 5m
         labels:
           severity: warning
+          component: kubernetes
         annotations:
-          summary: "High memory usage"
-          description: "Memory usage is above 90%"
+          summary: "High pod restart rate"
+          description: "Pod {{ $labels.pod }} is restarting frequently"
+          runbook_url: "https://runbooks.modulo.io/pod-restarts"
 
-      - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+      # Disk Space
+      - alert: HighDiskUsage
+        expr: |
+          (
+            1 - (
+              node_filesystem_avail_bytes{mountpoint="/"} / 
+              node_filesystem_size_bytes{mountpoint="/"}
+            )
+          ) * 100 > 85
         for: 5m
         labels:
           severity: warning
+          component: infrastructure
         annotations:
-          summary: "High CPU usage"
-          description: "CPU usage is above 80%"
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.modulo.io/disk-usage"
 ---
 apiVersion: apps/v1
 kind: Deployment

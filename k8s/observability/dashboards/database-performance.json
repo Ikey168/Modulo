@@ -1,0 +1,303 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Modulo - Database Performance",
+    "tags": ["modulo", "database", "postgresql"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "🗃️ Database Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "Connection Pool Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(hikaricp_connections_active{application=\"modulo-backend\"} / hikaricp_connections_max{application=\"modulo-backend\"}) * 100",
+            "legendFormat": "Pool Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 85}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "Query Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(modulo_database_queries_total[5m]))",
+            "legendFormat": "Queries/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {"displayMode": "basic"},
+            "unit": "ops",
+            "min": 0
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "Avg Query Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(modulo_database_query_duration_seconds) * 1000",
+            "legendFormat": "Avg Time (ms)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "ms",
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1}
+      },
+      {
+        "id": 5,
+        "title": "Connection Wait Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "hikaricp_connections_pending{application=\"modulo-backend\"}",
+            "legendFormat": "Pending",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {"displayMode": "basic"},
+            "unit": "short",
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 1}
+      },
+      {
+        "id": 10,
+        "title": "💾 Connection Pool Details",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+        "collapsed": false
+      },
+      {
+        "id": 11,
+        "title": "Connection Pool Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "hikaricp_connections_active{application=\"modulo-backend\"}",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          },
+          {
+            "expr": "hikaricp_connections_idle{application=\"modulo-backend\"}",
+            "legendFormat": "Idle Connections",
+            "refId": "B"
+          },
+          {
+            "expr": "hikaricp_connections_pending{application=\"modulo-backend\"}",
+            "legendFormat": "Pending Connections",
+            "refId": "C"
+          },
+          {
+            "expr": "hikaricp_connections_max{application=\"modulo-backend\"}",
+            "legendFormat": "Max Connections",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {"label": "Connections", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10}
+      },
+      {
+        "id": 12,
+        "title": "Connection Acquisition Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+            "legendFormat": "50th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+            "legendFormat": "95th percentile",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(hikaricp_connections_acquire_seconds_bucket{application=\"modulo-backend\"}[5m])) * 1000",
+            "legendFormat": "99th percentile",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {"label": "Time (ms)", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10}
+      },
+      {
+        "id": 20,
+        "title": "📊 Query Performance",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+        "collapsed": false
+      },
+      {
+        "id": 21,
+        "title": "Query Duration Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "50th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "95th percentile",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(modulo_database_query_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "99th percentile",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {"label": "Duration (ms)", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19}
+      },
+      {
+        "id": 22,
+        "title": "Database Operations by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(modulo_database_queries_total[5m])) by (operation)",
+            "legendFormat": "{{ operation }}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "min": 0},
+          {"show": false}
+        ],
+        "xAxis": {"show": true},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "refresh": "10s"
+  }
+}
