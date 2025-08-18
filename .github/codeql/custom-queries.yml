@@ -1,0 +1,135 @@
+# Custom CodeQL Queries for Modulo Security
+
+# Spring Boot Security Queries
+spring-security-misconfiguration:
+  description: "Detects Spring Security misconfigurations"
+  severity: "high"
+  languages: ["java"]
+  patterns:
+    - "permitAll()" # Overly permissive access
+    - "disable()" # Disabled security features
+    - "anonymous()" # Anonymous access without justification
+
+spring-data-injection:
+  description: "Detects potential SQL injection in Spring Data"
+  severity: "critical" 
+  languages: ["java"]
+  patterns:
+    - "@Query.*\\$\\{" # String interpolation in queries
+    - "createQuery.*\\+" # Query concatenation
+    - "createNativeQuery.*\\+" # Native query concatenation
+
+spring-boot-actuator-exposure:
+  description: "Detects insecure Spring Boot Actuator endpoints"
+  severity: "medium"
+  languages: ["java"]
+  patterns:
+    - "management.endpoints.web.exposure.include=\\*" # All endpoints exposed
+    - "management.security.enabled=false" # Security disabled
+
+# React/TypeScript Security Queries  
+react-xss-vulnerabilities:
+  description: "Detects XSS vulnerabilities in React components"
+  severity: "high"
+  languages: ["javascript", "typescript"]
+  patterns:
+    - "dangerouslySetInnerHTML" # Dangerous HTML injection
+    - "innerHTML.*\\+" # HTML concatenation
+    - "document.write" # Document write usage
+
+react-insecure-refs:
+  description: "Detects insecure external references"
+  severity: "medium"
+  languages: ["javascript", "typescript"]
+  patterns:
+    - "http://" # Insecure HTTP references
+    - "target=\"_blank\"" # Potential tabnabbing without rel
+
+javascript-prototype-pollution:
+  description: "Detects potential prototype pollution"
+  severity: "high"
+  languages: ["javascript", "typescript"]
+  patterns:
+    - "__proto__" # Prototype manipulation
+    - "constructor.prototype" # Constructor prototype access
+    - "Object.prototype" # Object prototype modification
+
+# Blockchain/Web3 Security Queries
+web3-private-key-exposure:
+  description: "Detects potential private key exposure"
+  severity: "critical"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "privateKey.*=" # Private key assignment
+    - "private_key" # Private key variable
+    - "0x[a-fA-F0-9]{64}" # Potential private key pattern
+
+ethereum-reentrancy:
+  description: "Detects potential reentrancy vulnerabilities"
+  severity: "high"
+  languages: ["javascript", "typescript"]
+  patterns:
+    - "call.value" # External calls with value
+    - "send\\(" # Ether sending
+    - "transfer\\(" # Transfer calls without checks
+
+# Configuration Security
+hardcoded-secrets:
+  description: "Detects hardcoded secrets and credentials"
+  severity: "critical"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "password.*=" # Hardcoded passwords
+    - "secret.*=" # Hardcoded secrets
+    - "api_key.*=" # Hardcoded API keys
+    - "token.*=" # Hardcoded tokens
+
+insecure-random:
+  description: "Detects use of insecure random number generation"
+  severity: "medium"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "Math.random" # Insecure random in JS
+    - "Random\\(\\)" # Default Random in Java
+    - "new Random\\(0\\)" # Seeded random with fixed seed
+
+# File System Security
+path-traversal:
+  description: "Detects potential path traversal vulnerabilities"
+  severity: "high"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "\\.\\./\\.\\." # Directory traversal pattern
+    - "File.*\\+.*request" # File access with user input
+    - "readFile.*request" # File reading with user input
+
+# Database Security
+sql-injection-patterns:
+  description: "Detects potential SQL injection patterns"
+  severity: "critical"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "\\\".*\\+.*request" # String concatenation with request
+    - "executeQuery.*\\+" # Query concatenation
+    - "query.*\\$\\{" # String interpolation in queries
+
+# Authentication/Authorization
+weak-authentication:
+  description: "Detects weak authentication mechanisms"
+  severity: "high"
+  languages: ["java", "javascript", "typescript"]
+  patterns:
+    - "authentication=false" # Disabled authentication
+    - "requiresChannel\\(\\)" # Missing secure channel
+    - "sessionManagement.*disable" # Disabled session management
+
+# Logging Security
+sensitive-data-logging:
+  description: "Detects potential logging of sensitive data"
+  severity: "medium"
+  languages: ["java", "javascript", "typescript"]  
+  patterns:
+    - "logger.*password" # Password logging
+    - "console.log.*token" # Token logging
+    - "log.*secret" # Secret logging
+    - "println.*key" # Key logging
