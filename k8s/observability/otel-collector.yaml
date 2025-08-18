@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    name: observability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 15s
+              static_configs:
+                - targets: ['0.0.0.0:8888']
+            - job_name: 'modulo-backend'
+              scrape_interval: 15s
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names:
+                      - modulo
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  action: keep
+                  regex: true
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  action: replace
+                  target_label: __metrics_path__
+                  regex: (.+)
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  action: replace
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      memory_limiter:
+        limit_mib: 512
+      resource:
+        attributes:
+          - key: cluster.name
+            value: "modulo-cluster"
+            action: upsert
+      attributes:
+        actions:
+          - key: environment
+            value: "production"
+            action: upsert
+
+    exporters:
+      # Tempo for traces
+      otlp/tempo:
+        endpoint: http://tempo:3200
+        tls:
+          insecure: true
+      
+      # Prometheus for metrics
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+      
+      # Loki for logs
+      loki:
+        endpoint: http://loki:3100/loki/api/v1/push
+        tenant_id: "modulo"
+      
+      # Debug exporter for troubleshooting
+      logging:
+        loglevel: debug
+
+    service:
+      telemetry:
+        logs:
+          level: "info"
+        metrics:
+          address: 0.0.0.0:8888
+      
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource, attributes]
+          exporters: [otlp/tempo, logging]
+        
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch, resource, attributes]
+          exporters: [prometheus, logging]
+        
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource, attributes]
+          exporters: [loki, logging]
+
+      extensions: []
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.88.0
+        command:
+          - "/otelcol-contrib"
+          - "--config=/etc/otel-collector-config/config.yaml"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/otel-collector-config
+        ports:
+        - containerPort: 4317   # OTLP gRPC receiver
+          name: otlp-grpc
+        - containerPort: 4318   # OTLP HTTP receiver
+          name: otlp-http
+        - containerPort: 8888   # Prometheus metrics
+          name: metrics
+        - containerPort: 8889   # Prometheus exporter
+          name: prom-export
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8888
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8888
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config-volume
+        configMap:
+          name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: observability
+  labels:
+    app: otel-collector
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4317
+    targetPort: 4317
+    protocol: TCP
+    name: otlp-grpc
+  - port: 4318
+    targetPort: 4318
+    protocol: TCP
+    name: otlp-http
+  - port: 8888
+    targetPort: 8888
+    protocol: TCP
+    name: metrics
+  - port: 8889
+    targetPort: 8889
+    protocol: TCP
+    name: prometheus
+  selector:
+    app: otel-collector
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector
+  namespace: observability
+  labels:
+    app: otel-collector
+spec:
+  selector:
+    matchLabels:
+      app: otel-collector
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
