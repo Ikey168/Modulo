@@ -24,18 +24,18 @@ public class SecurityConfig {
         logger.debug("Configuring HttpSecurity");
         
         http
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/simple-health", "/api/simple-health/**").permitAll()
-                .requestMatchers("/api/health", "/api/health/**").permitAll()
-                .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
-                .requestMatchers("/", "/index.html", "/static/**", 
+            .authorizeRequests(authz -> authz
+                .antMatchers("/api/simple-health", "/api/simple-health/**").permitAll()
+                .antMatchers("/api/health", "/api/health/**").permitAll()
+                .antMatchers("/actuator/**", "/api/actuator/**").permitAll()
+                .antMatchers("/", "/index.html", "/static/**", 
                     "/favicon.ico", "/manifest.json", "/logo*.png",
                     "/*.js", "/*.css").permitAll()
-                .requestMatchers("/error", "/login").permitAll()
-                .requestMatchers("/oauth2/**", "/login/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/logout").authenticated() // Ensure only authenticated users can logout
-                .requestMatchers("/user/me").authenticated()
+                .antMatchers("/error", "/login").permitAll()
+                .antMatchers("/oauth2/**", "/login/**").permitAll()
+                .antMatchers("/api/public/**").permitAll()
+                .antMatchers("/logout").authenticated() // Ensure only authenticated users can logout
+                .antMatchers("/user/me").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
