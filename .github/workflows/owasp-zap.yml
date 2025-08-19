@@ -37,8 +37,8 @@ permissions:
   actions: read
 
 env:
-  DOCKER_BUILDKIT: 1
-  COMPOSE_DOCKER_CLI_BUILD: 1
+  DOCKER_BUILDKIT: 0
+  COMPOSE_DOCKER_CLI_BUILD: 0
 
 jobs:
   zap-security-scan:
@@ -59,8 +59,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker
+        run: |
+          echo "Setting up Docker for basic image building..."
+          docker --version
+          docker compose version
+          echo "Docker setup complete"
 
       - name: Verify Docker Compose
         run: |
