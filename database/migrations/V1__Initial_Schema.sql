@@ -77,17 +77,17 @@ CREATE TRIGGER notes_tsvectorupdate BEFORE INSERT OR UPDATE
 ON application.notes FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('tsvector', 'pg_catalog.english', 'title', 'content');
 
+-- Functions (Define before using in policies)
+CREATE FUNCTION current_user_id() RETURNS UUID AS $$
+  SELECT current_setting('app.current_user_id')::UUID;
+$$ LANGUAGE SQL SECURITY DEFINER;
+
 -- Row-Level Security (Example - adapt to your multi-tenant strategy)
 ALTER TABLE application.notes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY notes_policy ON application.notes
     USING (user_id = current_user_id())
     WITH CHECK (user_id = current_user_id());
-
--- Functions
-CREATE FUNCTION current_user_id() RETURNS UUID AS $$
-  SELECT current_setting('app.current_user_id')::UUID;
-$$ LANGUAGE SQL SECURITY DEFINER;
 
 -- Audit Trigger
 CREATE OR REPLACE FUNCTION application.set_timestamp()

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS application.attachments (
     cdn_url TEXT,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     uploaded_by VARCHAR(255),
-    note_id BIGINT,
+    note_id UUID,
     is_active BOOLEAN DEFAULT TRUE,
     CONSTRAINT fk_attachment_note FOREIGN KEY (note_id) REFERENCES application.notes(note_id) ON DELETE CASCADE
 );

@@ -74,6 +74,20 @@ spring:
       username: neo4j
       password: test
 
+# Management and actuator configuration for docker profile
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
+
 grpc:
   server:
     port: 9090
@@ -101,6 +115,20 @@ spring:
     authentication:
       username: neo4j
       password: stagingpassword123
+
+# Management and actuator configuration for staging profile
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
 
 grpc:
   server:

@@ -24,16 +24,18 @@ public class SecurityConfig {
         logger.debug("Configuring HttpSecurity");
         
         http
-            .authorizeRequests(authz -> authz
-                .antMatchers("/actuator/**").permitAll()
-                .antMatchers("/", "/index.html", "/static/**", 
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/api/simple-health", "/api/simple-health/**").permitAll()
+                .requestMatchers("/api/health", "/api/health/**").permitAll()
+                .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
+                .requestMatchers("/", "/index.html", "/static/**", 
                     "/favicon.ico", "/manifest.json", "/logo*.png",
                     "/*.js", "/*.css").permitAll()
-                .antMatchers("/error", "/login").permitAll()
-                .antMatchers("/oauth2/**", "/login/**").permitAll()
-                .antMatchers("/api/public/**").permitAll()
-                .antMatchers("/logout").authenticated() // Ensure only authenticated users can logout
-                .antMatchers("/user/me").authenticated()
+                .requestMatchers("/error", "/login").permitAll()
+                .requestMatchers("/oauth2/**", "/login/**").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/logout").authenticated() // Ensure only authenticated users can logout
+                .requestMatchers("/user/me").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
@@ -46,7 +48,7 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
             )
             .csrf(csrf -> csrf
-                .ignoringAntMatchers("/actuator/**", "/logout")
+                .ignoringAntMatchers("/actuator/**", "/api/actuator/**", "/api/health/**", "/api/simple-health/**", "/logout")
                 .disable() // Temporarily disabled for testing
             )
             .cors(cors -> {}); // Enable CORS processing
