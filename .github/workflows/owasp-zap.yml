@@ -140,19 +140,72 @@ jobs:
           # Use production compose with staging env
           docker compose --env-file .env.staging up -d --build
           
-          echo "Waiting for services to be healthy..."
-          timeout 300 bash -c '
-            while ! docker compose --env-file .env.staging ps | grep -q "healthy\|Up"; do
-              echo "Waiting for services..."
+          echo "Waiting for all services to be healthy..."
+          
+          # Wait for PostgreSQL
+          echo "Waiting for PostgreSQL..."
+          timeout 180 bash -c '
+            until docker compose --env-file .env.staging exec -T db pg_isready -U postgres_staging; do
+              echo "PostgreSQL not ready, waiting..."
               sleep 5
             done
           '
           
-          # Wait additional time for application startup
-          sleep 30
+          # Wait for Neo4j
+          echo "Waiting for Neo4j..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-neo4j-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Neo4j not healthy, waiting..."
+              docker logs modulo-neo4j-1 --tail 10 2>/dev/null || true
+              sleep 10
+            done
+          '
           
-          echo "Staging environment ready"
+          # Wait for backend
+          echo "Waiting for backend..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-backend-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Backend not healthy, waiting..."
+              sleep 10
+            done
+          '
+          
+          # Wait for frontend
+          echo "Waiting for frontend..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-frontend-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Frontend not healthy, waiting..."
+              sleep 10
+            done
+          '
+          
+          echo "All services are healthy"
           docker compose --env-file .env.staging ps
+
+      - name: Debug unhealthy services
+        if: failure()
+        run: |
+          echo "Debugging unhealthy services..."
+          
+          echo "=== Container Status ==="
+          docker compose --env-file .env.staging ps
+          
+          echo "=== PostgreSQL Logs ==="
+          docker compose --env-file .env.staging logs db --tail 50
+          
+          echo "=== Neo4j Logs ==="
+          docker compose --env-file .env.staging logs neo4j --tail 50
+          
+          echo "=== Backend Logs ==="
+          docker compose --env-file .env.staging logs backend --tail 50
+          
+          echo "=== Frontend Logs ==="
+          docker compose --env-file .env.staging logs frontend --tail 50
+          
+          echo "=== System Resources ==="
+          docker system df
+          free -h
+          df -h
 
       - name: Verify staging endpoints
         run: |
