@@ -89,6 +89,13 @@ jobs:
           npm install
           echo "Root dependencies installed successfully"
 
+      - name: Install system dependencies
+        run: |
+          echo "Installing system dependencies for security analysis..."
+          sudo apt-get update
+          sudo apt-get install -y jq curl wget
+          echo "System dependencies installed successfully"
+
       - name: Create staging environment variables
         run: |
           cat > .env.staging << EOF
