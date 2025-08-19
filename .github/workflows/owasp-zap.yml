@@ -76,6 +76,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
+      - name: Install root dependencies
+        run: |
+          echo "Installing root-level dependencies (including Husky)..."
+          npm install
+          echo "Root dependencies installed successfully"
+
       - name: Create staging environment variables
         run: |
           cat > .env.staging << EOF
@@ -105,9 +111,9 @@ jobs:
           mvn clean package -DskipTests
           cd ..
           
-          # Build frontend  
+          # Build frontend (skip husky scripts in CI)
           cd frontend
-          npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --ignore-scripts
           npm run build
           cd ..
           
