@@ -73,10 +73,24 @@ services:
         condition: service_healthy
     networks:
       - modulo-network
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - ./database:/flyway/sql
       - ./flyway.conf:/flyway/conf/flyway.conf
-    command: migrate
+      - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf
+    command: |
+      sh -c "
+        if [ '$${SPRING_PROFILES_ACTIVE}' = 'staging' ]; then
+          echo 'Using staging Flyway configuration'
+          flyway -configFiles=/flyway/conf/flyway.staging.conf migrate
+        else
+          echo 'Using default Flyway configuration'
+          flyway migrate
+        fi
+      "
 
   neo4j:
     image: neo4j:5.15-community

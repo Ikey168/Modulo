@@ -151,6 +151,15 @@ jobs:
             done
           '
           
+          # Verify database exists
+          echo "Verifying staging database exists..."
+          docker compose --env-file .env.staging exec -T db psql -U postgres_staging -d modulodb_staging -c "SELECT 'Database modulodb_staging is accessible' as status;" || {
+            echo "Database verification failed, checking database list..."
+            docker compose --env-file .env.staging exec -T db psql -U postgres_staging -c "\\l"
+            echo "Attempting to create database if it doesn't exist..."
+            docker compose --env-file .env.staging exec -T db psql -U postgres_staging -c "CREATE DATABASE modulodb_staging;" || echo "Database may already exist"
+          }
+          
           # Wait for Neo4j
           echo "Waiting for Neo4j..."
           timeout 180 bash -c '
@@ -192,6 +201,9 @@ jobs:
           
           echo "=== PostgreSQL Logs ==="
           docker compose --env-file .env.staging logs db --tail 50
+          
+          echo "=== Flyway Logs ==="
+          docker compose --env-file .env.staging logs flyway --tail 50
           
           echo "=== Neo4j Logs ==="
           docker compose --env-file .env.staging logs neo4j --tail 50
