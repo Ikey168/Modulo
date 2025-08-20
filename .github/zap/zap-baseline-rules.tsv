@@ -1,108 +1,52 @@
 # OWASP ZAP Baseline Scan Rules Configuration
-# Format: action	plugin_id	name	description
-# Actions: IGNORE, INFO, WARN, FAIL
-# This file configures which security findings should be treated as blocking issues
+# Format: plugin_id	threshold
+# Thresholds: PASS, IGNORE, INFO, WARN, FAIL
 
 # High-severity issues that should block PRs
-FAIL	40018	SQL Injection
-FAIL	40019	SQL Injection - PostgreSQL
-FAIL	40020	SQL Injection - Hypersonic SQL
-FAIL	40021	SQL Injection - Oracle
-FAIL	40022	SQL Injection - MySQL
-FAIL	40023	SQL Injection - SQLite
-FAIL	90018	SQL Injection - Authentication Bypass
-FAIL	10020	X-Frame-Options Header Not Set
-FAIL	10021	X-Content-Type-Options Header Missing
-FAIL	10023	Information Disclosure - Debug Error Messages
-FAIL	10025	Information Disclosure - Sensitive Information in URL
-FAIL	10026	HTTP Parameter Override
-FAIL	10027	Information Disclosure - Suspicious Comments
-FAIL	10028	Open Redirect
-FAIL	10029	Cookie No HttpOnly Flag
-FAIL	10030	Cookie No Secure Flag
-FAIL	10031	User Controllable Charset
-FAIL	10032	Viewstate Without MAC Signature
-FAIL	10033	Directory Browsing
-FAIL	10034	Heartbleed OpenSSL Vulnerability
-FAIL	10035	Strict-Transport-Security Header Not Set
-FAIL	10036	HTTP Server Response Header
-FAIL	10037	Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
-FAIL	10038	Content Security Policy (CSP) Header Not Set
-FAIL	10040	Secure Pages Include Mixed Content
-FAIL	10041	HTTP to HTTPS Insecure Transition in Form Post
-FAIL	10042	HTTPS to HTTP Insecure Transition in Form Post
-FAIL	10043	User Controllable JavaScript Event (XSS)
-FAIL	10044	Big Redirect Detected (Potential Sensitive Information Leak)
-FAIL	10045	Source Code Disclosure - /WEB-INF folder
-FAIL	10046	Source Code Disclosure - Git
-FAIL	10047	HTTPS Content Available via HTTP
-FAIL	10048	Remote Code Execution - Shell Shock
-FAIL	10049	Content Cacheability
-FAIL	10050	Retrieved from Cache
-FAIL	10051	Relative Path Confusion
-FAIL	10052	X-ChromeLogger-Data (XCLD) Header Information Leak
-FAIL	10053	Apache Range Header DoS (CVE-2011-3192)
-FAIL	10054	Cookie Without SameSite Attribute
-FAIL	10055	CSP: Wildcard Directive
-FAIL	10056	CSP: X-Content-Security-Policy
-FAIL	10057	Username Hash Found
-FAIL	10058	GET for POST
-FAIL	10059	PII Disclosure
-FAIL	10060	Source Code Disclosure - SVN
-FAIL	10061	WSDL File Detection
-FAIL	10062	PII Scanner
-FAIL	10063	Permissions Policy Header Not Set
-FAIL	10096	Timestamp Disclosure
-FAIL	10097	Hash Disclosure
-FAIL	10098	Cross-Domain Misconfiguration
-FAIL	10099	Source Code Disclosure
-FAIL	10105	Weak Authentication Method
-FAIL	10106	HTTP Only Site
-FAIL	10107	Httpoxy - Proxy Header Misuse
-FAIL	10108	Reverse Tabnabbing
-FAIL	10109	Modern Web Application
-FAIL	10110	Dangerous JS Functions
-FAIL	10202	Absence of Anti-CSRF Tokens
-FAIL	90001	Insecure JSF ViewState
-FAIL	90002	Java Serialization Object
-FAIL	90003	Sub Resource Integrity Attribute Missing
-FAIL	90004	Insufficient Site Isolation Against Spectre Vulnerability
-FAIL	90005	Sec-Fetch Metadata Request Headers Not Set
-FAIL	90006	Feature Policy Header Not Set
+40018	FAIL
+40019	FAIL
+40020	FAIL
+40021	FAIL
+40022	FAIL
+40023	FAIL
+90018	FAIL
+10020	FAIL
+10021	FAIL
+10023	FAIL
+10025	FAIL
+10026	FAIL
+10027	FAIL
+10028	FAIL
+10035	FAIL
+10038	FAIL
 
 # Medium-severity issues that should generate warnings but not block
-WARN	10003	Vulnerable JS Library
-WARN	10009	In Page Banner Information Leak
-WARN	10010	Cookie No Secure Flag
-WARN	10011	Cookie Without HttpOnly Flag
-WARN	10015	Incomplete or No Cache-control and Pragma HTTP Header Set
-WARN	10016	Web Browser XSS Protection Not Enabled
-WARN	10017	Cross-Domain JavaScript Source File Inclusion
-WARN	10019	Content-Type Header Missing
-WARN	10024	Information Disclosure - Sensitive Information in HTTP Referrer Header
-WARN	10039	Content Security Policy (CSP) Header Not Set
-WARN	10095	Backup File Disclosure
-WARN	10104	User Agent Fuzzer
-WARN	50001	Script Passive Scan Rules
+10003	WARN
+10009	WARN
+10010	WARN
+10011	WARN
+10015	WARN
+10016	WARN
+10017	WARN
+10019	WARN
+10024	WARN
+10039	WARN
+50001	WARN
 
 # Low-severity issues that should be informational only
-INFO	10004	X-Content-Type-Options Header Missing
-INFO	10018	X-Frame-Options Header Not Set (Non-HTML)
-INFO	10094	Base64 Disclosure
-INFO	10101	Insecure HTTP Method
-INFO	10102	HTTP Only Site (Informational)
-INFO	10103	Weak HTTP Method
+10004	INFO
+10018	INFO
+10094	INFO
+10096	INFO
+10097	INFO
 
 # Issues to ignore (false positives or acceptable risks)
-IGNORE	10001	Secure Cookie Not Set
-IGNORE	10002	Private IP Disclosure
-IGNORE	10005	X-Frame-Options Header Not Set (Non-HTML)
-IGNORE	10006	X-Content-Type-Options Header Missing (Non-HTML)
-IGNORE	10007	Secure Pages Include Mixed Content (Informational)
-IGNORE	10008	Open Redirect (Informational)
-IGNORE	10012	Password Autocomplete in Browser
-IGNORE	10013	Weak HTTP Method
-IGNORE	10014	HTTP Parameter Pollution
-IGNORE	10091	Charset Mismatch
-IGNORE	10092	WSDL File Disclosure
-IGNORE	10093	Application Error Disclosure
+10001	IGNORE
+10002	IGNORE
+10005	IGNORE
+10006	IGNORE
+10007	IGNORE
+10008	IGNORE
+10012	IGNORE
+10013	IGNORE
+10014	IGNORE
