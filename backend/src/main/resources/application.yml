@@ -3,6 +3,20 @@ server:
   servlet:
     context-path: /api
 
+# Management and actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
+
 spring:
   datasource:
     url: jdbc:h2:mem:modulodb
@@ -59,6 +73,62 @@ spring:
     authentication:
       username: neo4j
       password: test
+
+# Management and actuator configuration for docker profile
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
+
+grpc:
+  server:
+    port: 9090
+    enable-reflection: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: false
+  neo4j:
+    uri: bolt://neo4j:7687
+    authentication:
+      username: neo4j
+      password: stagingpassword123
+
+# Management and actuator configuration for staging profile
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
 
 grpc:
   server:

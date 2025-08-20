@@ -31,8 +31,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built assets from builder stage
 COPY --from=builder /app/dist .
 
-# Add non-root user
-RUN addgroup -g 1001 -S appgroup && \
+# Add non-root user and install dependencies
+RUN apk add --no-cache curl && \
+    addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup && \
     chown -R appuser:appgroup /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html && \
@@ -45,9 +46,9 @@ RUN addgroup -g 1001 -S appgroup && \
 # Use non-root user
 USER appuser
 
-# Health check - check main page instead of /health endpoint
+# Health check - use the nginx health endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:80/ || exit 1
+  CMD curl -f http://localhost:80/health || exit 1
 
 # Expose port
 EXPOSE 80

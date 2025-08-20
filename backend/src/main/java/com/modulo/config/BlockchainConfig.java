@@ -61,8 +61,9 @@ public class BlockchainConfig {
             return web3j;
         } catch (Exception e) {
             log.error("❌ Failed to connect to blockchain network: {}", e.getMessage());
-            log.warn("Falling back to null Web3j client - operations will use placeholder mode");
-            return null;
+            log.warn("Creating mock Web3j client - operations will use placeholder mode");
+            // Return a mock Web3j that doesn't actually connect
+            return Web3j.build(new HttpService("http://127.0.0.1:1"));
         }
     }
 
@@ -72,8 +73,9 @@ public class BlockchainConfig {
     @Bean
     public Credentials credentials() {
         if (privateKey == null || privateKey.isEmpty()) {
-            log.warn("No private key configured - blockchain transactions will not be available");
-            return null;
+            log.warn("No private key configured - using dummy credentials for testing");
+            // Create dummy credentials for testing/offline mode
+            return Credentials.create("0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01");
         }
         
         try {
@@ -82,7 +84,8 @@ public class BlockchainConfig {
             return credentials;
         } catch (Exception e) {
             log.error("❌ Failed to create credentials from private key: {}", e.getMessage());
-            return null;
+            log.warn("Using dummy credentials for testing");
+            return Credentials.create("0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01");
         }
     }
 

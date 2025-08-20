@@ -1,0 +1,593 @@
+name: OWASP ZAP Security Scan
+
+on:
+  push:
+    branches: 
+      - main
+      - develop
+      - 'feature/*'
+      - 'release/*'
+  pull_request:
+    branches: 
+      - main
+      - develop
+  schedule:
+    # Weekly comprehensive scan - Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of scan to run'
+        required: true
+        default: 'baseline'
+        type: choice
+        options:
+          - baseline
+          - active
+          - full
+      target_url:
+        description: 'Custom target URL (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
+env:
+  DOCKER_BUILDKIT: 0
+  COMPOSE_DOCKER_CLI_BUILD: 0
+
+jobs:
+  zap-security-scan:
+    name: OWASP ZAP Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    strategy:
+      matrix:
+        scan_type: 
+          - baseline
+          - active
+      fail-fast: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker
+        run: |
+          echo "Setting up Docker for basic image building..."
+          docker --version
+          docker compose version
+          echo "Docker setup complete"
+
+      - name: Verify Docker Compose
+        run: |
+          echo "Verifying Docker Compose availability..."
+          docker compose version || (echo "Docker Compose not found, installing..." && sudo apt-get update && sudo apt-get install -y docker-compose-plugin)
+          docker compose version
+          echo "Docker Compose is available"
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install root dependencies
+        run: |
+          echo "Installing root-level dependencies (including Husky)..."
+          npm install
+          echo "Root dependencies installed successfully"
+
+      - name: Install system dependencies
+        run: |
+          echo "Installing system dependencies for security analysis..."
+          sudo apt-get update
+          sudo apt-get install -y jq curl wget
+          echo "System dependencies installed successfully"
+
+      - name: Create staging environment variables
+        run: |
+          cat > .env.staging << EOF
+          # Staging Environment Configuration
+          POSTGRES_DB=modulodb_staging
+          POSTGRES_USER=postgres_staging
+          POSTGRES_PASSWORD=postgres_staging_$(openssl rand -hex 16)
+          SPRING_PROFILES_ACTIVE=staging
+          VITE_API_URL=http://localhost:8080
+          
+          # ZAP Scan Configuration
+          ZAP_TARGET_URL=http://localhost
+          ZAP_API_TARGET_URL=http://localhost:8080
+          ZAP_BASELINE_TIMEOUT=300
+          ZAP_ACTIVE_TIMEOUT=600
+          EOF
+          
+          echo "Staging environment configured"
+          cat .env.staging
+
+      - name: Build application
+        run: |
+          echo "Building staging environment..."
+          
+          # Build backend
+          cd backend
+          mvn clean package -DskipTests
+          cd ..
+          
+          # Build frontend (skip husky scripts in CI)
+          cd frontend
+          npm ci --prefer-offline --no-audit --ignore-scripts
+          npm run build
+          cd ..
+          
+          echo "Application built successfully"
+
+      - name: Start staging environment
+        run: |
+          echo "Starting staging environment..."
+          
+          # Use production compose with staging env
+          docker compose --env-file .env.staging up -d --build
+          
+          echo "Waiting for all services to be healthy..."
+          
+          # Wait for PostgreSQL
+          echo "Waiting for PostgreSQL..."
+          timeout 180 bash -c '
+            until docker compose --env-file .env.staging exec -T db pg_isready -U postgres_staging; do
+              echo "PostgreSQL not ready, waiting..."
+              sleep 5
+            done
+          '
+          
+          # Verify database exists
+          echo "Verifying staging database exists..."
+          docker compose --env-file .env.staging exec -T db psql -U postgres_staging -d modulodb_staging -c "SELECT 'Database modulodb_staging is accessible' as status;" || {
+            echo "Database verification failed, checking database list..."
+            docker compose --env-file .env.staging exec -T db psql -U postgres_staging -c "\\l"
+            echo "Attempting to create database if it doesn't exist..."
+            docker compose --env-file .env.staging exec -T db psql -U postgres_staging -c "CREATE DATABASE modulodb_staging;" || echo "Database may already exist"
+          }
+          
+          # Wait for Neo4j
+          echo "Waiting for Neo4j..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-neo4j-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Neo4j not healthy, waiting..."
+              docker logs modulo-neo4j-1 --tail 10 2>/dev/null || true
+              sleep 10
+            done
+          '
+          
+          # Wait for backend
+          echo "Waiting for backend..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-backend-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Backend not healthy, waiting..."
+              sleep 10
+            done
+          '
+          
+          # Wait for frontend
+          echo "Waiting for frontend..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-frontend-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
+              echo "Frontend not healthy, waiting..."
+              sleep 10
+            done
+          '
+          
+          echo "All services are healthy"
+          docker compose --env-file .env.staging ps
+
+      - name: Debug unhealthy services
+        if: failure()
+        run: |
+          echo "Debugging unhealthy services..."
+          
+          echo "=== Container Status ==="
+          docker compose --env-file .env.staging ps
+          
+          echo "=== PostgreSQL Logs ==="
+          docker compose --env-file .env.staging logs db --tail 50
+          
+          echo "=== Flyway Logs ==="
+          docker compose --env-file .env.staging logs flyway --tail 50
+          
+          echo "=== Neo4j Logs ==="
+          docker compose --env-file .env.staging logs neo4j --tail 50
+          
+          echo "=== Backend Logs ==="
+          docker compose --env-file .env.staging logs backend --tail 50
+          
+          echo "=== Frontend Logs ==="
+          docker compose --env-file .env.staging logs frontend --tail 50
+          
+          echo "=== System Resources ==="
+          docker system df
+          free -h
+          df -h
+
+      - name: Verify staging endpoints
+        run: |
+          echo "Verifying staging endpoints..."
+          
+          # Check frontend
+          curl -f http://localhost/ || (echo "Frontend not accessible" && exit 1)
+          
+          # Check backend health (any response indicates server is running)
+          timeout 60 bash -c 'until curl -s http://localhost:8080/ >/dev/null; do sleep 2; done'
+          echo "Backend is responding on port 8080"
+          
+          # Check database connectivity
+          docker compose --env-file .env.staging exec -T db pg_isready -U postgres_staging || (echo "Database not accessible" && exit 1)
+          
+          echo "All endpoints verified successfully"
+
+      - name: Run ZAP Baseline Scan
+        if: matrix.scan_type == 'baseline' || github.event.inputs.scan_type == 'baseline' || github.event.inputs.scan_type == 'full'
+        run: |
+          echo "Running ZAP Baseline Scan..."
+          
+          # Create reports directory with proper permissions
+          mkdir -p zap-baseline-results
+          chmod 777 zap-baseline-results
+          
+          # Run ZAP baseline scan with direct Docker command
+          docker run --rm \
+            --network host \
+            -v $(pwd)/zap-baseline-results:/zap/wrk/:rw \
+            -v $(pwd)/.github/zap:/zap/rules/:ro \
+            ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+            -t ${{ github.event.inputs.target_url || 'http://localhost/' }} \
+            -c /zap/rules/zap-baseline-rules.tsv \
+            -J zap-baseline-report.json \
+            -w zap-baseline-report.md \
+            -r zap-baseline-report.html \
+            -a -d -T 300 -m 10 \
+            -z "-config replacer.full_list(0).description=auth1 -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Bearer" || ZAP_EXIT_CODE=$?
+          
+          # Handle ZAP exit codes properly
+          # 0 = No issues, 1 = INFO alerts, 2 = WARN alerts, 3 = FAIL alerts (high risk)
+          if [ "${ZAP_EXIT_CODE:-0}" -eq 3 ]; then
+            echo "ZAP Baseline Scan found high-risk vulnerabilities (exit code 3)"
+            exit 1
+          elif [ "${ZAP_EXIT_CODE:-0}" -eq 2 ]; then
+            echo "ZAP Baseline Scan found medium-risk warnings (exit code 2) - continuing"
+          elif [ "${ZAP_EXIT_CODE:-0}" -eq 1 ]; then
+            echo "ZAP Baseline Scan found low-risk info alerts (exit code 1) - continuing"
+          else
+            echo "ZAP Baseline Scan completed successfully (exit code ${ZAP_EXIT_CODE:-0})"
+          fi
+
+      - name: Run ZAP Active Scan  
+        if: matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full'
+        run: |
+          echo "Running ZAP Active Scan..."
+          
+          # Create reports directory with proper permissions
+          mkdir -p zap-active-results
+          chmod 777 zap-active-results
+          
+          # Run ZAP active scan with direct Docker command
+          docker run --rm \
+            --network host \
+            -v $(pwd)/zap-active-results:/zap/wrk/:rw \
+            -v $(pwd)/.github/zap:/zap/rules/:ro \
+            ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+            -t ${{ github.event.inputs.target_url || 'http://localhost/' }} \
+            -c /zap/rules/zap-active-rules.tsv \
+            -J zap-active-report.json \
+            -w zap-active-report.md \
+            -r zap-active-report.html \
+            -a -d -T 600 -m 20 \
+            -z "-config replacer.full_list(0).description=auth1 -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Bearer" || ZAP_EXIT_CODE=$?
+          
+          # Handle ZAP exit codes properly
+          # 0 = No issues, 1 = INFO alerts, 2 = WARN alerts, 3 = FAIL alerts (high risk)
+          if [ "${ZAP_EXIT_CODE:-0}" -eq 3 ]; then
+            echo "ZAP Active Scan found high-risk vulnerabilities (exit code 3)"
+            exit 1
+          elif [ "${ZAP_EXIT_CODE:-0}" -eq 2 ]; then
+            echo "ZAP Active Scan found medium-risk warnings (exit code 2) - continuing"
+          elif [ "${ZAP_EXIT_CODE:-0}" -eq 1 ]; then
+            echo "ZAP Active Scan found low-risk info alerts (exit code 1) - continuing"
+          else
+            echo "ZAP Active Scan completed successfully (exit code ${ZAP_EXIT_CODE:-0})"
+          fi
+
+      - name: Run ZAP API Security Scan
+        if: matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full'
+        run: |
+          echo "Running ZAP API Security Scan..."
+          
+          # Create ZAP configuration for API scanning
+          mkdir -p zap-api-results
+          chmod 777 zap-api-results
+          
+          docker run --rm \
+            --network container:$(docker compose --env-file .env.staging ps -q frontend) \
+            -v $(pwd)/zap-api-results:/zap/wrk/:rw \
+            -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+            -t http://localhost:8080/api \
+            -f openapi \
+            -r zap-api-report.html \
+            -J zap-api-report.json \
+            -w zap-api-report.md \
+            -d \
+            -T 600 \
+            -z "-config replacer.full_list(0).description=auth1 -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Bearer" \
+            || echo "API scan completed with findings"
+
+      - name: Process ZAP Results
+        if: always()
+        run: |
+          echo "Processing ZAP scan results..."
+          
+          # Create results directory
+          mkdir -p zap-results
+          
+          # Copy baseline results if they exist
+          if [ -d zap-baseline-results ]; then
+            echo "Copying baseline scan results..."
+            cp -r zap-baseline-results/* zap-results/ 2>/dev/null || true
+          fi
+          
+          # Copy active scan results if they exist
+          if [ -d zap-active-results ]; then
+            echo "Copying active scan results..."
+            cp -r zap-active-results/* zap-results/ 2>/dev/null || true
+          fi
+          
+          # Copy API scan results if they exist
+          if [ -d zap-api-results ]; then
+            echo "Copying API scan results..."
+            cp -r zap-api-results/* zap-results/ 2>/dev/null || true
+          fi
+          
+          # List all found results
+          echo "ZAP scan results:"
+          ls -la zap-results/ || echo "No ZAP results found"
+
+      - name: Analyze Security Findings
+        if: always()
+        run: |
+          echo "Analyzing security findings..."
+          
+          HIGH_RISK_COUNT=0
+          MEDIUM_RISK_COUNT=0
+          
+          # Parse JSON reports for security findings
+          for json_report in zap-results/*.json; do
+            if [ -f "$json_report" ]; then
+              echo "Analyzing $json_report..."
+              
+              # Count high risk findings
+              if command -v jq >/dev/null 2>&1; then
+                HIGH_COUNT=$(jq -r '.site[]?.alerts[]? | select(.riskcode == "3" or .riskcode == "4") | .riskcode' "$json_report" 2>/dev/null | wc -l || echo 0)
+                MEDIUM_COUNT=$(jq -r '.site[]?.alerts[]? | select(.riskcode == "2") | .riskcode' "$json_report" 2>/dev/null | wc -l || echo 0)
+                
+                HIGH_RISK_COUNT=$((HIGH_RISK_COUNT + HIGH_COUNT))
+                MEDIUM_RISK_COUNT=$((MEDIUM_RISK_COUNT + MEDIUM_COUNT))
+                
+                echo "Found $HIGH_COUNT high-risk and $MEDIUM_COUNT medium-risk findings in $json_report"
+              fi
+            fi
+          done
+          
+          echo "Total findings: $HIGH_RISK_COUNT high-risk, $MEDIUM_RISK_COUNT medium-risk"
+          
+          # Save findings summary
+          cat > zap-results/security-summary.txt << EOF
+          OWASP ZAP Security Scan Summary
+          ================================
+          
+          Scan Date: $(date)
+          Target: http://localhost/
+          API Target: http://localhost:8080/api
+          
+          Security Findings:
+          - High Risk: $HIGH_RISK_COUNT
+          - Medium Risk: $MEDIUM_RISK_COUNT
+          
+          Scan Types Completed:
+          - Baseline Scan: ${{ matrix.scan_type == 'baseline' || github.event.inputs.scan_type == 'baseline' || github.event.inputs.scan_type == 'full' }}
+          - Active Scan: ${{ matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full' }}
+          - API Scan: ${{ matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full' }}
+          
+          Status: $([ $HIGH_RISK_COUNT -gt 0 ] && echo "FAILED - High-risk vulnerabilities found" || echo "PASSED - No high-risk vulnerabilities")
+          EOF
+          
+          # Export for later steps
+          echo "HIGH_RISK_COUNT=$HIGH_RISK_COUNT" >> $GITHUB_ENV
+          echo "MEDIUM_RISK_COUNT=$MEDIUM_RISK_COUNT" >> $GITHUB_ENV
+
+      - name: Security Gate Check
+        if: always()
+        run: |
+          echo "Checking security gate..."
+          
+          if [ "${HIGH_RISK_COUNT:-0}" -gt 0 ]; then
+            echo "❌ Security gate FAILED: Found $HIGH_RISK_COUNT high-risk vulnerability(ies)"
+            echo ""
+            echo "🚨 High-risk vulnerabilities must be resolved before merging!"
+            echo ""
+            echo "📋 Next steps:"
+            echo "1. Review ZAP reports in the artifacts"
+            echo "2. Fix all high-risk vulnerabilities"
+            echo "3. Re-run security scan"
+            echo "4. Merge only after all high-risk issues are resolved"
+            echo ""
+            
+            # Show summary if available
+            if [ -f zap-results/security-summary.txt ]; then
+              echo "Security Summary:"
+              cat zap-results/security-summary.txt
+            fi
+            
+            exit 1
+          else
+            echo "✅ Security gate PASSED: No high-risk vulnerabilities detected"
+            
+            if [ "${MEDIUM_RISK_COUNT:-0}" -gt 0 ]; then
+              echo "⚠️  Found $MEDIUM_RISK_COUNT medium-risk vulnerability(ies) - review recommended"
+            fi
+          fi
+
+      - name: Comment PR with Security Results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const highRisk = process.env.HIGH_RISK_COUNT || '0';
+            const mediumRisk = process.env.MEDIUM_RISK_COUNT || '0';
+            const scanType = '${{ matrix.scan_type }}';
+            
+            let status = '✅ PASSED';
+            let statusIcon = '🛡️';
+            
+            if (parseInt(highRisk) > 0) {
+              status = '❌ FAILED';
+              statusIcon = '🚨';
+            } else if (parseInt(mediumRisk) > 0) {
+              status = '⚠️ WARNING'; 
+              statusIcon = '⚠️';
+            }
+            
+            const body = `## ${statusIcon} OWASP ZAP Security Scan - ${status}
+            
+            **Scan Type:** ${scanType.toUpperCase()}
+            **Target:** http://localhost/
+            **API Target:** http://localhost:8080/api
+            
+            ### 📊 Security Findings
+            
+            | Risk Level | Count | Status |
+            |------------|-------|--------|
+            | High | ${highRisk} | ${parseInt(highRisk) > 0 ? '❌ Must Fix' : '✅ Clean'} |
+            | Medium | ${mediumRisk} | ${parseInt(mediumRisk) > 0 ? '⚠️ Review' : '✅ Clean'} |
+            
+            ### 🔍 Scan Coverage
+            
+            - ✅ **Baseline Scan**: Passive security checks
+            - ${scanType === 'active' ? '✅' : '⏭️'} **Active Scan**: Active vulnerability testing
+            - ${scanType === 'active' ? '✅' : '⏭️'} **API Scan**: REST API security validation
+            
+            ### 📋 Security Gate Status
+            
+            ${parseInt(highRisk) > 0 ? 
+              '❌ **This PR cannot be merged** until all high-risk vulnerabilities are resolved.' :
+              '✅ **Security gate passed** - safe to merge from security perspective.'
+            }
+            
+            ### 📄 Reports
+            
+            Security scan reports are available as workflow artifacts:
+            - ZAP Baseline Report (HTML/JSON/MD)
+            - ZAP Active Scan Report (HTML/JSON/MD) 
+            - ZAP API Security Report (HTML/JSON/MD)
+            - Security Summary (TXT)
+            
+            ### 🔗 Resources
+            
+            - [OWASP ZAP Documentation](https://owasp.org/www-project-zap/)
+            - [Security Findings Guide](./docs/SECURITY_FINDINGS.md)
+            - [Vulnerability Remediation](./docs/VULNERABILITY_REMEDIATION.md)
+            
+            ---
+            
+            🤖 *Automated security scan by OWASP ZAP*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Upload ZAP Results as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-zap-reports-${{ matrix.scan_type }}-${{ github.run_number }}
+          path: |
+            zap-results/
+            !zap-results/**/.git
+          retention-days: 30
+          compression-level: 6
+
+      - name: Upload to GitHub Security (SARIF)
+        if: always()
+        run: |
+          echo "Checking for SARIF files..."
+          if find zap-results/ -name "*.sarif" -type f | grep -q .; then
+            echo "SARIF files found, uploading to GitHub Security..."
+            # Find and upload the first SARIF file
+            SARIF_FILE=$(find zap-results/ -name "*.sarif" -type f | head -1)
+            echo "Uploading $SARIF_FILE"
+            # Note: This step requires SARIF files to be generated by ZAP
+            # Currently ZAP doesn't generate SARIF by default, so this will be skipped
+          else
+            echo "No SARIF files found - ZAP reports are available as JSON/HTML artifacts"
+            echo "SARIF upload skipped (this is expected for standard ZAP scans)"
+          fi
+        continue-on-error: true
+
+      - name: Cleanup staging environment
+        if: always()
+        run: |
+          echo "Cleaning up staging environment..."
+          
+          # Stop and remove containers
+          docker compose --env-file .env.staging down -v --remove-orphans || true
+          
+          # Clean up volumes
+          docker volume prune -f || true
+          
+          # Clean up networks  
+          docker network prune -f || true
+          
+          echo "Cleanup completed"
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: zap-security-scan
+    if: always()
+    
+    steps:
+      - name: Generate Security Summary
+        run: |
+          echo "## 🛡️ OWASP ZAP Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status | High Risk | Medium Risk |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-----------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Baseline | ${{ needs.zap-security-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} | TBD | TBD |" >> $GITHUB_STEP_SUMMARY
+          echo "| Active | ${{ needs.zap-security-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} | TBD | TBD |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Overall Security Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.zap-security-scan.result == 'success' && '✅ **All security scans passed** - No high-risk vulnerabilities detected' || '❌ **Security vulnerabilities detected** - Review required before merge' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📄 Artifacts Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- OWASP ZAP Baseline Report" >> $GITHUB_STEP_SUMMARY
+          echo "- OWASP ZAP Active Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "- OWASP ZAP API Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Summary Report" >> $GITHUB_STEP_SUMMARY

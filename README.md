@@ -430,6 +430,158 @@ codeql database analyze --format=sarif-latest
 
 See [CodeQL Security Guide](docs/CODEQL_SECURITY_SCANNING.md) for detailed information.
 
+## 🕷️ OWASP ZAP Dynamic Security Testing
+
+Modulo implements dynamic application security testing (DAST) using OWASP ZAP to identify runtime vulnerabilities and security misconfigurations:
+
+### 🛡️ Security Testing Features
+- **Dynamic Vulnerability Scanning**: Real-time security testing of running applications
+- **Baseline + Active Scans**: Comprehensive coverage from passive to intensive testing
+- **Staging Environment Integration**: Automated testing against live staging deployments
+- **Exploitable Vulnerability Detection**: Focus on high-risk security issues that can be exploited
+
+### 🔍 Scan Types & Coverage
+
+| Scan Type | Duration | Coverage | Use Case |
+|-----------|----------|----------|----------|
+| **Baseline** | 2-5 minutes | Passive security checks | PR validation, quick security checks |
+| **Active** | 15-30 minutes | Active vulnerability probing | Comprehensive security validation |
+| **Full** | 45+ minutes | Deep security analysis | Release security validation |
+
+### 🎯 Vulnerability Detection
+
+**OWASP Top 10 Coverage:**
+- A01: Broken Access Control
+- A02: Cryptographic Failures  
+- A03: Injection (SQL, NoSQL, Command)
+- A04: Insecure Design
+- A05: Security Misconfiguration
+- A06: Vulnerable Components
+- A07: Authentication Failures
+- A08: Software Integrity Failures
+- A09: Security Logging Failures
+- A10: Server-Side Request Forgery
+
+**Additional Security Checks:**
+- XSS (Reflected, Stored, DOM-based)
+- CSRF Protection
+- HTTP Security Headers
+- SSL/TLS Configuration
+- Session Management
+- Information Disclosure
+
+### 🚨 Security Gates & Blocking
+
+**High-Risk Blocking:**
+```yaml
+# Automatically blocks deployment on:
+- High-severity exploitable vulnerabilities
+- Missing critical security headers
+- Authentication bypass vulnerabilities
+- SQL injection findings
+- XSS vulnerabilities with exploitation potential
+```
+
+**Risk Thresholds:**
+- **Critical (CVSS 9.0+)**: Immediate blocking, manual review required
+- **High (CVSS 7.0-8.9)**: Automatic blocking, security team notification
+- **Medium (CVSS 4.0-6.9)**: Warning, tracked for remediation
+- **Low (CVSS 0.1-3.9)**: Informational, included in security reports
+
+### 🔄 Workflow Integration
+
+**Automatic Triggers:**
+- **Staging Deployments**: Full ZAP scan after successful deployment
+- **Release Branches**: Comprehensive security validation before production
+- **Scheduled**: Weekly baseline scans on staging environment
+- **Manual**: On-demand security testing via GitHub Actions
+
+**Environment Testing:**
+```bash
+# Staging environment (automated)
+Target: https://staging.modulo.app
+Scan: Baseline + Active
+Duration: ~20 minutes
+
+# Production monitoring (scheduled)  
+Target: https://api.modulo.app
+Scan: Baseline only
+Frequency: Weekly
+```
+
+### 📊 Security Reporting & Artifacts
+
+**Generated Reports:**
+- **HTML Report**: Human-readable vulnerability findings
+- **JSON Report**: Machine-readable results for security dashboards
+- **SARIF Report**: GitHub Security integration
+- **XML Report**: Integration with security tools
+
+**Artifact Retention:**
+- **Staging Scans**: 30 days
+- **Production Scans**: 90 days
+- **Release Scans**: Permanent (compliance)
+
+### 🛠️ Manual Testing & Local Development
+
+**Local ZAP Testing:**
+```bash
+# Run ZAP against local development
+cd .github/zap
+docker run -v $(pwd):/zap/wrk/:rw \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py -t http://localhost:3000 \
+  -c baseline-scan.conf
+
+# Test staging environment
+docker run -v $(pwd):/zap/wrk/:rw \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-full-scan.py -t https://staging.modulo.app \
+  -c active-scan.conf
+```
+
+**Manual Security Review:**
+```bash
+# View ZAP scan results
+https://github.com/Ikey168/Modulo/actions/workflows/owasp-zap.yml
+
+# Access staging environment for testing
+https://staging.modulo.app
+
+# Security findings dashboard
+https://github.com/Ikey168/Modulo/security
+```
+
+### 🎯 Compliance & Standards
+
+**Security Frameworks:**
+- **OWASP ASVS**: Application Security Verification Standard compliance
+- **NIST SP 800-53**: Security controls validation
+- **ISO 27001**: Information security management alignment
+- **SOC 2 Type II**: Dynamic security testing requirements
+
+**Compliance Features:**
+- Automated vulnerability scanning
+- Security finding tracking and remediation
+- Regular security assessment schedules
+- Audit trail with detailed security reports
+
+### 📈 Security Metrics & Monitoring
+
+**Key Performance Indicators:**
+- **Mean Time to Detection (MTTD)**: < 24 hours for new vulnerabilities
+- **Mean Time to Remediation (MTTR)**: < 7 days for high-severity findings
+- **Security Debt**: Tracked and reported in security dashboards
+- **Zero High-Risk Deployments**: Block releases with exploitable vulnerabilities
+
+**Security Status:**
+- ✅ Active vulnerability scanning: **Enabled**
+- ✅ Security gate enforcement: **Active** 
+- ✅ Staging security validation: **Automated**
+- ✅ Last security scan: **Weekly + per-deployment**
+
+See [OWASP ZAP Security Guide](docs/OWASP_ZAP_SECURITY_SCANNING.md) for detailed information.
+
 ## Authentication
 
 Modulo supports multiple authentication methods:

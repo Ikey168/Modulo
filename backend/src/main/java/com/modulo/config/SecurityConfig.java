@@ -25,7 +25,9 @@ public class SecurityConfig {
         
         http
             .authorizeRequests(authz -> authz
-                .antMatchers("/actuator/**").permitAll()
+                .antMatchers("/api/simple-health", "/api/simple-health/**").permitAll()
+                .antMatchers("/api/health", "/api/health/**").permitAll()
+                .antMatchers("/actuator/**", "/api/actuator/**").permitAll()
                 .antMatchers("/", "/index.html", "/static/**", 
                     "/favicon.ico", "/manifest.json", "/logo*.png",
                     "/*.js", "/*.css").permitAll()
@@ -46,7 +48,7 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
             )
             .csrf(csrf -> csrf
-                .ignoringAntMatchers("/actuator/**", "/logout")
+                .ignoringAntMatchers("/actuator/**", "/api/actuator/**", "/api/health/**", "/api/simple-health/**", "/logout")
                 .disable() // Temporarily disabled for testing
             )
             .cors(cors -> {}); // Enable CORS processing

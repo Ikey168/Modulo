@@ -1,14 +1,13 @@
 -- Plugin System Database Schema
 -- Migration for adding plugin management tables and updating existing entities
 
--- Update notes table for plugin system support
-ALTER TABLE application.notes ADD COLUMN IF NOT EXISTS user_id BIGINT;
+-- Update notes table for plugin system support (note_id and user_id already exist as UUID from V1)
 ALTER TABLE application.notes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;
 ALTER TABLE application.notes ADD COLUMN IF NOT EXISTS last_viewed_at TIMESTAMP;
 
 -- Create note metadata table
 CREATE TABLE IF NOT EXISTS application.note_metadata (
-    note_id BIGINT NOT NULL,
+    note_id UUID NOT NULL,
     metadata_key VARCHAR(255) NOT NULL,
     metadata_value TEXT,
     PRIMARY KEY (note_id, metadata_key),
@@ -16,28 +15,27 @@ CREATE TABLE IF NOT EXISTS application.note_metadata (
 );
 
 -- Update users table for plugin system support  
-ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
-ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+-- Note: Users table is in security schema with user_id as UUID
+ALTER TABLE security.users ADD COLUMN IF NOT EXISTS first_name VARCHAR(255);
+ALTER TABLE security.users ADD COLUMN IF NOT EXISTS last_name VARCHAR(255);
+ALTER TABLE security.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
 
 -- Create user custom attributes table
-CREATE TABLE IF NOT EXISTS user_custom_attributes (
-    user_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS application.user_custom_attributes (
+    user_id UUID NOT NULL,
     attribute_key VARCHAR(255) NOT NULL,
     attribute_value TEXT,
     PRIMARY KEY (user_id, attribute_key),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES security.users(user_id) ON DELETE CASCADE
 );
 
 -- Create user preferences table
-CREATE TABLE IF NOT EXISTS user_preferences (
-    user_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS application.user_preferences (
+    user_id UUID NOT NULL,
     preference_key VARCHAR(255) NOT NULL,
     preference_value TEXT,
     PRIMARY KEY (user_id, preference_key),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES security.users(user_id) ON DELETE CASCADE
 );
 
 -- Plugin registry table for storing plugin metadata
