@@ -248,7 +248,7 @@ jobs:
           cmd_options: '-a -d -T 300 -m 10 -z "-config replacer.full_list(0).description=auth1 -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Bearer"'
           fail_action: false
           allow_issue_writing: false
-          artifact_name: 'zap_baseline_reports'
+          artifact_name: 'zap-baseline-reports'
 
       - name: Run ZAP Active Scan  
         if: matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full'
@@ -259,7 +259,7 @@ jobs:
           cmd_options: '-a -d -T 600 -m 20 -z "-config replacer.full_list(0).description=auth1 -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=Bearer"'
           fail_action: false
           allow_issue_writing: false
-          artifact_name: 'zap_active_reports'
+          artifact_name: 'zap-active-reports'
 
       - name: Run ZAP API Security Scan
         if: matrix.scan_type == 'active' || github.event.inputs.scan_type == 'active' || github.event.inputs.scan_type == 'full'
