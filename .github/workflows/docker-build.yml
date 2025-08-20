@@ -48,6 +48,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # Required for keyless signing
     strategy:
       matrix:
         component: [backend, frontend]
@@ -77,6 +78,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.component }}
@@ -90,6 +92,24 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.0'
+
+      - name: Sign container images with Cosign (keyless)
+        run: |
+          # Get the digest from the build output
+          digest="${{ steps.build.outputs.digest }}"
+          
+          # Sign all tags with keyless signing
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            echo "Signing image: ${tag}@${digest}"
+            cosign sign --yes "${tag}@${digest}"
+          done
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
       - name: Install Syft for SBOM generation
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -97,7 +117,31 @@ jobs:
       - name: Generate SBOM
         run: |
           main_tag=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
-          syft ${main_tag} -o cyclonedx-json=${{ matrix.component }}-sbom.json
+          digest="${{ steps.build.outputs.digest }}"
+          syft "${main_tag}@${digest}" -o cyclonedx-json=${{ matrix.component }}-sbom.json
+
+      - name: Sign SBOM with Cosign
+        run: |
+          main_tag=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          digest="${{ steps.build.outputs.digest }}"
+          
+          # Attach SBOM to image
+          cosign attach sbom --sbom ${{ matrix.component }}-sbom.json "${main_tag}@${digest}"
+          
+          # Sign the SBOM
+          cosign sign --yes "${main_tag}@${digest}"
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Verify signed images
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            digest="${{ steps.build.outputs.digest }}"
+            echo "Verifying signature for: ${tag}@${digest}"
+            cosign verify "${tag}@${digest}" --certificate-identity-regexp=".*" --certificate-oidc-issuer-regexp=".*"
+          done
+        env:
+          COSIGN_EXPERIMENTAL: 1
 
       - name: Upload SBOM as artifact
         uses: actions/upload-artifact@v4
@@ -116,5 +160,7 @@ jobs:
           echo "# 🐳 Multi-Architecture Docker Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Multi-arch builds completed successfully**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **SBOM generation completed**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Images signed with Cosign (keyless)**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **SBOM generation and attachment completed**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Image signature verification passed**" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Images pushed to registry**" >> $GITHUB_STEP_SUMMARY

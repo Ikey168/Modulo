@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: react-frontend
-  namespace: my-application-placeholder
+  namespace: modulo
   labels:
     app: react-frontend
 spec:
@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
       - name: frontend-container
-        image: your-frontend-image-placeholder:latest # Placeholder image (e.g., Nginx serving static files)
+        image: ghcr.io/ikey168/modulo/frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         envFrom:
