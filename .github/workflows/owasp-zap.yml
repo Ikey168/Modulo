@@ -16,28 +16,8 @@ on:
     - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
-          - name: Process ZAP Results
-        if: always()
-        run: |
-          echo "Processing ZAP scan results..."
-          
-          # Create consolidated results directory
-          mkdir -p zap-results
-          
-          # Fix ownership of result directories (ZAP runs as root in container)
-          sudo chown -R $(whoami):$(whoami) zap-*-results/ 2>/dev/null || true
-          
-          # Copy baseline scan results if they exist
-          if [ -d zap-baseline-results ]; then
-            echo "Copying baseline scan results..."
-            cp -r zap-baseline-results/* zap-results/ 2>/dev/null || true
-          fi
-          
-          # Copy active scan results if they exist
-          if [ -d zap-active-results ]; then
-            echo "Copying active scan results..."
-            cp -r zap-active-results/* zap-results/ 2>/dev/null || true
-          fi  description: 'Type of scan to run'
+      scan_type:
+        description: 'Type of scan to run'
         required: true
         default: 'baseline'
         type: choice
