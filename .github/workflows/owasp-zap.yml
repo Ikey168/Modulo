@@ -244,12 +244,14 @@ jobs:
         run: |
           echo "Running ZAP Baseline Scan..."
           
-          # Create reports directory
+          # Create reports directory with proper permissions
           mkdir -p zap-baseline-results
+          chmod 777 zap-baseline-results
           
           # Run ZAP baseline scan with direct Docker command
           docker run --rm \
             --network host \
+            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-baseline-results:/zap/wrk/:rw \
             -v $(pwd)/.github/zap:/zap/rules/:ro \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
@@ -268,12 +270,14 @@ jobs:
         run: |
           echo "Running ZAP Active Scan..."
           
-          # Create reports directory
+          # Create reports directory with proper permissions
           mkdir -p zap-active-results
+          chmod 777 zap-active-results
           
           # Run ZAP active scan with direct Docker command
           docker run --rm \
             --network host \
+            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-active-results:/zap/wrk/:rw \
             -v $(pwd)/.github/zap:/zap/rules/:ro \
             ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
@@ -294,9 +298,11 @@ jobs:
           
           # Create ZAP configuration for API scanning
           mkdir -p zap-api-results
+          chmod 777 zap-api-results
           
           docker run --rm \
             --network container:$(docker compose --env-file .env.staging ps -q frontend) \
+            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-api-results:/zap/wrk/:rw \
             -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
             -t http://localhost:8080/api \
