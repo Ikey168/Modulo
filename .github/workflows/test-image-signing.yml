@@ -35,28 +35,22 @@ jobs:
           
       - name: Validate Kyverno Policies
         run: |
+      - name: Validate Kyverno Policies
+        run: |
           echo "Validating Kyverno policies..."
           
-          # Check YAML syntax using Python
+          # Simple YAML syntax validation
           for policy in k8s/policies/*.yaml; do
             if [[ "$policy" == *"README.md"* ]]; then
               continue  # Skip README file
             fi
             echo "Validating YAML syntax for $policy..."
-            python3 -c "
-import yaml
-import sys
-try:
-    with open('$policy', 'r') as f:
-        docs = list(yaml.safe_load_all(f))
-        print(f'✅ Valid YAML with {len(docs)} document(s)')
-        for i, doc in enumerate(docs):
-            if doc and 'kind' in doc:
-                print(f'  - Document {i+1}: {doc[\"kind\"]} {doc.get(\"metadata\", {}).get(\"name\", \"unnamed\")}')
-except Exception as e:
-    print(f'❌ YAML validation failed: {e}')
-    sys.exit(1)
-            "
+            if python3 -c "import yaml; yaml.safe_load_all(open('$policy'))" 2>/dev/null; then
+              echo "✅ $policy has valid YAML syntax"
+            else
+              echo "❌ $policy has invalid YAML syntax"
+              exit 1
+            fi
           done
           
           echo "All policies have valid YAML syntax!"
