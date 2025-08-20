@@ -16,8 +16,28 @@ on:
     - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
-      scan_type:
-        description: 'Type of scan to run'
+          - name: Process ZAP Results
+        if: always()
+        run: |
+          echo "Processing ZAP scan results..."
+          
+          # Create consolidated results directory
+          mkdir -p zap-results
+          
+          # Fix ownership of result directories (ZAP runs as root in container)
+          sudo chown -R $(whoami):$(whoami) zap-*-results/ 2>/dev/null || true
+          
+          # Copy baseline scan results if they exist
+          if [ -d zap-baseline-results ]; then
+            echo "Copying baseline scan results..."
+            cp -r zap-baseline-results/* zap-results/ 2>/dev/null || true
+          fi
+          
+          # Copy active scan results if they exist
+          if [ -d zap-active-results ]; then
+            echo "Copying active scan results..."
+            cp -r zap-active-results/* zap-results/ 2>/dev/null || true
+          fi  description: 'Type of scan to run'
         required: true
         default: 'baseline'
         type: choice
@@ -251,7 +271,6 @@ jobs:
           # Run ZAP baseline scan with direct Docker command
           docker run --rm \
             --network host \
-            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-baseline-results:/zap/wrk/:rw \
             -v $(pwd)/.github/zap:/zap/rules/:ro \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
@@ -277,7 +296,6 @@ jobs:
           # Run ZAP active scan with direct Docker command
           docker run --rm \
             --network host \
-            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-active-results:/zap/wrk/:rw \
             -v $(pwd)/.github/zap:/zap/rules/:ro \
             ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
@@ -302,7 +320,6 @@ jobs:
           
           docker run --rm \
             --network container:$(docker compose --env-file .env.staging ps -q frontend) \
-            --user $(id -u):$(id -g) \
             -v $(pwd)/zap-api-results:/zap/wrk/:rw \
             -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
             -t http://localhost:8080/api \
