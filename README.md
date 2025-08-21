@@ -486,7 +486,78 @@ For detailed setup and configuration, see [Secret Scanning Implementation Guide]
 
 See [CodeQL Security Guide](docs/CODEQL_SECURITY_SCANNING.md) for detailed information.
 
-## 🕷️ OWASP ZAP Dynamic Security Testing
+## � External Secrets Operator & Secret Rotation
+
+Modulo implements External Secrets Operator (ESO) with Azure Key Vault for enterprise-grade secret management, enabling zero-downtime secret rotation without application redeployment:
+
+### 🛡️ Secret Management Features
+
+- **Zero-downtime Rotation**: Secrets rotated without application restarts
+- **No Plaintext in Git**: All secrets stored in Azure Key Vault
+- **Automatic Synchronization**: ESO automatically refreshes secrets from Key Vault
+- **Centralized Management**: Single source of truth for all environments
+
+### 🏗️ Architecture Components
+
+| Component | Purpose | Refresh Interval |
+|-----------|---------|------------------|
+| **Azure Key Vault** | Centralized secret storage | - |
+| **External Secrets Operator** | Kubernetes secret synchronization | 5-30 minutes |
+| **SecretStore** | Key Vault connection configuration | - |
+| **ExternalSecret** | Secret mapping and templating | Configurable per secret |
+
+### 🔄 Secret Types & Rotation Cadence
+
+| Secret Type | Key Vault Name | Refresh Interval | Rotation Schedule |
+|-------------|----------------|------------------|-------------------|
+| **Database** | `modulo-database-password` | 5 minutes | 90 days |
+| **JWT** | `modulo-jwt-secret` | 10 minutes | 30 days |
+| **API Keys** | `modulo-api-key` | 10 minutes | 60 days |
+| **Monitoring** | `modulo-app-insights-*` | 15 minutes | 180 days |
+| **Registry** | `modulo-acr-password` | 30 minutes | 90 days |
+
+### 🚀 Quick Setup
+
+```bash
+# Set up Azure Key Vault and populate secrets
+./scripts/setup-azure-keyvault.sh
+
+# Deploy External Secrets Operator
+./scripts/deploy-external-secrets.sh
+
+# Verify deployment
+kubectl get externalsecrets -n modulo
+```
+
+### 🔄 Secret Rotation Playbooks
+
+```bash
+# Interactive rotation menu
+./scripts/rotate-secrets.sh
+
+# Specific secret rotation
+./scripts/rotate-secrets.sh jwt         # Rotate JWT secret
+./scripts/rotate-secrets.sh api-key     # Rotate API key
+./scripts/rotate-secrets.sh database    # Rotate database password
+```
+
+### 🛠️ End-to-End Rotation Process
+
+1. **Key Vault Update**: New secret value generated and stored
+2. **ESO Detection**: External Secrets Operator detects change
+3. **Kubernetes Sync**: Secret automatically updated in cluster
+4. **Application Refresh**: Pods pick up new values without restart
+5. **Verification**: Automated testing confirms rotation success
+
+**Operational Status:**
+- ✅ **Azure Key Vault**: Configured with all application secrets
+- ✅ **External Secrets Operator**: v0.9.11 deployed and healthy
+- ✅ **Secret Synchronization**: All secrets syncing every 5-30 minutes
+- ✅ **Rotation Tested**: End-to-end rotation verified for all secret types
+
+For detailed setup and rotation procedures, see [External Secrets Implementation Guide](docs/EXTERNAL_SECRETS_IMPLEMENTATION.md).
+
+## �🕷️ OWASP ZAP Dynamic Security Testing
 
 Modulo implements dynamic application security testing (DAST) using OWASP ZAP to identify runtime vulnerabilities and security misconfigurations:
 

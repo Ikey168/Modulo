@@ -1,0 +1,56 @@
+# Service Account for External Secrets
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets-sa
+  namespace: modulo
+  labels:
+    app.kubernetes.io/name: external-secrets-sa
+    app.kubernetes.io/component: service-account
+
+---
+# ClusterRole for External Secrets Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-secrets-modulo
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["external-secrets.io"]
+  resources: ["secretstores", "externalsecrets", "clustersecretstores"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding for External Secrets Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-secrets-modulo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-secrets-modulo
+subjects:
+- kind: ServiceAccount
+  name: external-secrets-sa
+  namespace: modulo
+
+---
+# Azure Key Vault credentials secret (to be populated manually or via CI/CD)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-keyvault-creds
+  namespace: modulo
+  labels:
+    app.kubernetes.io/name: azure-keyvault-creds
+    app.kubernetes.io/component: authentication
+type: Opaque
+stringData:
+  client-id: "REPLACE_WITH_AZURE_CLIENT_ID"
+  client-secret: "REPLACE_WITH_AZURE_CLIENT_SECRET"

@@ -51,6 +51,7 @@ This directory contains Kubernetes manifests to deploy the Modulo application (S
 | `08-frontend-service.yaml` | Service to expose the frontend |
 | `09-ingress.yaml` | Ingress with HTTPS termination |
 | `10-api-hpa.yaml` | Horizontal Pod Autoscaler for API |
+| `external-secrets/` | External Secrets Operator configuration |
 | `deploy.sh` | Automated deployment script |
 
 ## 🚀 Quick Start
