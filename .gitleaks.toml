@@ -1,0 +1,91 @@
+# Gitleaks configuration for secret detection
+# Documentation: https://github.com/gitleaks/gitleaks
+
+title = "Modulo Secret Scanning Configuration"
+
+[extend]
+# Use the default gitleaks rules as a base
+useDefault = true
+
+# Custom rules for specific patterns
+[[rules]]
+id = "modulo-api-key"
+description = "Modulo API Key"
+regex = '''(?i)(modulo[_-]?api[_-]?key)[[:space:]]*[:=][[:space:]]*['"]?([0-9a-f]{32,64})['"]?'''
+tags = ["api-key", "modulo"]
+
+[[rules]]
+id = "modulo-secret-key"
+description = "Modulo Secret Key"
+regex = '''(?i)(modulo[_-]?secret)[[:space:]]*[:=][[:space:]]*['"]?([0-9a-f]{32,128})['"]?'''
+tags = ["secret", "modulo"]
+
+[[rules]]
+id = "blockchain-private-key"
+description = "Blockchain Private Key"
+regex = '''(?i)(private[_-]?key|priv[_-]?key)[[:space:]]*[:=][[:space:]]*['"]?(0x)?[0-9a-f]{64}['"]?'''
+tags = ["blockchain", "private-key"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT Secret"
+regex = '''(?i)(jwt[_-]?secret)[[:space:]]*[:=][[:space:]]*['"]?([A-Za-z0-9+/]{32,})={0,2}['"]?'''
+tags = ["jwt", "secret"]
+
+# Allowlist patterns to reduce false positives
+[[allowlist]]
+description = "Test keys and example values"
+regexes = [
+    '''test[_-]?key''',
+    '''example[_-]?secret''',
+    '''your[_-]?api[_-]?key''',
+    '''placeholder''',
+    '''dummy[_-]?value''',
+    '''xxxxxxxx''',
+    '''00000000''',
+    '''11111111''',
+    '''12345678''',
+    '''abcdef''',
+]
+
+[[allowlist]]
+description = "Documentation and comment examples"
+paths = [
+    '''.*\.md$''',
+    '''.*\.txt$''',
+    '''.*\.rst$''',
+    '''.*\.adoc$''',
+]
+
+[[allowlist]]
+description = "Build and dependency files"
+paths = [
+    '''.*package-lock\.json$''',
+    '''.*yarn\.lock$''',
+    '''.*Pipfile\.lock$''',
+    '''.*\.min\.js$''',
+    '''.*\.min\.css$''',
+    '''node_modules/.*''',
+    '''vendor/.*''',
+    '''target/.*''',
+    '''build/.*''',
+    '''dist/.*''',
+]
+
+[[allowlist]]
+description = "Test files with mock secrets"
+paths = [
+    '''.*test.*''',
+    '''.*spec.*''',
+    '''.*mock.*''',
+    '''.*fixture.*''',
+]
+
+# Skip entropy detection for certain file types
+[[allowlist]]
+description = "Binary and generated files"
+paths = [
+    '''.*\.(jpg|jpeg|png|gif|bmp|svg|ico|pdf|zip|tar|gz|rar|7z|exe|dll|so|dylib)$''',
+    '''.*\.(woff|woff2|eot|ttf|otf)$''',
+    '''.*\.map$''',
+]
