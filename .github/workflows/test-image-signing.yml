@@ -32,13 +32,14 @@ jobs:
         uses: sigstore/cosign-installer@v3
         with:
           cosign-release: 'v2.2.0'
-          
-      - name: Validate Kyverno Policies
-        run: |
+
+      - name: Install validation dependencies
+        run: pip install pyyaml
+
       - name: Validate Kyverno Policies
         run: |
           echo "Validating Kyverno policies..."
-          
+
           # Simple YAML syntax validation
           for policy in k8s/policies/*.yaml; do
             if [[ "$policy" == *"README.md"* ]]; then
