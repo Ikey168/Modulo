@@ -6,7 +6,82 @@ A comprehensive note-taking and knowledge management application with blockchain
 
 [![CI/CD](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml)
-[![Release](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml)
+[![Release](https://github.com/Ikey168/For detailed setup and rotation procedures, see [External Secrets Implementation Guide](docs/EXTERNAL_SECRETS_IMPLEMENTATION.md).
+
+## 🔐 Local Development Secrets (SOPS + direnv)
+
+Modulo implements secure local development secret management using SOPS (Secrets OPerationS) and direnv, eliminating plaintext secrets from local repositories:
+
+### 🛡️ Secure Local Development Features
+
+- **Encrypted at Rest**: All local secrets encrypted with AGE/PGP keys
+- **Automatic Loading**: direnv loads secrets when entering project directory
+- **Team Collaboration**: Share encrypted secrets safely via Git
+- **Zero Plaintext**: No unencrypted secrets stored locally
+
+### 🏗️ Architecture
+
+```
+Local Machine                 Git Repository
+~/.config/sops/age/keys.txt  →  .env.encrypted (SOPS)
+                             →  .sops.yaml (config)
+Environment Variables        →  .envrc (direnv)
+└── DATABASE_PASSWORD        →  ✅ Safe to commit
+└── JWT_SECRET              →  🔐 Encrypted
+```
+
+### 🚀 Quick Setup
+
+```bash
+# Install required tools
+brew install sops direnv age  # macOS
+apt install direnv && go install go.mozilla.org/sops/v3/cmd/sops@latest  # Ubuntu
+
+# Setup local development secrets
+./scripts/setup-local-secrets.sh
+
+# Hook direnv into shell
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+source ~/.bashrc
+
+# Test automatic loading
+cd .
+# ✅ Loaded encrypted secrets from .env.encrypted
+```
+
+### 🔧 Secret Management
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| **Edit** | Modify encrypted secrets | `./scripts/manage-secrets.sh edit .env.encrypted` |
+| **View** | Read-only secret viewing | `./scripts/manage-secrets.sh view .env.encrypted` |
+| **Rotate** | Update specific secrets | `./scripts/manage-secrets.sh rotate .env.encrypted JWT_SECRET jwt` |
+| **Add Team** | Grant access to team member | `./scripts/manage-secrets.sh add-member age1abc...` |
+
+### 🔄 Development Workflow
+
+1. **Navigate to Project**: `cd /path/to/modulo` → Secrets auto-load
+2. **Verify Secrets**: `echo $DATABASE_PASSWORD` → Shows encrypted value
+3. **Edit Secrets**: `sops .env.encrypted` → Secure editing
+4. **Team Sync**: `git pull` → Updated secrets auto-load
+5. **Add Secrets**: Edit encrypted files → Safe to commit
+
+### 📋 Protected Secrets
+
+- **Application**: Database passwords, JWT secrets, API keys
+- **OAuth**: Google, Azure, GitHub client secrets
+- **Smart Contracts**: Private keys, RPC URLs, API keys
+- **Services**: SMTP, monitoring, external service credentials
+
+**Security Status:**
+- ✅ **Zero Plaintext**: All local secrets encrypted with SOPS
+- ✅ **Automatic Loading**: direnv provides seamless development experience
+- ✅ **Team Collaboration**: Encrypted secrets shared safely via Git
+- ✅ **Key Management**: AGE encryption with team member access control
+
+For detailed setup and usage guide, see [Local Development Secrets Documentation](docs/LOCAL_DEVELOPMENT_SECRETS.md).
+
+## 🕷️ OWASP ZAP Dynamic Security Testingulo/actions/workflows/release-please.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features

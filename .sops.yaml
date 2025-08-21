@@ -1,0 +1,32 @@
+# SOPS Configuration for Modulo
+# This file defines encryption keys and rules for different secret files
+
+creation_rules:
+  # Root directory .env files
+  - path_regex: \.env\.encrypted$
+    key_groups:
+    - age:
+      - age1zdv8jxy3yzqfxgx78p4q8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2
+    - pgp:
+      # Replace with your PGP key fingerprint
+      - FBC7B9E2A4F9289AC0C1D4843D16CEE4A27381B4
+      
+  # Smart contracts .env files  
+  - path_regex: smart-contracts/\.env\.encrypted$
+    key_groups:
+    - age:
+      - age1zdv8jxy3yzqfxgx78p4q8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2
+    - pgp:
+      - FBC7B9E2A4F9289AC0C1D4843D16CEE4A27381B4
+      
+  # Environment-specific configs
+  - path_regex: config/secrets/.*\.encrypted$
+    key_groups:
+    - age:
+      - age1zdv8jxy3yzqfxgx78p4q8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2k9dmx3jz2z8v8k2
+    - pgp:
+      - FBC7B9E2A4F9289AC0C1D4843D16CEE4A27381B4
+
+# Default encryption settings
+encrypted_regex: '^(PRIVATE_KEY|PASSWORD|SECRET|TOKEN|KEY|PASS).*'
+mac_only_encrypted: false
