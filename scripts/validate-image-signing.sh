@@ -61,7 +61,7 @@ check_kyverno() {
     
     if ! kubectl get namespace kyverno &> /dev/null; then
         log_error "Kyverno namespace not found"
-        log_info "Install Kyverno: kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.9.5/install.yaml"
+        log_info "Install Kyverno: kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.8.5/install.yaml"
         return 1
     fi
     
