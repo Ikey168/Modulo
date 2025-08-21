@@ -3,6 +3,7 @@ package com.modulo.config.properties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -16,15 +17,19 @@ import javax.validation.constraints.Pattern;
 public class ManagementProperties {
 
     @NotNull(message = "Server configuration is required")
+    @Valid
     private Server server = new Server();
 
     @NotNull(message = "Endpoints configuration is required")
+    @Valid
     private Endpoints endpoints = new Endpoints();
 
     @NotNull(message = "Metrics configuration is required")
+    @Valid
     private Metrics metrics = new Metrics();
 
     @NotNull(message = "Health configuration is required")
+    @Valid
     private Health health = new Health();
 
     public static class Server {

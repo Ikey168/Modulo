@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
@@ -17,15 +18,19 @@ import javax.validation.constraints.Pattern;
 public class ModuloProperties {
 
     @NotNull(message = "Security configuration is required")
+    @Valid
     private Security security = new Security();
 
     @NotNull(message = "Feature flags configuration is required")
+    @Valid
     private Features features = new Features();
 
     @NotNull(message = "Performance configuration is required")
+    @Valid
     private Performance performance = new Performance();
 
     @NotNull(message = "Integration configuration is required")
+    @Valid
     private Integrations integrations = new Integrations();
 
     public static class Security {

@@ -3,6 +3,7 @@ package com.modulo.config.properties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -17,12 +18,15 @@ import javax.validation.constraints.Pattern;
 public class GrpcProperties {
 
     @NotNull(message = "Server configuration is required")
+    @Valid
     private Server server = new Server();
 
     @NotNull(message = "Client configuration is required")
+    @Valid
     private Client client = new Client();
 
     @NotNull(message = "Security configuration is required")
+    @Valid
     private Security security = new Security();
 
     public static class Server {
