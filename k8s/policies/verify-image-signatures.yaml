@@ -1,0 +1,102 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-container-signatures
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+    policies.kyverno.io/title: Verify Container Image Signatures
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.11.0
+    policies.kyverno.io/description: >-
+      This policy verifies that all container images are signed with Cosign.
+      Only signed images from trusted registries are allowed to be deployed.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Fail
+  rules:
+    - name: verify-cosign-signatures
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      verifyImages:
+      - imageReferences:
+        - "ghcr.io/ikey168/modulo/*"
+        attestors:
+        - count: 1
+          entries:
+          - keyless:
+              subject: "https://github.com/Ikey168/Modulo/.github/workflows/docker-build.yml@refs/heads/main"
+              issuer: "https://token.actions.githubusercontent.com"
+              rekor:
+                url: https://rekor.sigstore.dev
+        mutateDigest: true
+        verifyDigest: true
+        required: true
+    - name: block-unsigned-images
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      validate:
+        message: "Only signed container images from trusted registries are allowed"
+        pattern:
+          spec:
+            =(initContainers):
+            - name: "*"
+              image: "ghcr.io/ikey168/modulo/*"
+            containers:
+            - name: "*"
+              image: "ghcr.io/ikey168/modulo/*"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: allow-system-images
+  annotations:
+    policies.kyverno.io/title: Allow System Container Images
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      This policy allows system images from trusted registries that don't require signing.
+      This includes images from k8s.gcr.io, registry.k8s.io, docker.io/library, etc.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: allow-system-images
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            namespaces:
+            - kube-system
+            - kube-public
+            - kube-node-lease
+            - local-path-storage
+            - monitoring
+            - ingress-nginx
+      exclude:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            names:
+            - "*modulo*"
+      validate:
+        message: "System images are allowed in system namespaces"
+        pattern:
+          spec:
+            =(initContainers):
+            - name: "*"
+              image: "!ghcr.io/ikey168/modulo/*"
+            containers:
+            - name: "*"
+              image: "!ghcr.io/ikey168/modulo/*"

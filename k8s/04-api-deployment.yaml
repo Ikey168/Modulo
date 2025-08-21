@@ -21,7 +21,8 @@ spec:
     spec:
       containers:
       - name: api-container
-        image: modulo-backend:latest # Update with your registry
+        image: ghcr.io/ikey168/modulo/backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:

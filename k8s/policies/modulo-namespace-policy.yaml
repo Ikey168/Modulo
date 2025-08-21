@@ -1,0 +1,110 @@
+apiVersion: kyverno.io/v1
+kind: Policy
+metadata:
+  name: modulo-require-signed-images
+  namespace: modulo
+  annotations:
+    policies.kyverno.io/title: Modulo - Require Signed Images
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod,Deployment,StatefulSet,DaemonSet
+    policies.kyverno.io/description: >-
+      This policy enforces that all Modulo application containers must use signed images.
+      It blocks deployment of any unsigned container images in the modulo namespace.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Fail
+  rules:
+    - name: require-signed-modulo-images
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            - Deployment
+            - StatefulSet
+            - DaemonSet
+            namespaces:
+            - modulo
+      verifyImages:
+      - imageReferences:
+        - "ghcr.io/ikey168/modulo/backend:*"
+        - "ghcr.io/ikey168/modulo/frontend:*"
+        attestors:
+        - count: 1
+          entries:
+          - keyless:
+              subject: "https://github.com/Ikey168/Modulo/.github/workflows/docker-build.yml@refs/heads/main"
+              issuer: "https://token.actions.githubusercontent.com"
+              rekor:
+                url: https://rekor.sigstore.dev
+              roots: |
+                -----BEGIN CERTIFICATE-----
+                MIIFbzCCA1egAwIBAgIUJROsEsS4NCQIYk9P4Xr/qfcUGhwwDQYJKoZIhvcNAQEL
+                BQAwRjELMAkGA1UEBhMCVVMxDTALBgNVBAoTBEZ1bGwxKDAmBgNVBAMTH0Z1bGwg
+                U2lnc3RvcmUgSW50ZXJtZWRpYXRlIENBMB4XDTIzMDYyMjE2NTM1OVoXDTI0MDYy
+                MjE2NTM1OVowRjELMAkGA1UEBhMCVVMxDTALBgNVBAoTBEZ1bGwxKDAmBgNVBAMT
+                H0Z1bGwgU2lnc3RvcmUgSW50ZXJtZWRpYXRlIENBMIICIjANBgkqhkiG9w0BAQEF
+                AAOCAg8AMIICCgKCAgEAoPjYcEKr3zIh1VkNOPTrGNYLh8F5L5JhgNgWj8VN8EGl
+                YcQcN5J5PFMv/Y5YpU7RHHH8l9Lv6tR2JBR8IYj0n9mJ7TQJv2I8aEfWYk8YJE9G
+                -----END CERTIFICATE-----
+        mutateDigest: true
+        verifyDigest: true
+        required: true
+    - name: block-other-registries
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            - Deployment
+            - StatefulSet
+            - DaemonSet
+            namespaces:
+            - modulo
+      validate:
+        message: "Only signed images from ghcr.io/ikey168/modulo/ are allowed in the modulo namespace"
+        deny:
+          conditions:
+            any:
+            - key: "{{ request.object.spec.containers[?contains(image, 'ghcr.io/ikey168/modulo/')] | length(@) }}"
+              operator: NotEquals
+              value: "{{ request.object.spec.containers | length(@) }}"
+---
+apiVersion: kyverno.io/v1
+kind: Policy  
+metadata:
+  name: modulo-image-pull-policy
+  namespace: modulo
+  annotations:
+    policies.kyverno.io/title: Modulo - Enforce Image Pull Policy
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy ensures all container images use 'Always' or 'IfNotPresent' pull policy
+      to guarantee the latest signed images are used.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: enforce-image-pull-policy
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            - Deployment
+            - StatefulSet
+            - DaemonSet
+            namespaces:
+            - modulo
+      mutate:
+        patchStrategicMerge:
+          spec:
+            containers:
+            - (name): "*"
+              imagePullPolicy: Always
+            =(initContainers):
+            - (name): "*"
+              imagePullPolicy: Always
