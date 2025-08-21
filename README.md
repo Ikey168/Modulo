@@ -428,6 +428,62 @@ codeql database analyze --format=sarif-latest
 - ✅ Analysis coverage: **Java + TypeScript**
 - ✅ Last scan: **Automated weekly + per-PR**
 
+## 🔐 Secret Scanning & Pre-commit Hooks
+
+Modulo implements comprehensive secret protection with multi-layered security controls to prevent credential exposure:
+
+### 🛡️ Protection Layers
+
+- **Pre-commit Hooks**: Local secret detection before commits reach the repository
+- **CI/CD Scanning**: Automated gitleaks scanning on every push and pull request
+- **GitHub Secret Scanning**: Native GitHub protection with push protection enabled
+- **Historical Analysis**: Full repository history scanning for existing secrets
+
+### 🔧 Secret Detection Tools
+
+| Tool | Purpose | Scope | Integration |
+|------|---------|-------|-------------|
+| **Gitleaks** | Primary secret detection | Local + CI/CD | Custom rules for Modulo patterns |
+| **detect-secrets** | Baseline management | Pre-commit | False positive handling |
+| **GitHub Native** | Push protection | Repository-wide | Automatic blocking |
+| **Pre-commit** | Development workflow | Local commits | 15+ security hooks |
+
+### 🚀 Quick Setup
+
+```bash
+# One-command security setup
+./scripts/setup-security.sh
+
+# Manual setup
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+### 📋 Protected Secret Types
+
+- **API Keys**: Modulo, third-party services, cloud providers
+- **JWT Secrets**: Authentication and session tokens  
+- **Blockchain Keys**: Private keys, wallet addresses, mnemonic phrases
+- **Database Credentials**: Connection strings, passwords
+- **OAuth Tokens**: GitHub, Google, Azure AD
+- **High-entropy Strings**: Base64, hex strings, cryptographic material
+
+### 🚨 Security Workflow
+
+1. **Local Protection**: Pre-commit hooks scan staged files
+2. **Push Protection**: GitHub blocks pushes containing secrets
+3. **PR Validation**: CI/CD scanning before merge approval
+4. **Alert Response**: Automatic notifications and remediation guidance
+
+**Security Status:**
+- ✅ **Pre-commit Protection**: Active with 15+ security hooks
+- ✅ **Secret Scanning**: Gitleaks + GitHub native protection  
+- ✅ **Push Protection**: Enabled for all secret types
+- ✅ **Historical Scan**: Clean repository history
+
+For detailed setup and configuration, see [Secret Scanning Implementation Guide](docs/SECRET_SCANNING_IMPLEMENTATION.md).
+
 See [CodeQL Security Guide](docs/CODEQL_SECURITY_SCANNING.md) for detailed information.
 
 ## 🕷️ OWASP ZAP Dynamic Security Testing
