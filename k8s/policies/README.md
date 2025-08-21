@@ -54,7 +54,7 @@ The policies are configured to trust signatures from:
 
 ### Prerequisites
 1. Kubernetes cluster (v1.24+)
-2. Kyverno installed (v1.10.0+)
+2. Kyverno installed (v1.9.5+)
 3. kubectl access to the cluster
 
 ### Quick Installation
@@ -69,7 +69,7 @@ kubectl get clusterpolicies
 ### Advanced Installation
 ```bash
 # Install Kyverno first (if not already installed)
-kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.10.0/install.yaml
+kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.9.5/install.yaml
 
 # Wait for Kyverno to be ready
 kubectl wait --for=condition=available --timeout=300s deployment/kyverno-admission-controller -n kyverno

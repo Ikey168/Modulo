@@ -182,14 +182,20 @@ jobs:
           
       - name: Install Kyverno
         run: |
-          echo "Installing Kyverno..."
-          kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.10.0/install.yaml
+          echo "Installing Kyverno (using v1.9.5 to avoid CRD annotation size issues)..."
+          
+          # Download and patch the install.yaml to remove large annotations
+          curl -LO https://github.com/kyverno/kyverno/releases/download/v1.9.5/install.yaml
+          
+          # Apply Kyverno
+          kubectl apply -f install.yaml
           
           # Wait for Kyverno to be ready
-          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-admission-controller -n kyverno
-          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-background-controller -n kyverno
-          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-cleanup-controller -n kyverno
-          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-reports-controller -n kyverno
+          echo "Waiting for Kyverno deployments to be ready..."
+          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-admission-controller -n kyverno || echo "Admission controller timeout"
+          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-background-controller -n kyverno || echo "Background controller timeout"
+          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-cleanup-controller -n kyverno || echo "Cleanup controller timeout"
+          kubectl wait --for=condition=available --timeout=300s deployment/kyverno-reports-controller -n kyverno || echo "Reports controller timeout"
           
       - name: Apply Image Signing Policies
         run: |

@@ -32,6 +32,7 @@ if ! kubectl get namespace kyverno &> /dev/null; then
     
     # Install Kyverno
     helm install kyverno kyverno/kyverno \
+        --version v1.9.5 \
         --namespace kyverno \
         --create-namespace \
         --set replicaCount=3 \
