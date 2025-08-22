@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: modulo-chaos-sa
+  namespace: modulo-chaos
+  labels:
+    name: modulo-chaos-sa
+    app.kubernetes.io/name: modulo-chaos
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: modulo-chaos-role
+  namespace: modulo
+  labels:
+    name: modulo-chaos-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec", "pods/log", "events", "replicationcontrollers", "services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["litmuschaos.io"]
+  resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: modulo-chaos-rb
+  namespace: modulo
+  labels:
+    name: modulo-chaos-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: modulo-chaos-role
+subjects:
+- kind: ServiceAccount
+  name: modulo-chaos-sa
+  namespace: modulo-chaos
+---
+# Additional role for chaos namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: modulo-chaos-namespace-role
+  namespace: modulo-chaos
+  labels:
+    name: modulo-chaos-namespace-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec", "pods/log", "events", "configmaps", "secrets"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["*"]
+- apiGroups: ["litmuschaos.io"]
+  resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: modulo-chaos-namespace-rb
+  namespace: modulo-chaos
+  labels:
+    name: modulo-chaos-namespace-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: modulo-chaos-namespace-role
+subjects:
+- kind: ServiceAccount
+  name: modulo-chaos-sa
+  namespace: modulo-chaos
+---
+# ClusterRole for node-level experiments
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: modulo-chaos-cluster-role
+  labels:
+    name: modulo-chaos-cluster-role
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: modulo-chaos-cluster-rb
+  labels:
+    name: modulo-chaos-cluster-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: modulo-chaos-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: modulo-chaos-sa
+  namespace: modulo-chaos

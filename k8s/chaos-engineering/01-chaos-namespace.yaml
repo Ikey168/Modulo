@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: modulo-chaos
+  labels:
+    name: modulo-chaos
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: chaos-experiments
+    chaos-injection: enabled
+  annotations:
+    chaos.alpha.kubernetes.io/enabled: "true"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: chaos-resource-quota
+  namespace: modulo-chaos
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    persistentvolumeclaims: "10"
+    pods: "20"
+    services: "5"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: chaos-limit-range
+  namespace: modulo-chaos
+spec:
+  limits:
+  - default:
+      cpu: 200m
+      memory: 256Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    type: Container
+  - default:
+      storage: 1Gi
+    type: PersistentVolumeClaim

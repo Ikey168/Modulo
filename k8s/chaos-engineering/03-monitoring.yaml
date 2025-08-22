@@ -1,0 +1,213 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-monitoring-dashboard
+  namespace: modulo-chaos
+  labels:
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: monitoring
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Modulo Chaos Engineering Dashboard",
+        "tags": ["chaos-engineering", "modulo"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Chaos Experiment Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count by (status) (litmuschaos_experiment_status)",
+                "legendFormat": "{{status}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayMode": "list",
+                  "orientation": "horizontal"
+                },
+                "mappings": [],
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Application Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"modulo-backend\"}[5m])) by (le))",
+                "legendFormat": "Backend 95th Percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{service=\"modulo-backend\"}[5m])) by (le))",
+                "legendFormat": "Backend Median"
+              }
+            ],
+            "yAxes": [
+              {"label": "Response Time (s)", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Pod Restart Count",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"modulo\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "Restart Count", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Resource Utilization During Chaos",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"modulo\"}[5m])) by (pod)",
+                "legendFormat": "CPU - {{pod}}"
+              },
+              {
+                "expr": "avg(container_memory_usage_bytes{namespace=\"modulo\"}) by (pod) / 1024 / 1024",
+                "legendFormat": "Memory MB - {{pod}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "CPU Rate / Memory MB", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Error Rate During Experiments",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\",namespace=\"modulo\"}[5m])) / sum(rate(http_requests_total{namespace=\"modulo\"}[5m])) * 100",
+                "legendFormat": "Error Rate %"
+              }
+            ],
+            "yAxes": [
+              {"label": "Error Rate (%)", "min": 0, "max": 100}
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "5s"
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaos-monitoring-service
+  namespace: modulo-chaos
+  labels:
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: monitoring
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-monitoring
+  namespace: modulo-chaos
+  labels:
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-chaos
+      app.kubernetes.io/component: monitoring
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: modulo-chaos
+        app.kubernetes.io/component: monitoring
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.2.0
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: "chaos123"
+        - name: GF_INSTALL_PLUGINS
+          value: "grafana-kubernetes-app"
+        volumeMounts:
+        - name: dashboard-config
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: datasource-config
+          mountPath: /etc/grafana/provisioning/datasources
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: dashboard-config
+        configMap:
+          name: chaos-monitoring-dashboard
+      - name: datasource-config
+        configMap:
+          name: chaos-datasource-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-datasource-config
+  namespace: modulo-chaos
+  labels:
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: monitoring
+data:
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus-server.monitoring.svc.cluster.local:80
+      isDefault: true
+      editable: true
