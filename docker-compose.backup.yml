@@ -1,0 +1,74 @@
+# Database Backup Service
+# Extends the main docker-compose.yml with automated backup capabilities
+
+services:
+  db-backup:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - modulo-network
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - BACKUP_DIR=/backups
+      - RETENTION_DAYS=7
+      - S3_BUCKET=${BACKUP_S3_BUCKET:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - TZ=UTC
+    volumes:
+      - ./database/backups:/scripts:ro
+      - backup_data:/backups
+      - ./database/backups/crontab:/etc/cron.d/backup-cron:ro
+    command: >
+      sh -c "
+        apk add --no-cache dcron aws-cli &&
+        crond -f -d 8
+      "
+    restart: unless-stopped
+    profiles:
+      - backup
+
+  # Monthly restore drill service
+  restore-drill:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - modulo-network
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - BACKUP_DIR=/backups
+      - STAGING_DB=modulodb_staging
+    volumes:
+      - ./database/backups:/scripts:ro
+      - backup_data:/backups
+    command: >
+      sh -c "
+        echo 'Restore drill service ready. Run manually with: docker compose run restore-drill /scripts/restore-script.sh drill' &&
+        sleep infinity
+      "
+    profiles:
+      - backup
+      - drill
+
+volumes:
+  backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./database/backups/data
+
+networks:
+  modulo-network:
+    external: true

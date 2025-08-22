@@ -121,6 +121,8 @@ volumes:
     driver: local
   neo4j_logs:
     driver: local
+  backup_data:
+    driver: local
 
 networks:
   modulo-network:

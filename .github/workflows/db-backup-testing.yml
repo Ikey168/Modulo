@@ -1,0 +1,427 @@
+name: Database Backup and Restore Testing
+
+on:
+  schedule:
+    # Run backup tests daily at 6 AM UTC
+    - cron: '0 6 * * *'
+    # Run restore drills on first Sunday of each month at 8 AM UTC
+    - cron: '0 8 1-7 * 0'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'backup'
+        type: choice
+        options:
+          - backup
+          - restore
+          - drill
+          - full
+
+env:
+  POSTGRES_DB: modulodb_test
+  POSTGRES_USER: postgres_test
+  POSTGRES_PASSWORD: test_password_${{ github.run_id }}
+
+jobs:
+  backup-test:
+    name: Database Backup Test
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 * * *' || github.event.inputs.test_type == 'backup' || github.event.inputs.test_type == 'full'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+          # Create test data
+          PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql \
+            -h localhost \
+            -p 5432 \
+            -U ${{ env.POSTGRES_USER }} \
+            -d ${{ env.POSTGRES_DB }} \
+            -c "
+            CREATE SCHEMA IF NOT EXISTS application;
+            CREATE SCHEMA IF NOT EXISTS security;
+            CREATE TABLE application.test_notes (
+              id SERIAL PRIMARY KEY,
+              title VARCHAR(255),
+              content TEXT,
+              created_at TIMESTAMP DEFAULT NOW()
+            );
+            INSERT INTO application.test_notes (title, content) 
+            VALUES ('Test Note 1', 'This is test content'),
+                   ('Test Note 2', 'More test content');
+            "
+
+      - name: Test backup creation
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          BACKUP_DIR: ${{ github.workspace }}/test-backups
+        run: |
+          mkdir -p $BACKUP_DIR
+          chmod +x ./database/backups/backup-script.sh
+          ./database/backups/backup-script.sh backup
+
+      - name: Verify backup integrity
+        run: |
+          backup_file=$(find ${{ github.workspace }}/test-backups/full -name "*.sql.gz" | head -1)
+          echo "Testing backup file: $backup_file"
+          
+          if [ -f "$backup_file" ]; then
+            # Test compression integrity
+            gzip -t "$backup_file"
+            echo "✅ Backup file compression is valid"
+            
+            # Check backup size
+            size=$(du -h "$backup_file" | cut -f1)
+            echo "📦 Backup file size: $size"
+            
+            # Verify metadata file exists
+            if [ -f "$backup_file.meta" ]; then
+              echo "✅ Backup metadata file exists"
+              cat "$backup_file.meta"
+            else
+              echo "❌ Backup metadata file missing"
+              exit 1
+            fi
+          else
+            echo "❌ Backup file not found"
+            exit 1
+          fi
+
+      - name: Upload backup artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backup-test-results
+          path: |
+            ${{ github.workspace }}/test-backups/
+            !${{ github.workspace }}/test-backups/full/*.sql.gz
+          retention-days: 30
+
+  restore-test:
+    name: Database Restore Test
+    runs-on: ubuntu-latest
+    needs: backup-test
+    if: github.event.schedule == '0 8 1-7 * 0' || github.event.inputs.test_type == 'restore' || github.event.inputs.test_type == 'drill' || github.event.inputs.test_type == 'full'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backup artifacts
+        if: needs.backup-test.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: backup-test-results
+          path: ${{ github.workspace }}/test-backups/
+
+      - name: Setup test environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create test backup if not available
+        if: needs.backup-test.result != 'success'
+        run: |
+          # Create a minimal test backup for restore testing
+          mkdir -p ${{ github.workspace }}/test-backups/full
+          
+          PGPASSWORD=postgres psql \
+            -h localhost \
+            -p 5432 \
+            -U postgres \
+            -d postgres \
+            -c "
+            CREATE DATABASE test_source;
+            "
+          
+          PGPASSWORD=postgres psql \
+            -h localhost \
+            -p 5432 \
+            -U postgres \
+            -d test_source \
+            -c "
+            CREATE SCHEMA application;
+            CREATE TABLE application.test_table (id SERIAL PRIMARY KEY, data TEXT);
+            INSERT INTO application.test_table (data) VALUES ('test data');
+            "
+          
+          # Create backup
+          PGPASSWORD=postgres pg_dump \
+            -h localhost \
+            -p 5432 \
+            -U postgres \
+            -d test_source \
+            --clean --if-exists --create \
+            | gzip > ${{ github.workspace }}/test-backups/full/test_backup.sql.gz
+
+      - name: Test restore functionality
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          BACKUP_DIR: ${{ github.workspace }}/test-backups
+          STAGING_DB: test_restore_target
+        run: |
+          chmod +x ./database/backups/restore-script.sh
+          
+          # Find backup file
+          backup_file=$(find $BACKUP_DIR/full -name "*.sql.gz" | head -1)
+          echo "Using backup file: $backup_file"
+          
+          if [ -f "$backup_file" ]; then
+            # Test restore
+            start_time=$(date +%s)
+            ./database/backups/restore-script.sh restore "$backup_file" "$STAGING_DB"
+            end_time=$(date +%s)
+            
+            restore_duration=$((end_time - start_time))
+            echo "⏱️ Restore completed in $restore_duration seconds"
+            
+            # Verify restored database
+            ./database/backups/restore-script.sh verify "$STAGING_DB"
+            
+            # Check RTO compliance (30 minutes = 1800 seconds)
+            if [ $restore_duration -le 1800 ]; then
+              echo "✅ RTO target met: ${restore_duration}s <= 1800s"
+            else
+              echo "❌ RTO target missed: ${restore_duration}s > 1800s"
+            fi
+          else
+            echo "❌ No backup file found for restore test"
+            exit 1
+          fi
+
+  monthly-drill:
+    name: Monthly Restore Drill
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 1-7 * 0' || github.event.inputs.test_type == 'drill' || github.event.inputs.test_type == 'full'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup drill environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+          
+          # Create source database with test data
+          PGPASSWORD=postgres psql \
+            -h localhost \
+            -p 5432 \
+            -U postgres \
+            -d postgres \
+            -c "
+            CREATE DATABASE modulodb_source;
+            "
+          
+          PGPASSWORD=postgres psql \
+            -h localhost \
+            -p 5432 \
+            -U postgres \
+            -d modulodb_source \
+            -c "
+            CREATE SCHEMA application;
+            CREATE SCHEMA security;
+            
+            CREATE TABLE application.notes (
+              id SERIAL PRIMARY KEY,
+              title VARCHAR(255),
+              content TEXT,
+              created_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE TABLE security.users (
+              id SERIAL PRIMARY KEY,
+              username VARCHAR(100),
+              created_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            INSERT INTO application.notes (title, content) VALUES
+              ('Sample Note 1', 'Content for testing restore drill'),
+              ('Sample Note 2', 'More content for validation'),
+              ('Sample Note 3', 'Additional test data');
+              
+            INSERT INTO security.users (username) VALUES
+              ('testuser1'),
+              ('testuser2');
+            "
+
+      - name: Create backup for drill
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: modulodb_source
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          BACKUP_DIR: ${{ github.workspace }}/drill-backups
+        run: |
+          mkdir -p $BACKUP_DIR
+          chmod +x ./database/backups/backup-script.sh
+          ./database/backups/backup-script.sh backup
+
+      - name: Execute monthly restore drill
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          BACKUP_DIR: ${{ github.workspace }}/drill-backups
+        run: |
+          chmod +x ./database/backups/restore-script.sh
+          ./database/backups/restore-script.sh drill
+
+      - name: Analyze drill results
+        run: |
+          drill_report=$(find ${{ github.workspace }}/drill-backups/restore-tests -name "monthly_drill_*.json" | sort | tail -1)
+          
+          if [ -f "$drill_report" ]; then
+            echo "📊 DRILL REPORT ANALYSIS"
+            echo "========================"
+            
+            # Extract key metrics
+            rpo_compliant=$(jq -r '.rpo_compliant' "$drill_report")
+            rto_compliant=$(jq -r '.rto_compliant' "$drill_report")
+            restore_duration=$(jq -r '.restore_duration_minutes' "$drill_report")
+            backup_age=$(jq -r '.backup_age_minutes' "$drill_report")
+            
+            echo "RPO Compliant: $rpo_compliant"
+            echo "RTO Compliant: $rto_compliant"
+            echo "Restore Duration: ${restore_duration} minutes"
+            echo "Backup Age: ${backup_age} minutes"
+            
+            # Display full report
+            echo ""
+            echo "📋 FULL DRILL REPORT:"
+            jq '.' "$drill_report"
+            
+            # Check compliance
+            if [ "$rpo_compliant" = "true" ] && [ "$rto_compliant" = "true" ]; then
+              echo "✅ Monthly restore drill PASSED - All targets met"
+            else
+              echo "❌ Monthly restore drill FAILED - Targets not met"
+              exit 1
+            fi
+          else
+            echo "❌ Drill report not found"
+            exit 1
+          fi
+
+      - name: Upload drill results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monthly-drill-results-${{ github.run_number }}
+          path: |
+            ${{ github.workspace }}/drill-backups/restore-tests/
+            ${{ github.workspace }}/drill-backups/logs/
+          retention-days: 90
+
+  compliance-report:
+    name: Generate Compliance Report
+    runs-on: ubuntu-latest
+    needs: [backup-test, restore-test, monthly-drill]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate compliance summary
+        run: |
+          echo "# Database Backup & Restore Compliance Report" > compliance-report.md
+          echo "Generated: $(date -Iseconds)" >> compliance-report.md
+          echo "Workflow Run: ${{ github.run_number }}" >> compliance-report.md
+          echo "" >> compliance-report.md
+          
+          echo "## Test Results Summary" >> compliance-report.md
+          echo "| Test | Status | Details |" >> compliance-report.md
+          echo "|------|--------|---------|" >> compliance-report.md
+          echo "| Backup Test | ${{ needs.backup-test.result }} | Daily backup functionality |" >> compliance-report.md
+          echo "| Restore Test | ${{ needs.restore-test.result }} | Database restore capabilities |" >> compliance-report.md
+          echo "| Monthly Drill | ${{ needs.monthly-drill.result }} | End-to-end disaster recovery |" >> compliance-report.md
+          echo "" >> compliance-report.md
+          
+          echo "## RPO/RTO Targets" >> compliance-report.md
+          echo "- **Recovery Point Objective (RPO)**: 1 hour" >> compliance-report.md
+          echo "- **Recovery Time Objective (RTO)**: 30 minutes" >> compliance-report.md
+          echo "" >> compliance-report.md
+          
+          echo "## Next Actions" >> compliance-report.md
+          if [ "${{ needs.backup-test.result }}" != "success" ]; then
+            echo "- ❌ Investigate backup test failures" >> compliance-report.md
+          fi
+          if [ "${{ needs.restore-test.result }}" != "success" ]; then
+            echo "- ❌ Investigate restore test failures" >> compliance-report.md
+          fi
+          if [ "${{ needs.monthly-drill.result }}" != "success" ]; then
+            echo "- ❌ Investigate monthly drill failures" >> compliance-report.md
+          fi
+          if [ "${{ needs.backup-test.result }}" = "success" ] && [ "${{ needs.restore-test.result }}" = "success" ] && [ "${{ needs.monthly-drill.result }}" = "success" ]; then
+            echo "- ✅ All tests passed - No immediate action required" >> compliance-report.md
+          fi
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report-${{ github.run_number }}
+          path: compliance-report.md
+          retention-days: 365

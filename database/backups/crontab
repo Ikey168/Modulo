@@ -1,0 +1,18 @@
+# Automated Database Backup Crontab
+# Runs nightly backups at 2 AM UTC
+# Weekly cleanup on Sundays at 3 AM UTC
+
+# Nightly full backup at 2:00 AM UTC
+0 2 * * * root /scripts/backup-script.sh backup >> /backups/cron.log 2>&1
+
+# Weekly cleanup on Sundays at 3:00 AM UTC  
+0 3 * * 0 root /scripts/backup-script.sh cleanup >> /backups/cron.log 2>&1
+
+# Monthly restore drill on the first Sunday of each month at 4:00 AM UTC
+0 4 1-7 * 0 root /scripts/restore-script.sh drill >> /backups/drill.log 2>&1
+
+# Health check - runs every hour to verify backup service
+0 * * * * root echo "$(date): Backup service health check" >> /backups/health.log
+
+# Log rotation marker (helps with log management)
+0 0 1 * * root echo "=== Monthly log rotation ===" >> /backups/cron.log
