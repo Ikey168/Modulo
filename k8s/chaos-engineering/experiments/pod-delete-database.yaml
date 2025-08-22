@@ -1,0 +1,68 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: database-pod-delete
+  namespace: modulo-chaos
+  labels:
+    experiment: pod-delete
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: database-chaos
+spec:
+  engineState: 'active'
+  appinfo:
+    appns: 'modulo'
+    applabel: 'app=postgres'
+    appkind: 'deployment'
+  chaosServiceAccount: modulo-chaos-sa
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: '20'
+        - name: RAMP_TIME
+          value: '10'
+        - name: FORCE
+          value: 'false'
+        - name: CHAOS_INTERVAL
+          value: '15'
+        - name: PODS_AFFECTED_PERC
+          value: '100'
+        - name: SEQUENCE
+          value: 'serial'
+      probe:
+      - name: "check-database-connectivity"
+        type: "cmdProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 3
+          interval: 5
+          probePollingInterval: 2
+        cmdProbe/inputs:
+          command: "pg_isready"
+          args: ["-h", "postgres-service.modulo.svc.cluster.local", "-p", "5432", "-U", "postgres"]
+          source:
+            image: "postgres:16-alpine"
+            inheritInputs: true
+          comparator:
+            type: "string"
+            criteria: "contains"
+            value: "accepting connections"
+      - name: "check-backend-database-health"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 15
+          retry: 5
+          interval: 10
+        httpProbe/inputs:
+          url: "http://modulo-backend-service.modulo.svc.cluster.local:8080/api/actuator/health/db"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+  annotationCheck: 'true'
+  jobCleanUpPolicy: 'retain'

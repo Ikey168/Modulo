@@ -1,0 +1,65 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: frontend-pod-delete
+  namespace: modulo-chaos
+  labels:
+    experiment: pod-delete
+    app.kubernetes.io/name: modulo-chaos
+    app.kubernetes.io/component: frontend-chaos
+spec:
+  engineState: 'active'
+  appinfo:
+    appns: 'modulo'
+    applabel: 'app=modulo-frontend'
+    appkind: 'deployment'
+  chaosServiceAccount: modulo-chaos-sa
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: '30'
+        - name: RAMP_TIME
+          value: '10'
+        - name: FORCE
+          value: 'false'
+        - name: CHAOS_INTERVAL
+          value: '10'
+        - name: PODS_AFFECTED_PERC
+          value: '50'
+        - name: SEQUENCE
+          value: 'parallel'
+      probe:
+      - name: "check-frontend-health"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 3
+          interval: 5
+          probePollingInterval: 2
+        httpProbe/inputs:
+          url: "http://modulo-frontend-service.modulo.svc.cluster.local/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+      - name: "check-backend-dependency"
+        type: "httpProbe"
+        mode: "Continuous"
+        runProperties:
+          probeTimeout: 10
+          retry: 3
+          interval: 5
+        httpProbe/inputs:
+          url: "http://modulo-backend-service.modulo.svc.cluster.local:8080/api/actuator/health"
+          insecureSkipTLS: false
+          method:
+            get:
+              criteria: "=="
+              responseCode: "200"
+  annotationCheck: 'true'
+  jobCleanUpPolicy: 'retain'
