@@ -3,6 +3,12 @@ kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
   namespace: modulo
+  labels:
+    cost-center: "engineering"
+    environment: "production"
+    service: "database"
+    project: "modulo"
+    team: "data"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -16,6 +22,12 @@ kind: Secret
 metadata:
   name: postgres-secret
   namespace: modulo
+  labels:
+    cost-center: "engineering"
+    environment: "production"
+    service: "database"
+    project: "modulo"
+    team: "data"
 type: Opaque
 data:
   POSTGRES_DB: bW9kdWxv # modulo
@@ -28,6 +40,12 @@ metadata:
   name: postgres
   namespace: modulo
   labels:
+    app: postgres
+    cost-center: "engineering"
+    environment: "production"
+    service: "database"
+    project: "modulo"
+    team: "data"
     app: postgres
 spec:
   replicas: 1

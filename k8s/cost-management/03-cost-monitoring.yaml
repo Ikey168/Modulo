@@ -1,0 +1,584 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-monitoring-app
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: monitoring-service
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+data:
+  cost_monitor.py: |
+    #!/usr/bin/env python3
+    """
+    Cost Monitoring Service
+    Collects cost data from Azure APIs and Kubernetes metrics
+    """
+    
+    import os
+    import time
+    import logging
+    import requests
+    import json
+    from datetime import datetime, timedelta
+    from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
+    from azure.identity import ClientSecretCredential
+    from azure.mgmt.costmanagement import CostManagementClient
+    import yaml
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    
+    class CostMonitor:
+        def __init__(self):
+            self.setup_azure_client()
+            self.setup_prometheus_metrics()
+            self.load_config()
+            
+        def setup_azure_client(self):
+            """Initialize Azure Cost Management client"""
+            try:
+                credential = ClientSecretCredential(
+                    tenant_id=os.getenv('AZURE_TENANT_ID'),
+                    client_id=os.getenv('AZURE_CLIENT_ID'),
+                    client_secret=os.getenv('AZURE_CLIENT_SECRET')
+                )
+                
+                self.subscription_id = os.getenv('AZURE_SUBSCRIPTION_ID')
+                self.cost_client = CostManagementClient(credential)
+                logger.info("Azure Cost Management client initialized")
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize Azure client: {e}")
+                raise
+        
+        def setup_prometheus_metrics(self):
+            """Initialize Prometheus metrics"""
+            self.registry = CollectorRegistry()
+            
+            # Cost metrics
+            self.azure_cost_total = Gauge(
+                'azure_cost_total', 
+                'Total Azure cost by resource group',
+                ['resource_group', 'environment', 'service'],
+                registry=self.registry
+            )
+            
+            self.azure_cost_daily = Gauge(
+                'azure_cost_daily',
+                'Daily Azure cost by service', 
+                ['service', 'environment', 'date'],
+                registry=self.registry
+            )
+            
+            self.azure_cost_monthly = Gauge(
+                'azure_cost_monthly',
+                'Monthly Azure cost by environment',
+                ['environment', 'month'],
+                registry=self.registry
+            )
+            
+            self.azure_budget_monthly = Gauge(
+                'azure_budget_monthly',
+                'Monthly budget by environment',
+                ['environment'],
+                registry=self.registry
+            )
+            
+            # Usage metrics
+            self.azure_resource_count = Gauge(
+                'azure_resource_count',
+                'Number of Azure resources by type',
+                ['resource_type', 'environment'],
+                registry=self.registry
+            )
+            
+            # Efficiency metrics
+            self.cost_per_request = Gauge(
+                'cost_per_request',
+                'Cost per application request',
+                ['service', 'environment'],
+                registry=self.registry
+            )
+            
+            # Collection metrics
+            self.cost_collection_errors = Counter(
+                'cost_collection_errors_total',
+                'Total cost collection errors',
+                ['error_type'],
+                registry=self.registry
+            )
+            
+            logger.info("Prometheus metrics initialized")
+        
+        def load_config(self):
+            """Load configuration from ConfigMap"""
+            try:
+                with open('/config/config.yaml', 'r') as f:
+                    self.config = yaml.safe_load(f)
+                logger.info("Configuration loaded")
+            except Exception as e:
+                logger.error(f"Failed to load config: {e}")
+                raise
+        
+        def collect_azure_costs(self):
+            """Collect cost data from Azure Cost Management API"""
+            try:
+                # Get current month date range
+                now = datetime.now()
+                start_date = now.replace(day=1).strftime('%Y-%m-%d')
+                end_date = now.strftime('%Y-%m-%d')
+                
+                # Query definition for cost data
+                query_definition = {
+                    "type": "ActualCost",
+                    "timeframe": "Custom",
+                    "timePeriod": {
+                        "from": start_date,
+                        "to": end_date
+                    },
+                    "dataset": {
+                        "granularity": "Daily",
+                        "aggregation": {
+                            "totalCost": {
+                                "name": "Cost",
+                                "function": "Sum"
+                            }
+                        },
+                        "grouping": [
+                            {
+                                "type": "Dimension",
+                                "name": "ResourceGroup"
+                            },
+                            {
+                                "type": "Dimension", 
+                                "name": "ServiceName"
+                            }
+                        ]
+                    }
+                }
+                
+                # Execute query
+                scope = f"/subscriptions/{self.subscription_id}"
+                result = self.cost_client.query.usage(scope, query_definition)
+                
+                # Process results
+                for row in result.rows:
+                    cost = float(row[0])
+                    resource_group = row[2] if len(row) > 2 else "unknown"
+                    service = row[3] if len(row) > 3 else "unknown"
+                    date = row[1]
+                    
+                    # Determine environment from resource group name
+                    environment = self.determine_environment(resource_group)
+                    
+                    # Update metrics
+                    self.azure_cost_daily.labels(
+                        service=service,
+                        environment=environment,
+                        date=date
+                    ).set(cost)
+                    
+                    self.azure_cost_total.labels(
+                        resource_group=resource_group,
+                        environment=environment,
+                        service=service
+                    ).inc(cost)
+                
+                logger.info(f"Collected cost data for {len(result.rows)} resources")
+                
+            except Exception as e:
+                logger.error(f"Failed to collect Azure costs: {e}")
+                self.cost_collection_errors.labels(error_type="azure_api").inc()
+        
+        def determine_environment(self, resource_group):
+            """Determine environment from resource group name"""
+            if 'dev' in resource_group.lower():
+                return 'development'
+            elif 'staging' in resource_group.lower() or 'stg' in resource_group.lower():
+                return 'staging'
+            elif 'prod' in resource_group.lower():
+                return 'production'
+            else:
+                return 'unknown'
+        
+        def collect_kubernetes_costs(self):
+            """Collect cost allocation data from Kubernetes"""
+            try:
+                # Get pod metrics from Kubernetes API
+                import kubernetes
+                kubernetes.config.load_incluster_config()
+                
+                v1 = kubernetes.client.CoreV1Api()
+                pods = v1.list_pod_for_all_namespaces()
+                
+                namespace_costs = {}
+                
+                for pod in pods.items:
+                    namespace = pod.metadata.namespace
+                    labels = pod.metadata.labels or {}
+                    
+                    # Skip system namespaces
+                    if namespace.startswith('kube-') or namespace in ['default', 'kube-system']:
+                        continue
+                    
+                    # Get resource requests
+                    cpu_requests = 0
+                    memory_requests = 0
+                    
+                    if pod.spec.containers:
+                        for container in pod.spec.containers:
+                            if container.resources and container.resources.requests:
+                                cpu = container.resources.requests.get('cpu', '0')
+                                memory = container.resources.requests.get('memory', '0')
+                                
+                                # Convert to numeric values (simplified)
+                                cpu_requests += self.parse_cpu(cpu)
+                                memory_requests += self.parse_memory(memory)
+                    
+                    # Determine environment and service from labels
+                    environment = labels.get('environment', 'unknown')
+                    service = labels.get('service', labels.get('app', 'unknown'))
+                    
+                    # Calculate estimated cost based on resource requests
+                    # Using simplified cost model: $0.04/vCPU-hour, $0.01/GB-hour
+                    hourly_cost = (cpu_requests * 0.04) + (memory_requests * 0.01)
+                    daily_cost = hourly_cost * 24
+                    
+                    if namespace not in namespace_costs:
+                        namespace_costs[namespace] = {
+                            'cost': 0,
+                            'environment': environment,
+                            'services': {}
+                        }
+                    
+                    namespace_costs[namespace]['cost'] += daily_cost
+                    
+                    if service not in namespace_costs[namespace]['services']:
+                        namespace_costs[namespace]['services'][service] = 0
+                    namespace_costs[namespace]['services'][service] += daily_cost
+                
+                # Update metrics
+                for namespace, data in namespace_costs.items():
+                    for service, cost in data['services'].items():
+                        self.azure_cost_daily.labels(
+                            service=service,
+                            environment=data['environment'],
+                            date=datetime.now().strftime('%Y-%m-%d')
+                        ).set(cost)
+                
+                logger.info(f"Collected Kubernetes cost data for {len(namespace_costs)} namespaces")
+                
+            except Exception as e:
+                logger.error(f"Failed to collect Kubernetes costs: {e}")
+                self.cost_collection_errors.labels(error_type="kubernetes_api").inc()
+        
+        def parse_cpu(self, cpu_str):
+            """Parse CPU string to numeric value"""
+            if not cpu_str or cpu_str == '0':
+                return 0
+            if cpu_str.endswith('m'):
+                return float(cpu_str[:-1]) / 1000
+            return float(cpu_str)
+        
+        def parse_memory(self, memory_str):
+            """Parse memory string to GB"""
+            if not memory_str or memory_str == '0':
+                return 0
+            
+            # Convert to bytes first
+            if memory_str.endswith('Ki'):
+                bytes_val = float(memory_str[:-2]) * 1024
+            elif memory_str.endswith('Mi'):
+                bytes_val = float(memory_str[:-2]) * 1024 * 1024
+            elif memory_str.endswith('Gi'):
+                bytes_val = float(memory_str[:-2]) * 1024 * 1024 * 1024
+            else:
+                bytes_val = float(memory_str)
+            
+            # Convert to GB
+            return bytes_val / (1024 * 1024 * 1024)
+        
+        def update_budget_metrics(self):
+            """Update budget metrics from configuration"""
+            try:
+                with open('/config/budgets.yaml', 'r') as f:
+                    budget_config = yaml.safe_load(f)
+                
+                for env, config in budget_config['budgets'].items():
+                    monthly_limit = config['monthly_limit']
+                    self.azure_budget_monthly.labels(environment=env).set(monthly_limit)
+                
+                logger.info("Budget metrics updated")
+                
+            except Exception as e:
+                logger.error(f"Failed to update budget metrics: {e}")
+        
+        def push_metrics(self):
+            """Push metrics to Prometheus gateway"""
+            try:
+                gateway = os.getenv('PROMETHEUS_GATEWAY', 'localhost:9091')
+                push_to_gateway(gateway, job='cost-management', registry=self.registry)
+                logger.info("Metrics pushed to Prometheus gateway")
+                
+            except Exception as e:
+                logger.error(f"Failed to push metrics: {e}")
+        
+        def run(self):
+            """Main monitoring loop"""
+            logger.info("Starting cost monitoring service")
+            
+            while True:
+                try:
+                    logger.info("Starting cost collection cycle")
+                    
+                    # Collect cost data
+                    self.collect_azure_costs()
+                    self.collect_kubernetes_costs()
+                    self.update_budget_metrics()
+                    
+                    # Push metrics
+                    self.push_metrics()
+                    
+                    logger.info("Cost collection cycle completed")
+                    
+                    # Sleep for configured interval
+                    interval = self.config.get('azure', {}).get('cost_api', {}).get('polling_interval', '1h')
+                    sleep_seconds = self.parse_interval(interval)
+                    time.sleep(sleep_seconds)
+                    
+                except Exception as e:
+                    logger.error(f"Error in monitoring loop: {e}")
+                    time.sleep(300)  # Wait 5 minutes before retrying
+        
+        def parse_interval(self, interval_str):
+            """Parse interval string to seconds"""
+            if interval_str.endswith('s'):
+                return int(interval_str[:-1])
+            elif interval_str.endswith('m'):
+                return int(interval_str[:-1]) * 60
+            elif interval_str.endswith('h'):
+                return int(interval_str[:-1]) * 3600
+            else:
+                return int(interval_str)
+    
+    if __name__ == "__main__":
+        monitor = CostMonitor()
+        monitor.run()
+  
+  health_check.py: |
+    #!/usr/bin/env python3
+    """
+    Health check endpoints for cost monitoring service
+    """
+    
+    from flask import Flask, jsonify
+    import threading
+    import time
+    
+    app = Flask(__name__)
+    
+    @app.route('/health')
+    def health():
+        return jsonify({"status": "healthy", "timestamp": time.time()})
+    
+    @app.route('/ready')
+    def ready():
+        return jsonify({"status": "ready", "timestamp": time.time()})
+    
+    @app.route('/metrics')
+    def metrics():
+        # Return Prometheus metrics endpoint
+        return "# No direct metrics endpoint - using push gateway\n"
+    
+    if __name__ == "__main__":
+        app.run(host='0.0.0.0', port=8080)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-monitoring
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/version: "1.0.0"
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+      app.kubernetes.io/component: monitoring
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: modulo-cost-management
+        app.kubernetes.io/component: monitoring
+        app.kubernetes.io/version: "1.0.0"
+        cost-center: "infrastructure"
+        environment: "shared"
+        service: "monitoring"
+        project: "modulo"
+        team: "platform"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: cost-management-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: cost-monitor
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Install required packages
+          pip install \
+            prometheus-client \
+            requests \
+            pyyaml \
+            azure-mgmt-costmanagement \
+            azure-identity \
+            kubernetes \
+            flask
+          
+          # Start health check server in background
+          python3 /app/health_check.py &
+          
+          # Start main cost monitoring service
+          python3 /app/cost_monitor.py
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_TENANT_ID
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_CLIENT_ID
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_CLIENT_SECRET
+        - name: AZURE_SUBSCRIPTION_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_SUBSCRIPTION_ID
+        - name: PROMETHEUS_GATEWAY
+          value: "http://prometheus-pushgateway.observability.svc.cluster.local:9091"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: budget-config
+          mountPath: /config/budgets.yaml
+          subPath: budgets.yaml
+          readOnly: true
+        - name: app-code
+          mountPath: /app
+          readOnly: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: cost-management-config
+      - name: budget-config
+        configMap:
+          name: budget-configuration
+      - name: app-code
+        configMap:
+          name: cost-monitoring-app
+          defaultMode: 0755
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cost-monitoring-service
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: monitoring
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  selector:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: monitoring
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: cost-monitoring
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: monitoring
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+      app.kubernetes.io/component: monitoring
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

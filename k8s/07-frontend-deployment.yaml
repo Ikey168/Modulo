@@ -5,6 +5,11 @@ metadata:
   namespace: modulo
   labels:
     app: react-frontend
+    cost-center: "engineering"
+    environment: "production"
+    service: "frontend"
+    project: "modulo"
+    team: "frontend"
 spec:
   replicas: 1 # Default replicas, can be adjusted
   selector:
@@ -14,6 +19,11 @@ spec:
     metadata:
       labels:
         app: react-frontend
+        cost-center: "engineering"
+        environment: "production"
+        service: "frontend"
+        project: "modulo"
+        team: "frontend"
     spec:
       containers:
       - name: frontend-container

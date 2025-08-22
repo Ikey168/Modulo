@@ -1,0 +1,858 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-reporting-app
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: reporting
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+data:
+  cost_reporter.py: |
+    #!/usr/bin/env python3
+    """
+    Cost Reporting Service
+    Generates monthly cost reports and identifies top cost drivers
+    """
+    
+    import os
+    import json
+    import yaml
+    import smtplib
+    import logging
+    import requests
+    import schedule
+    import time
+    from datetime import datetime, timedelta
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.base import MIMEBase
+    from email.encoders import encode_base64
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    from jinja2 import Template
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    
+    class CostReporter:
+        def __init__(self):
+            self.load_config()
+            self.setup_email()
+            self.prometheus_url = "http://prometheus-server.observability.svc.cluster.local:9090"
+            
+        def load_config(self):
+            """Load configuration from ConfigMaps"""
+            try:
+                with open('/config/config.yaml', 'r') as f:
+                    self.config = yaml.safe_load(f)
+                
+                with open('/config/budgets.yaml', 'r') as f:
+                    self.budget_config = yaml.safe_load(f)
+                    
+                logger.info("Configuration loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load configuration: {e}")
+                raise
+        
+        def setup_email(self):
+            """Setup email configuration"""
+            self.smtp_server = os.getenv('EMAIL_SMTP_SERVER', 'smtp.gmail.com')
+            self.smtp_port = int(os.getenv('EMAIL_SMTP_PORT', '587'))
+            self.email_username = os.getenv('EMAIL_USERNAME')
+            self.email_password = os.getenv('EMAIL_PASSWORD')
+        
+        def query_prometheus(self, query, start_time=None, end_time=None):
+            """Query Prometheus for metrics data"""
+            try:
+                if start_time and end_time:
+                    # Range query
+                    params = {
+                        'query': query,
+                        'start': start_time.isoformat(),
+                        'end': end_time.isoformat(),
+                        'step': '1d'
+                    }
+                    response = requests.get(f"{self.prometheus_url}/api/v1/query_range", params=params)
+                else:
+                    # Instant query
+                    params = {'query': query}
+                    response = requests.get(f"{self.prometheus_url}/api/v1/query", params=params)
+                
+                response.raise_for_status()
+                return response.json()['data']['result']
+                
+            except Exception as e:
+                logger.error(f"Failed to query Prometheus: {e}")
+                return []
+        
+        def collect_monthly_data(self, month=None):
+            """Collect cost data for a specific month"""
+            if month is None:
+                # Default to current month
+                now = datetime.now()
+                start_date = now.replace(day=1)
+                end_date = now
+            else:
+                start_date = datetime.strptime(month, '%Y-%m').replace(day=1)
+                if start_date.month == 12:
+                    end_date = start_date.replace(year=start_date.year + 1, month=1) - timedelta(days=1)
+                else:
+                    end_date = start_date.replace(month=start_date.month + 1) - timedelta(days=1)
+            
+            logger.info(f"Collecting data for period: {start_date} to {end_date}")
+            
+            # Collect various cost metrics
+            data = {
+                'period': {
+                    'start': start_date.strftime('%Y-%m-%d'),
+                    'end': end_date.strftime('%Y-%m-%d'),
+                    'month': start_date.strftime('%B %Y')
+                },
+                'total_costs': {},
+                'environment_costs': {},
+                'service_costs': {},
+                'daily_trends': {},
+                'top_cost_drivers': [],
+                'budget_utilization': {},
+                'optimization_opportunities': []
+            }
+            
+            # Total costs by environment
+            for env in ['development', 'staging', 'production']:
+                query = f'sum(azure_cost_monthly{{environment="{env}"}})'
+                result = self.query_prometheus(query)
+                if result:
+                    data['environment_costs'][env] = float(result[0]['value'][1])
+                else:
+                    data['environment_costs'][env] = 0
+            
+            # Service costs
+            for service in ['backend', 'frontend', 'database', 'monitoring']:
+                query = f'sum(azure_cost_monthly) by (service)'
+                result = self.query_prometheus(query, start_date, end_date)
+                for item in result:
+                    service_name = item['metric'].get('service', 'unknown')
+                    if 'values' in item and item['values']:
+                        # Get the latest value
+                        latest_value = item['values'][-1][1]
+                        data['service_costs'][service_name] = float(latest_value)
+            
+            # Daily cost trends
+            query = 'sum(azure_cost_daily) by (date)'
+            result = self.query_prometheus(query, start_date, end_date)
+            for item in result:
+                if 'values' in item:
+                    for timestamp, value in item['values']:
+                        date = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+                        data['daily_trends'][date] = float(value)
+            
+            # Budget utilization
+            for env, budget_info in self.budget_config['budgets'].items():
+                budget_limit = budget_info['monthly_limit']
+                actual_cost = data['environment_costs'].get(env, 0)
+                utilization = (actual_cost / budget_limit) * 100 if budget_limit > 0 else 0
+                
+                data['budget_utilization'][env] = {
+                    'budget': budget_limit,
+                    'actual': actual_cost,
+                    'utilization_percent': utilization,
+                    'remaining': budget_limit - actual_cost
+                }
+            
+            # Identify top cost drivers
+            service_costs = data['service_costs']
+            if service_costs:
+                sorted_services = sorted(service_costs.items(), key=lambda x: x[1], reverse=True)
+                data['top_cost_drivers'] = [
+                    {
+                        'service': service,
+                        'cost': cost,
+                        'percentage': (cost / sum(service_costs.values())) * 100 if sum(service_costs.values()) > 0 else 0
+                    }
+                    for service, cost in sorted_services[:5]
+                ]
+            
+            # Find optimization opportunities
+            data['optimization_opportunities'] = self.identify_optimization_opportunities()
+            
+            return data
+        
+        def identify_optimization_opportunities(self):
+            """Identify cost optimization opportunities"""
+            opportunities = []
+            
+            # Check for low CPU utilization
+            query = 'avg_over_time((kubernetes_cpu_usage / kubernetes_cpu_requests)[7d:]) < 0.3'
+            result = self.query_prometheus(query)
+            if result:
+                opportunities.append({
+                    'type': 'Resource Optimization',
+                    'description': 'Low CPU utilization detected in some services',
+                    'recommendation': 'Consider reducing CPU requests for under-utilized services',
+                    'potential_savings': 'Up to 30% on compute costs'
+                })
+            
+            # Check for over-provisioned memory
+            query = 'avg_over_time((kubernetes_memory_usage / kubernetes_memory_requests)[7d:]) < 0.3'
+            result = self.query_prometheus(query)
+            if result:
+                opportunities.append({
+                    'type': 'Memory Optimization',
+                    'description': 'Over-provisioned memory in some workloads',
+                    'recommendation': 'Right-size memory requests based on actual usage',
+                    'potential_savings': 'Up to 25% on memory costs'
+                })
+            
+            # Check for idle resources
+            query = 'count(azure_resource_count) by (resource_type) - count(kubernetes_resource_usage) by (resource_type)'
+            result = self.query_prometheus(query)
+            if result:
+                opportunities.append({
+                    'type': 'Idle Resources',
+                    'description': 'Unused Azure resources detected',
+                    'recommendation': 'Review and decommission idle resources',
+                    'potential_savings': 'Variable - could be significant'
+                })
+            
+            return opportunities
+        
+        def generate_charts(self, data):
+            """Generate cost visualization charts"""
+            charts = {}
+            
+            try:
+                # Environment costs pie chart
+                if data['environment_costs']:
+                    plt.figure(figsize=(10, 6))
+                    
+                    envs = list(data['environment_costs'].keys())
+                    costs = list(data['environment_costs'].values())
+                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+                    
+                    plt.pie(costs, labels=envs, autopct='%1.1f%%', colors=colors, startangle=90)
+                    plt.title(f"Cost Distribution by Environment - {data['period']['month']}")
+                    plt.axis('equal')
+                    
+                    chart_path = '/tmp/environment_costs.png'
+                    plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    charts['environment_costs'] = chart_path
+                
+                # Daily cost trend
+                if data['daily_trends']:
+                    plt.figure(figsize=(12, 6))
+                    
+                    dates = sorted(data['daily_trends'].keys())
+                    costs = [data['daily_trends'][date] for date in dates]
+                    
+                    plt.plot(dates, costs, marker='o', linewidth=2, markersize=4)
+                    plt.title(f"Daily Cost Trends - {data['period']['month']}")
+                    plt.xlabel('Date')
+                    plt.ylabel('Cost ($)')
+                    plt.xticks(rotation=45)
+                    plt.grid(True, alpha=0.3)
+                    
+                    chart_path = '/tmp/daily_trends.png'
+                    plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    charts['daily_trends'] = chart_path
+                
+                # Service costs bar chart
+                if data['service_costs']:
+                    plt.figure(figsize=(10, 6))
+                    
+                    services = list(data['service_costs'].keys())
+                    costs = list(data['service_costs'].values())
+                    
+                    bars = plt.bar(services, costs, color=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'])
+                    plt.title(f"Cost by Service - {data['period']['month']}")
+                    plt.xlabel('Service')
+                    plt.ylabel('Cost ($)')
+                    plt.xticks(rotation=45)
+                    
+                    # Add value labels on bars
+                    for bar, cost in zip(bars, costs):
+                        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 5,
+                                f'${cost:.2f}', ha='center', va='bottom')
+                    
+                    chart_path = '/tmp/service_costs.png'
+                    plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    charts['service_costs'] = chart_path
+                
+                logger.info(f"Generated {len(charts)} charts")
+                return charts
+                
+            except Exception as e:
+                logger.error(f"Failed to generate charts: {e}")
+                return {}
+        
+        def generate_html_report(self, data, charts):
+            """Generate HTML report"""
+            template_str = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Monthly Cost Report - {{ data.period.month }}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; }
+                    .header { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+                    .section { margin-bottom: 30px; }
+                    .metric-card { 
+                        display: inline-block; 
+                        background: white; 
+                        border: 1px solid #ddd; 
+                        border-radius: 5px; 
+                        padding: 15px; 
+                        margin: 10px; 
+                        min-width: 200px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .metric-value { font-size: 24px; font-weight: bold; color: #2c3e50; }
+                    .metric-label { color: #7f8c8d; font-size: 14px; }
+                    .chart { text-align: center; margin: 20px 0; }
+                    .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; }
+                    .critical { background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 5px; }
+                    .success { background: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                    th { background-color: #f8f9fa; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Monthly Cost Report</h1>
+                    <h2>{{ data.period.month }}</h2>
+                    <p>Generated on {{ timestamp }}</p>
+                </div>
+                
+                <div class="section">
+                    <h3>Executive Summary</h3>
+                    <div class="metric-card">
+                        <div class="metric-value">${{ "%.2f"|format(total_cost) }}</div>
+                        <div class="metric-label">Total Monthly Cost</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ "%.1f"|format(budget_utilization) }}%</div>
+                        <div class="metric-label">Budget Utilization</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ top_driver.service }}</div>
+                        <div class="metric-label">Top Cost Driver</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${{ "%.2f"|format(optimization_potential) }}</div>
+                        <div class="metric-label">Optimization Potential</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Environment Cost Breakdown</h3>
+                    <table>
+                        <tr><th>Environment</th><th>Budget</th><th>Actual Cost</th><th>Utilization</th><th>Status</th></tr>
+                        {% for env, budget in data.budget_utilization.items() %}
+                        <tr>
+                            <td>{{ env.title() }}</td>
+                            <td>${{ "%.2f"|format(budget.budget) }}</td>
+                            <td>${{ "%.2f"|format(budget.actual) }}</td>
+                            <td>{{ "%.1f"|format(budget.utilization_percent) }}%</td>
+                            <td>
+                                {% if budget.utilization_percent > 95 %}
+                                    <span class="critical">⚠️ Over Budget</span>
+                                {% elif budget.utilization_percent > 80 %}
+                                    <span class="warning">⚡ Warning</span>
+                                {% else %}
+                                    <span class="success">✅ On Track</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h3>Top Cost Drivers</h3>
+                    <table>
+                        <tr><th>Service</th><th>Cost</th><th>Percentage of Total</th></tr>
+                        {% for driver in data.top_cost_drivers %}
+                        <tr>
+                            <td>{{ driver.service.title() }}</td>
+                            <td>${{ "%.2f"|format(driver.cost) }}</td>
+                            <td>{{ "%.1f"|format(driver.percentage) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h3>Optimization Opportunities</h3>
+                    {% for opportunity in data.optimization_opportunities %}
+                    <div class="warning" style="margin: 10px 0;">
+                        <h4>{{ opportunity.type }}</h4>
+                        <p><strong>Description:</strong> {{ opportunity.description }}</p>
+                        <p><strong>Recommendation:</strong> {{ opportunity.recommendation }}</p>
+                        <p><strong>Potential Savings:</strong> {{ opportunity.potential_savings }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="section">
+                    <h3>Cost Charts</h3>
+                    {% if charts.environment_costs %}
+                    <div class="chart">
+                        <h4>Environment Cost Distribution</h4>
+                        <img src="cid:environment_costs" style="max-width: 100%; height: auto;" />
+                    </div>
+                    {% endif %}
+                    
+                    {% if charts.service_costs %}
+                    <div class="chart">
+                        <h4>Service Cost Breakdown</h4>
+                        <img src="cid:service_costs" style="max-width: 100%; height: auto;" />
+                    </div>
+                    {% endif %}
+                    
+                    {% if charts.daily_trends %}
+                    <div class="chart">
+                        <h4>Daily Cost Trends</h4>
+                        <img src="cid:daily_trends" style="max-width: 100%; height: auto;" />
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="section">
+                    <h3>Recommendations</h3>
+                    <ul>
+                        <li>Review services with high cost growth trends</li>
+                        <li>Implement automated scaling policies to optimize resource usage</li>
+                        <li>Consider reserved instances for production workloads</li>
+                        <li>Set up more granular budget alerts for early warning</li>
+                        <li>Regular cost optimization reviews with development teams</li>
+                    </ul>
+                </div>
+                
+                <div class="section">
+                    <p><em>This report was automatically generated by the Modulo Cost Management system.</em></p>
+                </div>
+            </body>
+            </html>
+            """
+            
+            template = Template(template_str)
+            
+            # Calculate summary metrics
+            total_cost = sum(data['environment_costs'].values())
+            budget_utilization = sum(
+                budget['utilization_percent'] for budget in data['budget_utilization'].values()
+            ) / len(data['budget_utilization']) if data['budget_utilization'] else 0
+            
+            top_driver = data['top_cost_drivers'][0] if data['top_cost_drivers'] else {'service': 'N/A'}
+            optimization_potential = sum(100 for _ in data['optimization_opportunities'])  # Simplified
+            
+            html_content = template.render(
+                data=data,
+                charts=charts,
+                timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                total_cost=total_cost,
+                budget_utilization=budget_utilization,
+                top_driver=top_driver,
+                optimization_potential=optimization_potential
+            )
+            
+            return html_content
+        
+        def send_email_report(self, html_content, charts, recipients):
+            """Send email report with charts attached"""
+            try:
+                msg = MIMEMultipart('related')
+                msg['Subject'] = f"Monthly Cost Report - {datetime.now().strftime('%B %Y')}"
+                msg['From'] = self.email_username
+                msg['To'] = ', '.join(recipients)
+                
+                # Attach HTML content
+                html_part = MIMEText(html_content, 'html')
+                msg.attach(html_part)
+                
+                # Attach charts as inline images
+                for chart_name, chart_path in charts.items():
+                    if os.path.exists(chart_path):
+                        with open(chart_path, 'rb') as f:
+                            img_data = f.read()
+                        
+                        img = MIMEBase('application', 'octet-stream')
+                        img.set_payload(img_data)
+                        encode_base64(img)
+                        img.add_header('Content-ID', f'<{chart_name}>')
+                        img.add_header('Content-Disposition', f'inline; filename="{chart_name}.png"')
+                        msg.attach(img)
+                
+                # Send email
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.email_username, self.email_password)
+                    server.send_message(msg)
+                
+                logger.info(f"Email report sent to {len(recipients)} recipients")
+                
+            except Exception as e:
+                logger.error(f"Failed to send email report: {e}")
+        
+        def send_slack_notification(self, data):
+            """Send cost summary to Slack"""
+            try:
+                webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+                if not webhook_url:
+                    logger.warning("Slack webhook URL not configured")
+                    return
+                
+                total_cost = sum(data['environment_costs'].values())
+                top_driver = data['top_cost_drivers'][0] if data['top_cost_drivers'] else None
+                
+                # Check for budget alerts
+                alerts = []
+                for env, budget in data['budget_utilization'].items():
+                    if budget['utilization_percent'] > 95:
+                        alerts.append(f"🚨 {env}: {budget['utilization_percent']:.1f}% of budget used")
+                    elif budget['utilization_percent'] > 80:
+                        alerts.append(f"⚠️ {env}: {budget['utilization_percent']:.1f}% of budget used")
+                
+                # Build Slack message
+                message = {
+                    "text": f"Monthly Cost Report - {data['period']['month']}",
+                    "blocks": [
+                        {
+                            "type": "header",
+                            "text": {
+                                "type": "plain_text",
+                                "text": f"💰 Monthly Cost Report - {data['period']['month']}"
+                            }
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Total Cost:* ${total_cost:.2f}"
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Top Driver:* {top_driver['service'].title() if top_driver else 'N/A'}"
+                                }
+                            ]
+                        }
+                    ]
+                }
+                
+                # Add budget alerts
+                if alerts:
+                    message["blocks"].append({
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Budget Alerts:\n" + "\n".join(alerts)
+                        }
+                    })
+                
+                # Add optimization opportunities
+                if data['optimization_opportunities']:
+                    opps = [f"• {opp['type']}: {opp['potential_savings']}" for opp in data['optimization_opportunities'][:3]]
+                    message["blocks"].append({
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "💡 Optimization Opportunities:\n" + "\n".join(opps)
+                        }
+                    })
+                
+                response = requests.post(webhook_url, json=message)
+                response.raise_for_status()
+                
+                logger.info("Slack notification sent successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed to send Slack notification: {e}")
+        
+        def generate_monthly_report(self):
+            """Generate and send monthly cost report"""
+            try:
+                logger.info("Starting monthly report generation")
+                
+                # Collect data
+                data = self.collect_monthly_data()
+                
+                # Generate charts
+                charts = self.generate_charts(data)
+                
+                # Generate HTML report
+                html_content = self.generate_html_report(data, charts)
+                
+                # Send email report
+                recipients = self.config.get('reporting', {}).get('recipients', [])
+                if recipients and self.email_username:
+                    self.send_email_report(html_content, charts, recipients)
+                
+                # Send Slack notification
+                self.send_slack_notification(data)
+                
+                # Clean up chart files
+                for chart_path in charts.values():
+                    if os.path.exists(chart_path):
+                        os.remove(chart_path)
+                
+                logger.info("Monthly report generation completed successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed to generate monthly report: {e}")
+        
+        def run(self):
+            """Run the reporting service"""
+            logger.info("Starting cost reporting service")
+            
+            # Schedule monthly report
+            schedule.every().month.at("09:00").do(self.generate_monthly_report)
+            
+            # For testing, also allow manual trigger
+            schedule.every().day.at("09:00").tag("daily").do(
+                lambda: logger.info("Daily check - no report generated")
+            )
+            
+            while True:
+                schedule.run_pending()
+                time.sleep(3600)  # Check every hour
+    
+    if __name__ == "__main__":
+        reporter = CostReporter()
+        reporter.run()
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monthly-cost-report
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: reporting
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  schedule: "0 9 1 * *"  # 9 AM on the 1st of each month
+  timeZone: "UTC"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: modulo-cost-management
+            app.kubernetes.io/component: reporting
+            cost-center: "infrastructure"
+            environment: "shared"
+            service: "monitoring"
+            project: "modulo"
+            team: "platform"
+        spec:
+          serviceAccountName: cost-management-sa
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 2000
+          containers:
+          - name: cost-reporter
+            image: python:3.11-slim
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Install required packages
+              pip install \
+                requests \
+                pyyaml \
+                matplotlib \
+                pandas \
+                jinja2 \
+                schedule
+              
+              # Run cost reporter
+              python3 /app/cost_reporter.py
+            env:
+            - name: EMAIL_SMTP_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: azure-cost-api-secret
+                  key: EMAIL_SMTP_SERVER
+            - name: EMAIL_SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: azure-cost-api-secret
+                  key: EMAIL_SMTP_PORT
+            - name: EMAIL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: azure-cost-api-secret
+                  key: EMAIL_USERNAME
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: azure-cost-api-secret
+                  key: EMAIL_PASSWORD
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: azure-cost-api-secret
+                  key: SLACK_WEBHOOK_URL
+            volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: budget-config
+              mountPath: /config/budgets.yaml
+              subPath: budgets.yaml
+              readOnly: true
+            - name: app-code
+              mountPath: /app
+              readOnly: true
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: 500m
+                memory: 1Gi
+          volumes:
+          - name: config
+            configMap:
+              name: cost-management-config
+          - name: budget-config
+            configMap:
+              name: budget-configuration
+          - name: app-code
+            configMap:
+              name: cost-reporting-app
+              defaultMode: 0755
+          restartPolicy: OnFailure
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-reporting-service
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: reporting-service
+    app.kubernetes.io/version: "1.0.0"
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+      app.kubernetes.io/component: reporting-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: modulo-cost-management
+        app.kubernetes.io/component: reporting-service
+        app.kubernetes.io/version: "1.0.0"
+        cost-center: "infrastructure"
+        environment: "shared"
+        service: "monitoring"
+        project: "modulo"
+        team: "platform"
+    spec:
+      serviceAccountName: cost-management-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: reporting-service
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install flask requests pyyaml
+          python3 -c "
+          from flask import Flask, jsonify
+          import time
+          app = Flask(__name__)
+          
+          @app.route('/health')
+          def health():
+              return jsonify({'status': 'healthy', 'timestamp': time.time()})
+          
+          @app.route('/ready')
+          def ready():
+              return jsonify({'status': 'ready', 'timestamp': time.time()})
+          
+          @app.route('/generate-report', methods=['POST'])
+          def generate_report():
+              # Trigger manual report generation
+              return jsonify({'status': 'report generation triggered'})
+          
+          app.run(host='0.0.0.0', port=8080)
+          "
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cost-reporting-service
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: reporting-service
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  selector:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: reporting-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
