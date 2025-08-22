@@ -1,0 +1,438 @@
+# PagerDuty Integration
+# Service definitions, API integration, and alert routing
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pagerduty-secrets
+  namespace: incident-response
+type: Opaque
+stringData:
+  api-key: "REPLACE_WITH_PAGERDUTY_API_KEY"
+  routing-key: "REPLACE_WITH_PAGERDUTY_ROUTING_KEY"
+  webhook-secret: "REPLACE_WITH_WEBHOOK_SECRET"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pagerduty-config
+  namespace: incident-response
+data:
+  pagerduty.yaml: |
+    services:
+      - name: "Modulo Platform"
+        description: "Main platform service"
+        escalation_policy: "primary-escalation"
+        alert_creation: "create_alerts_and_incidents"
+        alert_grouping: "time"
+        alert_grouping_timeout: 300
+        integrations:
+          - type: "prometheus"
+            name: "Prometheus Integration"
+            vendor: "prometheus"
+    
+    integrations:
+      prometheus:
+        endpoint: "http://prometheus.monitoring:9090"
+        routing_key: "${PAGERDUTY_ROUTING_KEY}"
+        severity_mapping:
+          critical: "critical"
+          warning: "warning"
+          info: "info"
+        
+        alert_rules:
+          - name: "Service Down"
+            severity: "critical"
+            expression: 'up{job="modulo-api"} == 0'
+            duration: "2m"
+            summary: "Modulo API service is down"
+            description: "The Modulo API service has been down for more than 2 minutes"
+          
+          - name: "High Error Rate"
+            severity: "critical"
+            expression: 'rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1'
+            duration: "5m"
+            summary: "High error rate detected"
+            description: "Error rate is above 10% for more than 5 minutes"
+          
+          - name: "High Response Time"
+            severity: "critical"
+            expression: 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5'
+            duration: "5m"
+            summary: "High response time detected"
+            description: "95th percentile response time is above 5 seconds"
+          
+          - name: "Database Connection Failure"
+            severity: "critical"
+            expression: 'up{job="postgres"} == 0'
+            duration: "1m"
+            summary: "Database connection failure"
+            description: "Unable to connect to PostgreSQL database"
+          
+          - name: "High Memory Usage"
+            severity: "warning"
+            expression: 'container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.8'
+            duration: "10m"
+            summary: "High memory usage"
+            description: "Container memory usage is above 80%"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pagerduty-integration
+  namespace: incident-response
+  labels:
+    app: pagerduty-integration
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pagerduty-integration
+  template:
+    metadata:
+      labels:
+        app: pagerduty-integration
+        version: v1.0.0
+    spec:
+      serviceAccountName: incident-manager
+      containers:
+      - name: pagerduty-integration
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PAGERDUTY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pagerduty-secrets
+              key: api-key
+        - name: PAGERDUTY_ROUTING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pagerduty-secrets
+              key: routing-key
+        - name: WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: pagerduty-secrets
+              key: webhook-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: app-code
+          mountPath: /app
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          cd /app
+          pip install --no-cache-dir pdpyras requests flask prometheus-client pyyaml
+          python pagerduty_integration.py
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: pagerduty-config
+      - name: app-code
+        configMap:
+          name: pagerduty-app-code
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pagerduty-app-code
+  namespace: incident-response
+data:
+  pagerduty_integration.py: |
+    #!/usr/bin/env python3
+    import os
+    import json
+    import logging
+    import time
+    from datetime import datetime
+    from flask import Flask, request, jsonify
+    import pdpyras
+    import yaml
+    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    app = Flask(__name__)
+    
+    # Metrics
+    alerts_received = Counter('pagerduty_alerts_received_total', 'Total alerts received', ['severity'])
+    incidents_created = Counter('pagerduty_incidents_created_total', 'Total incidents created')
+    alert_processing_time = Histogram('pagerduty_alert_processing_seconds', 'Time spent processing alerts')
+    
+    class PagerDutyManager:
+        def __init__(self):
+            self.api_key = os.getenv('PAGERDUTY_API_KEY')
+            self.routing_key = os.getenv('PAGERDUTY_ROUTING_KEY')
+            self.webhook_secret = os.getenv('WEBHOOK_SECRET')
+            
+            if not all([self.api_key, self.routing_key]):
+                raise ValueError("Missing required PagerDuty configuration")
+            
+            self.session = pdpyras.APISession(self.api_key)
+            self.load_config()
+        
+        def load_config(self):
+            """Load PagerDuty configuration from ConfigMap"""
+            try:
+                with open('/app/config/pagerduty.yaml', 'r') as f:
+                    self.config = yaml.safe_load(f)
+                logger.info("PagerDuty configuration loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load configuration: {e}")
+                self.config = {}
+        
+        def create_incident(self, alert_data):
+            """Create PagerDuty incident from alert"""
+            try:
+                severity = alert_data.get('severity', 'warning')
+                summary = alert_data.get('summary', 'Alert from Modulo')
+                description = alert_data.get('description', '')
+                
+                incident_data = {
+                    'incident': {
+                        'type': 'incident',
+                        'title': summary,
+                        'service': {
+                            'id': self.get_service_id('Modulo Platform'),
+                            'type': 'service_reference'
+                        },
+                        'urgency': 'high' if severity == 'critical' else 'low',
+                        'body': {
+                            'type': 'incident_body',
+                            'details': description
+                        }
+                    }
+                }
+                
+                response = self.session.post('/incidents', json=incident_data)
+                if response.status_code == 201:
+                    incident = response.json()['incident']
+                    logger.info(f"Created incident: {incident['id']}")
+                    incidents_created.inc()
+                    return incident
+                else:
+                    logger.error(f"Failed to create incident: {response.text}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error creating incident: {e}")
+                return None
+        
+        def get_service_id(self, service_name):
+            """Get PagerDuty service ID by name"""
+            try:
+                services = self.session.list_all('services')
+                for service in services:
+                    if service['name'] == service_name:
+                        return service['id']
+                        
+                # If service doesn't exist, create it
+                logger.info(f"Service '{service_name}' not found, creating...")
+                return self.create_service(service_name)
+                
+            except Exception as e:
+                logger.error(f"Error getting service ID: {e}")
+                return None
+        
+        def create_service(self, service_name):
+            """Create PagerDuty service"""
+            try:
+                service_data = {
+                    'service': {
+                        'name': service_name,
+                        'description': f'Auto-created service for {service_name}',
+                        'escalation_policy': {
+                            'id': self.get_escalation_policy_id(),
+                            'type': 'escalation_policy_reference'
+                        }
+                    }
+                }
+                
+                response = self.session.post('/services', json=service_data)
+                if response.status_code == 201:
+                    service = response.json()['service']
+                    logger.info(f"Created service: {service['id']}")
+                    return service['id']
+                else:
+                    logger.error(f"Failed to create service: {response.text}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error creating service: {e}")
+                return None
+        
+        def get_escalation_policy_id(self):
+            """Get default escalation policy ID"""
+            try:
+                policies = self.session.list_all('escalation_policies')
+                if policies:
+                    return policies[0]['id']  # Use first available policy
+                else:
+                    logger.warning("No escalation policies found")
+                    return None
+            except Exception as e:
+                logger.error(f"Error getting escalation policy: {e}")
+                return None
+        
+        def test_connection(self):
+            """Test PagerDuty API connection"""
+            try:
+                response = self.session.get('/abilities')
+                return response.status_code == 200
+            except Exception as e:
+                logger.error(f"PagerDuty connection test failed: {e}")
+                return False
+    
+    # Initialize PagerDuty manager
+    try:
+        pd_manager = PagerDutyManager()
+        logger.info("PagerDuty integration initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize PagerDuty integration: {e}")
+        pd_manager = None
+    
+    @app.route('/health')
+    def health():
+        """Health check endpoint"""
+        if pd_manager and pd_manager.test_connection():
+            return jsonify({'status': 'healthy', 'pagerduty': 'connected'}), 200
+        else:
+            return jsonify({'status': 'unhealthy', 'pagerduty': 'disconnected'}), 503
+    
+    @app.route('/ready')
+    def ready():
+        """Readiness check endpoint"""
+        return jsonify({'status': 'ready'}), 200
+    
+    @app.route('/webhook', methods=['POST'])
+    def webhook():
+        """Webhook endpoint for receiving alerts"""
+        try:
+            with alert_processing_time.time():
+                data = request.get_json()
+                
+                if not data:
+                    return jsonify({'error': 'No data provided'}), 400
+                
+                # Process Prometheus alert
+                if 'alerts' in data:
+                    for alert in data['alerts']:
+                        severity = alert.get('labels', {}).get('severity', 'warning')
+                        alerts_received.labels(severity=severity).inc()
+                        
+                        if severity == 'critical' and pd_manager:
+                            incident = pd_manager.create_incident({
+                                'severity': severity,
+                                'summary': alert.get('annotations', {}).get('summary', 'Critical alert'),
+                                'description': alert.get('annotations', {}).get('description', '')
+                            })
+                            
+                            if incident:
+                                logger.info(f"Created incident for alert: {alert.get('fingerprint')}")
+                
+                return jsonify({'status': 'success'}), 200
+                
+        except Exception as e:
+            logger.error(f"Error processing webhook: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+    
+    @app.route('/test-page')
+    def test_page():
+        """Test endpoint to trigger a test page"""
+        try:
+            if not pd_manager:
+                return jsonify({'error': 'PagerDuty not configured'}), 503
+            
+            incident = pd_manager.create_incident({
+                'severity': 'critical',
+                'summary': 'Test page from incident response system',
+                'description': 'This is a test page to verify on-call paging is working correctly.'
+            })
+            
+            if incident:
+                return jsonify({
+                    'status': 'success',
+                    'incident_id': incident['id'],
+                    'message': 'Test page sent successfully'
+                }), 200
+            else:
+                return jsonify({'error': 'Failed to create test incident'}), 500
+                
+        except Exception as e:
+            logger.error(f"Error sending test page: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+    
+    @app.route('/metrics')
+    def metrics():
+        """Prometheus metrics endpoint"""
+        return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+    
+    if __name__ == '__main__':
+        logger.info("Starting PagerDuty integration service...")
+        app.run(host='0.0.0.0', port=8080, debug=False)
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pagerduty-integration
+  namespace: incident-response
+  labels:
+    app: pagerduty-integration
+spec:
+  selector:
+    app: pagerduty-integration
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 9090
+    targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pagerduty-integration
+  namespace: incident-response
+  labels:
+    app: pagerduty-integration
+spec:
+  selector:
+    matchLabels:
+      app: pagerduty-integration
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
