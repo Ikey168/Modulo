@@ -61,6 +61,31 @@ public class Note {
     @Column(name = "metadata_value", columnDefinition = "TEXT")
     private Map<String, String> metadata = new HashMap<>();
 
+    // IPFS and Blockchain Integration fields
+    @Column(name = "ipfs_cid")
+    private String ipfsCid;
+
+    @Column(name = "content_hash")
+    private String contentHash;
+
+    @Column(name = "is_decentralized")
+    private Boolean isDecentralized = false;
+
+    @Column(name = "blockchain_tx_hash")
+    private String blockchainTxHash;
+
+    @Column(name = "blockchain_note_id")
+    private Long blockchainNoteId;
+
+    @Column(name = "is_on_blockchain")
+    private Boolean isOnBlockchain = false;
+
+    @Column(name = "ipfs_uploaded_at")
+    private LocalDateTime ipfsUploadedAt;
+
+    @Column(name = "blockchain_registered_at")
+    private LocalDateTime blockchainRegisteredAt;
+
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "note_tags",
@@ -208,6 +233,71 @@ public class Note {
 
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    // IPFS and Blockchain getters and setters
+    public String getIpfsCid() {
+        return ipfsCid;
+    }
+
+    public void setIpfsCid(String ipfsCid) {
+        this.ipfsCid = ipfsCid;
+    }
+
+    public String getContentHash() {
+        return contentHash;
+    }
+
+    public void setContentHash(String contentHash) {
+        this.contentHash = contentHash;
+    }
+
+    public String getBlockchainTxHash() {
+        return blockchainTxHash;
+    }
+
+    public void setBlockchainTxHash(String blockchainTxHash) {
+        this.blockchainTxHash = blockchainTxHash;
+    }
+
+    public Long getBlockchainNoteId() {
+        return blockchainNoteId;
+    }
+
+    public void setBlockchainNoteId(Long blockchainNoteId) {
+        this.blockchainNoteId = blockchainNoteId;
+    }
+
+    public Boolean getIsOnBlockchain() {
+        return isOnBlockchain;
+    }
+
+    public void setIsOnBlockchain(Boolean isOnBlockchain) {
+        this.isOnBlockchain = isOnBlockchain;
+    }
+
+    public Boolean getIsDecentralized() {
+        return isDecentralized;
+    }
+
+    public void setIsDecentralized(Boolean isDecentralized) {
+        this.isDecentralized = isDecentralized;
+    }
+
+    public LocalDateTime getIpfsUploadedAt() {
+        return ipfsUploadedAt;
+    }
+
+    public void setIpfsUploadedAt(LocalDateTime ipfsUploadedAt) {
+        this.ipfsUploadedAt = ipfsUploadedAt;
+    }
+
+    public LocalDateTime getBlockchainRegisteredAt() {
+        return blockchainRegisteredAt;
+    }
+
+    public void setBlockchainRegisteredAt(LocalDateTime blockchainRegisteredAt) {
+        this.blockchainRegisteredAt = blockchainRegisteredAt;
     }
 
     public Set<Tag> getTags() {

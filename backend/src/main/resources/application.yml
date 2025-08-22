@@ -83,6 +83,12 @@ modulo:
       rpc-url: http://localhost:8545
       gas-limit: 8000000
       gas-price-wei: 20000000000
+    ipfs:
+      node-url: http://localhost:5001
+      gateway-url: http://localhost:8080
+      enabled: true
+      timeout-ms: 30000
+      max-file-size-mb: 50
     external:
       api-timeout-ms: 10000
       max-retries: 3
@@ -162,6 +168,12 @@ modulo:
       rpc-url: ${BLOCKCHAIN_RPC_URL:http://localhost:8545}
       gas-limit: 8000000
       gas-price-wei: 20000000000
+    ipfs:
+      node-url: ${IPFS_NODE_URL:http://ipfs:5001}
+      gateway-url: ${IPFS_GATEWAY_URL:http://ipfs:8080}
+      enabled: ${IPFS_ENABLED:true}
+      timeout-ms: 30000
+      max-file-size-mb: 50
     external:
       api-timeout-ms: 10000
       max-retries: 3
@@ -241,6 +253,12 @@ modulo:
       rpc-url: ${BLOCKCHAIN_RPC_URL:http://localhost:8545}
       gas-limit: 8000000
       gas-price-wei: 20000000000
+    ipfs:
+      node-url: ${IPFS_NODE_URL:http://ipfs:5001}
+      gateway-url: ${IPFS_GATEWAY_URL:http://ipfs:8080}
+      enabled: ${IPFS_ENABLED:true}
+      timeout-ms: 30000
+      max-file-size-mb: 50
     external:
       api-timeout-ms: 15000
       max-retries: 5
