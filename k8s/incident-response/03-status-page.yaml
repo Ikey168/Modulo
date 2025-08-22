@@ -1,0 +1,613 @@
+# Public Status Page
+# Real-time system status with synthetic monitoring integration
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: status-page-config
+  namespace: incident-response
+data:
+  config.yaml: |
+    status_page:
+      title: "Modulo Platform Status"
+      description: "Real-time status of Modulo services"
+      company: "Modulo"
+      support_url: "https://support.modulo.example.com"
+      logo_url: "https://modulo.example.com/logo.png"
+      timezone: "UTC"
+      
+    services:
+      - name: "API Service"
+        description: "Core API endpoints"
+        group: "Core Services"
+        check_url: "https://api.modulo.example.com/health"
+        check_interval: 60
+        timeout: 30
+        expected_status: 200
+        
+      - name: "Web Application"
+        description: "Main web interface"
+        group: "Core Services"
+        check_url: "https://app.modulo.example.com"
+        check_interval: 60
+        timeout: 30
+        expected_status: 200
+        
+      - name: "Payment Processing"
+        description: "Payment and billing system"
+        group: "Financial Services"
+        check_url: "https://api.modulo.example.com/payments/health"
+        check_interval: 30
+        timeout: 15
+        expected_status: 200
+        
+      - name: "User Authentication"
+        description: "Login and user management"
+        group: "Security Services"
+        check_url: "https://auth.modulo.example.com/health"
+        check_interval: 60
+        timeout: 30
+        expected_status: 200
+        
+      - name: "File Storage"
+        description: "Document and file storage"
+        group: "Storage Services"
+        check_url: "https://storage.modulo.example.com/health"
+        check_interval: 120
+        timeout: 45
+        expected_status: 200
+        
+      - name: "Email Delivery"
+        description: "Email notifications and delivery"
+        group: "Communication"
+        check_url: "https://api.modulo.example.com/email/health"
+        check_interval: 300
+        timeout: 60
+        expected_status: 200
+    
+    incidents:
+      history_days: 90
+      update_frequency: 300  # 5 minutes
+      
+    notifications:
+      webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+      email_smtp:
+        host: "smtp.modulo.example.com"
+        port: 587
+        username: "notifications@modulo.example.com"
+        password: "REPLACE_WITH_SMTP_PASSWORD"
+      
+    thresholds:
+      response_time:
+        warning: 3000  # ms
+        critical: 5000  # ms
+      uptime:
+        warning: 99.5  # %
+        critical: 99.0  # %
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-page
+  namespace: incident-response
+  labels:
+    app: status-page
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: status-page
+  template:
+    metadata:
+      labels:
+        app: status-page
+        version: v1.0.0
+    spec:
+      serviceAccountName: incident-manager
+      containers:
+      - name: status-page
+        image: node:18-alpine
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: DATABASE_URL
+          value: "sqlite:///data/status.db"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: app-code
+          mountPath: /app
+        - name: data
+          mountPath: /data
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          cd /app
+          npm install --production express sqlite3 node-cron axios
+          node status-page.js
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: status-page-config
+      - name: app-code
+        configMap:
+          name: status-page-app
+      - name: data
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: status-page-app
+  namespace: incident-response
+data:
+  status-page.js: |
+    const express = require('express');
+    const fs = require('fs');
+    const path = require('path');
+    const axios = require('axios');
+    const cron = require('node-cron');
+    const sqlite3 = require('sqlite3').verbose();
+    const yaml = require('js-yaml');
+    
+    const app = express();
+    const port = process.env.PORT || 3000;
+    
+    // Load configuration
+    let config;
+    try {
+        const configFile = fs.readFileSync('/app/config/config.yaml', 'utf8');
+        config = yaml.load(configFile);
+    } catch (error) {
+        console.error('Failed to load configuration:', error);
+        process.exit(1);
+    }
+    
+    // Initialize SQLite database
+    const db = new sqlite3.Database('/data/status.db');
+    
+    // Create tables
+    db.serialize(() => {
+        db.run(`
+            CREATE TABLE IF NOT EXISTS service_status (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_name TEXT NOT NULL,
+                status TEXT NOT NULL,
+                response_time INTEGER,
+                checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                error_message TEXT
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS incidents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                status TEXT NOT NULL,
+                affected_services TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved_at DATETIME
+            )
+        `);
+        
+        db.run(`
+            CREATE INDEX IF NOT EXISTS idx_service_status_time 
+            ON service_status(service_name, checked_at)
+        `);
+    });
+    
+    // Middleware
+    app.use(express.json());
+    app.use(express.static('public'));
+    
+    class StatusChecker {
+        constructor() {
+            this.services = config.services || [];
+            this.currentStatus = {};
+            this.initializeStatus();
+        }
+        
+        initializeStatus() {
+            this.services.forEach(service => {
+                this.currentStatus[service.name] = {
+                    status: 'unknown',
+                    lastCheck: null,
+                    responseTime: null,
+                    error: null
+                };
+            });
+        }
+        
+        async checkService(service) {
+            const startTime = Date.now();
+            
+            try {
+                const response = await axios.get(service.check_url, {
+                    timeout: (service.timeout || 30) * 1000,
+                    validateStatus: (status) => status === (service.expected_status || 200)
+                });
+                
+                const responseTime = Date.now() - startTime;
+                const status = 'operational';
+                
+                this.currentStatus[service.name] = {
+                    status,
+                    lastCheck: new Date(),
+                    responseTime,
+                    error: null
+                };
+                
+                this.saveStatusCheck(service.name, status, responseTime, null);
+                
+                return { status, responseTime, error: null };
+                
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                const status = 'down';
+                const errorMessage = error.message;
+                
+                this.currentStatus[service.name] = {
+                    status,
+                    lastCheck: new Date(),
+                    responseTime,
+                    error: errorMessage
+                };
+                
+                this.saveStatusCheck(service.name, status, responseTime, errorMessage);
+                
+                return { status, responseTime, error: errorMessage };
+            }
+        }
+        
+        saveStatusCheck(serviceName, status, responseTime, error) {
+            db.run(
+                `INSERT INTO service_status (service_name, status, response_time, error_message) 
+                 VALUES (?, ?, ?, ?)`,
+                [serviceName, status, responseTime, error],
+                (err) => {
+                    if (err) {
+                        console.error('Error saving status check:', err);
+                    }
+                }
+            );
+        }
+        
+        async checkAllServices() {
+            console.log('Checking all services...');
+            
+            const promises = this.services.map(service => 
+                this.checkService(service).catch(error => {
+                    console.error(`Error checking ${service.name}:`, error);
+                    return { status: 'error', error: error.message };
+                })
+            );
+            
+            await Promise.all(promises);
+            console.log('Service checks completed');
+        }
+        
+        getOverallStatus() {
+            const statuses = Object.values(this.currentStatus).map(s => s.status);
+            
+            if (statuses.includes('down')) {
+                return 'major_outage';
+            } else if (statuses.includes('degraded')) {
+                return 'partial_outage';
+            } else if (statuses.includes('unknown')) {
+                return 'unknown';
+            } else {
+                return 'operational';
+            }
+        }
+    }
+    
+    const statusChecker = new StatusChecker();
+    
+    // API Routes
+    app.get('/api/status', (req, res) => {
+        const overallStatus = statusChecker.getOverallStatus();
+        
+        res.json({
+            status: overallStatus,
+            services: config.services.map(service => ({
+                name: service.name,
+                description: service.description,
+                group: service.group,
+                ...statusChecker.currentStatus[service.name]
+            })),
+            last_updated: new Date().toISOString()
+        });
+    });
+    
+    app.get('/api/incidents', (req, res) => {
+        db.all(
+            `SELECT * FROM incidents 
+             WHERE created_at > datetime('now', '-90 days') 
+             ORDER BY created_at DESC`,
+            (err, rows) => {
+                if (err) {
+                    res.status(500).json({ error: 'Database error' });
+                } else {
+                    res.json(rows);
+                }
+            }
+        );
+    });
+    
+    app.post('/api/incidents', (req, res) => {
+        const { title, description, affected_services } = req.body;
+        
+        if (!title) {
+            return res.status(400).json({ error: 'Title is required' });
+        }
+        
+        db.run(
+            `INSERT INTO incidents (title, description, status, affected_services) 
+             VALUES (?, ?, 'investigating', ?)`,
+            [title, description, JSON.stringify(affected_services || [])],
+            function(err) {
+                if (err) {
+                    res.status(500).json({ error: 'Database error' });
+                } else {
+                    res.json({ id: this.lastID, message: 'Incident created' });
+                }
+            }
+        );
+    });
+    
+    app.get('/api/metrics', (req, res) => {
+        const { service, days = 7 } = req.query;
+        
+        let query = `
+            SELECT service_name, status, response_time, checked_at 
+            FROM service_status 
+            WHERE checked_at > datetime('now', '-${days} days')
+        `;
+        
+        const params = [];
+        if (service) {
+            query += ' AND service_name = ?';
+            params.push(service);
+        }
+        
+        query += ' ORDER BY checked_at DESC';
+        
+        db.all(query, params, (err, rows) => {
+            if (err) {
+                res.status(500).json({ error: 'Database error' });
+            } else {
+                res.json(rows);
+            }
+        });
+    });
+    
+    app.get('/health', (req, res) => {
+        res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+    });
+    
+    // Status page HTML
+    app.get('/', (req, res) => {
+        res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${config.status_page.title}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+                .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .status { padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
+                .operational { background: #d4edda; color: #155724; }
+                .degraded { background: #fff3cd; color: #856404; }
+                .down { background: #f8d7da; color: #721c24; }
+                .service { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; }
+                .service-status { padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+                .group { margin-top: 20px; }
+                .group-title { font-weight: bold; margin-bottom: 10px; color: #666; }
+                .last-updated { text-align: center; color: #888; font-size: 12px; margin-top: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>${config.status_page.title}</h1>
+                    <p>${config.status_page.description}</p>
+                </div>
+                <div id="status-container">
+                    <div class="status operational">
+                        <h2>All Systems Operational</h2>
+                    </div>
+                </div>
+                <div id="services-container"></div>
+                <div class="last-updated" id="last-updated"></div>
+            </div>
+            
+            <script>
+                async function loadStatus() {
+                    try {
+                        const response = await fetch('/api/status');
+                        const data = await response.json();
+                        
+                        updateOverallStatus(data.status);
+                        updateServices(data.services);
+                        updateLastUpdated(data.last_updated);
+                    } catch (error) {
+                        console.error('Failed to load status:', error);
+                    }
+                }
+                
+                function updateOverallStatus(status) {
+                    const container = document.getElementById('status-container');
+                    const statusClass = status === 'operational' ? 'operational' : 
+                                       status === 'partial_outage' ? 'degraded' : 'down';
+                    const statusText = status === 'operational' ? 'All Systems Operational' :
+                                      status === 'partial_outage' ? 'Partial System Outage' :
+                                      'Major System Outage';
+                    
+                    container.innerHTML = \`<div class="status \${statusClass}"><h2>\${statusText}</h2></div>\`;
+                }
+                
+                function updateServices(services) {
+                    const container = document.getElementById('services-container');
+                    const groups = {};
+                    
+                    services.forEach(service => {
+                        if (!groups[service.group]) {
+                            groups[service.group] = [];
+                        }
+                        groups[service.group].push(service);
+                    });
+                    
+                    let html = '';
+                    for (const [groupName, groupServices] of Object.entries(groups)) {
+                        html += \`<div class="group">
+                            <div class="group-title">\${groupName}</div>\`;
+                        
+                        groupServices.forEach(service => {
+                            const statusClass = service.status === 'operational' ? 'operational' : 
+                                               service.status === 'degraded' ? 'degraded' : 'down';
+                            const statusText = service.status === 'operational' ? 'Operational' :
+                                              service.status === 'degraded' ? 'Degraded' : 'Down';
+                            
+                            html += \`<div class="service">
+                                <div>
+                                    <strong>\${service.name}</strong><br>
+                                    <small>\${service.description}</small>
+                                </div>
+                                <div class="service-status \${statusClass}">\${statusText}</div>
+                            </div>\`;
+                        });
+                        
+                        html += '</div>';
+                    }
+                    
+                    container.innerHTML = html;
+                }
+                
+                function updateLastUpdated(timestamp) {
+                    const container = document.getElementById('last-updated');
+                    const date = new Date(timestamp);
+                    container.textContent = \`Last updated: \${date.toLocaleString()}\`;
+                }
+                
+                // Load initial status
+                loadStatus();
+                
+                // Refresh every 30 seconds
+                setInterval(loadStatus, 30000);
+            </script>
+        </body>
+        </html>
+        `);
+    });
+    
+    // Schedule service checks
+    const services = config.services || [];
+    services.forEach(service => {
+        const interval = service.check_interval || 60;
+        const cronExpression = \`*/\${interval} * * * * *\`;
+        
+        cron.schedule(cronExpression, () => {
+            statusChecker.checkService(service);
+        });
+    });
+    
+    // Initial check
+    statusChecker.checkAllServices();
+    
+    app.listen(port, () => {
+        console.log(\`Status page running on port \${port}\`);
+    });
+  
+  package.json: |
+    {
+      "name": "status-page",
+      "version": "1.0.0",
+      "description": "Public status page for Modulo platform",
+      "main": "status-page.js",
+      "dependencies": {
+        "express": "^4.18.0",
+        "sqlite3": "^5.1.0",
+        "node-cron": "^3.0.0",
+        "axios": "^1.4.0",
+        "js-yaml": "^4.1.0"
+      },
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: status-page
+  namespace: incident-response
+  labels:
+    app: status-page
+spec:
+  selector:
+    app: status-page
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: status-page-ingress
+  namespace: incident-response
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - status.modulo.example.com
+    secretName: status-page-tls
+  rules:
+  - host: status.modulo.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: status-page
+            port:
+              number: 80

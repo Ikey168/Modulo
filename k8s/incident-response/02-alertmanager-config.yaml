@@ -1,0 +1,255 @@
+# AlertManager Configuration for PagerDuty Integration
+# Routes alerts to PagerDuty based on severity and service
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-pagerduty-config
+  namespace: incident-response
+data:
+  alertmanager.yml: |
+    global:
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+    
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'web.hook'
+      routes:
+      # Critical alerts go to PagerDuty
+      - match:
+          severity: critical
+        receiver: pagerduty-critical
+        group_wait: 10s
+        repeat_interval: 5m
+      
+      # Warning alerts go to Slack
+      - match:
+          severity: warning
+        receiver: slack-warnings
+        group_wait: 5m
+        repeat_interval: 12h
+      
+      # Infrastructure alerts
+      - match_re:
+          alertname: ^(NodeDown|NodeMemoryHigh|NodeDiskHigh)$
+        receiver: pagerduty-infrastructure
+        group_wait: 2m
+        repeat_interval: 10m
+    
+    receivers:
+    - name: 'web.hook'
+      webhook_configs:
+      - url: 'http://pagerduty-integration.incident-response/webhook'
+        send_resolved: true
+    
+    - name: pagerduty-critical
+      pagerduty_configs:
+      - routing_key: 'REPLACE_WITH_PAGERDUTY_ROUTING_KEY'
+        title: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        description: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        severity: 'critical'
+        class: 'ping failure'
+        component: 'modulo-platform'
+        group: 'infrastructure'
+        details:
+          environment: '{{ .CommonLabels.environment }}'
+          service: '{{ .CommonLabels.service }}'
+          instance: '{{ .CommonLabels.instance }}'
+          alertname: '{{ .CommonLabels.alertname }}'
+        links:
+        - href: 'https://grafana.modulo.example.com'
+          text: 'Grafana Dashboard'
+        - href: 'https://prometheus.modulo.example.com'
+          text: 'Prometheus Alerts'
+    
+    - name: pagerduty-infrastructure
+      pagerduty_configs:
+      - routing_key: 'REPLACE_WITH_INFRASTRUCTURE_ROUTING_KEY'
+        title: 'Infrastructure Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        description: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        severity: 'warning'
+        class: 'infrastructure'
+        component: 'kubernetes'
+        group: 'platform'
+    
+    - name: slack-warnings
+      slack_configs:
+      - api_url: 'REPLACE_WITH_SLACK_WEBHOOK_URL'
+        channel: '#alerts'
+        title: 'Warning: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'warning'
+        fields:
+        - title: 'Environment'
+          value: '{{ .CommonLabels.environment }}'
+          short: true
+        - title: 'Service'
+          value: '{{ .CommonLabels.service }}'
+          short: true
+    
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: incident-response-alerts
+  namespace: incident-response
+  labels:
+    app: incident-response
+spec:
+  groups:
+  - name: incident.response
+    rules:
+    # Service availability alerts
+    - alert: ServiceDown
+      expr: up{job=~"modulo-.*"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: "{{ $labels.job }}"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Service {{ $labels.job }} is down"
+        description: "Service {{ $labels.job }} in {{ $labels.environment }} has been down for more than 2 minutes."
+        runbook_url: "https://docs.modulo.example.com/runbooks/service-down"
+    
+    - alert: HighErrorRate
+      expr: |
+        (
+          rate(http_requests_total{status=~"5.."}[5m]) / 
+          rate(http_requests_total[5m])
+        ) * 100 > 10
+      for: 5m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "High error rate detected for {{ $labels.service }}"
+        description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }} in {{ $labels.environment }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/high-error-rate"
+    
+    - alert: HighLatency
+      expr: |
+        histogram_quantile(0.95, 
+          rate(http_request_duration_seconds_bucket[5m])
+        ) > 5
+      for: 5m
+      labels:
+        severity: critical
+        service: "{{ $labels.service }}"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "High latency detected for {{ $labels.service }}"
+        description: "95th percentile latency is {{ $value }}s for service {{ $labels.service }} in {{ $labels.environment }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/high-latency"
+    
+    # Database alerts
+    - alert: DatabaseDown
+      expr: up{job="postgres"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: "database"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Database is down"
+        description: "PostgreSQL database in {{ $labels.environment }} is not responding."
+        runbook_url: "https://docs.modulo.example.com/runbooks/database-down"
+    
+    - alert: DatabaseConnectionsHigh
+      expr: |
+        (
+          pg_stat_database_numbackends / 
+          pg_settings_max_connections
+        ) * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "database"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Database connections are high"
+        description: "Database connection usage is {{ $value | humanizePercentage }} in {{ $labels.environment }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/database-connections"
+    
+    # Infrastructure alerts
+    - alert: NodeDown
+      expr: up{job="node-exporter"} == 0
+      for: 3m
+      labels:
+        severity: critical
+        service: "infrastructure"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Node {{ $labels.instance }} is down"
+        description: "Node {{ $labels.instance }} has been down for more than 3 minutes."
+        runbook_url: "https://docs.modulo.example.com/runbooks/node-down"
+    
+    - alert: NodeMemoryHigh
+      expr: |
+        (
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / 
+          node_memory_MemTotal_bytes
+        ) * 100 > 90
+      for: 10m
+      labels:
+        severity: warning
+        service: "infrastructure"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Node {{ $labels.instance }} memory usage is high"
+        description: "Memory usage is {{ $value | humanizePercentage }} on node {{ $labels.instance }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/high-memory"
+    
+    - alert: NodeDiskHigh
+      expr: |
+        (
+          (node_filesystem_size_bytes - node_filesystem_avail_bytes) / 
+          node_filesystem_size_bytes
+        ) * 100 > 85
+      for: 10m
+      labels:
+        severity: warning
+        service: "infrastructure"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Node {{ $labels.instance }} disk usage is high"
+        description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.device }} at {{ $labels.instance }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/high-disk-usage"
+    
+    # Application-specific alerts
+    - alert: PaymentProcessingFailure
+      expr: |
+        rate(payment_transactions_total{status="failed"}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: critical
+        service: "payments"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Payment processing failures detected"
+        description: "Payment failure rate is {{ $value }} per second in {{ $labels.environment }}."
+        runbook_url: "https://docs.modulo.example.com/runbooks/payment-failures"
+    
+    - alert: QueueBacklog
+      expr: queue_depth > 1000
+      for: 5m
+      labels:
+        severity: warning
+        service: "{{ $labels.queue }}"
+        environment: "{{ $labels.environment }}"
+      annotations:
+        summary: "Queue {{ $labels.queue }} has high backlog"
+        description: "Queue {{ $labels.queue }} has {{ $value }} messages pending processing."
+        runbook_url: "https://docs.modulo.example.com/runbooks/queue-backlog"

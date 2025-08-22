@@ -1,0 +1,195 @@
+# Incident Response Infrastructure
+# Namespace, RBAC, and core infrastructure for incident response
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: incident-response
+  labels:
+    name: incident-response
+    environment: production
+    cost-center: platform
+    team: devops
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-manager
+  namespace: incident-response
+  labels:
+    app: incident-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: incident-manager
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: incident-manager
+subjects:
+- kind: ServiceAccount
+  name: incident-manager
+  namespace: incident-response
+roleRef:
+  kind: ClusterRole
+  name: incident-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-config
+  namespace: incident-response
+data:
+  escalation_policy.yaml: |
+    escalation_policies:
+      - name: "primary-escalation"
+        levels:
+          - level: 1
+            delay_minutes: 0
+            targets:
+              - type: "user"
+                id: "primary-oncall"
+          - level: 2
+            delay_minutes: 15
+            targets:
+              - type: "user"
+                id: "secondary-oncall"
+          - level: 3
+            delay_minutes: 30
+            targets:
+              - type: "user"
+                id: "manager-oncall"
+          - level: 4
+            delay_minutes: 60
+            targets:
+              - type: "schedule"
+                id: "executive-escalation"
+  
+  alert_routing.yaml: |
+    routing_rules:
+      critical_alerts:
+        - service_down
+        - high_error_rate
+        - payment_failures
+        - database_down
+        escalation_policy: "primary-escalation"
+        notification_methods:
+          - pagerduty
+          - sms
+          - phone_call
+      
+      warning_alerts:
+        - high_latency
+        - resource_usage
+        - disk_space_low
+        escalation_policy: "slack-only"
+        notification_methods:
+          - slack
+          - email
+
+  schedules.yaml: |
+    schedules:
+      - name: "primary-oncall"
+        timezone: "UTC"
+        rotation_type: "weekly"
+        users:
+          - name: "DevOps Lead"
+            email: "devops-lead@modulo.example.com"
+            phone: "+1-555-0101"
+          - name: "Senior SRE"
+            email: "sre@modulo.example.com"
+            phone: "+1-555-0102"
+          - name: "Platform Engineer"
+            email: "platform@modulo.example.com"
+            phone: "+1-555-0103"
+      
+      - name: "secondary-oncall"
+        timezone: "UTC"
+        rotation_type: "weekly"
+        offset_weeks: 1
+        users:
+          - name: "Backend Lead"
+            email: "backend@modulo.example.com"
+            phone: "+1-555-0201"
+          - name: "Frontend Lead"
+            email: "frontend@modulo.example.com"
+            phone: "+1-555-0202"
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: incident-response-netpol
+  namespace: incident-response
+spec:
+  podSelector:
+    matchLabels:
+      app: incident-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for PagerDuty API
+    - protocol: TCP
+      port: 80   # HTTP for status checks
+    - protocol: UDP
+      port: 53   # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443  # Kubernetes API
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: incident-response-quota
+  namespace: incident-response
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "10"
+    services: "5"
