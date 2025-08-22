@@ -82,7 +82,7 @@ services:
       - ./database:/flyway/sql
       - ./flyway.conf:/flyway/conf/flyway.conf
       - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf
-    command: ["flyway", "-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
+    command: ["-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
 
   neo4j:
     image: neo4j:5.15-community

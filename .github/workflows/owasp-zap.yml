@@ -115,10 +115,10 @@ jobs:
           SPRING_DATASOURCE_USERNAME=postgres_staging
           SPRING_DATASOURCE_PASSWORD=postgres_staging_$(openssl rand -hex 16)
           
-          # Modulo Security Configuration
-          MODULO_JWT_SECRET=dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==
-          MODULO_API_KEY=zap_staging_api_key_$(openssl rand -hex 16)
-          MODULO_ENCRYPTION_KEY=zap_staging_encryption_key_32_chars
+          # Modulo Security Configuration  
+          MODULO_SECURITY_JWTSECRET=dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==
+          MODULO_SECURITY_APIKEY=mod_$(openssl rand -hex 16)
+          MODULO_SECURITY_ENCRYPTIONKEY=zap_staging_encryption_key_32_chars
           
           # ZAP Scan Configuration
           ZAP_TARGET_URL=http://localhost
