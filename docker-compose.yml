@@ -32,6 +32,9 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:-}
+      - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:-}
+      - MODULO_SECURITY_ENCRYPTION_KEY=${MODULO_SECURITY_ENCRYPTION_KEY:-}
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
     depends_on:
       db:
@@ -57,6 +60,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - modulo-network
     restart: unless-stopped
@@ -81,7 +85,7 @@ services:
       - ./database:/flyway/sql
       - ./flyway.conf:/flyway/conf/flyway.conf
       - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf
-    command: ["flyway", "-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
+    command: ["-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
 
   neo4j:
     image: neo4j:5.15-community

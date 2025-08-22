@@ -51,6 +51,43 @@ springdoc:
     path: /swagger-ui
     operations-sorter: method
 
+# Modulo application-specific configuration
+modulo:
+  security:
+    jwt-secret: dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==
+    jwt-expiration-seconds: 3600
+    api-key: mod_abcdef1234567890
+    encryption-key: test-encryption-key
+    enable-csrf: true
+    enable-cors: true
+    max-login-attempts: 3
+    account-lockout-duration-seconds: 900
+  features:
+    enable-blockchain: true
+    enable-websockets: true
+    enable-grpc: true
+    enable-offline-mode: true
+    enable-plugin-system: true
+    enable-file-upload: true
+    enable-search: true
+    enable-notifications: true
+  performance:
+    max-file-size-mb: 10
+    thread-pool-size: 10
+    request-timeout-ms: 30000
+    cache-size: 1000
+    cache-ttl-seconds: 3600
+  integrations:
+    blockchain:
+      network: localhost
+      rpc-url: http://localhost:8545
+      gas-limit: 8000000
+      gas-price-wei: 20000000000
+    external:
+      api-timeout-ms: 10000
+      max-retries: 3
+      retry-delay-ms: 2000
+
 ---
 spring:
   config:
@@ -93,15 +130,52 @@ grpc:
     port: 9090
     enable-reflection: true
 
+# Modulo application-specific configuration for docker profile
+modulo:
+  security:
+    jwt-secret: ${MODULO_JWT_SECRET:dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==}
+    jwt-expiration-seconds: 3600
+    api-key: ${MODULO_API_KEY:mod_abcdef1234567890}
+    encryption-key: ${MODULO_ENCRYPTION_KEY:docker-encryption-key}
+    enable-csrf: true
+    enable-cors: true
+    max-login-attempts: 3
+    account-lockout-duration-seconds: 900
+  features:
+    enable-blockchain: true
+    enable-websockets: true
+    enable-grpc: true
+    enable-offline-mode: true
+    enable-plugin-system: true
+    enable-file-upload: true
+    enable-search: true
+    enable-notifications: true
+  performance:
+    max-file-size-mb: 10
+    thread-pool-size: 10
+    request-timeout-ms: 30000
+    cache-size: 1000
+    cache-ttl-seconds: 3600
+  integrations:
+    blockchain:
+      network: ${BLOCKCHAIN_NETWORK:mainnet}
+      rpc-url: ${BLOCKCHAIN_RPC_URL:http://localhost:8545}
+      gas-limit: 8000000
+      gas-price-wei: 20000000000
+    external:
+      api-timeout-ms: 10000
+      max-retries: 3
+      retry-delay-ms: 2000
+
 ---
 spring:
   config:
     activate:
       on-profile: staging
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/modulodb_staging}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres_staging}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -134,3 +208,40 @@ grpc:
   server:
     port: 9090
     enable-reflection: true
+
+# Modulo application-specific configuration for staging profile
+modulo:
+  security:
+    jwt-secret: ${MODULO_JWT_SECRET:dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==}
+    jwt-expiration-seconds: 3600
+    api-key: ${MODULO_API_KEY:mod_staging_1234567890}
+    encryption-key: ${MODULO_ENCRYPTION_KEY:staging-encryption-key}
+    enable-csrf: true
+    enable-cors: true
+    max-login-attempts: 5
+    account-lockout-duration-seconds: 1200
+  features:
+    enable-blockchain: true
+    enable-websockets: true
+    enable-grpc: true
+    enable-offline-mode: false
+    enable-plugin-system: true
+    enable-file-upload: true
+    enable-search: true
+    enable-notifications: true
+  performance:
+    max-file-size-mb: 25
+    thread-pool-size: 15
+    request-timeout-ms: 45000
+    cache-size: 2000
+    cache-ttl-seconds: 7200
+  integrations:
+    blockchain:
+      network: ${BLOCKCHAIN_NETWORK:mainnet}
+      rpc-url: ${BLOCKCHAIN_RPC_URL:http://localhost:8545}
+      gas-limit: 8000000
+      gas-price-wei: 20000000000
+    external:
+      api-timeout-ms: 15000
+      max-retries: 5
+      retry-delay-ms: 3000
