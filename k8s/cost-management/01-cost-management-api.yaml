@@ -1,0 +1,364 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-cost-api-secret
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: api-credentials
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+type: Opaque
+stringData:
+  # Azure Service Principal credentials for Cost Management API
+  AZURE_TENANT_ID: "your-tenant-id"
+  AZURE_CLIENT_ID: "your-client-id"
+  AZURE_CLIENT_SECRET: "your-client-secret"
+  AZURE_SUBSCRIPTION_ID: "your-subscription-id"
+  
+  # Cost Management API endpoints
+  AZURE_COST_API_BASE_URL: "https://management.azure.com"
+  AZURE_BILLING_API_BASE_URL: "https://management.azure.com"
+  
+  # Notification credentials
+  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/your/slack/webhook"
+  EMAIL_SMTP_SERVER: "smtp.gmail.com"
+  EMAIL_SMTP_PORT: "587"
+  EMAIL_USERNAME: "alerts@company.com"
+  EMAIL_PASSWORD: "your-email-password"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cost-management-sa
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: service-account
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cost-management-reader
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: rbac
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["cost-management-config"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cost-management-binding
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: rbac
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+subjects:
+- kind: ServiceAccount
+  name: cost-management-sa
+  namespace: cost-management
+roleRef:
+  kind: ClusterRole
+  name: cost-management-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-management-config
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: configuration
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+data:
+  config.yaml: |
+    # Cost Management Configuration
+    azure:
+      cost_api:
+        enabled: true
+        polling_interval: "1h"
+        batch_size: 1000
+        timeout: "30s"
+        retry_attempts: 3
+        retry_delay: "5s"
+      
+      billing_api:
+        enabled: true
+        polling_interval: "6h"
+        include_usage_details: true
+        include_marketplace: true
+      
+      resource_groups:
+        - name: "modulo-dev-rg"
+          environment: "development"
+          cost_center: "engineering"
+        - name: "modulo-staging-rg" 
+          environment: "staging"
+          cost_center: "engineering"
+        - name: "modulo-prod-rg"
+          environment: "production"
+          cost_center: "operations"
+    
+    kubernetes:
+      resource_discovery:
+        enabled: true
+        polling_interval: "5m"
+        include_metrics: true
+        cost_allocation_method: "proportional"
+      
+      namespaces:
+        - name: "modulo"
+          environment: "production"
+          cost_allocation: 0.7
+        - name: "modulo-staging"
+          environment: "staging" 
+          cost_allocation: 0.2
+        - name: "modulo-dev"
+          environment: "development"
+          cost_allocation: 0.1
+    
+    metrics:
+      prometheus:
+        enabled: true
+        push_gateway: "http://prometheus-pushgateway.observability.svc.cluster.local:9091"
+        job_name: "cost-management"
+        push_interval: "1m"
+      
+      custom_metrics:
+        - name: "azure_cost_total"
+          description: "Total Azure cost by resource group"
+          labels: ["resource_group", "environment", "service"]
+        - name: "azure_cost_daily"
+          description: "Daily Azure cost by service"
+          labels: ["service", "environment", "date"]
+        - name: "azure_cost_forecast"
+          description: "Forecasted monthly cost"
+          labels: ["resource_group", "month"]
+    
+    alerts:
+      budget:
+        enabled: true
+        check_interval: "1h"
+        thresholds:
+          warning: 0.8   # 80%
+          critical: 0.95 # 95%
+          emergency: 1.0 # 100%
+      
+      anomaly:
+        enabled: true
+        detection_method: "statistical"
+        sensitivity: "medium"
+        lookback_days: 7
+        threshold_multiplier: 1.5
+    
+    reporting:
+      enabled: true
+      schedule: "0 9 1 * *"  # 9 AM on 1st of each month
+      recipients:
+        - "finance@company.com"
+        - "platform-team@company.com"
+      
+      formats:
+        - "pdf"
+        - "excel"
+        - "json"
+      
+      include_sections:
+        - "executive_summary"
+        - "cost_breakdown"
+        - "top_cost_drivers"
+        - "optimization_recommendations"
+        - "trend_analysis"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-management-api
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: api-service
+    app.kubernetes.io/version: "1.0.0"
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+      app.kubernetes.io/component: api-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: modulo-cost-management
+        app.kubernetes.io/component: api-service
+        app.kubernetes.io/version: "1.0.0"
+        cost-center: "infrastructure"
+        environment: "shared"
+        service: "monitoring"
+        project: "modulo"
+        team: "platform"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: cost-management-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: cost-api
+        image: mcr.microsoft.com/azure-cli:2.53.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Install required tools
+          pip install prometheus-client requests flask azure-mgmt-costmanagement azure-identity
+          
+          # Start cost management service
+          python3 /app/cost_management_service.py
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_TENANT_ID
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_CLIENT_ID
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_CLIENT_SECRET
+        - name: AZURE_SUBSCRIPTION_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-cost-api-secret
+              key: AZURE_SUBSCRIPTION_ID
+        - name: CONFIG_PATH
+          value: "/config/config.yaml"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: app-code
+          mountPath: /app
+          readOnly: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: cost-management-config
+      - name: app-code
+        configMap:
+          name: cost-management-app
+          defaultMode: 0755
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cost-management-service
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: api-service
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: api-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP

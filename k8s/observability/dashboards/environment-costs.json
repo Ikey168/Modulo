@@ -1,0 +1,375 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Environment Cost Analysis",
+    "tags": ["cost", "environment", "finops"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Development Environment Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(azure_cost_monthly{environment=\"development\"})",
+            "legendFormat": "Dev Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 400},
+                {"color": "red", "value": 500}
+              ]
+            },
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Staging Environment Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(azure_cost_monthly{environment=\"staging\"})",
+            "legendFormat": "Staging Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 800},
+                {"color": "red", "value": 1000}
+              ]
+            },
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Production Environment Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(azure_cost_monthly{environment=\"production\"})",
+            "legendFormat": "Prod Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 4000},
+                {"color": "red", "value": 5000}
+              ]
+            },
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Development Budget Utilization",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(sum(azure_cost_monthly{environment=\"development\"}) / sum(azure_budget_monthly{environment=\"development\"})) * 100",
+            "legendFormat": "Dev Budget %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 95}
+              ]
+            },
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 6}
+      },
+      {
+        "id": 5,
+        "title": "Staging Budget Utilization",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(sum(azure_cost_monthly{environment=\"staging\"}) / sum(azure_budget_monthly{environment=\"staging\"})) * 100",
+            "legendFormat": "Staging Budget %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 95}
+              ]
+            },
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 6}
+      },
+      {
+        "id": 6,
+        "title": "Production Budget Utilization",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(sum(azure_cost_monthly{environment=\"production\"}) / sum(azure_budget_monthly{environment=\"production\"})) * 100",
+            "legendFormat": "Prod Budget %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 95}
+              ]
+            },
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 6}
+      },
+      {
+        "id": 7,
+        "title": "Cost Trend by Environment",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (environment) (azure_cost_daily)",
+            "legendFormat": "{{environment}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Service Costs - Development",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (service) (azure_cost_monthly{environment=\"development\"})",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 20}
+      },
+      {
+        "id": 9,
+        "title": "Service Costs - Staging",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (service) (azure_cost_monthly{environment=\"staging\"})",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Service Costs - Production",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (service) (azure_cost_monthly{environment=\"production\"})",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 20}
+      },
+      {
+        "id": 11,
+        "title": "Resource Utilization by Environment",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "avg by (environment) (kubernetes_cpu_usage / kubernetes_cpu_requests) * 100",
+            "legendFormat": "{{environment}}",
+            "format": "table"
+          },
+          {
+            "expr": "avg by (environment) (kubernetes_memory_usage / kubernetes_memory_requests) * 100",
+            "legendFormat": "{{environment}}",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 30},
+                {"color": "green", "value": 60},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 90}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28}
+      }
+    ],
+    "time": {
+      "from": "now-30d",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Environment Cost Analysis",
+    "uid": "environment-costs",
+    "version": 1,
+    "weekStart": ""
+  }
+}

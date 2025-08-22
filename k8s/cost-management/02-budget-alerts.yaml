@@ -1,0 +1,399 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: budget-configuration
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: budget-management
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+data:
+  budgets.yaml: |
+    # Monthly Budget Configuration
+    budgets:
+      development:
+        monthly_limit: 500
+        currency: "USD"
+        reset_period: "monthly"
+        alerts:
+          - threshold: 80  # $400
+            type: "warning"
+            recipients: ["dev-team@company.com", "platform@company.com"]
+            channels: ["#dev-alerts"]
+          - threshold: 95  # $475
+            type: "critical"
+            recipients: ["dev-team@company.com", "platform@company.com", "finance@company.com"]
+            channels: ["#dev-alerts", "#platform-critical"]
+        
+        services:
+          backend: 
+            allocation: 0.4  # $200
+            priority: "high"
+          frontend:
+            allocation: 0.3  # $150
+            priority: "medium"
+          database:
+            allocation: 0.2  # $100
+            priority: "high"
+          monitoring:
+            allocation: 0.1  # $50
+            priority: "low"
+      
+      staging:
+        monthly_limit: 1000
+        currency: "USD"
+        reset_period: "monthly"
+        alerts:
+          - threshold: 80  # $800
+            type: "warning" 
+            recipients: ["staging-team@company.com", "platform@company.com"]
+            channels: ["#staging-alerts"]
+          - threshold: 95  # $950
+            type: "critical"
+            recipients: ["staging-team@company.com", "platform@company.com", "finance@company.com"]
+            channels: ["#staging-alerts", "#platform-critical"]
+        
+        services:
+          backend:
+            allocation: 0.45  # $450
+            priority: "high"
+          frontend:
+            allocation: 0.25  # $250
+            priority: "medium"
+          database:
+            allocation: 0.2   # $200
+            priority: "high"
+          monitoring:
+            allocation: 0.1   # $100
+            priority: "medium"
+      
+      production:
+        monthly_limit: 5000
+        currency: "USD"
+        reset_period: "monthly"
+        alerts:
+          - threshold: 80  # $4000
+            type: "warning"
+            recipients: ["platform@company.com", "sre@company.com"]
+            channels: ["#production-alerts"]
+          - threshold: 95  # $4750
+            type: "critical"
+            recipients: ["platform@company.com", "sre@company.com", "finance@company.com", "management@company.com"]
+            channels: ["#production-critical", "#executive-alerts"]
+          - threshold: 100 # $5000
+            type: "emergency"
+            recipients: ["cto@company.com", "cfo@company.com", "platform@company.com"]
+            channels: ["#executive-alerts", "#emergency-response"]
+            actions: ["restrict-scaling", "notify-on-call"]
+        
+        services:
+          backend:
+            allocation: 0.5   # $2500
+            priority: "critical"
+          frontend:
+            allocation: 0.2   # $1000
+            priority: "high"
+          database:
+            allocation: 0.25  # $1250
+            priority: "critical"
+          monitoring:
+            allocation: 0.05  # $250
+            priority: "medium"
+    
+    # Anomaly Detection Configuration
+    anomaly_detection:
+      enabled: true
+      sensitivity: "medium"
+      algorithms:
+        - name: "statistical"
+          threshold_multiplier: 1.5
+          lookback_days: 7
+          confidence_level: 0.95
+        - name: "trend_analysis"
+          trend_window: 14
+          seasonal_adjustment: true
+          growth_threshold: 0.2
+      
+      alert_conditions:
+        daily_spike:
+          threshold: 1.5  # 150% of daily average
+          lookback_days: 7
+          severity: "warning"
+        
+        weekly_trend:
+          threshold: 1.3  # 130% of weekly average
+          lookback_weeks: 4
+          severity: "warning"
+        
+        monthly_acceleration:
+          threshold: 1.2  # 120% of monthly average
+          lookback_months: 3
+          severity: "critical"
+    
+    # Notification Configuration
+    notifications:
+      email:
+        enabled: true
+        smtp_server: "smtp.gmail.com"
+        smtp_port: 587
+        templates:
+          warning: "budget_warning_template.html"
+          critical: "budget_critical_template.html"
+          emergency: "budget_emergency_template.html"
+      
+      slack:
+        enabled: true
+        templates:
+          warning: "budget_warning_slack.json"
+          critical: "budget_critical_slack.json"
+          emergency: "budget_emergency_slack.json"
+      
+      webhook:
+        enabled: true
+        endpoints:
+          - url: "https://api.pagerduty.com/incidents"
+            severity: ["critical", "emergency"]
+            auth_header: "Authorization: Token your-pagerduty-token"
+          - url: "https://hooks.slack.com/services/your/webhook/url"
+            severity: ["warning", "critical", "emergency"]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cost-budget-alerts
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: alerting
+    prometheus: kube-prometheus
+    role: alert-rules
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  groups:
+  - name: cost.budget.rules
+    interval: 1h
+    rules:
+    # Budget Usage Percentage Rules
+    - alert: BudgetWarning
+      expr: (azure_cost_monthly / azure_budget_monthly) * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "cost-management"
+        alert_type: "budget"
+      annotations:
+        summary: "Monthly budget warning threshold exceeded"
+        description: "Environment {{ $labels.environment }} has exceeded 80% of monthly budget. Current usage: {{ $value }}%"
+        runbook_url: "https://docs.company.com/runbooks/cost-management#budget-warnings"
+    
+    - alert: BudgetCritical
+      expr: (azure_cost_monthly / azure_budget_monthly) * 100 > 95
+      for: 2m
+      labels:
+        severity: critical
+        service: "cost-management"
+        alert_type: "budget"
+      annotations:
+        summary: "Monthly budget critical threshold exceeded"
+        description: "Environment {{ $labels.environment }} has exceeded 95% of monthly budget. Current usage: {{ $value }}%. Immediate action required."
+        runbook_url: "https://docs.company.com/runbooks/cost-management#budget-critical"
+    
+    - alert: BudgetExceeded
+      expr: (azure_cost_monthly / azure_budget_monthly) * 100 >= 100
+      for: 1m
+      labels:
+        severity: emergency
+        service: "cost-management"
+        alert_type: "budget"
+      annotations:
+        summary: "Monthly budget exceeded - EMERGENCY"
+        description: "Environment {{ $labels.environment }} has exceeded 100% of monthly budget. Current usage: {{ $value }}%. Emergency response required."
+        runbook_url: "https://docs.company.com/runbooks/cost-management#budget-emergency"
+    
+    # Daily Cost Anomaly Rules
+    - alert: DailyCostSpike
+      expr: azure_cost_daily > azure_cost_daily_avg_7d * 1.5
+      for: 10m
+      labels:
+        severity: warning
+        service: "cost-management"
+        alert_type: "anomaly"
+      annotations:
+        summary: "Daily cost spike detected"
+        description: "Environment {{ $labels.environment }} daily cost (${{ $value }}) is 150% higher than 7-day average"
+        runbook_url: "https://docs.company.com/runbooks/cost-management#cost-anomalies"
+    
+    # Service-Specific Budget Rules
+    - alert: ServiceBudgetWarning
+      expr: (azure_cost_service_monthly / azure_budget_service_monthly) * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: "cost-management"
+        alert_type: "service-budget"
+      annotations:
+        summary: "Service budget warning"
+        description: "Service {{ $labels.service }} in {{ $labels.environment }} has exceeded 80% of allocated budget"
+    
+    # Weekly Trend Analysis
+    - alert: WeeklyCostTrend
+      expr: azure_cost_weekly > azure_cost_weekly_avg_4w * 1.3
+      for: 30m
+      labels:
+        severity: warning
+        service: "cost-management"
+        alert_type: "trend"
+      annotations:
+        summary: "Weekly cost trend anomaly"
+        description: "Environment {{ $labels.environment }} weekly cost trend shows 30% increase over 4-week average"
+    
+    # Resource Efficiency Rules
+    - alert: LowResourceUtilization
+      expr: (kubernetes_cpu_usage / kubernetes_cpu_requests) < 0.3
+      for: 2h
+      labels:
+        severity: info
+        service: "cost-management"
+        alert_type: "efficiency"
+      annotations:
+        summary: "Low resource utilization detected"
+        description: "Namespace {{ $labels.namespace }} CPU utilization is below 30% - potential cost optimization opportunity"
+        runbook_url: "https://docs.company.com/runbooks/cost-management#resource-optimization"
+    
+    - alert: OverProvisionedMemory
+      expr: (kubernetes_memory_usage / kubernetes_memory_requests) < 0.3
+      for: 2h
+      labels:
+        severity: info
+        service: "cost-management"
+        alert_type: "efficiency"
+      annotations:
+        summary: "Over-provisioned memory detected"
+        description: "Namespace {{ $labels.namespace }} memory utilization is below 30% - consider reducing memory requests"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-monitor
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: budget-monitor
+    app.kubernetes.io/version: "1.0.0"
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+      app.kubernetes.io/component: budget-monitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: modulo-cost-management
+        app.kubernetes.io/component: budget-monitor
+        app.kubernetes.io/version: "1.0.0"
+        cost-center: "infrastructure"
+        environment: "shared"
+        service: "monitoring"
+        project: "modulo"
+        team: "platform"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: cost-management-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: budget-monitor
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install prometheus-client requests pyyaml schedule
+          python3 /app/budget_monitor.py
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: BUDGET_CONFIG_PATH
+          value: "/config/budgets.yaml"
+        - name: PROMETHEUS_GATEWAY
+          value: "http://prometheus-pushgateway.observability.svc.cluster.local:9091"
+        volumeMounts:
+        - name: budget-config
+          mountPath: /config
+          readOnly: true
+        - name: budget-app
+          mountPath: /app
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: budget-config
+        configMap:
+          name: budget-configuration
+      - name: budget-app
+        configMap:
+          name: budget-monitor-app
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: budget-monitor-service
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: budget-monitor
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  selector:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: budget-monitor
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

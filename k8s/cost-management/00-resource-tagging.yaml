@@ -1,0 +1,235 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cost-management
+  labels:
+    name: cost-management
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: finops
+    cost-center: "infrastructure"
+    environment: "shared"
+    project: "modulo"
+    team: "platform"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resource-tagging-policy
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: tagging
+data:
+  tagging-policy.yaml: |
+    # Resource Tagging Policy for Cost Allocation
+    # This policy defines required tags for all Kubernetes resources
+    
+    required_tags:
+      cost-center:
+        description: "Cost center for billing allocation"
+        allowed_values:
+          - "engineering"
+          - "infrastructure" 
+          - "operations"
+          - "security"
+        default: "engineering"
+      
+      environment:
+        description: "Deployment environment"
+        allowed_values:
+          - "development"
+          - "staging" 
+          - "production"
+        required: true
+      
+      service:
+        description: "Application service component"
+        allowed_values:
+          - "backend"
+          - "frontend"
+          - "database"
+          - "monitoring"
+          - "networking"
+        required: true
+      
+      project:
+        description: "Project name for cost tracking"
+        default: "modulo"
+        required: true
+      
+      team:
+        description: "Owning team for resource management"
+        allowed_values:
+          - "platform"
+          - "backend"
+          - "frontend"
+          - "data"
+        required: true
+    
+    # Environment-specific tag mappings
+    environment_mappings:
+      development:
+        cost-center: "engineering"
+        billing-code: "DEV-001"
+        budget-alert-threshold: 500
+      
+      staging:
+        cost-center: "engineering" 
+        billing-code: "STG-001"
+        budget-alert-threshold: 1000
+      
+      production:
+        cost-center: "operations"
+        billing-code: "PROD-001"
+        budget-alert-threshold: 5000
+    
+    # Service-specific cost allocations
+    service_allocations:
+      backend:
+        primary-cost-driver: "compute"
+        scaling-impact: "high"
+        optimization-priority: "performance"
+      
+      frontend:
+        primary-cost-driver: "bandwidth"
+        scaling-impact: "medium"
+        optimization-priority: "availability"
+      
+      database:
+        primary-cost-driver: "storage"
+        scaling-impact: "high"
+        optimization-priority: "reliability"
+      
+      monitoring:
+        primary-cost-driver: "data-ingestion"
+        scaling-impact: "low"
+        optimization-priority: "observability"
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cost-management-network-policy
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: security
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "networking"
+    project: "modulo"
+    team: "platform"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: modulo-cost-management
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: observability
+    - namespaceSelector:
+        matchLabels:
+          name: modulo
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for Azure API
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cost-management-quota
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: resource-management
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4" 
+    limits.memory: 8Gi
+    pods: "10"
+    persistentvolumeclaims: "2"
+    services: "5"
+    secrets: "10"
+    configmaps: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cost-management-limits
+  namespace: cost-management
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: resource-management
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "monitoring"
+    project: "modulo"
+    team: "platform"
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 1Gi
+    defaultRequest:
+      cpu: 100m
+      memory: 256Mi
+    type: Container
+  - max:
+      cpu: "2"
+      memory: 4Gi
+    min:
+      cpu: 50m
+      memory: 128Mi
+    type: Container
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: cost-management-psp
+  labels:
+    app.kubernetes.io/name: modulo-cost-management
+    app.kubernetes.io/component: security
+    cost-center: "infrastructure"
+    environment: "shared"
+    service: "security"
+    project: "modulo"
+    team: "platform"
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'

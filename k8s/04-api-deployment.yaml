@@ -5,6 +5,11 @@ metadata:
   namespace: modulo
   labels:
     app: spring-boot-api
+    cost-center: "engineering"
+    environment: "production"
+    service: "backend"
+    project: "modulo"
+    team: "backend"
 spec:
   replicas: 2 # Increased for better availability
   selector:
@@ -14,6 +19,11 @@ spec:
     metadata:
       labels:
         app: spring-boot-api
+        cost-center: "engineering"
+        environment: "production"
+        service: "backend"
+        project: "modulo"
+        team: "backend"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"

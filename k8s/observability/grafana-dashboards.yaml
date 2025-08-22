@@ -5,6 +5,237 @@ metadata:
   name: grafana-dashboards-app
   namespace: observability
 data:
+  cost-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "💰 Cost Management Overview",
+        "tags": ["cost", "finops", "budget"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Total Monthly Cost",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(azure_cost_monthly)",
+                "legendFormat": "Total Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 4000},
+                    {"color": "red", "value": 5000}
+                  ]
+                },
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Budget Utilization",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "(sum(azure_cost_monthly) / sum(azure_budget_monthly)) * 100",
+                "legendFormat": "Budget Usage %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 80},
+                    {"color": "red", "value": 95}
+                  ]
+                },
+                "min": 0,
+                "max": 100,
+                "unit": "percent"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Cost by Environment",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "sum by (environment) (azure_cost_monthly)",
+                "legendFormat": "{{environment}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Top Cost Drivers",
+            "type": "barchart",
+            "targets": [
+              {
+                "expr": "topk(5, sum by (service) (azure_cost_monthly))",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Daily Cost Trend",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "sum(azure_cost_daily)",
+                "legendFormat": "Daily Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-30d", "to": "now"},
+        "title": "Cost Management Overview",
+        "uid": "cost-overview",
+        "version": 1
+      }
+    }
+  environment-costs.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "🏢 Environment Cost Analysis",
+        "tags": ["cost", "environment", "finops"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Development Cost",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(azure_cost_monthly{environment=\"development\"})",
+                "legendFormat": "Dev Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 400},
+                    {"color": "red", "value": 500}
+                  ]
+                },
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Staging Cost",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(azure_cost_monthly{environment=\"staging\"})",
+                "legendFormat": "Staging Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 800},
+                    {"color": "red", "value": 1000}
+                  ]
+                },
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Production Cost",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(azure_cost_monthly{environment=\"production\"})",
+                "legendFormat": "Prod Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 4000},
+                    {"color": "red", "value": 5000}
+                  ]
+                },
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Cost Trend by Environment",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "sum by (environment) (azure_cost_daily)",
+                "legendFormat": "{{environment}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6}
+          }
+        ],
+        "time": {"from": "now-30d", "to": "now"},
+        "title": "Environment Cost Analysis",
+        "uid": "environment-costs",
+        "version": 1
+      }
+    }
   app-performance.json: |
     {
       "dashboard": {
