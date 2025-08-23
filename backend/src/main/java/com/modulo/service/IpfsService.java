@@ -2,7 +2,7 @@ package com.modulo.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.model.Note;
+import com.modulo.entity.Note;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Service for interacting with IPFS (InterPlanetary File System)
@@ -413,7 +414,10 @@ public class IpfsService {
         metadata.put("id", String.valueOf(note.getId()));
         metadata.put("userId", String.valueOf(note.getUserId()));
         if (note.getTags() != null) {
-            metadata.put("tags", note.getTags());
+            String tagNames = note.getTags().stream()
+                .map(tag -> tag.getName())
+                .collect(Collectors.joining(","));
+            metadata.put("tags", tagNames);
         }
         
         return uploadNote(note.getTitle(), note.getContent(), note.getMarkdownContent(), metadata);
