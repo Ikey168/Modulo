@@ -178,7 +178,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(Map.of("totalCount", count));
             })
             .exceptionally(throwable -> {
-                log.error("Failed to get note count: {}", throwable.getMessage());
+                log.error("Failed to get note count: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .<Map<String, Long>>body(null);
             });
@@ -198,7 +198,7 @@ public class BlockchainController {
             @Valid @RequestBody NoteUpdateRequest request,
             Authentication authentication) {
         
-        log.info("Updating note {} for user: {}", id, authentication.getName());
+        log.info("Updating note {} for user: {}", LogSanitizer.sanitizeId(id), LogSanitizer.sanitize(authentication.getName()));
 
         return blockchainService.updateNote(id, request.getNewContent(), authentication.getName())
             .thenApply(result -> {
@@ -206,7 +206,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to update note: {}", throwable.getMessage());
+                log.error("Failed to update note: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to update note: " + throwable.getMessage()));
             });
@@ -228,7 +228,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(status);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to get network status: {}", throwable.getMessage());
+                log.error("Failed to get network status: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to get network status: " + throwable.getMessage()));
             });
@@ -248,7 +248,7 @@ public class BlockchainController {
                 "hash", hash
             ));
         } catch (Exception e) {
-            log.error("Failed to generate hash: {}", e.getMessage());
+            log.error("Failed to generate hash: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "Failed to generate hash: " + e.getMessage()));
         }
