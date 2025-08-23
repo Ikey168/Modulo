@@ -39,7 +39,10 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "husky": "^9.1.7"
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "hardhat-gas-reporter": "^2.3.0",
+    "husky": "^9.1.7",
+    "solidity-coverage": "^0.8.16"
   },
   "engines": {
     "node": ">=18.0.0",

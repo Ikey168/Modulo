@@ -1,5 +1,8 @@
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require("hardhat-gas-reporter");
+require("solidity-coverage");
+require("@nomiclabs/hardhat-waffle");
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -9,13 +12,17 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1000, // Increased for better gas optimization
       },
+      viaIR: true, // Enable IR optimization
     },
   },
   networks: {
     hardhat: {
       chainId: 1337,
+      gas: 12000000,
+      blockGasLimit: 12000000,
+      allowUnlimitedContractSize: true,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
@@ -46,6 +53,24 @@ module.exports = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    gasPrice: 20, // gwei
+    showTimeSpent: true,
+    showMethodSig: true,
+    maxMethodDiff: 10,
+    outputFile: "gas-reports/gas-report.txt",
+    noColors: false,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+  },
+  mocha: {
+    timeout: 60000, // 60 seconds
+    reporter: "spec",
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+    reports: "./reports",
   },
   etherscan: {
     apiKey: {
