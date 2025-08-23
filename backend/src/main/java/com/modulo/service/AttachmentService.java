@@ -72,7 +72,7 @@ public class AttachmentService {
             blobClient.upload(file.getInputStream(), file.getSize(), true);
             blobClient.setHttpHeaders(headers);
 
-            log.info("File uploaded to blob storage: {}", blobName);
+            log.info("File uploaded to blob storage: {}", LogSanitizer.sanitize(blobName));
 
             // Create attachment entity
             Attachment attachment = Attachment.builder()
@@ -163,7 +163,7 @@ public class AttachmentService {
 
             if (blobClient.exists()) {
                 blobClient.delete();
-                log.info("Blob deleted from storage: {}", attachment.getBlobName());
+                log.info("Blob deleted from storage: {}", LogSanitizer.sanitize(attachment.getBlobName()));
             }
 
             // Delete from database
@@ -250,7 +250,7 @@ public class AttachmentService {
             var containerClient = blobServiceClient.getBlobContainerClient(containerName);
             if (!containerClient.exists()) {
                 containerClient.createWithResponse(null, PublicAccessType.BLOB, null, null);
-                log.info("Created blob container: {}", containerName);
+                log.info("Created blob container: {}", LogSanitizer.sanitize(containerName));
             }
         } catch (Exception e) {
             log.error("Error ensuring container exists: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);

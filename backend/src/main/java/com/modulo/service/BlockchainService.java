@@ -114,7 +114,7 @@ public class BlockchainService {
                 }
 
                 String transactionHash = ethSendTransaction.getTransactionHash();
-                log.info("✅ Note registered successfully with transaction hash: {}", transactionHash);
+                log.info("✅ Note registered successfully with transaction hash: {}", LogSanitizer.sanitize(transactionHash));
 
                 // Get the note ID from transaction receipt (simplified for now)
                 long noteId = System.currentTimeMillis() % 10000; // Placeholder for actual event parsing
@@ -409,7 +409,7 @@ public class BlockchainService {
                 }
 
                 String transactionHash = ethSendTransaction.getTransactionHash();
-                log.info("✅ Note updated successfully with transaction hash: {}", transactionHash);
+                log.info("✅ Note updated successfully with transaction hash: {}", LogSanitizer.sanitize(transactionHash));
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
