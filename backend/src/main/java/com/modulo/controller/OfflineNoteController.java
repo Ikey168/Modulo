@@ -2,6 +2,7 @@ package com.modulo.controller;
 
 import com.modulo.entity.offline.OfflineNote;
 import com.modulo.service.OfflineSyncService;
+import com.modulo.util.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class OfflineNoteController {
     @PostMapping
     public ResponseEntity<OfflineNote> createNote(@RequestBody OfflineNoteCreateRequest request) {
         try {
-            log.info("Creating offline note: {}", request.getTitle());
+            log.info("Creating offline note: {}", LogSanitizer.sanitize(request.getTitle()));
             
             Set<String> tags = request.getTagNames() != null ? 
                 new HashSet<>(request.getTagNames()) : new HashSet<>();
@@ -71,7 +72,7 @@ public class OfflineNoteController {
     @PutMapping("/{id}")
     public ResponseEntity<OfflineNote> updateNote(@PathVariable Long id, @RequestBody OfflineNoteUpdateRequest request) {
         try {
-            log.info("Updating offline note: {}", id);
+            log.info("Updating offline note: {}", LogSanitizer.sanitizeId(id));
             
             Set<String> tags = request.getTagNames() != null ? 
                 new HashSet<>(request.getTagNames()) : new HashSet<>();
@@ -85,10 +86,10 @@ public class OfflineNoteController {
             
             return ResponseEntity.ok(note);
         } catch (RuntimeException e) {
-            log.error("Error updating offline note: {}", id, e);
+            log.error("Error updating offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error updating offline note: {}", id, e);
+            log.error("Error updating offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -99,11 +100,11 @@ public class OfflineNoteController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
         try {
-            log.info("Deleting offline note: {}", id);
+            log.info("Deleting offline note: {}", LogSanitizer.sanitizeId(id));
             offlineSyncService.deleteOfflineNote(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            log.error("Error deleting offline note: {}", id, e);
+            log.error("Error deleting offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -114,7 +115,7 @@ public class OfflineNoteController {
     @GetMapping("/search")
     public ResponseEntity<List<OfflineNote>> searchNotes(@RequestParam String query) {
         try {
-            log.info("Searching offline notes: {}", query);
+            log.info("Searching offline notes: {}", LogSanitizer.sanitize(query));
             List<OfflineNote> notes = offlineSyncService.searchOfflineNotes(query);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
@@ -129,7 +130,7 @@ public class OfflineNoteController {
     @GetMapping("/tag/{tagName}")
     public ResponseEntity<List<OfflineNote>> getNotesByTag(@PathVariable String tagName) {
         try {
-            log.info("Getting offline notes by tag: {}", tagName);
+            log.info("Getting offline notes by tag: {}", LogSanitizer.sanitize(tagName));
             List<OfflineNote> notes = offlineSyncService.getOfflineNotesByTag(tagName);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {

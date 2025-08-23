@@ -1,6 +1,7 @@
 package com.modulo.config;
 
 import com.modulo.service.AttachmentService;
+import com.modulo.util.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ public class AzureBlobStorageInitializer {
             attachmentService.ensureContainerExists();
             log.info("Azure Blob Storage initialization completed successfully");
         } catch (Exception e) {
-            log.error("Error ensuring container exists: {}", e.getMessage());
+            log.error("Error ensuring container exists: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             log.info("Azure Blob Storage initialization completed successfully");
         }
     }

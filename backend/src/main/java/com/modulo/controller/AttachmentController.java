@@ -3,6 +3,7 @@ package com.modulo.controller;
 import com.modulo.dto.AttachmentDto;
 import com.modulo.dto.AttachmentUploadResponse;
 import com.modulo.service.AttachmentService;
+import com.modulo.util.LogSanitizer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,7 +46,7 @@ public class AttachmentController {
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
-            log.error("Error uploading attachment: {}", e.getMessage(), e);
+            log.error("Error uploading attachment: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
             AttachmentUploadResponse errorResponse = AttachmentUploadResponse.builder()
                     .message("Error uploading file: " + e.getMessage())
                     .success(false)
@@ -63,7 +64,7 @@ public class AttachmentController {
             List<AttachmentDto> attachments = attachmentService.getAttachmentsByNoteId(noteId);
             return ResponseEntity.ok(attachments);
         } catch (Exception e) {
-            log.error("Error getting attachments for note {}: {}", noteId, e.getMessage(), e);
+            log.error("Error getting attachments for note {}: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -79,7 +80,7 @@ public class AttachmentController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error getting attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error getting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -95,7 +96,7 @@ public class AttachmentController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error getting download URL for attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error getting download URL for attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -118,7 +119,7 @@ public class AttachmentController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error deleting attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -141,7 +142,7 @@ public class AttachmentController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error hard deleting attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error hard deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -153,7 +154,7 @@ public class AttachmentController {
             attachmentService.ensureContainerExists();
             return ResponseEntity.ok("Container ensured");
         } catch (Exception e) {
-            log.error("Error ensuring container exists: {}", e.getMessage(), e);
+            log.error("Error ensuring container exists: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error ensuring container: " + e.getMessage());
         }

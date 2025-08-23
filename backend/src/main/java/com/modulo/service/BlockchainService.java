@@ -1,6 +1,7 @@
 package com.modulo.service;
 
 import com.modulo.config.BlockchainConfig;
+import com.modulo.util.LogSanitizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,7 +64,7 @@ public class BlockchainService {
             // Use Web3j's Hash utility which implements Keccak256
             return org.web3j.crypto.Hash.sha3String(content);
         } catch (Exception e) {
-            log.warn("Failed to generate Keccak256 hash, falling back to simple hash: {}", e.getMessage());
+            log.warn("Failed to generate Keccak256 hash, falling back to simple hash: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             // Fallback to simple hash implementation
             return "0x" + Integer.toHexString(content.hashCode()).toLowerCase();
         }
@@ -73,7 +74,7 @@ public class BlockchainService {
      * Register a note on the blockchain
      */
     public CompletableFuture<Map<String, Object>> registerNote(String content, String title, String username) {
-        log.info("Registering note for user: {}, title: {}", username, title);
+        log.info("Registering note for user: {}, title: {}", LogSanitizer.sanitize(username), LogSanitizer.sanitize(title));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -113,7 +114,7 @@ public class BlockchainService {
                 }
 
                 String transactionHash = ethSendTransaction.getTransactionHash();
-                log.info("✅ Note registered successfully with transaction hash: {}", transactionHash);
+                log.info("✅ Note registered successfully with transaction hash: {}", LogSanitizer.sanitize(transactionHash));
 
                 // Get the note ID from transaction receipt (simplified for now)
                 long noteId = System.currentTimeMillis() % 10000; // Placeholder for actual event parsing
@@ -129,7 +130,7 @@ public class BlockchainService {
                 return result;
 
             } catch (Exception e) {
-                log.error("Failed to register note on blockchain: {}", e.getMessage(), e);
+                log.error("Failed to register note on blockchain: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Blockchain registration failed: " + e.getMessage());
             }
         });
@@ -139,7 +140,7 @@ public class BlockchainService {
      * Verify a note exists on the blockchain
      */
     public CompletableFuture<Map<String, Object>> verifyNote(String content, String username) {
-        log.info("Verifying note for user: {}", username);
+        log.info("Verifying note for user: {}", LogSanitizer.sanitize(username));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -204,7 +205,7 @@ public class BlockchainService {
                 return result;
 
             } catch (Exception e) {
-                log.error("Failed to verify note on blockchain: {}", e.getMessage(), e);
+                log.error("Failed to verify note on blockchain: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Blockchain verification failed: " + e.getMessage());
             }
         });
@@ -214,7 +215,7 @@ public class BlockchainService {
      * Verify note integrity by comparing current content with blockchain hash
      */
     public CompletableFuture<Map<String, Object>> verifyNoteIntegrity(Long noteId, String currentContent, String username) {
-        log.info("Verifying note integrity for noteId: {}, user: {}", noteId, username);
+        log.info("Verifying note integrity for noteId: {}, user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -236,11 +237,11 @@ public class BlockchainService {
                 result.put("status", "VERIFIED");
                 result.put("message", "Note integrity verified successfully");
                 
-                log.info("✅ Note integrity verification completed for noteId: {}", noteId);
+                log.info("✅ Note integrity verification completed for noteId: {}", LogSanitizer.sanitizeId(noteId));
                 return result;
 
             } catch (Exception e) {
-                log.error("Failed to verify note integrity: {}", e.getMessage(), e);
+                log.error("Failed to verify note integrity: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Note integrity verification failed: " + e.getMessage());
             }
         });
@@ -250,7 +251,7 @@ public class BlockchainService {
      * Get note details by ID
      */
     public CompletableFuture<Map<String, Object>> getNoteById(Long noteId, String username) {
-        log.info("Getting note details for ID: {}, user: {}", noteId, username);
+        log.info("Getting note details for ID: {}, user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -266,11 +267,11 @@ public class BlockchainService {
                 result.put("timestamp", System.currentTimeMillis());
                 result.put("contractAddress", blockchainConfig.getNoteRegistryAddress());
                 
-                log.info("✅ Retrieved note details for ID: {}", noteId);
+                log.info("✅ Retrieved note details for ID: {}", LogSanitizer.sanitizeId(noteId));
                 return result;
 
             } catch (Exception e) {
-                log.error("Failed to get note details: {}", e.getMessage(), e);
+                log.error("Failed to get note details: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Failed to get note details: " + e.getMessage());
             }
         });
@@ -280,7 +281,7 @@ public class BlockchainService {
      * Get all notes for a user
      */
     public CompletableFuture<List<Map<String, Object>>> getUserNotes(String username) {
-        log.info("Getting all notes for user: {}", username);
+        log.info("Getting all notes for user: {}", LogSanitizer.sanitize(username));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -304,7 +305,7 @@ public class BlockchainService {
                 return notes;
 
             } catch (Exception e) {
-                log.error("Failed to get user notes: {}", e.getMessage(), e);
+                log.error("Failed to get user notes: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Failed to get user notes: " + e.getMessage());
             }
         });
@@ -358,7 +359,7 @@ public class BlockchainService {
                 return count;
 
             } catch (Exception e) {
-                log.error("Failed to get total note count: {}", e.getMessage(), e);
+                log.error("Failed to get total note count: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Failed to get total note count: " + e.getMessage());
             }
         });
@@ -368,7 +369,7 @@ public class BlockchainService {
      * Update note content
      */
     public CompletableFuture<Map<String, Object>> updateNote(Long noteId, String newContent, String username) {
-        log.info("Updating note {} for user: {}", noteId, username);
+        log.info("Updating note {} for user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         if (!isBlockchainAvailable()) {
             log.warn("Blockchain not available, using placeholder implementation");
@@ -408,7 +409,7 @@ public class BlockchainService {
                 }
 
                 String transactionHash = ethSendTransaction.getTransactionHash();
-                log.info("✅ Note updated successfully with transaction hash: {}", transactionHash);
+                log.info("✅ Note updated successfully with transaction hash: {}", LogSanitizer.sanitize(transactionHash));
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
@@ -420,7 +421,7 @@ public class BlockchainService {
                 return result;
 
             } catch (Exception e) {
-                log.error("Failed to update note on blockchain: {}", e.getMessage(), e);
+                log.error("Failed to update note on blockchain: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 throw new RuntimeException("Blockchain update failed: " + e.getMessage());
             }
         });
@@ -456,7 +457,7 @@ public class BlockchainService {
                 return status;
 
             } catch (Exception e) {
-                log.error("Failed to get network status: {}", e.getMessage(), e);
+                log.error("Failed to get network status: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
                 Map<String, Object> status = new HashMap<>();
                 status.put("connected", false);
                 status.put("error", e.getMessage());
@@ -468,7 +469,7 @@ public class BlockchainService {
     // Placeholder implementations for fallback
     
     private CompletableFuture<Map<String, Object>> registerNotePlaceholder(String content, String title, String username) {
-        log.info("Placeholder: Registering note for user: {}, title: {}", username, title);
+        log.info("Placeholder: Registering note for user: {}, title: {}", LogSanitizer.sanitize(username), LogSanitizer.sanitize(title));
         
         return CompletableFuture.supplyAsync(() -> {
             Map<String, Object> result = new HashMap<>();
@@ -483,7 +484,7 @@ public class BlockchainService {
     }
 
     private CompletableFuture<Map<String, Object>> verifyNotePlaceholder(String content, String username) {
-        log.info("Placeholder: Verifying note for user: {}", username);
+        log.info("Placeholder: Verifying note for user: {}", LogSanitizer.sanitize(username));
         
         return CompletableFuture.supplyAsync(() -> {
             Map<String, Object> result = new HashMap<>();
@@ -498,7 +499,7 @@ public class BlockchainService {
     }
 
     private CompletableFuture<Map<String, Object>> verifyNoteIntegrityPlaceholder(Long noteId, String currentContent, String username) {
-        log.info("Placeholder: Verifying note integrity for noteId: {}, user: {}", noteId, username);
+        log.info("Placeholder: Verifying note integrity for noteId: {}, user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         return CompletableFuture.supplyAsync(() -> {
             String currentContentHash = generateContentHash(currentContent);
@@ -515,13 +516,13 @@ public class BlockchainService {
             result.put("message", "Note integrity verified successfully");
             result.put("placeholder", true);
             
-            log.info("Placeholder: Note integrity verification completed for noteId: {}", noteId);
+            log.info("Placeholder: Note integrity verification completed for noteId: {}", LogSanitizer.sanitizeId(noteId));
             return result;
         });
     }
 
     private CompletableFuture<Map<String, Object>> getNoteByIdPlaceholder(Long noteId, String username) {
-        log.info("Placeholder: Getting note details for ID: {}, user: {}", noteId, username);
+        log.info("Placeholder: Getting note details for ID: {}, user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         return CompletableFuture.supplyAsync(() -> {
             Map<String, Object> result = new HashMap<>();
@@ -536,7 +537,7 @@ public class BlockchainService {
     }
 
     private CompletableFuture<List<Map<String, Object>>> getUserNotesPlaceholder(String username) {
-        log.info("Placeholder: Getting all notes for user: {}", username);
+        log.info("Placeholder: Getting all notes for user: {}", LogSanitizer.sanitize(username));
         
         return CompletableFuture.supplyAsync(() -> {
             List<Map<String, Object>> notes = new ArrayList<>();
@@ -565,7 +566,7 @@ public class BlockchainService {
     }
 
     private CompletableFuture<Map<String, Object>> updateNotePlaceholder(Long noteId, String newContent, String username) {
-        log.info("Placeholder: Updating note {} for user: {}", noteId, username);
+        log.info("Placeholder: Updating note {} for user: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitize(username));
         
         return CompletableFuture.supplyAsync(() -> {
             Map<String, Object> result = new HashMap<>();

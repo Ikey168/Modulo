@@ -11,6 +11,7 @@ import com.modulo.entity.Attachment;
 import com.modulo.entity.Note;
 import com.modulo.repository.AttachmentRepository;
 import com.modulo.repository.NoteRepository;
+import com.modulo.util.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +72,7 @@ public class AttachmentService {
             blobClient.upload(file.getInputStream(), file.getSize(), true);
             blobClient.setHttpHeaders(headers);
 
-            log.info("File uploaded to blob storage: {}", blobName);
+            log.info("File uploaded to blob storage: {}", LogSanitizer.sanitize(blobName));
 
             // Create attachment entity
             Attachment attachment = Attachment.builder()
@@ -101,13 +102,13 @@ public class AttachmentService {
                     .build();
 
         } catch (IOException e) {
-            log.error("Error uploading file: {}", e.getMessage(), e);
+            log.error("Error uploading file: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return AttachmentUploadResponse.builder()
                     .message("Error uploading file: " + e.getMessage())
                     .success(false)
                     .build();
         } catch (Exception e) {
-            log.error("Unexpected error uploading file: {}", e.getMessage(), e);
+            log.error("Unexpected error uploading file: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return AttachmentUploadResponse.builder()
                     .message("Unexpected error: " + e.getMessage())
                     .success(false)
@@ -141,11 +142,11 @@ public class AttachmentService {
             attachment.setIsActive(false);
             attachmentRepository.save(attachment);
 
-            log.info("Attachment soft deleted: {} by {}", attachmentId, deletedBy);
+            log.info("Attachment soft deleted: {} by {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitize(deletedBy));
             return true;
 
         } catch (Exception e) {
-            log.error("Error deleting attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return false;
         }
     }
@@ -162,17 +163,17 @@ public class AttachmentService {
 
             if (blobClient.exists()) {
                 blobClient.delete();
-                log.info("Blob deleted from storage: {}", attachment.getBlobName());
+                log.info("Blob deleted from storage: {}", LogSanitizer.sanitize(attachment.getBlobName()));
             }
 
             // Delete from database
             attachmentRepository.delete(attachment);
 
-            log.info("Attachment hard deleted: {} by {}", attachmentId, deletedBy);
+            log.info("Attachment hard deleted: {} by {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitize(deletedBy));
             return true;
 
         } catch (Exception e) {
-            log.error("Error hard deleting attachment {}: {}", attachmentId, e.getMessage(), e);
+            log.error("Error hard deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return false;
         }
     }
@@ -249,10 +250,10 @@ public class AttachmentService {
             var containerClient = blobServiceClient.getBlobContainerClient(containerName);
             if (!containerClient.exists()) {
                 containerClient.createWithResponse(null, PublicAccessType.BLOB, null, null);
-                log.info("Created blob container: {}", containerName);
+                log.info("Created blob container: {}", LogSanitizer.sanitize(containerName));
             }
         } catch (Exception e) {
-            log.error("Error ensuring container exists: {}", e.getMessage(), e);
+            log.error("Error ensuring container exists: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
         }
     }
 }

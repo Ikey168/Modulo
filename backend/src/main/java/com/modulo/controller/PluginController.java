@@ -10,6 +10,7 @@ import com.modulo.plugin.registry.PluginRegistry;
 import com.modulo.plugin.registry.PluginRegistryEntry;
 import com.modulo.plugin.repository.PluginRepositoryService;
 import com.modulo.plugin.repository.RemotePluginEntry;
+import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +77,7 @@ public class PluginController {
                 .map(plugin -> ResponseEntity.ok(plugin))
                 .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            logger.error("Error getting plugin: " + pluginId, e);
+            logger.error("Error getting plugin: {}", LogSanitizer.sanitize(pluginId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -122,11 +123,11 @@ public class PluginController {
             return ResponseEntity.badRequest().body(response);
         } catch (IOException e) {
             logger.error("File upload failed", e);
-            response.put("error", "File upload failed: " + e.getMessage());
+            response.put("error", "File upload failed: " + LogSanitizer.sanitizeMessage(e.getMessage()));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         } catch (Exception e) {
             logger.error("Unexpected error during plugin installation", e);
-            response.put("error", "Installation failed: " + e.getMessage());
+            response.put("error", "Installation failed: " + LogSanitizer.sanitizeMessage(e.getMessage()));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -147,11 +148,11 @@ public class PluginController {
             return ResponseEntity.ok(response);
             
         } catch (PluginException e) {
-            logger.error("Plugin uninstallation failed: " + pluginId, e);
+            logger.error("Plugin uninstallation failed: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            logger.error("Unexpected error during plugin uninstallation: " + pluginId, e);
+            logger.error("Unexpected error during plugin uninstallation: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", "Uninstallation failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
@@ -173,11 +174,11 @@ public class PluginController {
             return ResponseEntity.ok(response);
             
         } catch (PluginException e) {
-            logger.error("Plugin start failed: " + pluginId, e);
+            logger.error("Plugin start failed: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            logger.error("Unexpected error starting plugin: " + pluginId, e);
+            logger.error("Unexpected error starting plugin: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", "Start failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
@@ -199,11 +200,11 @@ public class PluginController {
             return ResponseEntity.ok(response);
             
         } catch (PluginException e) {
-            logger.error("Plugin stop failed: " + pluginId, e);
+            logger.error("Plugin stop failed: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            logger.error("Unexpected error stopping plugin: " + pluginId, e);
+            logger.error("Unexpected error stopping plugin: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", "Stop failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
@@ -232,7 +233,7 @@ public class PluginController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Error getting plugin status: " + pluginId, e);
+            logger.error("Error getting plugin status: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", "Failed to get status: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
@@ -299,7 +300,7 @@ public class PluginController {
             return ResponseEntity.ok(info);
             
         } catch (Exception e) {
-            logger.error("Error getting plugin info: " + pluginId, e);
+            logger.error("Error getting plugin info: {}", LogSanitizer.sanitize(pluginId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -323,7 +324,7 @@ public class PluginController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Error updating plugin config: " + pluginId, e);
+            logger.error("Error updating plugin config: {}", LogSanitizer.sanitize(pluginId), e);
             response.put("error", "Failed to update configuration: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

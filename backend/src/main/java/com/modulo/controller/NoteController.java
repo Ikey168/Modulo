@@ -4,6 +4,7 @@ import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.ConflictResolutionService;
+import com.modulo.service.IpfsService;
 import com.modulo.service.TagService;
 import com.modulo.service.WebSocketNotificationService;
 import com.modulo.service.OfflineSyncService;
@@ -27,17 +28,20 @@ public class NoteController {
     private final WebSocketNotificationService webSocketNotificationService;
     private final ConflictResolutionService conflictResolutionService;
     private final OfflineSyncService offlineSyncService;
+    private final IpfsService ipfsService;
 
     @Autowired
     public NoteController(NoteRepository noteRepository, TagService tagService, 
                          WebSocketNotificationService webSocketNotificationService,
                          ConflictResolutionService conflictResolutionService,
-                         @Autowired(required = false) OfflineSyncService offlineSyncService) {
+                         @Autowired(required = false) OfflineSyncService offlineSyncService,
+                         @Autowired(required = false) IpfsService ipfsService) {
         this.noteRepository = noteRepository;
         this.tagService = tagService;
         this.webSocketNotificationService = webSocketNotificationService;
         this.conflictResolutionService = conflictResolutionService;
         this.offlineSyncService = offlineSyncService;
+        this.ipfsService = ipfsService;
     }
 
     @PostMapping
@@ -330,6 +334,42 @@ public class NoteController {
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{id}/upload-to-ipfs")
+    public ResponseEntity<Map<String, Object>> uploadNoteToIpfs(@PathVariable Long id) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            
+            if (ipfsService == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "IPFS service is not available");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+            }
+
+            String ipfsCid = ipfsService.uploadNoteToIpfs(note);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("noteId", id);
+            response.put("ipfsCid", ipfsCid);
+            response.put("gatewayUrl", ipfsService.getGatewayUrl(ipfsCid));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

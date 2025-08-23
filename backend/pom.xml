@@ -127,6 +127,28 @@
             <version>4.9.8</version>
         </dependency>
 
+        <!-- IPFS HTTP Client for decentralized storage - using HTTP client approach -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+
+        <!-- JSON processing for IPFS metadata -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- CommonMark Java for Markdown parsing -->
         <dependency>
             <groupId>org.commonmark</groupId>
