@@ -2,17 +2,21 @@ package com.modulo.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.ipfs.api.IPFS;
-import io.ipfs.api.MerkleNode;
-import io.ipfs.api.NamedStreamable;
-import io.ipfs.multihash.Multihash;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -42,33 +46,19 @@ public class IpfsService {
     @Value("${modulo.integrations.ipfs.enabled:true}")
     private boolean ipfsEnabled;
 
-    private IPFS ipfs;
+    private CloseableHttpClient httpClient;
     private ObjectMapper objectMapper;
 
     @PostConstruct
     public void initialize() {
         this.objectMapper = new ObjectMapper();
+        this.httpClient = HttpClients.createDefault();
         
         if (ipfsEnabled) {
             try {
-                // Parse IPFS node URL to extract host and port
-                String host = "localhost";
-                int port = 5001;
-                
-                if (ipfsNodeUrl.startsWith("http://")) {
-                    String urlPart = ipfsNodeUrl.substring(7);
-                    String[] parts = urlPart.split(":");
-                    host = parts[0];
-                    if (parts.length > 1) {
-                        port = Integer.parseInt(parts[1]);
-                    }
-                }
-                
-                this.ipfs = new IPFS(host, port);
-                
-                // Test connection
-                String version = ipfs.version();
-                logger.info("Connected to IPFS node version: {}", version);
+                // Test IPFS node connection
+                testConnection();
+                logger.info("Connected to IPFS node at: {}", ipfsNodeUrl);
                 
             } catch (Exception e) {
                 logger.error("Failed to connect to IPFS node: {}", e.getMessage());
@@ -77,6 +67,16 @@ public class IpfsService {
             }
         } else {
             logger.info("IPFS is disabled by configuration");
+        }
+    }
+
+    private void testConnection() throws IOException {
+        HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/version");
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpResponse response = client.execute(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new IOException("IPFS node not responding properly");
+            }
         }
     }
 
@@ -107,15 +107,26 @@ public class IpfsService {
         // Convert to JSON
         String jsonContent = objectMapper.writeValueAsString(noteData);
         
-        // Upload to IPFS
-        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(
-            "note.json", 
-            jsonContent.getBytes(StandardCharsets.UTF_8)
-        );
+        // Upload to IPFS using HTTP API
+        HttpPost request = new HttpPost(ipfsNodeUrl + "/api/v0/add");
+        
+        HttpEntity entity = MultipartEntityBuilder.create()
+                .addPart("file", new StringBody(jsonContent, org.apache.http.entity.ContentType.APPLICATION_JSON))
+                .build();
+        
+        request.setEntity(entity);
 
         try {
-            List<MerkleNode> result = ipfs.add(file);
-            String cid = result.get(0).hash.toString();
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new IOException("IPFS upload failed: " + responseBody);
+            }
+            
+            // Parse response to get CID
+            JsonNode responseJson = objectMapper.readTree(responseBody);
+            String cid = responseJson.get("Hash").asText();
             
             logger.info("Successfully uploaded note to IPFS with CID: {}", cid);
             return cid;
@@ -137,13 +148,18 @@ public class IpfsService {
             throw new IllegalStateException("IPFS is not enabled or not available");
         }
 
+        HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/cat?arg=" + cid);
+
         try {
-            Multihash hash = Multihash.fromBase58(cid);
-            byte[] content = ipfs.cat(hash);
-            String jsonContent = new String(content, StandardCharsets.UTF_8);
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new IOException("IPFS retrieval failed: " + responseBody);
+            }
             
             // Parse JSON content
-            JsonNode jsonNode = objectMapper.readTree(jsonContent);
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
             Map<String, Object> noteData = objectMapper.convertValue(jsonNode, Map.class);
             
             logger.info("Successfully retrieved note from IPFS with CID: {}", cid);
@@ -283,8 +299,18 @@ public class IpfsService {
         }
 
         try {
+            HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/version");
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            
             Map<String, Object> nodeInfo = new HashMap<>();
-            nodeInfo.put("version", ipfs.version());
+            if (response.getStatusLine().getStatusCode() == 200) {
+                JsonNode versionInfo = objectMapper.readTree(responseBody);
+                nodeInfo.put("version", versionInfo.get("Version").asText());
+            } else {
+                nodeInfo.put("version", "unknown");
+            }
+            
             nodeInfo.put("nodeUrl", ipfsNodeUrl);
             nodeInfo.put("gatewayUrl", ipfsGatewayUrl);
             nodeInfo.put("enabled", ipfsEnabled);
@@ -298,7 +324,7 @@ public class IpfsService {
     }
 
     /**
-     * Validate CID format
+     * Validate CID format (basic validation)
      * @param cid Content Identifier to validate
      * @return true if CID is valid
      */
@@ -307,12 +333,10 @@ public class IpfsService {
             return false;
         }
 
-        try {
-            Multihash.fromBase58(cid);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+        // Basic CID validation - starts with Qm (v0) or b (v1) and proper length
+        cid = cid.trim();
+        return (cid.startsWith("Qm") && cid.length() == 46) || 
+               (cid.startsWith("b") && cid.length() > 50);
     }
 
     /**
@@ -329,9 +353,19 @@ public class IpfsService {
         }
 
         try {
-            String version = ipfs.version();
-            status.put("status", "connected");
-            status.put("version", version);
+            HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/version");
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+            
+            if (response.getStatusLine().getStatusCode() == 200) {
+                JsonNode versionInfo = objectMapper.readTree(responseBody);
+                status.put("status", "connected");
+                status.put("version", versionInfo.get("Version").asText());
+            } else {
+                status.put("status", "disconnected");
+                status.put("error", "HTTP " + response.getStatusLine().getStatusCode());
+            }
+            
             status.put("nodeUrl", ipfsNodeUrl);
             status.put("gatewayUrl", ipfsGatewayUrl);
         } catch (Exception e) {
