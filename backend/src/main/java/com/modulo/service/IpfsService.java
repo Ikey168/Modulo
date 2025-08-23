@@ -2,6 +2,7 @@ package com.modulo.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.modulo.model.Note;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -213,14 +214,15 @@ public class IpfsService {
         }
 
         try {
-            Multihash hash = Multihash.fromBase58(cid);
-            List<Multihash> pinned = ipfs.pin.add(hash);
+            HttpPost request = new HttpPost(ipfsNodeUrl + "/api/v0/pin/add?arg=" + cid);
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
             
-            boolean success = pinned.contains(hash);
+            boolean success = response.getStatusLine().getStatusCode() == 200;
             if (success) {
                 logger.info("Successfully pinned content with CID: {}", cid);
             } else {
-                logger.warn("Failed to pin content with CID: {}", cid);
+                logger.warn("Failed to pin content with CID: {}, response: {}", cid, responseBody);
             }
             
             return success;
@@ -243,14 +245,15 @@ public class IpfsService {
         }
 
         try {
-            Multihash hash = Multihash.fromBase58(cid);
-            List<Multihash> unpinned = ipfs.pin.rm(hash);
+            HttpPost request = new HttpPost(ipfsNodeUrl + "/api/v0/pin/rm?arg=" + cid);
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
             
-            boolean success = unpinned.contains(hash);
+            boolean success = response.getStatusLine().getStatusCode() == 200;
             if (success) {
                 logger.info("Successfully unpinned content with CID: {}", cid);
             } else {
-                logger.warn("Failed to unpin content with CID: {}", cid);
+                logger.warn("Failed to unpin content with CID: {}, response: {}", cid, responseBody);
             }
             
             return success;
@@ -281,8 +284,9 @@ public class IpfsService {
 
         try {
             // Try to get IPFS version as a health check
-            ipfs.version();
-            return true;
+            HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/version");
+            HttpResponse response = httpClient.execute(request);
+            return response.getStatusLine().getStatusCode() == 200;
         } catch (Exception e) {
             logger.warn("IPFS health check failed: {}", e.getMessage());
             return false;
@@ -396,5 +400,63 @@ public class IpfsService {
         logger.warn("getDecentralizedNotes method needs NoteRepository injection for full implementation");
         
         return result;
+    }
+
+    /**
+     * Upload a Note object to IPFS (controller-compatible method)
+     * @param note Note object to upload
+     * @return IPFS CID (Content Identifier)
+     * @throws IOException if upload fails
+     */
+    public String uploadNoteToIpfs(Note note) throws IOException {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("id", String.valueOf(note.getId()));
+        metadata.put("userId", String.valueOf(note.getUserId()));
+        if (note.getTags() != null) {
+            metadata.put("tags", note.getTags());
+        }
+        
+        return uploadNote(note.getTitle(), note.getContent(), note.getMarkdownContent(), metadata);
+    }
+
+    /**
+     * Retrieve content from IPFS as String (controller-compatible method)
+     * @param cid IPFS Content Identifier
+     * @return String content
+     * @throws IOException if retrieval fails
+     */
+    public String retrieveContentFromIpfs(String cid) throws IOException {
+        Map<String, Object> noteData = retrieveNote(cid);
+        return objectMapper.writeValueAsString(noteData);
+    }
+
+    /**
+     * Verify note integrity by comparing stored hash with calculated hash
+     * @param note Note object to verify
+     * @return true if note integrity is valid
+     */
+    public boolean verifyNoteIntegrity(Note note) {
+        if (note.getContentHash() == null || note.getContentHash().isEmpty()) {
+            logger.warn("Note {} has no content hash for verification", note.getId());
+            return false;
+        }
+
+        try {
+            String calculatedHash = calculateContentHash(note.getTitle(), note.getContent());
+            boolean isValid = note.getContentHash().equals(calculatedHash);
+            
+            if (isValid) {
+                logger.info("Note {} integrity verification passed", note.getId());
+            } else {
+                logger.warn("Note {} integrity verification failed. Expected: {}, Calculated: {}", 
+                    note.getId(), note.getContentHash(), calculatedHash);
+            }
+            
+            return isValid;
+            
+        } catch (Exception e) {
+            logger.error("Error verifying note {} integrity: {}", note.getId(), e.getMessage());
+            return false;
+        }
     }
 }
