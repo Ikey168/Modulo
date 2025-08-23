@@ -86,6 +86,16 @@ public class Note {
     @Column(name = "blockchain_registered_at")
     private LocalDateTime blockchainRegisteredAt;
 
+    // Access Control fields for blockchain integration
+    @Column(name = "access_control_enabled")
+    private Boolean accessControlEnabled = false;
+
+    @Column(name = "owner_address")
+    private String ownerAddress;
+
+    @Column(name = "access_control_tx_hash")
+    private String accessControlTxHash;
+
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "note_tags",
@@ -298,6 +308,31 @@ public class Note {
 
     public void setBlockchainRegisteredAt(LocalDateTime blockchainRegisteredAt) {
         this.blockchainRegisteredAt = blockchainRegisteredAt;
+    }
+
+    // Access Control getters and setters
+    public Boolean getAccessControlEnabled() {
+        return accessControlEnabled;
+    }
+
+    public void setAccessControlEnabled(Boolean accessControlEnabled) {
+        this.accessControlEnabled = accessControlEnabled;
+    }
+
+    public String getOwnerAddress() {
+        return ownerAddress;
+    }
+
+    public void setOwnerAddress(String ownerAddress) {
+        this.ownerAddress = ownerAddress;
+    }
+
+    public String getAccessControlTxHash() {
+        return accessControlTxHash;
+    }
+
+    public void setAccessControlTxHash(String accessControlTxHash) {
+        this.accessControlTxHash = accessControlTxHash;
     }
 
     public Set<Tag> getTags() {
