@@ -3,6 +3,7 @@ package com.modulo.controller;
 import com.modulo.entity.Note;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.IpfsService;
+import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,12 +56,12 @@ public class IpfsController {
             response.put("ipfsCid", ipfsCid);
             response.put("gatewayUrl", ipfsService.getGatewayUrl(ipfsCid));
             
-            logger.info("Successfully uploaded note {} to IPFS with CID: {}", noteId, ipfsCid);
+            logger.info("Successfully uploaded note {} to IPFS with CID: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitizeCid(ipfsCid));
             
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Failed to upload note {} to IPFS: {}", noteId, e.getMessage());
+            logger.error("Failed to upload note {} to IPFS: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitizeMessage(e.getMessage()));
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -87,7 +88,7 @@ public class IpfsController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Failed to retrieve content from IPFS CID {}: {}", cid, e.getMessage());
+            logger.error("Failed to retrieve content from IPFS CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -129,7 +130,7 @@ public class IpfsController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Failed to verify note {} integrity: {}", noteId, e.getMessage());
+            logger.error("Failed to verify note {} integrity: {}", LogSanitizer.sanitizeId(noteId), LogSanitizer.sanitizeMessage(e.getMessage()));
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -150,7 +151,7 @@ public class IpfsController {
             return ResponseEntity.ok(status);
             
         } catch (Exception e) {
-            logger.error("Failed to get IPFS status: {}", e.getMessage());
+            logger.error("Failed to get IPFS status: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -174,7 +175,7 @@ public class IpfsController {
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
-            logger.error("Failed to get decentralized notes: {}", e.getMessage());
+            logger.error("Failed to get decentralized notes: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);

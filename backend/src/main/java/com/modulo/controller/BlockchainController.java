@@ -1,6 +1,7 @@
 package com.modulo.controller;
 
 import com.modulo.service.BlockchainService;
+import com.modulo.util.LogSanitizer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,7 +46,7 @@ public class BlockchainController {
             @Valid @RequestBody NoteRegistrationRequest request,
             Authentication authentication) {
         
-        log.info("Registering note for user: {}", authentication.getName());
+        log.info("Registering note for user: {}", LogSanitizer.sanitize(authentication.getName()));
 
         return blockchainService.registerNote(request.getContent(), request.getTitle(), authentication.getName())
             .thenApply(result -> {
@@ -53,7 +54,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to register note: {}", throwable.getMessage());
+                log.error("Failed to register note: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to register note: " + throwable.getMessage()));
             });
@@ -70,7 +71,7 @@ public class BlockchainController {
             @Valid @RequestBody NoteVerificationRequest request,
             Authentication authentication) {
         
-        log.info("Verifying note for user: {}", authentication.getName());
+        log.info("Verifying note for user: {}", LogSanitizer.sanitize(authentication.getName()));
 
         return blockchainService.verifyNote(request.getContent(), authentication.getName())
             .thenApply(result -> {
@@ -78,7 +79,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to verify note: {}", throwable.getMessage());
+                log.error("Failed to verify note: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to verify note: " + throwable.getMessage()));
             });
@@ -96,7 +97,7 @@ public class BlockchainController {
             @Valid @RequestBody NoteIntegrityRequest request,
             Authentication authentication) {
         
-        log.info("Verifying note integrity for user: {}, noteId: {}", authentication.getName(), request.getNoteId());
+        log.info("Verifying note integrity for user: {}, noteId: {}", LogSanitizer.sanitize(authentication.getName()), LogSanitizer.sanitizeId(request.getNoteId()));
 
         return blockchainService.verifyNoteIntegrity(request.getNoteId(), request.getCurrentContent(), authentication.getName())
             .thenApply(result -> {
@@ -104,7 +105,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to verify note integrity: {}", throwable.getMessage());
+                log.error("Failed to verify note integrity: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 if (throwable.getMessage().contains("not found")) {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Note not found on blockchain"));
@@ -125,7 +126,7 @@ public class BlockchainController {
             @PathVariable Long id,
             Authentication authentication) {
         
-        log.info("Getting note {} for user: {}", id, authentication.getName());
+        log.info("Getting note {} for user: {}", LogSanitizer.sanitizeId(id), LogSanitizer.sanitize(authentication.getName()));
 
         return blockchainService.getNoteById(id, authentication.getName())
             .thenApply(result -> {
@@ -133,7 +134,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to get note: {}", throwable.getMessage());
+                log.error("Failed to get note: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to get note: " + throwable.getMessage()));
             });
@@ -147,7 +148,7 @@ public class BlockchainController {
     })
     public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getMyNotes(Authentication authentication) {
         
-        log.info("Getting all notes for user: {}", authentication.getName());
+        log.info("Getting all notes for user: {}", LogSanitizer.sanitize(authentication.getName()));
 
         return blockchainService.getUserNotes(authentication.getName())
             .thenApply(result -> {
@@ -155,7 +156,7 @@ public class BlockchainController {
                 return ResponseEntity.ok(result);
             })
             .exceptionally(throwable -> {
-                log.error("Failed to get user notes: {}", throwable.getMessage());
+                log.error("Failed to get user notes: {}", LogSanitizer.sanitizeMessage(throwable.getMessage()));
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .<List<Map<String, Object>>>body(null);
             });

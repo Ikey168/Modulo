@@ -1,6 +1,7 @@
 package com.modulo.filter;
 
 import com.modulo.service.TracingService;
+import com.modulo.util.LogSanitizer;
 import io.opentelemetry.api.trace.Span;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +74,9 @@ public class TracingFilter implements Filter {
             httpResponse.setHeader("X-Span-ID", spanId);
 
             log.debug("Processing request: {} {} with trace ID: {}", 
-                httpRequest.getMethod(), httpRequest.getRequestURI(), traceId);
+                LogSanitizer.sanitize(httpRequest.getMethod()), 
+                LogSanitizer.sanitize(httpRequest.getRequestURI()), 
+                LogSanitizer.sanitize(traceId));
 
             chain.doFilter(request, response);
 

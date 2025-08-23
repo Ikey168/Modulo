@@ -3,6 +3,7 @@ package com.modulo.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.entity.Note;
+import com.modulo.util.LogSanitizer;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -60,10 +61,10 @@ public class IpfsService {
             try {
                 // Test IPFS node connection
                 testConnection();
-                logger.info("Connected to IPFS node at: {}", ipfsNodeUrl);
+                logger.info("Connected to IPFS node at: {}", LogSanitizer.sanitize(ipfsNodeUrl));
                 
             } catch (Exception e) {
-                logger.error("Failed to connect to IPFS node: {}", e.getMessage());
+                logger.error("Failed to connect to IPFS node: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
                 logger.warn("IPFS functionality will be disabled");
                 this.ipfsEnabled = false;
             }
@@ -130,11 +131,11 @@ public class IpfsService {
             JsonNode responseJson = objectMapper.readTree(responseBody);
             String cid = responseJson.get("Hash").asText();
             
-            logger.info("Successfully uploaded note to IPFS with CID: {}", cid);
+            logger.info("Successfully uploaded note to IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
             return cid;
             
         } catch (Exception e) {
-            logger.error("Failed to upload note to IPFS: {}", e.getMessage());
+            logger.error("Failed to upload note to IPFS: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             throw new IOException("Failed to upload to IPFS: " + e.getMessage(), e);
         }
     }
@@ -164,11 +165,11 @@ public class IpfsService {
             JsonNode jsonNode = objectMapper.readTree(responseBody);
             Map<String, Object> noteData = objectMapper.convertValue(jsonNode, Map.class);
             
-            logger.info("Successfully retrieved note from IPFS with CID: {}", cid);
+            logger.info("Successfully retrieved note from IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
             return noteData;
             
         } catch (Exception e) {
-            logger.error("Failed to retrieve note from IPFS with CID {}: {}", cid, e.getMessage());
+            logger.error("Failed to retrieve note from IPFS with CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
             throw new IOException("Failed to retrieve from IPFS: " + e.getMessage(), e);
         }
     }
@@ -198,7 +199,7 @@ public class IpfsService {
             return hexString.toString();
             
         } catch (NoSuchAlgorithmException e) {
-            logger.error("SHA-256 algorithm not available: {}", e.getMessage());
+            logger.error("SHA-256 algorithm not available: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             throw new RuntimeException("Failed to calculate content hash", e);
         }
     }
@@ -221,15 +222,15 @@ public class IpfsService {
             
             boolean success = response.getStatusLine().getStatusCode() == 200;
             if (success) {
-                logger.info("Successfully pinned content with CID: {}", cid);
+                logger.info("Successfully pinned content with CID: {}", LogSanitizer.sanitizeCid(cid));
             } else {
-                logger.warn("Failed to pin content with CID: {}, response: {}", cid, responseBody);
+                logger.warn("Failed to pin content with CID: {}, response: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeResponse(responseBody));
             }
             
             return success;
             
         } catch (Exception e) {
-            logger.error("Error pinning content with CID {}: {}", cid, e.getMessage());
+            logger.error("Error pinning content with CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
             return false;
         }
     }
@@ -252,15 +253,15 @@ public class IpfsService {
             
             boolean success = response.getStatusLine().getStatusCode() == 200;
             if (success) {
-                logger.info("Successfully unpinned content with CID: {}", cid);
+                logger.info("Successfully unpinned content with CID: {}", LogSanitizer.sanitizeCid(cid));
             } else {
-                logger.warn("Failed to unpin content with CID: {}, response: {}", cid, responseBody);
+                logger.warn("Failed to unpin content with CID: {}, response: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeResponse(responseBody));
             }
             
             return success;
             
         } catch (Exception e) {
-            logger.error("Error unpinning content with CID {}: {}", cid, e.getMessage());
+            logger.error("Error unpinning content with CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
             return false;
         }
     }
@@ -289,7 +290,7 @@ public class IpfsService {
             HttpResponse response = httpClient.execute(request);
             return response.getStatusLine().getStatusCode() == 200;
         } catch (Exception e) {
-            logger.warn("IPFS health check failed: {}", e.getMessage());
+            logger.warn("IPFS health check failed: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             return false;
         }
     }
@@ -323,7 +324,7 @@ public class IpfsService {
             return nodeInfo;
             
         } catch (Exception e) {
-            logger.error("Failed to get IPFS node info: {}", e.getMessage());
+            logger.error("Failed to get IPFS node info: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             throw new IOException("Failed to get node info: " + e.getMessage(), e);
         }
     }
@@ -441,7 +442,7 @@ public class IpfsService {
      */
     public boolean verifyNoteIntegrity(Note note) {
         if (note.getContentHash() == null || note.getContentHash().isEmpty()) {
-            logger.warn("Note {} has no content hash for verification", note.getId());
+            logger.warn("Note {} has no content hash for verification", LogSanitizer.sanitizeId(note.getId()));
             return false;
         }
 
