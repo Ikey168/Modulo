@@ -3,6 +3,7 @@ package com.modulo.controller;
 import com.modulo.dto.ConflictResolutionDto;
 import com.modulo.entity.Note;
 import com.modulo.service.ConflictResolutionService;
+import com.modulo.util.LogSanitizer;
 import com.modulo.service.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +46,7 @@ public class ConflictResolutionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error checking conflicts for note {}", request.getNoteId(), e);
+            log.error("Error checking conflicts for note {}", LogSanitizer.sanitizeId(request.getNoteId()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -93,7 +94,7 @@ public class ConflictResolutionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error updating note {} with conflict check", request.getNoteId(), e);
+            log.error("Error updating note {} with conflict check", LogSanitizer.sanitizeId(request.getNoteId()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -127,7 +128,7 @@ public class ConflictResolutionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error resolving conflict for note {}", request.getNoteId(), e);
+            log.error("Error resolving conflict for note {}", LogSanitizer.sanitizeId(request.getNoteId()), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
