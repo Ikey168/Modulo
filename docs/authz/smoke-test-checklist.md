@@ -1,570 +1,508 @@
-# Smoke Test Checklist for Releases
+# Smoke Test Checklist for Keycloak + Modulo Integration
 
-This checklist provides comprehensive smoke tests to validate Modulo platform functionality after releases, focusing on user management, authentication, authorization, and critical system operations.
+This checklist provides comprehensive testing procedures to validate the Enterprise Identity & Policy system after deployment or configuration changes.
 
 ## 🎯 Overview
 
-The smoke test checklist ensures that critical functionality works correctly after deployments. These tests should be executed in order and any failures must be resolved before considering a release successful.
+Use this checklist to verify that all authentication, authorization, and integration components are functioning correctly in both development and production environments.
 
-**Estimated Time**: 30-45 minutes  
-**Prerequisites**: Admin access to Keycloak and Modulo platform  
-**Environment**: Should be run against staging environment first  
+## 📋 Pre-Test Setup
 
-## 📋 Pre-Release Validation
-
-### ✅ Infrastructure Health Checks
-
-#### 1. Service Availability
-- [ ] **Keycloak Health Check**
-  ```bash
-  curl -f "$KEYCLOAK_URL/health" || exit 1
-  ```
-  Expected: HTTP 200 with status "UP"
-
-- [ ] **Keycloak Admin Console**
-  ```bash
-  curl -f "$KEYCLOAK_URL/admin/" || exit 1
-  ```
-  Expected: Admin console loads without errors
-
-- [ ] **Realm Accessibility**
-  ```bash
-  curl -f "$KEYCLOAK_URL/realms/$REALM" || exit 1
-  ```
-  Expected: Realm configuration accessible
-
-- [ ] **Backend API Health**
-  ```bash
-  curl -f "$MODULO_API_URL/actuator/health" || exit 1
-  ```
-  Expected: API responds with healthy status
-
-- [ ] **Frontend Application**
-  ```bash
-  curl -f "$FRONTEND_URL" || exit 1
-  ```
-  Expected: Frontend loads without 5xx errors
-
-- [ ] **Database Connectivity**
-  ```bash
-  curl -f "$MODULO_API_URL/actuator/health/db" || exit 1
-  ```
-  Expected: Database connection healthy
-
-#### 2. Configuration Validation
+### Environment Preparation
 - [ ] **Environment Variables Set**
-  - `KEYCLOAK_URL` configured correctly
-  - `REALM` matches deployment environment
-  - `CLIENT_IDS` match registered clients
-  - Database connection strings valid
-
-- [ ] **Client Registration**
   ```bash
-  # Verify all required clients exist
-  CLIENTS=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM/clients" -H "Authorization: Bearer $ADMIN_TOKEN")
-  echo "$CLIENTS" | jq -r '.[].clientId' | grep -q "modulo-frontend"
-  echo "$CLIENTS" | jq -r '.[].clientId' | grep -q "modulo-api"
+  export KEYCLOAK_URL="https://auth.yourcompany.com"
+  export MODULO_FRONTEND_URL="https://app.yourcompany.com"
+  export MODULO_BACKEND_URL="https://api.yourcompany.com"
+  export TEST_REALM="modulo"
   ```
-  Expected: All application clients registered
 
-- [ ] **Realm Roles Present**
+- [ ] **Test Credentials Available**
+  - Admin credentials secured and accessible
+  - Demo user accounts created and verified
+  - Client secrets documented and stored securely
+
+- [ ] **Tools and Dependencies**
   ```bash
-  curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM/roles" -H "Authorization: Bearer $ADMIN_TOKEN" | \
-  jq -r '.[].name' | grep -q "workspace_admin"
+  # Required tools
+  which curl jq || echo "Install curl and jq"
+  which openssl || echo "Install openssl"
+  
+  # Test user credentials
+  TEST_USERNAME="test.user"
+  TEST_PASSWORD="DevPassword123!"
   ```
-  Expected: Required roles exist
 
-## 🔐 Authentication & Authorization Tests
+## 🔐 Authentication Flow Tests
 
-### ✅ Admin Authentication Flow
-
-#### 3. Keycloak Admin Access
-- [ ] **Admin Console Login**
-  - Navigate to `$KEYCLOAK_URL/admin/`
-  - Login with admin credentials
-  - Expected: Successfully access admin console
-
-- [ ] **Realm Management Access**
-  - Navigate to target realm in admin console
-  - Verify access to Users, Roles, Clients sections
-  - Expected: All sections accessible without errors
-
-- [ ] **User Management Operations**
+### 1. Keycloak Health Check
+- [ ] **Server Health**
   ```bash
-  # Test admin token retrieval
+  # Basic health check
+  curl -f "${KEYCLOAK_URL}/health" || echo "❌ Keycloak health check failed"
+  
+  # Detailed health metrics
+  curl -f "${KEYCLOAK_URL}/health/ready" || echo "❌ Keycloak not ready"
+  curl -f "${KEYCLOAK_URL}/health/live" || echo "❌ Keycloak not live"
+  ```
+  **Expected**: HTTP 200 responses with health status
+
+- [ ] **Realm Discovery**
+  ```bash
+  # OIDC discovery endpoint
+  curl -f "${KEYCLOAK_URL}/realms/${TEST_REALM}/.well-known/openid_configuration" | jq .
+  ```
+  **Expected**: Valid OIDC configuration with all required endpoints
+
+### 2. Admin Authentication
+- [ ] **Admin Console Access**
+  ```bash
+  # Test admin login
   ADMIN_TOKEN=$(curl -s -X POST \
-    "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
+    "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${KEYCLOAK_ADMIN_USER}" \
+    -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
     -d "grant_type=password" \
-    -d "client_id=admin-cli" \
-    -d "username=$ADMIN_USER" \
-    -d "password=$ADMIN_PASSWORD" | jq -r '.access_token')
+    -d "client_id=admin-cli" | jq -r '.access_token')
   
-  [ "$ADMIN_TOKEN" != "null" ] || exit 1
+  [[ "$ADMIN_TOKEN" != "null" && -n "$ADMIN_TOKEN" ]] || echo "❌ Admin authentication failed"
   ```
-  Expected: Valid admin token obtained
+  **Expected**: Valid JWT access token
 
-### ✅ User Lifecycle Operations
-
-#### 4. Create Test User
-- [ ] **User Creation via API**
+- [ ] **Admin API Access**
   ```bash
-  TEST_USER="smoketest-$(date +%s)"
-  curl -s -X POST \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"username\": \"$TEST_USER\",
-      \"email\": \"$TEST_USER@example.com\",
-      \"firstName\": \"Smoke\",
-      \"lastName\": \"Test\",
-      \"enabled\": true,
-      \"emailVerified\": true
-    }"
+  # Test realm access
+  curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "${KEYCLOAK_URL}/admin/realms/${TEST_REALM}" | jq '.realm'
   ```
-  Expected: HTTP 201, user created successfully
+  **Expected**: Realm configuration returned
 
-- [ ] **Verify User Exists**
+### 3. User Authentication
+- [ ] **Password Flow (Direct Grant)**
   ```bash
-  USER_DATA=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users?username=$TEST_USER" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
-  
-  [ "$(echo "$USER_DATA" | jq '. | length')" -eq 1 ] || exit 1
-  ```
-  Expected: User found in realm
-
-- [ ] **Set User Password**
-  ```bash
-  USER_ID=$(echo "$USER_DATA" | jq -r '.[0].id')
-  curl -s -X PUT \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/reset-password" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"type\": \"password\",
-      \"value\": \"SmokeTest123!\",
-      \"temporary\": false
-    }"
-  ```
-  Expected: HTTP 204, password set successfully
-
-#### 5. Role Assignment
-- [ ] **Assign Role to User**
-  ```bash
-  # Get workspace_viewer role
-  ROLE_DATA=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/roles/workspace_viewer" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
-  
-  ROLE_ID=$(echo "$ROLE_DATA" | jq -r '.id')
-  
-  # Assign role to user
-  curl -s -X POST \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/role-mappings/realm" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "[{\"id\": \"$ROLE_ID\", \"name\": \"workspace_viewer\"}]"
-  ```
-  Expected: HTTP 204, role assigned successfully
-
-- [ ] **Verify Role Assignment**
-  ```bash
-  USER_ROLES=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/role-mappings/realm" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
-  
-  echo "$USER_ROLES" | jq -r '.[].name' | grep -q "workspace_viewer"
-  ```
-  Expected: Role appears in user's role mappings
-
-### ✅ SSO Authentication Tests
-
-#### 6. User Login Flow
-- [ ] **Direct Login (Password Grant)**
-  ```bash
-  LOGIN_TOKEN=$(curl -s -X POST \
-    "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
+  # Test user login
+  USER_TOKEN=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${TEST_USERNAME}" \
+    -d "password=${TEST_PASSWORD}" \
     -d "grant_type=password" \
-    -d "client_id=modulo-frontend" \
-    -d "username=$TEST_USER" \
-    -d "password=SmokeTest123!" | jq -r '.access_token')
+    -d "client_id=modulo-frontend" | jq -r '.access_token')
   
-  [ "$LOGIN_TOKEN" != "null" ] || exit 1
+  [[ "$USER_TOKEN" != "null" && -n "$USER_TOKEN" ]] || echo "❌ User authentication failed"
   ```
-  Expected: Valid access token obtained
+  **Expected**: Valid user JWT token
 
-- [ ] **Token Introspection**
+- [ ] **Token Validation**
   ```bash
-  INTROSPECTION=$(curl -s -X POST \
-    "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token/introspect" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "token=$LOGIN_TOKEN" \
-    -d "client_id=modulo-api" \
-    -d "client_secret=$CLIENT_SECRET")
+  # Decode and validate JWT
+  echo "$USER_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
   
-  [ "$(echo "$INTROSPECTION" | jq -r '.active')" = "true" ] || exit 1
+  # Verify token with userinfo endpoint
+  curl -s -H "Authorization: Bearer $USER_TOKEN" \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/userinfo" | jq .
   ```
-  Expected: Token is active and valid
+  **Expected**: Valid token claims and user information
 
-- [ ] **Token Claims Validation**
+### 4. Frontend Authentication Flow
+- [ ] **Authorization Code Flow (PKCE)**
   ```bash
-  # Decode JWT payload
-  TOKEN_PAYLOAD=$(echo "$LOGIN_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .)
+  # Generate PKCE parameters
+  CODE_VERIFIER=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-43)
+  CODE_CHALLENGE=$(echo -n "$CODE_VERIFIER" | openssl dgst -sha256 -binary | base64 | tr -d "=+/" | cut -c1-43)
+  STATE=$(openssl rand -hex 16)
   
-  # Verify essential claims
-  [ "$(echo "$TOKEN_PAYLOAD" | jq -r '.sub')" != "null" ] || exit 1
-  [ "$(echo "$TOKEN_PAYLOAD" | jq -r '.email')" = "$TEST_USER@example.com" ] || exit 1
-  [ "$(echo "$TOKEN_PAYLOAD" | jq -r '.realm_access.roles[]' | grep -c 'workspace_viewer')" -eq 1 ] || exit 1
-  ```
-  Expected: JWT contains expected user information and roles
-
-#### 7. API Authorization Tests
-- [ ] **Authorized API Access**
-  ```bash
-  API_RESPONSE=$(curl -s -X GET \
-    "$MODULO_API_URL/api/me" \
-    -H "Authorization: Bearer $LOGIN_TOKEN")
+  # Authorization URL
+  AUTH_URL="${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/auth"
+  AUTH_URL="${AUTH_URL}?response_type=code"
+  AUTH_URL="${AUTH_URL}&client_id=modulo-frontend"
+  AUTH_URL="${AUTH_URL}&redirect_uri=http://localhost:3000/auth/callback"
+  AUTH_URL="${AUTH_URL}&scope=openid%20profile%20email"
+  AUTH_URL="${AUTH_URL}&state=${STATE}"
+  AUTH_URL="${AUTH_URL}&code_challenge=${CODE_CHALLENGE}"
+  AUTH_URL="${AUTH_URL}&code_challenge_method=S256"
   
-  [ "$(echo "$API_RESPONSE" | jq -r '.username')" = "$TEST_USER" ] || exit 1
+  echo "Authorization URL: $AUTH_URL"
+  # Manual verification: Open URL in browser and verify redirect
   ```
-  Expected: User profile returned successfully
+  **Expected**: Successful redirect to login page, then to callback URL with code
 
-- [ ] **Role-Based Access Control**
+## 🔑 Authorization Policy Tests
+
+### 5. Role-Based Access Control
+- [ ] **User Role Assignment**
   ```bash
-  # Test viewer can read but not write
-  READ_RESPONSE=$(curl -s -X GET \
-    "$MODULO_API_URL/api/notes" \
-    -H "Authorization: Bearer $LOGIN_TOKEN")
+  # Check user roles
+  USER_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "${KEYCLOAK_URL}/admin/realms/${TEST_REALM}/users?username=${TEST_USERNAME}" | jq -r '.[0].id')
   
-  [ "$(curl -o /dev/null -s -w '%{http_code}' -X POST \
-    "$MODULO_API_URL/api/notes" \
-    -H "Authorization: Bearer $LOGIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{\"title\":\"test\",\"content\":\"test\"}')" -eq 403 ] || exit 1
+  curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "${KEYCLOAK_URL}/admin/realms/${TEST_REALM}/users/${USER_ID}/role-mappings/realm" | jq '.[] | .name'
   ```
-  Expected: Read access granted, write access denied
+  **Expected**: Correct roles assigned to test user
 
-- [ ] **Invalid Token Rejection**
+- [ ] **Token Claims Verification**
   ```bash
-  INVALID_RESPONSE_CODE=$(curl -o /dev/null -s -w '%{http_code}' \
-    "$MODULO_API_URL/api/me" \
-    -H "Authorization: Bearer invalid-token-here")
+  # Verify role claims in token
+  echo "$USER_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '.realm_access.roles'
+  ```
+  **Expected**: User roles present in JWT token
+
+### 6. OPA Policy Integration
+- [ ] **Policy Engine Health**
+  ```bash
+  # Test OPA health (if accessible)
+  curl -f "http://localhost:8181/health" || echo "OPA health check (may not be exposed)"
   
-  [ "$INVALID_RESPONSE_CODE" -eq 401 ] || exit 1
+  # Test policy evaluation through Envoy/Backend
+  curl -H "Authorization: Bearer $USER_TOKEN" \
+    "${MODULO_BACKEND_URL}/api/v1/notes" -v
   ```
-  Expected: HTTP 401 Unauthorized
+  **Expected**: Proper authorization decisions based on user roles
 
-### ✅ Frontend Integration Tests
-
-#### 8. Frontend Authentication
-- [ ] **Login Page Load**
-  - Navigate to `$FRONTEND_URL/login`
-  - Expected: Login form loads without JavaScript errors
-
-- [ ] **Keycloak Redirect**
-  - Click "Login" button
-  - Expected: Redirected to Keycloak login page
-
-- [ ] **Login Flow Completion**
-  - Enter test user credentials
-  - Expected: Successful login and redirect to dashboard
-
-- [ ] **Protected Route Access**
-  - Navigate to protected routes
-  - Expected: Access granted with valid session
-
-- [ ] **Logout Flow**
-  - Click logout
-  - Expected: Session cleared, redirected to public page
-
-## 🔄 System Operations Tests
-
-### ✅ User Management Operations
-
-#### 9. User Modification
-- [ ] **Update User Profile**
+### 7. Backend Authorization
+- [ ] **Secured Endpoints**
   ```bash
-  curl -s -X PUT \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"firstName\": \"Updated\",
-      \"lastName\": \"Name\",
-      \"attributes\": {\"department\": [\"testing\"]}
-    }"
-  ```
-  Expected: HTTP 204, profile updated successfully
-
-- [ ] **Disable User**
-  ```bash
-  curl -s -X PUT \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"enabled\": false}"
-  ```
-  Expected: HTTP 204, user disabled successfully
-
-- [ ] **Verify Disabled User Cannot Login**
-  ```bash
-  DISABLED_LOGIN=$(curl -s -X POST \
-    "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "grant_type=password" \
-    -d "client_id=modulo-frontend" \
-    -d "username=$TEST_USER" \
-    -d "password=SmokeTest123!")
+  # Test without token (should fail)
+  curl -v "${MODULO_BACKEND_URL}/api/v1/notes" 2>&1 | grep "401\|403"
   
-  [ "$(echo "$DISABLED_LOGIN" | jq -r '.error')" != "null" ] || exit 1
-  ```
-  Expected: Login fails with appropriate error
-
-#### 10. Role Management
-- [ ] **Remove Role from User**
-  ```bash
-  curl -s -X DELETE \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/role-mappings/realm" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "[{\"id\": \"$ROLE_ID\", \"name\": \"workspace_viewer\"}]"
-  ```
-  Expected: HTTP 204, role removed successfully
-
-- [ ] **Verify Role Removal**
-  ```bash
-  REMAINING_ROLES=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/role-mappings/realm" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
+  # Test with invalid token (should fail)
+  curl -H "Authorization: Bearer invalid-token" \
+    "${MODULO_BACKEND_URL}/api/v1/notes" -v 2>&1 | grep "401\|403"
   
-  ! echo "$REMAINING_ROLES" | jq -r '.[].name' | grep -q "workspace_viewer"
+  # Test with valid token (should succeed)
+  curl -H "Authorization: Bearer $USER_TOKEN" \
+    "${MODULO_BACKEND_URL}/api/v1/notes" -v
   ```
-  Expected: Role no longer appears in user's mappings
+  **Expected**: Proper HTTP status codes (401/403 for unauthorized, 200 for authorized)
 
-### ✅ Session Management
+## 🌐 Client Configuration Tests
 
-#### 11. Session Operations
-- [ ] **List Active Sessions**
+### 8. Frontend Client Configuration
+- [ ] **Client Settings Verification**
   ```bash
-  SESSIONS=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/sessions" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
+  # Get frontend client configuration
+  FRONTEND_CLIENT=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "${KEYCLOAK_URL}/admin/realms/${TEST_REALM}/clients?clientId=modulo-frontend")
   
-  [ "$(echo "$SESSIONS" | jq '. | length')" -ge 0 ] || exit 1
+  echo "$FRONTEND_CLIENT" | jq '.[0] | {
+    clientId,
+    publicClient,
+    standardFlowEnabled,
+    redirectUris,
+    webOrigins
+  }'
   ```
-  Expected: Sessions list retrieved successfully
+  **Expected**: Correct client configuration for SPA application
 
-- [ ] **Logout User Sessions**
+- [ ] **CORS Configuration**
   ```bash
-  curl -s -X POST \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/logout" \
-    -H "Authorization: Bearer $ADMIN_TOKEN"
+  # Test CORS preflight
+  curl -X OPTIONS \
+    -H "Origin: http://localhost:3000" \
+    -H "Access-Control-Request-Method: POST" \
+    -H "Access-Control-Request-Headers: Authorization" \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" -v
   ```
-  Expected: HTTP 204, sessions terminated successfully
+  **Expected**: Proper CORS headers in response
 
-### ✅ Backup & Recovery Validation
-
-#### 12. Configuration Backup
-- [ ] **Export Realm Configuration**
+### 9. Backend Client Configuration
+- [ ] **Service Account Authentication**
   ```bash
-  REALM_EXPORT=$(curl -s -X POST \
-    "$KEYCLOAK_URL/admin/realms/$REALM/partial-export" \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"exportUsers\": false, \"exportClients\": true, \"exportGroupsAndRoles\": true}")
+  # Get backend client details
+  BACKEND_CLIENT=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "${KEYCLOAK_URL}/admin/realms/${TEST_REALM}/clients?clientId=modulo-backend")
   
-  [ "$(echo "$REALM_EXPORT" | jq -r '.realm')" = "$REALM" ] || exit 1
-  ```
-  Expected: Realm configuration exported successfully
-
-- [ ] **Validate Export Content**
-  ```bash
-  # Verify essential components in export
-  [ "$(echo "$REALM_EXPORT" | jq '.roles | length')" -gt 0 ] || exit 1
-  [ "$(echo "$REALM_EXPORT" | jq '.clients | length')" -gt 0 ] || exit 1
-  ```
-  Expected: Export contains roles and clients
-
-## 🧹 Test Cleanup
-
-### ✅ Remove Test Data
-
-#### 13. Delete Test User
-- [ ] **Remove Test User**
-  ```bash
-  curl -s -X DELETE \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID" \
-    -H "Authorization: Bearer $ADMIN_TOKEN"
-  ```
-  Expected: HTTP 204, test user deleted successfully
-
-- [ ] **Verify User Deletion**
-  ```bash
-  DELETED_USER=$(curl -s -X GET \
-    "$KEYCLOAK_URL/admin/realms/$REALM/users?username=$TEST_USER" \
-    -H "Authorization: Bearer $ADMIN_TOKEN")
+  BACKEND_CLIENT_ID=$(echo "$BACKEND_CLIENT" | jq -r '.[0].id')
   
-  [ "$(echo "$DELETED_USER" | jq '. | length')" -eq 0 ] || exit 1
-  ```
-  Expected: User no longer exists in realm
-
-#### 14. Clean Test Sessions
-- [ ] **Clear Any Remaining Test Sessions**
-  ```bash
-  # Clear admin token (force re-authentication next time)
-  unset ADMIN_TOKEN
-  unset LOGIN_TOKEN
-  unset TEST_USER
-  unset USER_ID
-  ```
-  Expected: Test variables cleared
-
-## 🚨 Performance & Stress Tests
-
-### ✅ Basic Performance Validation
-
-#### 15. Response Time Tests
-- [ ] **Authentication Response Time**
-  ```bash
-  AUTH_TIME=$(curl -o /dev/null -s -w '%{time_total}' -X POST \
-    "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
+  # Test service account token
+  SERVICE_TOKEN=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "grant_type=client_credentials" \
-    -d "client_id=modulo-api" \
-    -d "client_secret=$CLIENT_SECRET")
+    -d "client_id=modulo-backend" \
+    -d "client_secret=${BACKEND_CLIENT_SECRET}" | jq -r '.access_token')
   
-  [ $(echo "$AUTH_TIME < 2.0" | bc -l) -eq 1 ] || exit 1
+  [[ "$SERVICE_TOKEN" != "null" && -n "$SERVICE_TOKEN" ]] || echo "❌ Service account auth failed"
   ```
-  Expected: Authentication completes in < 2 seconds
+  **Expected**: Valid service account token
 
-- [ ] **API Response Time**
+## 📊 Performance and Load Tests
+
+### 10. Authentication Performance
+- [ ] **Token Generation Speed**
   ```bash
-  API_TIME=$(curl -o /dev/null -s -w '%{time_total}' \
-    "$MODULO_API_URL/actuator/health")
-  
-  [ $(echo "$API_TIME < 1.0" | bc -l) -eq 1 ] || exit 1
+  # Measure token generation time
+  time for i in {1..10}; do
+    curl -s -X POST \
+      "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "username=${TEST_USERNAME}" \
+      -d "password=${TEST_PASSWORD}" \
+      -d "grant_type=password" \
+      -d "client_id=modulo-frontend" >/dev/null
+  done
   ```
-  Expected: API health check completes in < 1 second
+  **Expected**: Reasonable response times (< 500ms per request)
 
-#### 16. Concurrent Request Handling
 - [ ] **Concurrent Authentication**
   ```bash
-  # Test 5 concurrent authentication requests
+  # Test concurrent logins
+  seq 1 20 | xargs -n1 -P20 -I{} curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${TEST_USERNAME}" \
+    -d "password=${TEST_PASSWORD}" \
+    -d "grant_type=password" \
+    -d "client_id=modulo-frontend" >/dev/null
+  
+  echo "Concurrent authentication test completed"
+  ```
+  **Expected**: No errors or timeouts under moderate load
+
+### 11. Authorization Performance
+- [ ] **Policy Evaluation Speed**
+  ```bash
+  # Test authorization decision speed
+  time for i in {1..10}; do
+    curl -s -H "Authorization: Bearer $USER_TOKEN" \
+      "${MODULO_BACKEND_URL}/api/v1/notes" >/dev/null
+  done
+  ```
+  **Expected**: Fast authorization decisions (< 100ms per request)
+
+## 🔍 Integration Tests
+
+### 12. End-to-End Workflow
+- [ ] **Complete User Journey**
+  ```bash
+  # 1. User registration (if enabled)
+  # 2. User login
+  # 3. Token refresh
+  # 4. Resource access
+  # 5. User logout
+  
+  # Token refresh test
+  REFRESH_TOKEN=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${TEST_USERNAME}" \
+    -d "password=${TEST_PASSWORD}" \
+    -d "grant_type=password" \
+    -d "client_id=modulo-frontend" | jq -r '.refresh_token')
+  
+  # Use refresh token to get new access token
+  NEW_TOKEN=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "grant_type=refresh_token" \
+    -d "refresh_token=${REFRESH_TOKEN}" \
+    -d "client_id=modulo-frontend" | jq -r '.access_token')
+  
+  [[ "$NEW_TOKEN" != "null" && -n "$NEW_TOKEN" ]] || echo "❌ Token refresh failed"
+  ```
+  **Expected**: Successful token refresh
+
+- [ ] **Session Management**
+  ```bash
+  # Test session info
+  curl -s -H "Authorization: Bearer $USER_TOKEN" \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/userinfo" | jq .
+  
+  # Test logout
+  curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/logout" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "refresh_token=${REFRESH_TOKEN}" \
+    -d "client_id=modulo-frontend"
+  ```
+  **Expected**: Proper session management
+
+### 13. Error Handling
+- [ ] **Invalid Credentials**
+  ```bash
+  # Test with wrong password
+  ERROR_RESPONSE=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${TEST_USERNAME}" \
+    -d "password=wrongpassword" \
+    -d "grant_type=password" \
+    -d "client_id=modulo-frontend")
+  
+  echo "$ERROR_RESPONSE" | jq '.error'
+  ```
+  **Expected**: Proper error message and HTTP status
+
+- [ ] **Account Lockout (Brute Force Protection)**
+  ```bash
+  # Test multiple failed attempts
   for i in {1..5}; do
     curl -s -X POST \
-      "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
+      "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
       -H "Content-Type: application/x-www-form-urlencoded" \
-      -d "grant_type=client_credentials" \
-      -d "client_id=modulo-api" \
-      -d "client_secret=$CLIENT_SECRET" &
+      -d "username=${TEST_USERNAME}" \
+      -d "password=wrongpassword" \
+      -d "grant_type=password" \
+      -d "client_id=modulo-frontend" >/dev/null
   done
-  wait
+  
+  # Check if account is locked
+  LOCKOUT_RESPONSE=$(curl -s -X POST \
+    "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${TEST_USERNAME}" \
+    -d "password=${TEST_PASSWORD}" \
+    -d "grant_type=password" \
+    -d "client_id=modulo-frontend")
+  
+  echo "$LOCKOUT_RESPONSE" | jq '.error'
   ```
-  Expected: All requests complete successfully
+  **Expected**: Account lockout after repeated failures
 
-## 📊 Test Results Documentation
+## 🔒 Security Validation
 
-### ✅ Results Summary Template
+### 14. SSL/TLS Configuration
+- [ ] **Certificate Validation**
+  ```bash
+  # Check certificate details
+  openssl s_client -connect $(echo $KEYCLOAK_URL | sed 's/https:\/\///'):443 -servername $(echo $KEYCLOAK_URL | sed 's/https:\/\///') </dev/null 2>/dev/null | openssl x509 -text -noout
+  
+  # Test SSL Labs rating (if public)
+  # curl "https://api.ssllabs.com/api/v3/analyze?host=$(echo $KEYCLOAK_URL | sed 's/https:\/\///')"
+  ```
+  **Expected**: Valid certificate with good security rating
 
-```
-==================================================
-SMOKE TEST RESULTS - $(date)
-==================================================
+- [ ] **Security Headers**
+  ```bash
+  # Check security headers
+  curl -I "${KEYCLOAK_URL}/realms/${TEST_REALM}/.well-known/openid_configuration" | grep -E "(Strict-Transport-Security|X-Content-Type-Options|X-Frame-Options|Content-Security-Policy)"
+  ```
+  **Expected**: Proper security headers present
 
-Environment: _______________
-Keycloak Version: _______________
-Modulo Version: _______________
-Tester: _______________
+### 15. Token Security
+- [ ] **JWT Signature Verification**
+  ```bash
+  # Get JWKS
+  JWKS=$(curl -s "${KEYCLOAK_URL}/realms/${TEST_REALM}/protocol/openid-connect/certs")
+  echo "$JWKS" | jq '.keys[0]'
+  
+  # Verify token signature (requires JWT library)
+  # jwt decode --verify --key="$PUBLIC_KEY" "$USER_TOKEN"
+  ```
+  **Expected**: Valid JWT signature verification
 
-INFRASTRUCTURE HEALTH:
-[ ] Service Availability (6/6 checks)
-[ ] Configuration Validation (3/3 checks)
+- [ ] **Token Expiration**
+  ```bash
+  # Check token expiration
+  TOKEN_EXP=$(echo "$USER_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '.exp')
+  CURRENT_TIME=$(date +%s)
+  
+  if [[ $TOKEN_EXP -gt $CURRENT_TIME ]]; then
+    echo "✅ Token is valid and not expired"
+  else
+    echo "❌ Token is expired"
+  fi
+  ```
+  **Expected**: Token should be valid and properly expiring
 
-AUTHENTICATION & AUTHORIZATION:
-[ ] Admin Authentication (3/3 checks)
-[ ] User Lifecycle (3/3 checks)
-[ ] SSO Integration (4/4 checks)
+## 📋 Release Validation Checklist
 
-SYSTEM OPERATIONS:
-[ ] User Management (3/3 checks)
-[ ] Role Management (2/2 checks)
-[ ] Session Management (2/2 checks)
-[ ] Backup Validation (2/2 checks)
+### 16. Production Readiness
+- [ ] **Configuration Review**
+  - [ ] All passwords changed from defaults
+  - [ ] SSL/TLS properly configured
+  - [ ] Database connections secure
+  - [ ] Backup procedures in place
+  - [ ] Monitoring configured
 
-PERFORMANCE:
-[ ] Response Times (2/2 checks)
-[ ] Concurrent Requests (1/1 checks)
+- [ ] **Security Hardening**
+  - [ ] Admin console access restricted
+  - [ ] Unnecessary endpoints disabled
+  - [ ] Rate limiting configured
+  - [ ] Security headers enabled
+  - [ ] Audit logging active
 
-CLEANUP:
-[ ] Test Data Removal (2/2 checks)
+- [ ] **Performance Validation**
+  - [ ] Load testing completed
+  - [ ] Database performance acceptable
+  - [ ] Caching configured
+  - [ ] Connection pooling optimized
+  - [ ] Resource limits set
 
-OVERALL RESULT: [ ] PASS [ ] FAIL
+### 17. Monitoring and Alerting
+- [ ] **Health Checks**
+  ```bash
+  # Test monitoring endpoints
+  curl -f "${KEYCLOAK_URL}/health/ready"
+  curl -f "${KEYCLOAK_URL}/metrics" 2>/dev/null || echo "Metrics endpoint not exposed (expected)"
+  ```
 
-NOTES:
-_____________________________________________________
-_____________________________________________________
-_____________________________________________________
+- [ ] **Log Analysis**
+  ```bash
+  # Check for errors in recent logs
+  # tail -n 100 /var/log/keycloak/keycloak.log | grep -i error
+  ```
 
-FAILED TESTS (if any):
-_____________________________________________________
-_____________________________________________________
+### 18. Documentation and Runbooks
+- [ ] **Operational Documentation**
+  - [ ] Operator playbook updated
+  - [ ] Runbooks current
+  - [ ] Contact information accurate
+  - [ ] Escalation procedures clear
 
-NEXT ACTIONS:
-_____________________________________________________
-_____________________________________________________
-```
+- [ ] **Recovery Procedures**
+  - [ ] Backup restoration tested
+  - [ ] Disaster recovery plan current
+  - [ ] RTO/RPO requirements met
+  - [ ] Communication plan ready
 
-## 🔄 Automated Test Script
+## ✅ Test Results Summary
 
-For automated execution of these smoke tests, use the provided script:
-
+### Test Execution Summary
 ```bash
-#!/bin/bash
-# Automated smoke test execution
-# Usage: ./smoke-tests.sh [environment]
+# Generate test report
+cat > smoke-test-results-$(date +%Y%m%d-%H%M%S).md << EOF
+# Smoke Test Results
 
-# Source the smoke test functions
-source "$(dirname "$0")/smoke-test-functions.sh"
+**Date**: $(date)
+**Environment**: ${ENVIRONMENT:-development}
+**Keycloak Version**: $(curl -s "${KEYCLOAK_URL}/admin/serverinfo" -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.systemInfo.version // "unknown"')
+**Realm**: ${TEST_REALM}
 
-# Execute all tests in order
-run_infrastructure_tests
-run_authentication_tests  
-run_system_operation_tests
-run_performance_tests
-cleanup_test_data
+## Test Results
+- [ ] Keycloak Health Check
+- [ ] Admin Authentication
+- [ ] User Authentication  
+- [ ] Token Validation
+- [ ] Authorization Policies
+- [ ] Client Configuration
+- [ ] Performance Tests
+- [ ] Security Validation
+- [ ] Integration Tests
+- [ ] Error Handling
 
-# Generate report
-generate_test_report
+## Issues Found
+(List any issues discovered during testing)
+
+## Recommendations
+(List any recommendations for improvement)
+
+**Tested By**: ${USER}
+**Next Test Date**: $(date -d "+1 week" +%Y-%m-%d)
+EOF
 ```
 
-## 📞 Escalation Procedures
-
-**If Any Test Fails:**
-
-1. **Immediate Actions:**
-   - Stop deployment process
-   - Document failing test details
-   - Preserve system state for investigation
-
-2. **Investigation:**
-   - Check service logs for errors
-   - Verify configuration settings
-   - Test in isolation to reproduce issue
-
-3. **Escalation:**
-   - **Level 1**: Development Team (0-30 minutes)
-   - **Level 2**: Platform Team (30-60 minutes)  
-   - **Level 3**: Security Team (if auth/authz related)
-   - **Level 4**: Engineering Management (critical issues)
-
-4. **Communication:**
-   - Update deployment status
-   - Notify stakeholders
-   - Document resolution steps
+### Sign-off
+- [ ] **Development Team**: _________________ Date: _______
+- [ ] **Security Team**: _________________ Date: _______  
+- [ ] **Operations Team**: _________________ Date: _______
+- [ ] **Product Owner**: _________________ Date: _______
 
 ---
 
-**Note**: This checklist should be executed by trained operators and updated regularly based on system changes and lessons learned from production incidents.
+**Document Version**: 1.0  
+**Last Updated**: September 2025  
+**Next Review**: October 2025  
+**Owner**: Quality Assurance Team
