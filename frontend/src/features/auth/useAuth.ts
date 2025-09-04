@@ -1,104 +1,76 @@
-import { useCallback, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../store/store';
-import { selectCurrentUser, selectIsAuthenticated, clearCredentials, setMetaMaskCredentials, updateWalletBalance } from './authSlice';
-import { api } from '../../services/api';
-import { metaMaskService } from '../../services/metamask';
+import { 
+  selectIsAuthenticated, 
+  selectCurrentUser, 
+  selectCurrentToken,
+  selectAuthLoading,
+  selectAuthError,
+  selectUserRoles,
+  logout,
+  initializeAuth
+} from './authSlice';
+import { UserRole } from './oidcConfig';
+import { authService } from './authService';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
-  const user = useAppSelector(selectCurrentUser);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const user = useAppSelector(selectCurrentUser);
+  const token = useAppSelector(selectCurrentToken);
+  const isLoading = useAppSelector(selectAuthLoading);
+  const error = useAppSelector(selectAuthError);
+  const roles = useAppSelector(selectUserRoles);
 
-  const logout = useCallback(async () => {
-    try {
-      // If it's a MetaMask session, just clear local state
-      if (user?.authProvider === 'metamask') {
-        metaMaskService.disconnect();
-        dispatch(clearCredentials());
-        return;
-      }
+  const login = async () => {
+    await authService.login();
+  };
 
-      // For OAuth sessions, call backend logout
-      await api.post('/logout', {});
-      dispatch(clearCredentials());
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Clear credentials anyway in case of backend error
-      dispatch(clearCredentials());
-    }
-  }, [dispatch, user?.authProvider]);
+  const logoutUser = async () => {
+    await dispatch(logout()).unwrap();
+  };
 
-  const initiateOAuthLogin = useCallback((provider: 'google' | 'azure') => {
-    window.location.href = `/oauth2/authorization/${provider}`;
-  }, []);
+  const hasRole = (role: UserRole): boolean => {
+    return authService.hasRole(role);
+  };
 
-  const connectMetaMask = useCallback(async () => {
-    try {
-      const userInfo = await metaMaskService.connect();
-      dispatch(setMetaMaskCredentials({
-        walletAddress: userInfo.walletAddress,
-        walletBalance: userInfo.walletBalance,
-        chainId: userInfo.chainId,
-        networkName: userInfo.networkName
-      }));
-      return userInfo;
-    } catch (error) {
-      console.error('MetaMask connection error:', error);
-      throw error;
-    }
-  }, [dispatch]);
+  const hasAnyRole = (requiredRoles: UserRole[]): boolean => {
+    return authService.hasAnyRole(requiredRoles);
+  };
 
-  const refreshWalletBalance = useCallback(async () => {
-    if (user?.walletAddress && user?.authProvider === 'metamask') {
-      try {
-        const balance = await metaMaskService.refreshBalance(user.walletAddress);
-        dispatch(updateWalletBalance(balance));
-        return balance;
-      } catch (error) {
-        console.error('Failed to refresh wallet balance:', error);
-        throw error;
-      }
-    }
-  }, [dispatch, user?.walletAddress, user?.authProvider]);
+  const getAccessToken = async (): Promise<string | null> => {
+    return await authService.getAccessToken();
+  };
 
-  // Set up MetaMask event listeners
-  useEffect(() => {
-    if (user?.authProvider === 'metamask') {
-      // Listen for account changes
-      metaMaskService.onAccountsChanged((accounts) => {
-        if (accounts.length === 0) {
-          // User disconnected their wallet
-          dispatch(clearCredentials());
-        } else if (accounts[0] !== user.walletAddress) {
-          // User switched accounts - reconnect with new account
-          connectMetaMask();
-        }
-      });
-
-      // Listen for network changes
-      metaMaskService.onChainChanged((chainId) => {
-        // Optionally handle network changes
-        console.log('Network changed to:', chainId);
-      });
-
-      return () => {
-        metaMaskService.removeListeners();
-      };
-    }
-  }, [user?.authProvider, user?.walletAddress, dispatch, connectMetaMask]);
+  const initAuth = async () => {
+    await dispatch(initializeAuth()).unwrap();
+  };
 
   return {
-    user,
+    // State
     isAuthenticated,
-    logout,
-    initiateOAuthLogin,
-    connectMetaMask,
-    refreshWalletBalance,
-    isMetaMaskAvailable: metaMaskService.isMetaMaskInstalled(),
+    user,
+    token,
+    isLoading,
+    error,
+    roles,
+    
+    // Actions
+    login,
+    logout: logoutUser,
+    hasRole,
+    hasAnyRole,
+    getAccessToken,
+    initAuth,
+    
+    // Legacy properties for backward compatibility
+    isMetaMaskAvailable: false,
+    connectMetaMask: () => Promise.reject('MetaMask not supported in OIDC flow'),
+    initiateOAuthLogin: () => Promise.reject('OAuth not supported in OIDC flow'),
+    refreshWalletBalance: () => Promise.reject('Wallet not supported in OIDC flow'),
   };
 };
 
-// Types for auth state
+// Export types for compatibility
 export interface AuthUser {
   id?: string;
   name?: string;
@@ -109,5 +81,6 @@ export interface AuthUser {
   locale?: string;
   walletAddress?: string;
   walletBalance?: string;
-  authProvider?: 'google' | 'azure' | 'metamask';
+  authProvider?: 'google' | 'azure' | 'metamask' | 'oidc';
+  roles?: UserRole[];
 }

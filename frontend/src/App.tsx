@@ -11,8 +11,8 @@ import Contracts from './features/contracts/Contracts';
 import About from './features/about/About';
 import Settings from './features/settings/Settings';
 import LoginPage from './features/auth/LoginPage';
-import AuthCallbackPage from './features/auth/AuthCallbackPage';
-import OAuth2Redirect from './features/auth/OAuth2Redirect';
+import AuthCallback from './features/auth/AuthCallback';
+import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
 
 function App() {
@@ -36,7 +36,10 @@ function App() {
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            
+            {/* OIDC callback routes */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/silent-callback" element={<SilentCallback />} />
             
             {/* Protected routes */}
             <Route
@@ -58,12 +61,6 @@ function App() {
                   </Layout>
                 </RequireAuth>
               }
-            />
-
-            {/* OAuth2 redirect route */}
-            <Route 
-              path="/oauth2/authorization/:provider" 
-              element={<OAuth2Redirect />} 
             />
 
             {/* Fallback route */}

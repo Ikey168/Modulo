@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout, initiateOAuthLogin } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <nav className="bg-gray-800 text-white">
@@ -83,7 +83,7 @@ const Navbar = () => {
               </>
             ) : (
               <button
-                onClick={() => initiateOAuthLogin('google')} // Default to Google, or add provider selection
+                onClick={() => window.location.href = '/login'}
                 className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
               >
                 Login
