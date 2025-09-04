@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
 import { NetworkStatusIndicator } from '../network';
 import { ThemeToggle } from '../theme';
-import MobileMenu from './MobileMenu';
+import EnhancedMobileMenu from './EnhancedMobileMenu';
+import MobileOptimizedButton from '../common/MobileOptimizedButton';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const Header: React.FC = () => {
   const { isAuthenticated, user, logout, roles } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isMobile } = useResponsive();
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -94,7 +97,8 @@ const Header: React.FC = () => {
               </div>
             )}
             
-            <nav className="header-nav">
+            {/* Desktop Navigation */}
+            <nav className="header-nav desktop-only">
               <ul>
                 {isAuthenticated ? (
                   <>
@@ -107,22 +111,29 @@ const Header: React.FC = () => {
                 )}
               </ul>
             </nav>
-            <button 
-              className="hamburger-button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <div className={`hamburger-icon ${isMobileMenuOpen ? 'open' : ''}`}>
-                <div className="hamburger-line"></div>
-                <div className="hamburger-line"></div>
-                <div className="hamburger-line"></div>
-              </div>
-            </button>
+            
+            {/* Mobile Menu Button */}
+            {isMobile && (
+              <MobileOptimizedButton
+                variant="ghost"
+                size="touch"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open menu"
+                className="mobile-menu-trigger"
+              >
+                <div className={`hamburger-icon ${isMobileMenuOpen ? 'open' : ''}`}>
+                  <div className="hamburger-line"></div>
+                  <div className="hamburger-line"></div>
+                  <div className="hamburger-line"></div>
+                </div>
+              </MobileOptimizedButton>
+            )}
           </div>
         </div>
       </header>
       
-      <MobileMenu 
+      {/* Enhanced Mobile Menu */}
+      <EnhancedMobileMenu 
         isOpen={isMobileMenuOpen} 
         onClose={() => setIsMobileMenuOpen(false)} 
       />
