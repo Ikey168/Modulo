@@ -498,6 +498,33 @@ codeql database analyze --format=sarif-latest
 - **SOC 2 Type II**: Continuous security monitoring
 - **SARIF Export**: Machine-readable security findings with 30-day retention
 
+## 🔐 Role-Based Access Control (RBAC)
+
+Modulo implements a comprehensive role-based access control system with least-privilege defaults, providing fine-grained authorization for all platform resources.
+
+### 📋 Authorization Framework
+- **Hierarchical Roles**: System, workspace, and resource-level permissions
+- **Least Privilege**: Users receive minimum required permissions by default
+- **Multi-tenant Isolation**: Complete tenant separation with cross-tenant prevention
+- **Policy-as-Code**: Authorization policies written in OPA Rego
+
+### 🏗️ Role Matrix & Documentation
+- **[Role Matrix](docs/authz/role-matrix.md)**: Comprehensive role definitions and permission mapping
+- **[Migration Guide](docs/authz/migration-guide.md)**: Custom role development and legacy migration
+- **[Implementation Examples](docs/authz/examples.md)**: Real-world scenarios and code samples
+
+### 🛠️ Key Features
+- **Dynamic Role Assignment**: Time-limited and conditional roles
+- **Approval Workflows**: Multi-stage approval for privilege escalation
+- **Audit Trail**: Complete logging of all authorization decisions
+- **Compliance Ready**: SOC 2, GDPR, HIPAA, and industry standard support
+
+### 🔧 Integration Points
+- **OPA Policies**: `/policy/authorization.rego` - Core authorization rules
+- **Envoy + OPA**: External authorization filter for API protection
+- **Spring Security**: Method-level authorization annotations
+- **JWT Claims**: Role and permission encoding in identity tokens
+
 **Security Status:**
 - ✅ High-severity findings: **0 active alerts**
 - ✅ Security gate: **Passing** (blocks PRs with critical issues)
