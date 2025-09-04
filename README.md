@@ -6,7 +6,8 @@ A comprehensive note-taking and knowledge management application with blockchain
 
 [![CI/CD](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml)
-[![Release](https://github.com/Ikey168/For detailed setup and rotation procedures, see [External Secrets Implementation Guide](docs/EXTERNAL_SECRETS_IMPLEMENTATION.md).
+[![Policy CI Gate](https://github.com/Ikey168/Modulo/actions/workflows/policy-ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/policy-ci.yml)
+[![Release](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/release-please.yml)
 
 ## 🔐 Local Development Secrets (SOPS + direnv)
 
