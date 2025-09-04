@@ -1,0 +1,26 @@
+# Keycloak Helm values for development
+keycloak:
+  persistence:
+    dbVendor: postgres
+    enabled: true
+    size: 1Gi
+    storageClass: standard
+  auth:
+    adminUser: admin
+    adminPassword: admin
+  ingress:
+    enabled: true
+    path: /auth
+    hosts:
+      - localhost
+    annotations: {}
+  extraEnv:
+    - name: KEYCLOAK_IMPORT
+      value: /realm/modulo-realm.json
+  extraVolumeMounts:
+    - name: realm-volume
+      mountPath: /realm
+  extraVolumes:
+    - name: realm-volume
+      configMap:
+        name: modulo-realm

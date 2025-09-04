@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: modulo-realm
+  labels:
+    app: keycloak
+    chart: keycloak
+    release: dev
+    heritage: Helm
+data:
+  modulo-realm.json: |
+{{ .Files.Get "infra/keycloak/realm/modulo-realm.json" | indent 4 }}
