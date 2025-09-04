@@ -1,0 +1,14 @@
+services:
+  envoy-ext-authz:
+    engines:
+      opa:
+        policy: policy.rego
+
+plugins:
+  envoy_ext_authz_grpc:
+    addr: :9191
+    query: data.envoy.authz.allow
+    enable_reflection: true
+
+decision_logs:
+  console: true
