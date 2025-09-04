@@ -6,7 +6,7 @@ import { ThemeToggle } from '../theme';
 import MobileMenu from './MobileMenu';
 
 const Header: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, roles } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,7 +53,35 @@ const Header: React.FC = () => {
             <ThemeToggle compact={true} showLabels={false} className="header-theme-toggle" />
             <NetworkStatusIndicator showDetails={true} className="header-network-status" />
             
-            {/* MetaMask Wallet Info */}
+            {/* User Info for OIDC authenticated users */}
+            {isAuthenticated && user?.authProvider === 'oidc' && (
+              <div className="user-info-header">
+                <div className="user-details">
+                  {user.email && (
+                    <div className="user-email">
+                      <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>
+                      <span className="email">{user.email}</span>
+                    </div>
+                  )}
+                  {roles.length > 0 && (
+                    <div className="user-roles">
+                      <span className="roles-label">Roles:</span>
+                      <div className="roles-list">
+                        {roles.map(role => (
+                          <span key={role} className={`role-badge role-${role.toLowerCase()}`}>
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* MetaMask Wallet Info - keeping for compatibility */}
             {isAuthenticated && user?.authProvider === 'metamask' && (
               <div className="wallet-info-header">
                 <div className="wallet-address">
