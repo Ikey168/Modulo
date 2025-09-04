@@ -1,0 +1,471 @@
+.mobile-performance-dashboard {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.performance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.performance-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.performance-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.monitor-toggle {
+  background: #6c757d;
+}
+
+.monitor-toggle.monitoring {
+  background: #dc3545;
+  animation: pulse 2s infinite;
+}
+
+.run-tests {
+  background: #007bff;
+}
+
+.export-data {
+  background: #28a745;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Performance Metrics */
+.performance-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Device Information */
+.device-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.device-status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.device-status.low-end {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.device-status.high-end {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #a3d977;
+}
+
+.bundle-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Performance Summary */
+.performance-summary {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+.performance-summary h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.summary-item span:first-child {
+  color: #666;
+  font-weight: 500;
+}
+
+.summary-item span:last-child {
+  font-weight: bold;
+}
+
+/* Test Results */
+.test-results {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+.test-results h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.test-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.test-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.test-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.test-data {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.test-data > div {
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Advanced Section */
+.advanced-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+.details-toggle {
+  background: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.performance-chart {
+  margin-top: 1rem;
+}
+
+.performance-chart h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1rem;
+}
+
+.chart-container {
+  display: flex;
+  align-items: end;
+  height: 100px;
+  gap: 2px;
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.chart-bar {
+  flex: 1;
+  min-width: 8px;
+  height: 100%;
+  position: relative;
+}
+
+.fps-bar {
+  width: 100%;
+  background: #007bff;
+  border-radius: 2px 2px 0 0;
+  transition: all 0.3s ease;
+  min-height: 2px;
+}
+
+.chart-labels {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Performance Recommendations */
+.performance-recommendations {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+.performance-recommendations h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendation {
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.recommendation.warning {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.recommendation.info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .mobile-performance-dashboard {
+    padding: 0.75rem;
+  }
+  
+  .performance-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .performance-controls {
+    justify-content: center;
+  }
+  
+  .performance-metrics {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .metric-card {
+    padding: 0.75rem;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+  }
+  
+  .device-info {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .test-data {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-container {
+    height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-performance-dashboard {
+    padding: 0.5rem;
+  }
+  
+  .performance-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .performance-metrics {
+    grid-template-columns: 1fr;
+  }
+  
+  .metric-card {
+    padding: 0.5rem;
+  }
+  
+  .metric-value {
+    font-size: 1.3rem;
+  }
+  
+  .performance-summary,
+  .test-results,
+  .advanced-section,
+  .performance-recommendations {
+    padding: 1rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .mobile-performance-dashboard {
+    background: #1a1a1a;
+    color: #e0e0e0;
+  }
+  
+  .performance-header h2 {
+    color: #e0e0e0;
+  }
+  
+  .metric-card,
+  .device-info,
+  .performance-summary,
+  .test-results,
+  .advanced-section,
+  .performance-recommendations {
+    background: #2d2d2d;
+    color: #e0e0e0;
+  }
+  
+  .summary-item,
+  .test-data > div {
+    background: #1a1a1a;
+  }
+  
+  .chart-container {
+    background: #1a1a1a;
+  }
+  
+  .device-status.low-end {
+    background: #3d3d1a;
+    color: #ffd700;
+  }
+  
+  .device-status.high-end {
+    background: #1a3d1a;
+    color: #90ee90;
+  }
+  
+  .recommendation.warning {
+    background: #3d3d1a;
+    color: #ffd700;
+    border-color: #666633;
+  }
+  
+  .recommendation.info {
+    background: #1a2d3d;
+    color: #87ceeb;
+    border-color: #336666;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .metric-card {
+    transition: none;
+  }
+  
+  .fps-bar {
+    transition: none;
+  }
+  
+  .monitor-toggle.monitoring {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .mobile-performance-dashboard {
+    border: 2px solid #000;
+  }
+  
+  .metric-card,
+  .device-info,
+  .performance-summary,
+  .test-results,
+  .advanced-section,
+  .performance-recommendations {
+    border: 1px solid #000;
+  }
+}
