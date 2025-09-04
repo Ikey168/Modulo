@@ -1,0 +1,284 @@
+/* Mobile-Optimized Button Component Styles */
+
+.mobile-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+  
+  /* Ensure minimum touch target size */
+  min-height: 44px;
+  min-width: 44px;
+  
+  /* Prevent text selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  
+  /* Remove tap highlight */
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+  
+  /* Prevent zoom on double tap */
+  touch-action: manipulation;
+}
+
+/* Size variants */
+.mobile-button--small {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.mobile-button--medium {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.mobile-button--large {
+  padding: 1rem 1.5rem;
+  font-size: 1.125rem;
+  min-height: 52px;
+  border-radius: 10px;
+}
+
+.mobile-button--touch {
+  /* Optimized for touch devices */
+  min-height: 48px;
+  padding: 0.875rem 1.5rem;
+  font-size: 1.0625rem;
+}
+
+/* Style variants */
+.mobile-button--primary {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-brand-primary);
+}
+
+.mobile-button--secondary {
+  background-color: var(--color-brand-secondary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-brand-secondary);
+}
+
+.mobile-button--outline {
+  background-color: transparent;
+  color: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);
+}
+
+.mobile-button--ghost {
+  background-color: transparent;
+  color: var(--color-brand-primary);
+  border-color: transparent;
+}
+
+.mobile-button--danger {
+  background-color: var(--color-status-error);
+  color: var(--color-text-inverse);
+  border-color: var(--color-status-error);
+}
+
+/* Mobile-specific optimizations */
+.mobile-button--mobile {
+  /* Slightly larger touch targets on mobile */
+  min-height: 48px;
+  padding: 0.875rem 1.5rem;
+  
+  /* Better visual feedback */
+  transform: scale(1);
+  transition: transform 0.1s ease-out, background-color 0.2s ease;
+}
+
+.mobile-button--touch:active {
+  transform: scale(0.98);
+}
+
+/* Full width variant */
+.mobile-button--full-width {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Interactive states */
+.mobile-button:hover:not(:disabled):not(.mobile-button--loading) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.mobile-button--primary:hover:not(:disabled) {
+  background-color: var(--color-brand-primary);
+  filter: brightness(1.1);
+}
+
+.mobile-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-brand-secondary);
+  filter: brightness(1.1);
+}
+
+.mobile-button--outline:hover:not(:disabled) {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+}
+
+.mobile-button--ghost:hover:not(:disabled) {
+  background-color: var(--color-interactive-hover);
+}
+
+.mobile-button--danger:hover:not(:disabled) {
+  background-color: var(--color-status-error);
+  filter: brightness(1.1);
+}
+
+/* Focus states for accessibility */
+.mobile-button:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.mobile-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.mobile-button--disabled:hover {
+  transform: none !important;
+  filter: none !important;
+  opacity: 0.5;
+}
+
+/* Loading state */
+.mobile-button--loading {
+  cursor: wait;
+  position: relative;
+}
+
+.mobile-button--loading .mobile-button__content {
+  opacity: 0.7;
+}
+
+/* Spinner */
+.mobile-button__spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+}
+
+.mobile-button__spinner-inner {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: mobile-button-spin 1s linear infinite;
+}
+
+@keyframes mobile-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon positioning */
+.mobile-button__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-button__icon--left {
+  margin-right: -0.125rem;
+}
+
+.mobile-button__icon--right {
+  margin-left: -0.125rem;
+}
+
+/* Content wrapper */
+.mobile-button__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+/* Reduced motion preferences */
+.mobile-button--reduced-motion {
+  transition: none;
+  animation: none;
+}
+
+.mobile-button--reduced-motion:hover {
+  transform: none;
+}
+
+.mobile-button--reduced-motion:active {
+  transform: none;
+}
+
+.mobile-button--reduced-motion .mobile-button__spinner-inner {
+  animation: none;
+  border-top-color: transparent;
+  border-color: currentColor;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mobile-button {
+    border-width: 3px;
+  }
+  
+  .mobile-button:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .mobile-button--outline {
+    border-color: var(--color-text-primary);
+    color: var(--color-text-primary);
+  }
+  
+  .mobile-button--ghost {
+    color: var(--color-text-primary);
+  }
+  
+  .mobile-button--ghost:hover:not(:disabled) {
+    background-color: var(--color-interactive-hover);
+  }
+}
+
+/* Print styles */
+@media print {
+  .mobile-button {
+    background: none !important;
+    color: black !important;
+    border: 1px solid black !important;
+  }
+}

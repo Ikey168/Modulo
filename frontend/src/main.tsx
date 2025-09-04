@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'; // Import Provider
 import { store } from './store/store';   // Import store
 import App from './App';
 import './styles/index.css';
+import './styles/mobile-layout.css';
 
 // Service Worker registration for PWA functionality
 if ('serviceWorker' in navigator) {

@@ -1,0 +1,338 @@
+/* Mobile-Optimized Input Component Styles */
+
+.mobile-input-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.mobile-input-container--full-width {
+  width: 100%;
+}
+
+/* Label styling */
+.mobile-input-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  transition: color 0.2s ease;
+}
+
+.mobile-input-required {
+  color: var(--color-status-error);
+  margin-left: 0.25rem;
+}
+
+/* Input wrapper */
+.mobile-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Base input styles */
+.mobile-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 2px solid var(--color-border-primary);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  outline: none;
+  
+  /* Mobile optimizations */
+  min-height: 44px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  
+  /* Prevent zoom on iOS */
+  font-size: 16px;
+  
+  /* Remove default styling */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Better touch interaction */
+  touch-action: manipulation;
+}
+
+/* Size variants */
+.mobile-input-container--small .mobile-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  min-height: 40px;
+  border-radius: 6px;
+}
+
+.mobile-input-container--medium .mobile-input {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.mobile-input-container--large .mobile-input {
+  padding: 1rem 1.25rem;
+  font-size: 1.125rem;
+  min-height: 52px;
+  border-radius: 10px;
+}
+
+/* Mobile-specific adjustments */
+.mobile-input-container--mobile .mobile-input {
+  min-height: 48px;
+  padding: 0.875rem 1rem;
+  font-size: 16px; /* Prevent zoom on iOS */
+}
+
+/* iOS-specific styles */
+.mobile-input-container--ios .mobile-input {
+  /* Better text rendering on iOS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Variant styles */
+.mobile-input-container--outlined .mobile-input {
+  background-color: var(--color-bg-primary);
+  border: 2px solid var(--color-border-primary);
+}
+
+.mobile-input-container--filled .mobile-input {
+  background-color: var(--color-bg-secondary);
+  border: 2px solid transparent;
+}
+
+.mobile-input-container--standard .mobile-input {
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-border-primary);
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Focus states */
+.mobile-input:focus,
+.mobile-input-container--focused .mobile-input {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.mobile-input-container--outlined.mobile-input-container--focused .mobile-input {
+  background-color: var(--color-bg-primary);
+}
+
+.mobile-input-container--filled.mobile-input-container--focused .mobile-input {
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-brand-primary);
+}
+
+.mobile-input-container--standard.mobile-input-container--focused .mobile-input {
+  border-bottom-color: var(--color-brand-primary);
+  box-shadow: 0 2px 0 0 var(--color-brand-primary);
+}
+
+.mobile-input-container--focused .mobile-input-label {
+  color: var(--color-brand-primary);
+}
+
+/* Error states */
+.mobile-input-container--error .mobile-input {
+  border-color: var(--color-status-error);
+  background-color: var(--color-bg-primary);
+}
+
+.mobile-input-container--error.mobile-input-container--focused .mobile-input {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.mobile-input-container--error .mobile-input-label {
+  color: var(--color-status-error);
+}
+
+/* Success states */
+.mobile-input-container--success .mobile-input {
+  border-color: var(--color-status-success);
+  background-color: var(--color-bg-primary);
+}
+
+.mobile-input-container--success.mobile-input-container--focused .mobile-input {
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.mobile-input-container--success .mobile-input-label {
+  color: var(--color-status-success);
+}
+
+/* Disabled state */
+.mobile-input-container--disabled .mobile-input {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-secondary);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mobile-input-container--disabled .mobile-input-label {
+  color: var(--color-text-tertiary);
+}
+
+/* Icon positioning */
+.mobile-input-icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mobile-input-icon--left {
+  left: 0.75rem;
+}
+
+.mobile-input-icon--right {
+  right: 0.75rem;
+}
+
+.mobile-input--with-left-icon {
+  padding-left: 2.5rem;
+}
+
+.mobile-input--with-right-icon {
+  padding-right: 2.5rem;
+}
+
+/* Clear button */
+.mobile-input-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+  
+  /* Touch optimization */
+  min-width: 32px;
+  min-height: 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-input-clear:hover {
+  background-color: var(--color-interactive-hover);
+  color: var(--color-text-primary);
+}
+
+.mobile-input-clear:focus {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+.mobile-input--with-clear {
+  padding-right: 3rem;
+}
+
+.mobile-input--with-right-icon.mobile-input--with-clear {
+  padding-right: 4rem;
+}
+
+.mobile-input--with-clear + .mobile-input-icon--right {
+  right: 2.5rem;
+}
+
+/* Message container */
+.mobile-input-message-container {
+  margin-top: 0.375rem;
+  min-height: 1.25rem;
+}
+
+.mobile-input-message {
+  font-size: 0.75rem;
+  line-height: 1.33;
+  margin: 0;
+}
+
+.mobile-input-message--error {
+  color: var(--color-status-error);
+}
+
+.mobile-input-message--success {
+  color: var(--color-status-success);
+}
+
+.mobile-input-message--helper {
+  color: var(--color-text-secondary);
+}
+
+/* Placeholder styling */
+.mobile-input::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 1;
+}
+
+.mobile-input::-webkit-input-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.mobile-input::-moz-placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 1;
+}
+
+.mobile-input:-ms-input-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .mobile-input {
+    border-width: 3px;
+  }
+  
+  .mobile-input:focus {
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.3);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-input,
+  .mobile-input-label,
+  .mobile-input-clear {
+    transition: none;
+  }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .mobile-input {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-secondary);
+  }
+  
+  .mobile-input-container--filled .mobile-input {
+    background-color: var(--color-bg-tertiary);
+  }
+}
