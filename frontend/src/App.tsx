@@ -14,6 +14,8 @@ import LoginPage from './features/auth/LoginPage';
 import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
+import { MobileLoginPage } from './components/mobile/MobileLoginPage';
+import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 
 function App() {
   useEffect(() => {
@@ -40,6 +42,11 @@ function App() {
             {/* OIDC callback routes */}
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/silent-callback" element={<SilentCallback />} />
+            
+            {/* Mobile routes */}
+            <Route path="/mobile/login" element={<MobileLoginPage />} />
+            <Route path="/mobile/auth/google/callback" element={<GoogleOAuthCallback />} />
+            <Route path="/mobile/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
             
             {/* Protected routes */}
             <Route

@@ -1,0 +1,267 @@
+.oauth-callback-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.callback-container {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.callback-header {
+  margin-bottom: 2rem;
+}
+
+.provider-logo {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.provider-logo.error {
+  font-size: 2.5rem;
+}
+
+.callback-header h2 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.callback-header p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.loading-section {
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-text {
+  margin: 0;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.security-note {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+
+.security-note p {
+  margin: 0;
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.error-section {
+  margin: 1.5rem 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.retry-button,
+.cancel-button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button {
+  background: #667eea;
+  color: white;
+}
+
+.retry-button:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.cancel-button {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.cancel-button:hover {
+  background: #cbd5e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.help-section {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.help-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.help-section ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.help-section li {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.help-section li:last-child {
+  margin-bottom: 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .oauth-callback-page {
+    padding: 0.5rem;
+  }
+  
+  .callback-container {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+  
+  .provider-logo {
+    font-size: 2.5rem;
+  }
+  
+  .callback-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .action-buttons {
+    gap: 0.75rem;
+  }
+  
+  .retry-button,
+  .cancel-button {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+  
+  .help-section {
+    padding: 1rem;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .oauth-callback-page {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  }
+  
+  .callback-container {
+    background: rgba(45, 45, 45, 0.95);
+    color: #e0e0e0;
+  }
+  
+  .callback-header h2 {
+    color: #e0e0e0;
+  }
+  
+  .callback-header p {
+    color: #b0b0b0;
+  }
+  
+  .help-section {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .help-section h3 {
+    color: #e0e0e0;
+  }
+  
+  .help-section li {
+    color: #b0b0b0;
+  }
+  
+  .cancel-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: #b0b0b0;
+  }
+  
+  .cancel-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Loading Animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.callback-container {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Accessibility */
+.retry-button:focus,
+.cancel-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retry-button,
+  .cancel-button {
+    transition: none;
+  }
+  
+  .retry-button:hover,
+  .cancel-button:hover {
+    transform: none;
+  }
+  
+  .callback-container {
+    animation: none;
+  }
+}
