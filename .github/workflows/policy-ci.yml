@@ -1,0 +1,457 @@
+name: Policy CI Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'policy/**'
+      - 'infra/opa/**'
+      - '.github/workflows/policy-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'policy/**'
+      - 'infra/opa/**'
+
+concurrency:
+  group: policy-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy-validation:
+    name: Policy Validation and Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Cache OPA binary
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/bin/opa
+        key: opa-${{ runner.os }}-${{ hashFiles('.github/workflows/policy-ci.yml') }}
+        restore-keys: |
+          opa-${{ runner.os }}-
+
+    - name: Install OPA
+      run: |
+        if [ ! -f ~/.local/bin/opa ]; then
+          mkdir -p ~/.local/bin
+          curl -L -o ~/.local/bin/opa https://openpolicyagent.org/downloads/v0.58.0/opa_linux_amd64_static
+          chmod 755 ~/.local/bin/opa
+        fi
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Verify OPA installation
+      run: |
+        opa version
+        which opa
+
+    - name: Cache Conftest binary
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/bin/conftest
+        key: conftest-${{ runner.os }}-${{ hashFiles('.github/workflows/policy-ci.yml') }}
+        restore-keys: |
+          conftest-${{ runner.os }}-
+
+    - name: Install Conftest
+      run: |
+        if [ ! -f ~/.local/bin/conftest ]; then
+          mkdir -p ~/.local/bin
+          wget https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz
+          tar xzf conftest_0.46.0_Linux_x86_64.tar.gz
+          mv conftest ~/.local/bin/
+          chmod +x ~/.local/bin/conftest
+        fi
+
+    - name: Verify Conftest installation
+      run: |
+        conftest --version
+        which conftest
+
+    - name: Format policy files
+      run: |
+        find policy/ infra/opa/ -name "*.rego" -exec opa fmt --write {} \;
+        
+    - name: Check for formatting changes
+      run: |
+        if ! git diff --quiet; then
+          echo "❌ Policy files are not formatted properly"
+          echo "Run 'make policy-fmt' to fix formatting issues"
+          git diff
+          exit 1
+        fi
+
+    - name: Lint policy files
+      run: |
+        echo "🔍 Linting policy files..."
+        find policy/ -name "*.rego" -exec opa fmt --list {} \; | while read file; do
+          if [ -n "$file" ]; then
+            echo "❌ $file needs formatting"
+            exit 1
+          fi
+        done
+
+    - name: Validate policy syntax
+      run: |
+        echo "🔍 Validating policy syntax..."
+        for dir in policy/ infra/opa/; do
+          if [ -d "$dir" ]; then
+            echo "Validating $dir"
+            opa parse "$dir"
+          fi
+        done
+
+    - name: Run authorization policy tests
+      run: |
+        echo "🧪 Running authorization policy tests..."
+        mkdir -p test-results
+        opa test policy/ --format=json > test-results/policy-results.json || true
+        opa test policy/ --verbose
+
+    - name: Run infrastructure OPA tests
+      run: |
+        echo "🧪 Running infrastructure OPA tests..."
+        if [ -d "infra/opa/" ]; then
+          opa test infra/opa/ --format=json > test-results/infra-opa-results.json || true
+          opa test infra/opa/ --verbose
+        fi
+
+    - name: Build policy bundles
+      run: |
+        echo "📦 Building policy bundles..."
+        mkdir -p dist/bundles
+        
+        # Build authorization policy bundle
+        if [ -d "policy/" ]; then
+          opa build policy/ -o dist/bundles/authorization-bundle.tar.gz
+          echo "✅ Built authorization policy bundle"
+        fi
+        
+        # Build infrastructure policy bundle  
+        if [ -d "infra/opa/" ]; then
+          opa build infra/opa/ -o dist/bundles/infra-opa-bundle.tar.gz
+          echo "✅ Built infrastructure OPA bundle"
+        fi
+
+    - name: Validate policy bundles
+      run: |
+        echo "🔍 Validating policy bundles..."
+        for bundle in dist/bundles/*.tar.gz; do
+          if [ -f "$bundle" ]; then
+            echo "Validating bundle: $bundle"
+            # Extract and validate bundle
+            temp_dir=$(mktemp -d)
+            tar -xzf "$bundle" -C "$temp_dir"
+            opa parse "$temp_dir"
+            rm -rf "$temp_dir"
+            echo "✅ Bundle $bundle is valid"
+          fi
+        done
+
+    - name: Run Conftest policy checks
+      run: |
+        echo "🔍 Running Conftest policy checks..."
+        
+        # Create a sample config to test against
+        mkdir -p test-configs
+        cat > test-configs/docker-compose.yml << 'EOF'
+        version: '3.8'
+        services:
+          app:
+            image: nginx:latest
+            ports:
+              - "80:80"
+            environment:
+              - NODE_ENV=production
+        EOF
+        
+        # Create Conftest policy for infrastructure validation
+        mkdir -p conftest-policies
+        cat > conftest-policies/docker.rego << 'EOF'
+        package docker.security
+        
+        import rego.v1
+        
+        # Deny containers running as root
+        deny contains msg if {
+            input.services[_].user == "root"
+            msg := "Container should not run as root user"
+        }
+        
+        # Warn about latest tags
+        warn contains msg if {
+            some service_name, service
+            service := input.services[service_name]
+            endswith(service.image, ":latest")
+            msg := sprintf("Service '%s' uses ':latest' tag which is not recommended for production", [service_name])
+        }
+        EOF
+        
+        # Run conftest
+        if [ -d "conftest-policies/" ]; then
+          conftest verify --policy conftest-policies/ test-configs/
+        fi
+
+    - name: Security scan policy files
+      run: |
+        echo "🔒 Security scanning policy files..."
+        
+        # Check for hardcoded secrets or sensitive patterns
+        if command -v grep >/dev/null 2>&1; then
+          echo "Checking for potential security issues..."
+          
+          # Check for hardcoded passwords, keys, etc.
+          if find policy/ infra/opa/ -name "*.rego" -exec grep -l "password\|secret\|token\|key" {} \; 2>/dev/null | grep -q .; then
+            echo "⚠️  Found potential sensitive data in policy files"
+            find policy/ infra/opa/ -name "*.rego" -exec grep -Hn "password\|secret\|token\|key" {} \; 2>/dev/null || true
+          fi
+          
+          # Check for overly permissive rules
+          if find policy/ -name "*.rego" -exec grep -l "allow.*:=" {} \; 2>/dev/null | grep -q .; then
+            echo "ℹ️  Found allow rules - reviewing for security:"
+            find policy/ -name "*.rego" -exec grep -Hn "allow.*:=" {} \; 2>/dev/null || true
+          fi
+        fi
+
+    - name: Generate test coverage report
+      run: |
+        echo "📊 Generating test coverage report..."
+        mkdir -p coverage
+        
+        # Generate coverage for authorization policies
+        if [ -d "policy/" ]; then
+          opa test policy/ --coverage --format=json > coverage/policy-coverage.json
+          
+          # Parse coverage and create summary
+          if command -v jq >/dev/null 2>&1; then
+            coverage_percent=$(jq -r '.coverage // 0' coverage/policy-coverage.json)
+            echo "Policy test coverage: $coverage_percent%"
+            
+            if (( $(echo "$coverage_percent < 80" | bc -l) )); then
+              echo "❌ Policy test coverage below 80%"
+              exit 1
+            else
+              echo "✅ Policy test coverage above 80%"
+            fi
+          fi
+        fi
+
+    - name: Convert test results to JUnit
+      run: |
+        echo "📋 Converting test results to JUnit format..."
+        
+        # Create a simple JUnit XML from OPA test results
+        if [ -f "test-results/policy-results.json" ]; then
+          python3 << 'EOF'
+import json
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+def convert_opa_to_junit(input_file, output_file):
+    try:
+        with open(input_file, 'r') as f:
+            data = json.load(f)
+        
+        # Create JUnit XML structure
+        testsuite = ET.Element('testsuite')
+        testsuite.set('name', 'OPA Policy Tests')
+        testsuite.set('timestamp', datetime.now().isoformat())
+        
+        tests = 0
+        failures = 0
+        errors = 0
+        
+        # Process test results if they exist
+        if isinstance(data, list):
+            for item in data:
+                if 'result' in item:
+                    for test_name, test_result in item['result'].items():
+                        tests += 1
+                        testcase = ET.SubElement(testsuite, 'testcase')
+                        testcase.set('name', test_name)
+                        testcase.set('classname', 'policy.test')
+                        
+                        if not test_result:
+                            failures += 1
+                            failure = ET.SubElement(testcase, 'failure')
+                            failure.set('message', f'Test {test_name} failed')
+        
+        testsuite.set('tests', str(tests))
+        testsuite.set('failures', str(failures))
+        testsuite.set('errors', str(errors))
+        
+        # Write JUnit XML
+        tree = ET.ElementTree(testsuite)
+        tree.write(output_file, encoding='utf-8', xml_declaration=True)
+        print(f"Converted {tests} tests to JUnit format")
+        
+    except Exception as e:
+        print(f"Error converting to JUnit: {e}")
+        # Create empty test suite on error
+        testsuite = ET.Element('testsuite')
+        testsuite.set('name', 'OPA Policy Tests')
+        testsuite.set('tests', '0')
+        testsuite.set('failures', '0')
+        testsuite.set('errors', '1')
+        tree = ET.ElementTree(testsuite)
+        tree.write(output_file, encoding='utf-8', xml_declaration=True)
+
+convert_opa_to_junit('test-results/policy-results.json', 'test-results/junit-policy.xml')
+EOF
+        fi
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: policy-test-results
+        path: |
+          test-results/
+          coverage/
+          dist/bundles/
+        retention-days: 30
+
+    - name: Publish test results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Policy Test Results
+        path: test-results/junit-*.xml
+        reporter: java-junit
+        fail-on-error: true
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let comment = '## 🔒 Policy CI Results\n\n';
+          
+          try {
+            // Read test results
+            if (fs.existsSync('test-results/policy-results.json')) {
+              const results = JSON.parse(fs.readFileSync('test-results/policy-results.json', 'utf8'));
+              comment += '### Test Results\n';
+              comment += '✅ Authorization policy tests completed\n\n';
+            }
+            
+            // Read coverage if available
+            if (fs.existsSync('coverage/policy-coverage.json')) {
+              const coverage = JSON.parse(fs.readFileSync('coverage/policy-coverage.json', 'utf8'));
+              comment += `### Coverage\n`;
+              comment += `📊 Test coverage: ${coverage.coverage || 0}%\n\n`;
+            }
+            
+            // List built bundles
+            if (fs.existsSync('dist/bundles/')) {
+              const bundles = fs.readdirSync('dist/bundles/');
+              if (bundles.length > 0) {
+                comment += '### Policy Bundles\n';
+                bundles.forEach(bundle => {
+                  comment += `📦 ${bundle}\n`;
+                });
+                comment += '\n';
+              }
+            }
+            
+            comment += '### Status\n';
+            comment += '🎯 All policy validations passed!\n';
+            comment += '✅ Policy bundle builds successful\n';
+            comment += '🔍 Security checks completed\n';
+            
+          } catch (error) {
+            comment += '❌ Error reading test results\n';
+            comment += `Details: ${error.message}\n`;
+          }
+          
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+    - name: Set status check
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+          const description = state === 'success' ? 
+            'All policy tests and validations passed' : 
+            'Policy validation failed - check logs';
+            
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: state,
+            target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            description: description,
+            context: 'ci/policy-gate'
+          });
+
+  policy-diff:
+    name: Policy Change Analysis  
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      
+    - name: Checkout base branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.base.sha }}
+        path: base
+        
+    - name: Install OPA
+      run: |
+        curl -L -o opa https://openpolicyagent.org/downloads/v0.58.0/opa_linux_amd64_static
+        chmod 755 opa
+        sudo mv opa /usr/local/bin/
+        
+    - name: Analyze policy changes
+      run: |
+        echo "📊 Analyzing policy changes..."
+        
+        # Compare policy directories
+        if [ -d "policy/" ] && [ -d "base/policy/" ]; then
+          echo "### Policy Changes" > policy-diff.md
+          
+          # Find new/modified/deleted files
+          diff -r base/policy/ policy/ --brief | while read line; do
+            echo "- $line" >> policy-diff.md
+          done
+          
+          # Show actual differences for .rego files
+          find policy/ -name "*.rego" | while read file; do
+            base_file="base/$file"
+            if [ -f "$base_file" ]; then
+              if ! diff -q "$base_file" "$file" >/dev/null; then
+                echo "" >> policy-diff.md
+                echo "#### Changes in $file:" >> policy-diff.md
+                echo '```diff' >> policy-diff.md
+                diff -u "$base_file" "$file" | head -50 >> policy-diff.md
+                echo '```' >> policy-diff.md
+              fi
+            fi
+          done
+          
+          cat policy-diff.md
+        fi
+        
+    - name: Upload policy diff
+      uses: actions/upload-artifact@v3
+      with:
+        name: policy-changes
+        path: policy-diff.md
+        retention-days: 7
