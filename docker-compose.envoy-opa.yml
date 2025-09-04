@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    ports:
+      - "8080:8080"
+      - "9901:9901"  # Admin interface
+    volumes:
+      - ./infra/envoy/envoy.yaml:/etc/envoy/envoy.yaml
+    depends_on:
+      - opa
+      - backend
+    networks:
+      - modulo-network
+
+  opa:
+    image: openpolicyagent/opa:latest-envoy
+    ports:
+      - "8181:8181"  # REST API
+      - "9191:9191"  # gRPC for Envoy
+    volumes:
+      - ./infra/opa:/policies
+    command: 
+      - "run"
+      - "--server"
+      - "--config-file=/policies/config.yaml"
+      - "/policies"
+    networks:
+      - modulo-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev,oidc
+    ports:
+      - "8081:8080"  # Direct backend access (bypassing Envoy)
+    networks:
+      - modulo-network
+
+networks:
+  modulo-network:
+    driver: bridge
