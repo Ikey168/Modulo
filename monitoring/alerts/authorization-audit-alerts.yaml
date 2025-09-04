@@ -1,0 +1,255 @@
+groups:
+  - name: authorization_audit.rules
+    interval: 30s
+    rules:
+      # High denial rate alert
+      - alert: HighAuthorizationDenialRate
+        expr: rate(opa_denied_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: authorization
+          category: security
+        annotations:
+          summary: "High authorization denial rate detected"
+          description: |
+            Authorization denial rate is {{ $value | humanize }} requests/sec 
+            for {{ $labels.resource_type }}:{{ $labels.action }} in tenant {{ $labels.tenant }}.
+            This may indicate a security issue or misconfigured permissions.
+          dashboard: "http://grafana:3000/d/authorization-audit"
+          runbook: "https://docs.company.com/runbooks/high-denial-rate"
+          
+      # Audit service down
+      - alert: AuthorizationAuditServiceDown
+        expr: up{job="audit-collector"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: authorization
+          category: infrastructure
+        annotations:
+          summary: "Authorization audit service is down"
+          description: |
+            The audit collector service has been down for more than 1 minute.
+            This means authorization decisions are not being logged, which is a 
+            compliance and security risk.
+          action_required: "Check audit-collector service status and logs immediately"
+          
+      # Slow authorization decisions
+      - alert: SlowAuthorizationDecisions
+        expr: histogram_quantile(0.95, rate(opa_decision_duration_ms_bucket[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: authorization
+          category: performance
+        annotations:
+          summary: "Slow authorization decisions detected"
+          description: |
+            95th percentile of authorization decision time is {{ $value | humanize }}ms
+            for {{ $labels.resource_type }} resources in {{ $labels.tenant }}.
+            This may impact application performance.
+          
+      # Suspicious authorization patterns
+      - alert: SuspiciousAuthorizationPattern
+        expr: increase(opa_denied_requests_total{action="delete"}[1h]) > 10
+        for: 0m
+        labels:
+          severity: warning
+          service: authorization
+          category: security
+        annotations:
+          summary: "Suspicious authorization pattern detected"
+          description: |
+            Unusual number of denied delete requests: {{ $value }} in the last hour
+            for {{ $labels.resource_type }} in tenant {{ $labels.tenant }}.
+            This may indicate a security incident or data breach attempt.
+          action_required: "Investigate user activity and check for potential security incident"
+          
+      # Failed audit log forwarding
+      - alert: AuditLogForwardingFailure
+        expr: rate(audit_logs_processed_total{status="error"}[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: warning
+          service: authorization
+          category: infrastructure
+        annotations:
+          summary: "Audit log forwarding failures detected"
+          description: |
+            {{ $value | humanize }} audit log entries per second are failing to forward
+            to {{ $labels.destination }}. This may result in incomplete audit trails.
+          action_required: "Check connectivity to logging infrastructure"
+          
+      # High privilege action denials
+      - alert: HighPrivilegeActionDenied
+        expr: increase(opa_denied_requests_total{action=~"delete|admin|manage"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: info
+          service: authorization
+          category: security
+        annotations:
+          summary: "High privilege action denied"
+          description: |
+            A high privilege action ({{ $labels.action }}) was denied for user in {{ $labels.tenant }}.
+            Resource: {{ $labels.resource_type }}, Reason: {{ $labels.reason_category }}
+          action_required: "Review if this is expected behavior or potential security issue"
+          
+      # Repeated denials for same user
+      - alert: RepeatedDenialsForUser
+        expr: |
+          (
+            sum(rate(opa_denied_requests_total[5m])) by (user_id, tenant)
+            > 0.05
+          )
+          and on(user_id, tenant)
+          (
+            count(rate(opa_denied_requests_total[5m]) > 0) by (user_id, tenant)
+            > 3
+          )
+        for: 5m
+        labels:
+          severity: warning
+          service: authorization
+          category: security
+        annotations:
+          summary: "Repeated authorization denials for user"
+          description: |
+            User {{ $labels.user_id }} in tenant {{ $labels.tenant }} has been denied
+            access {{ $value | humanize }} times per second across multiple resources.
+            This may indicate compromised credentials or misconfigured permissions.
+          action_required: "Investigate user account and recent activity"
+          
+      # Authorization token validation failures
+      - alert: AuthorizationTokenValidationFailures
+        expr: increase(opa_denied_requests_total{reason_category="invalid_token"}[10m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: authorization
+          category: security
+        annotations:
+          summary: "Multiple token validation failures"
+          description: |
+            {{ $value }} authorization requests failed due to invalid tokens in the last 10 minutes
+            for tenant {{ $labels.tenant }}. This may indicate token expiration issues
+            or potential security attacks.
+          action_required: "Check token issuance and validation configuration"
+          
+      # No audit logs received
+      - alert: NoAuditLogsReceived
+        expr: |
+          (
+            rate(opa_decisions_total[5m]) > 0
+            unless
+            rate(audit_logs_processed_total[5m]) > 0
+          )
+        for: 2m
+        labels:
+          severity: critical
+          service: authorization
+          category: compliance
+        annotations:
+          summary: "No audit logs received despite authorization activity"
+          description: |
+            Authorization decisions are being made but no audit logs are being processed.
+            This indicates a critical failure in the audit logging pipeline.
+          action_required: "Immediately investigate audit logging pipeline failure"
+          
+      # Policy evaluation errors
+      - alert: PolicyEvaluationErrors
+        expr: increase(opa_policy_evaluation_errors_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: authorization
+          category: infrastructure
+        annotations:
+          summary: "Policy evaluation errors detected"
+          description: |
+            {{ $value }} policy evaluation errors occurred in the last 5 minutes.
+            This may result in incorrect authorization decisions.
+          action_required: "Check OPA policy configuration and syntax immediately"
+
+  - name: authorization_audit_aggregates.rules
+    interval: 60s
+    rules:
+      # Recording rule for denial rate by tenant
+      - record: authorization:denial_rate_by_tenant
+        expr: |
+          sum(rate(opa_denied_requests_total[5m])) by (tenant)
+          /
+          sum(rate(opa_decisions_total[5m])) by (tenant)
+          
+      # Recording rule for top denied actions
+      - record: authorization:top_denied_actions_1h
+        expr: |
+          topk(10, sum(increase(opa_denied_requests_total[1h])) by (resource_type, action, tenant))
+          
+      # Recording rule for user activity patterns
+      - record: authorization:user_decision_rate
+        expr: |
+          sum(rate(opa_decisions_total[5m])) by (user_id, tenant, decision)
+          
+      # Recording rule for resource access patterns
+      - record: authorization:resource_access_patterns
+        expr: |
+          sum(rate(opa_decisions_total[5m])) by (resource_type, action, decision)
+          
+      # Recording rule for decision latency by tenant
+      - record: authorization:decision_latency_p95_by_tenant
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(opa_decision_duration_ms_bucket[5m])) by (tenant, le)
+          )
+
+  - name: authorization_audit_slo.rules
+    interval: 300s  # 5 minutes
+    rules:
+      # SLO: 99.9% of authorization decisions should complete within 100ms
+      - record: authorization:slo_latency_99_9
+        expr: |
+          histogram_quantile(0.999, 
+            sum(rate(opa_decision_duration_ms_bucket[5m])) by (le)
+          ) < 100
+          
+      # SLO: Authorization service should have 99.95% availability
+      - record: authorization:slo_availability
+        expr: |
+          (
+            sum(rate(opa_decisions_total[5m]))
+            /
+            (sum(rate(opa_decisions_total[5m])) + sum(rate(authorization_errors_total[5m])))
+          ) > 0.9995
+          
+      # SLO: Audit logs should be processed with 99.9% success rate
+      - record: authorization:slo_audit_success_rate
+        expr: |
+          sum(rate(audit_logs_processed_total{status="success"}[5m]))
+          /
+          sum(rate(audit_logs_processed_total[5m]))
+          
+      # Alert on SLO violations
+      - alert: AuthorizationSLOViolation
+        expr: |
+          (
+            authorization:slo_latency_99_9 == 0
+            or
+            authorization:slo_availability == 0  
+            or
+            authorization:slo_audit_success_rate < 0.999
+          )
+        for: 5m
+        labels:
+          severity: critical
+          service: authorization
+          category: slo
+        annotations:
+          summary: "Authorization SLO violation detected"
+          description: |
+            One or more authorization SLOs are being violated:
+            - Latency SLO (99.9% < 100ms): {{ with query "authorization:slo_latency_99_9" }}{{ . | first | value | humanize }}{{ end }}ms
+            - Availability SLO (99.95%): {{ with query "authorization:slo_availability" }}{{ . | first | value | humanizePercentage }}{{ end }}
+            - Audit Success SLO (99.9%): {{ with query "authorization:slo_audit_success_rate" }}{{ . | first | value | humanizePercentage }}{{ end }}
+          action_required: "Investigate performance and reliability issues immediately"

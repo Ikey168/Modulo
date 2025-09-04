@@ -114,6 +114,166 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # Audit logging and monitoring services
+  audit-collector:
+    build:
+      context: ./services/audit-collector
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - LOKI_ENDPOINT=http://loki:3100
+      - ELASTIC_ENDPOINT=http://elasticsearch:9200
+      - AUDIT_RETENTION_DAYS=90
+      - BATCH_SIZE=100
+      - DENIAL_RATE_THRESHOLD=0.1
+      - SUSPICIOUS_ACTIONS_THRESHOLD=10
+    depends_on:
+      - loki
+      - elasticsearch
+    networks:
+      - modulo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # OpenTelemetry Collector for trace correlation
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.90.1
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8889:8889"   # Prometheus metrics
+      - "13133:13133" # Health check
+    depends_on:
+      - jaeger
+      - prometheus
+      - loki
+    networks:
+      - modulo-network
+    restart: unless-stopped
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14250:14250" # gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - modulo-network
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - modulo-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.2.3
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+    networks:
+      - modulo-network
+    restart: unless-stopped
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:2.9.4
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - modulo-network
+    restart: unless-stopped
+
+  # Elasticsearch for searchable audit logs
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - modulo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # OPA with audit logging configuration
+  opa:
+    image: openpolicyagent/opa:0.59.0-envoy
+    ports:
+      - "9191:9191" # Envoy ext-authz gRPC
+      - "8181:8181" # OPA HTTP API
+    volumes:
+      - ./policy:/policies
+      - ./infra/opa/config-audit.yaml:/config.yaml
+    command: 
+      - "run"
+      - "--server"
+      - "--config-file=/config.yaml"
+      - "--addr=0.0.0.0:8181"
+      - "/policies"
+    environment:
+      - AUDIT_SERVICE_TOKEN=audit-token-123
+    depends_on:
+      - audit-collector
+    networks:
+      - modulo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
     driver: local
@@ -122,6 +282,14 @@ volumes:
   neo4j_logs:
     driver: local
   backup_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:
