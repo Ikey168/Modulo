@@ -19,6 +19,18 @@ envoy-opa-logs:
 opa-test:
 	docker run --rm -v $(PWD)/infra/opa:/workspace openpolicyagent/opa:latest test /workspace
 
+# Test Authorization Policies for Notes RBAC/ABAC
+policy-test:
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest test /workspace
+
+# Build policy bundle
+policy-build:
+	docker run --rm -v $(PWD)/policy:/workspace -v $(PWD)/dist:/dist openpolicyagent/opa:latest build /workspace -o /dist/policy-bundle.tar.gz
+
+# Format policy files
+policy-fmt:
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest fmt --write /workspace
+
 # Run authorization benchmark
 authz-benchmark:
 	cd k6-tests/authz-benchmark && k6 run benchmark.js
