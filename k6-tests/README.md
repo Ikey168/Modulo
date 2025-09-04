@@ -20,6 +20,12 @@
 - **Duration**: 2 minutes
 - **Use Case**: Capacity planning, resilience testing
 
+### 🔐 AuthN/Z Performance Testing (authz)
+- **Purpose**: Validate authentication and authorization performance and resilience
+- **VUs**: 1-50 concurrent users (scenario dependent)
+- **Duration**: 30 seconds to 9 minutes
+- **Use Case**: OAuth migration validation, security performance testing
+
 ## 🎯 SLO-Aligned Thresholds
 
 All k6 tests are configured with thresholds that directly map to our SLOs defined in `docs/SLO_SPECIFICATION.md`:
@@ -164,3 +170,42 @@ npm run baseline:compare
 - [ ] Geographic load distribution
 - [ ] Database-specific performance tests
 - [ ] Real user monitoring (RUM) correlation
+
+## 🧪 AuthN/Z Performance Testing
+
+### Test Scenarios
+```bash
+# Run all AuthN/Z performance tests
+npm run test:authz-full
+
+# Run smoke test only
+npm run test:authz-smoke
+
+# Run with chaos engineering
+npm run test:authz-chaos
+
+# Manual execution
+k6 run authz-performance.js
+k6 run --env CHAOS_MODE=true authz-performance.js
+```
+
+### Performance Targets
+- **Authorization Overhead**: p95 < 20ms
+- **Login Latency**: p95 < 1000ms  
+- **CRUD Operations**: p95 < 500ms
+- **Error Rate**: < 10%
+- **Graceful Degradation**: > 90%
+
+### Chaos Engineering
+Enable failure injection testing:
+```bash
+# Set chaos mode environment
+export CHAOS_MODE=true
+
+# Configure backend chaos settings
+modulo.chaos.enabled=true
+modulo.chaos.opa-failure-rate=0.1
+modulo.chaos.keycloak-failure-rate=0.05
+```
+
+See `docs/perf/authz-benchmark.md` for detailed results and analysis.
