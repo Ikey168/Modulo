@@ -1,0 +1,48 @@
+image:
+  repository: bitnami/keycloak
+  tag: 24.0.3
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+keycloak:
+  extraEnvVars:
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: adminpass
+  import:
+    enabled: true
+    realmFile: /realm/modulo-realm.json
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1024Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /auth/realms/master
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /auth/realms/master
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5

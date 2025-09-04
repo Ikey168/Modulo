@@ -1,0 +1,12 @@
+apiVersion: v2
+name: keycloak
+version: 0.1.0
+description: Keycloak Helm chart for Modulo dev setup
+keywords:
+  - keycloak
+  - oidc
+  - authentication
+  - bitnami
+  - dev
+maintainers:
+  - name: modulo-dev

@@ -1,0 +1,45 @@
+{
+  "realm": "modulo",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      { "name": "user" },
+      { "name": "editor" },
+      { "name": "admin" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "modulo-web",
+      "publicClient": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "defaultRoles": ["user"]
+    },
+    {
+      "clientId": "modulo-api",
+      "publicClient": false,
+      "redirectUris": ["http://localhost:8080/*"],
+      "defaultRoles": ["user"]
+    }
+  ],
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "testpass" }],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "editor",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "editorpass" }],
+      "realmRoles": ["editor"]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "adminpass" }],
+      "realmRoles": ["admin"]
+    }
+  ]
+}
