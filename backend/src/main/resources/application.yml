@@ -263,3 +263,18 @@ modulo:
       api-timeout-ms: 15000
       max-retries: 5
       retry-delay-ms: 3000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: oidc
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/modulo
+          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+logging:
+  level:
+    org.springframework.security: DEBUG
