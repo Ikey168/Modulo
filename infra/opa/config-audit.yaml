@@ -1,0 +1,39 @@
+decision_logs:
+  console: false
+  service: decision_logger
+  reporting:
+    min_delay_seconds: 1
+    max_delay_seconds: 30
+
+services:
+  decision_logger:
+    url: http://audit-collector:8080/v1/decisions
+    headers:
+      Authorization: Bearer ${AUDIT_SERVICE_TOKEN}
+      Content-Type: application/json
+    
+bundles:
+  authz:
+    service: bundle_server  
+    resource: bundles/authorization.tar.gz
+
+plugins:
+  envoy_ext_authz_grpc:
+    addr: ":9191"
+    query: data.envoy.authz.allow
+    enable_reflection: true
+    
+server:
+  encoding:
+    gzip: true
+    
+status:
+  console: true
+  prometheus: true
+
+# OpenTelemetry configuration for trace correlation
+distributed_tracing:
+  type: grpc
+  address: otel-collector:4317
+  service_name: opa-authz
+  sample_percentage: 100

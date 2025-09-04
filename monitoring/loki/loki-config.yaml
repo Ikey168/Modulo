@@ -1,0 +1,79 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: info
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/boltdb-shipper-active
+    cache_location: /loki/boltdb-shipper-cache
+    cache_ttl: 24h
+    shared_store: filesystem
+  filesystem:
+    directory: /loki/chunks
+
+limits_config:
+  # Allow large log entries for detailed audit logs
+  max_line_size: 16KB
+  max_query_length: 12000h
+  max_streams_per_user: 10000
+  max_global_streams_per_user: 50000
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  per_stream_rate_limit: 8MB
+  per_stream_rate_limit_burst: 16MB
+  # Retention for audit compliance
+  retention_period: 90d
+
+chunk_store_config:
+  max_look_back_period: 0s
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 90d
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  rule_path: /loki/rules
+  alertmanager_url: http://alertmanager:9093
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true
+
+analytics:
+  reporting_enabled: false

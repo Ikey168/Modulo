@@ -1,0 +1,172 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        
+  # Receive logs from applications
+  fluentforward:
+    endpoint: 0.0.0.0:8006
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    
+  # Add service metadata and correlation IDs
+  attributes:
+    actions:
+      - key: service.name
+        value: "modulo-authorization"
+        action: upsert
+      - key: audit.enabled
+        value: true
+        action: upsert
+      - key: environment
+        from_attribute: deployment.environment
+        action: upsert
+        
+  # Add resource detection
+  resource:
+    detectors: [env, system]
+    timeout: 2s
+    
+  # Filter sensitive data
+  filter/audit:
+    traces:
+      span:
+        - 'attributes["http.request.header.authorization"] != nil'
+        - 'attributes["http.request.body"] != nil'
+    logs:
+      log_record:
+        - 'body matches ".*password.*"'
+        - 'body matches ".*secret.*"'
+        - 'body matches ".*token.*"'
+        
+  # Generate span metrics for monitoring
+  spanmetrics:
+    metrics_exporter: prometheus
+    latency_histogram_buckets: [2ms, 5ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
+    dimensions:
+      - name: http.method
+      - name: http.status_code
+      - name: authz.decision
+        default: unknown
+      - name: authz.resource_type
+        default: unknown
+      - name: authz.action
+        default: unknown
+      - name: user.tenant
+        default: unknown
+    dimension_cache_size: 1000
+
+  # Transform logs to add audit context
+  transform/audit:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["audit.timestamp"], time_unix_nano())
+          - set(attributes["audit.service"], "modulo-opa")
+          - set(attributes["correlation.trace_id"], trace_id.string) where trace_id != nil
+          - set(attributes["correlation.span_id"], span_id.string) where span_id != nil
+
+exporters:
+  # Jaeger for distributed tracing
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+      
+  # Prometheus for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      service: "otel-collector"
+      
+  # Loki for log aggregation
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    labels:
+      attributes:
+        service.name: "service"
+        authz.decision: "decision"
+        authz.resource_type: "resource_type"
+        user.tenant: "tenant"
+        level: "level"
+    format: json
+    
+  # Elasticsearch for searchable audit logs
+  elasticsearch:
+    endpoints: ["http://elasticsearch:9200"]
+    index: "otel-audit-logs-%{yyyy.MM.dd}"
+    pipeline: "audit-enrichment"
+    mapping:
+      mode: raw
+      raw: |
+        {
+          "properties": {
+            "@timestamp": {"type": "date"},
+            "trace_id": {"type": "keyword"},
+            "span_id": {"type": "keyword"},
+            "decision_id": {"type": "keyword"},
+            "user": {
+              "properties": {
+                "id": {"type": "keyword"},
+                "username": {"type": "keyword"},
+                "tenant": {"type": "keyword"},
+                "roles": {"type": "keyword"}
+              }
+            },
+            "request": {
+              "properties": {
+                "method": {"type": "keyword"},
+                "path": {"type": "text"},
+                "resource_type": {"type": "keyword"},
+                "action": {"type": "keyword"}
+              }
+            },
+            "decision": {
+              "properties": {
+                "allow": {"type": "boolean"},
+                "rule": {"type": "keyword"},
+                "reason": {"type": "text"},
+                "evaluation_time_ms": {"type": "float"}
+              }
+            }
+          }
+        }
+
+service:
+  pipelines:
+    # Traces pipeline for request correlation
+    traces:
+      receivers: [otlp]
+      processors: [resource, attributes, filter/audit, spanmetrics, batch]
+      exporters: [jaeger]
+      
+    # Metrics pipeline for authorization monitoring
+    metrics:
+      receivers: [otlp]
+      processors: [resource, attributes, batch]
+      exporters: [prometheus]
+      
+    # Logs pipeline for audit trail
+    logs:
+      receivers: [otlp, fluentforward]
+      processors: [resource, attributes, transform/audit, filter/audit, batch]
+      exporters: [loki, elasticsearch]
+
+  # Extensions for health and monitoring
+  extensions: [health_check, pprof, zpages]
+  
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+    
+  pprof:
+    endpoint: 0.0.0.0:1777
+    
+  zpages:
+    endpoint: 0.0.0.0:55679
