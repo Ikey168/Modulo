@@ -1,0 +1,528 @@
+.mobile-login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.logo-icon {
+  font-size: 2.5rem;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.login-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Device Info */
+.device-info {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.device-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+
+.device-icon {
+  font-size: 1.2rem;
+}
+
+.device-details {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Error Alert */
+.login-error {
+  margin-bottom: 1.5rem;
+}
+
+/* Auth Methods */
+.auth-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auth-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-button {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-button-icon {
+  font-size: 1.5rem;
+}
+
+.auth-button-text {
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+
+.auth-button-spinner {
+  position: absolute;
+  right: 1rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Specific button styles */
+.auth-button-google:not(:disabled) {
+  background: #4285F4;
+  color: white;
+}
+
+.auth-button-microsoft:not(:disabled) {
+  background: #0078D4;
+  color: white;
+}
+
+.auth-button-metamask:not(:disabled) {
+  background: #F6851B;
+  color: white;
+}
+
+/* Divider */
+.divider {
+  text-align: center;
+  position: relative;
+  margin: 1rem 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.divider span {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Blockchain Note */
+.blockchain-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Advanced Section */
+.advanced-section {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 1.5rem;
+}
+
+.advanced-toggle {
+  width: 100%;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  font-size: 0.9rem;
+  padding: 0.75rem;
+}
+
+.advanced-toggle:hover {
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.advanced-options {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.option-item {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.option-item h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.option-item p {
+  margin: 0 0 0.75rem 0;
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.enterprise-login {
+  background: #6c757d;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.guest-login {
+  background: #28a745;
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Features Overview */
+.features-overview {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.features-overview h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 8px;
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+}
+
+.feature-text {
+  font-size: 0.85rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Auth Status */
+.auth-status {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.auth-status p {
+  margin: 0;
+  color: #28a745;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Footer */
+.login-footer {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.security-info {
+  margin-bottom: 1rem;
+}
+
+.security-info p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.legal-link {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.legal-link:hover {
+  text-decoration: underline;
+}
+
+.separator {
+  color: #ccc;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .mobile-login-page {
+    padding: 0.5rem;
+  }
+  
+  .login-container {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+  
+  .logo h1 {
+    font-size: 1.8rem;
+  }
+  
+  .login-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .auth-button {
+    min-height: 52px;
+  }
+  
+  .auth-button-text {
+    font-size: 0.95rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .legal-links {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .separator {
+    display: none;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .mobile-login-page {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  }
+  
+  .login-container {
+    background: rgba(45, 45, 45, 0.95);
+    color: #e0e0e0;
+  }
+  
+  .logo h1 {
+    color: #e0e0e0;
+  }
+  
+  .login-header h2 {
+    color: #e0e0e0;
+  }
+  
+  .login-subtitle {
+    color: #b0b0b0;
+  }
+  
+  .device-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .device-details {
+    color: #b0b0b0;
+  }
+  
+  .auth-section h3 {
+    color: #e0e0e0;
+  }
+  
+  .blockchain-note {
+    color: #b0b0b0;
+  }
+  
+  .option-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .option-item h4 {
+    color: #e0e0e0;
+  }
+  
+  .option-item p {
+    color: #b0b0b0;
+  }
+  
+  .features-overview h3 {
+    color: #e0e0e0;
+  }
+  
+  .feature-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .security-info p {
+    color: #b0b0b0;
+  }
+}
+
+/* Accessibility */
+.auth-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-button {
+    transition: none;
+  }
+  
+  .auth-button:hover {
+    transform: none;
+  }
+  
+  .spinner {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .login-container {
+    background: #fff;
+    border: 2px solid #000;
+  }
+  
+  .auth-button {
+    border: 2px solid #000;
+  }
+  
+  .device-info,
+  .auth-status,
+  .feature-item {
+    border: 1px solid #000;
+  }
+}
