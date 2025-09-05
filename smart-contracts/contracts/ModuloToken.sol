@@ -158,4 +158,11 @@ contract ModuloToken is ERC20, ERC20Burnable, Pausable, Ownable {
     function recoverETH() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
+
+    /**
+     * @dev Receive function to allow contract to accept ETH
+     */
+    receive() external payable {
+        // Allow contract to receive ETH for emergency recovery
+    }
 }

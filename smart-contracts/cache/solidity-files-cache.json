@@ -2,16 +2,17 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/workspaces/Modulo/smart-contracts/contracts/ModuloToken.sol": {
-      "lastModificationDate": 1755349244622,
-      "contentHash": "1dda0347dcbdb0a9c2aee8e6ce449c45",
+      "lastModificationDate": 1757091106359,
+      "contentHash": "4b09df4535e6128a66c40fdbaa97d010",
       "sourceName": "contracts/ModuloToken.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -42,16 +43,17 @@
       ]
     },
     "/workspaces/Modulo/smart-contracts/contracts/NoteMonetization.sol": {
-      "lastModificationDate": 1755349244622,
-      "contentHash": "1d49df4fbe325fb29e1d21bd08b60cf6",
+      "lastModificationDate": 1757091261807,
+      "contentHash": "c0074391cf798fd67e0c12ce12522b01",
       "sourceName": "contracts/NoteMonetization.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -82,7 +84,7 @@
       ]
     },
     "/workspaces/Modulo/smart-contracts/contracts/NoteRegistry.sol": {
-      "lastModificationDate": 1755137650009,
+      "lastModificationDate": 1756927236165,
       "contentHash": "02d92bea22b47ff94ae15e508ab712be",
       "sourceName": "contracts/NoteRegistry.sol",
       "solcConfig": {
@@ -90,8 +92,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -117,7 +120,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
-      "lastModificationDate": 1755374743811,
+      "lastModificationDate": 1756927243228,
       "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
@@ -125,8 +128,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -154,7 +158,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/security/Pausable.sol": {
-      "lastModificationDate": 1755374743829,
+      "lastModificationDate": 1756927243223,
       "contentHash": "25c8108f36fdd472bc78d4c4af240c11",
       "sourceName": "@openzeppelin/contracts/security/Pausable.sol",
       "solcConfig": {
@@ -162,8 +166,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -191,7 +196,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
-      "lastModificationDate": 1755374743830,
+      "lastModificationDate": 1756927243223,
       "contentHash": "3ae5166c6827a9cf1a7a462d1632b464",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -199,8 +204,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -230,7 +236,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol": {
-      "lastModificationDate": 1755374743830,
+      "lastModificationDate": 1756927243223,
       "contentHash": "a1c7f80ae26f5b2d7d563475627fbf25",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol",
       "solcConfig": {
@@ -238,8 +244,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -268,7 +275,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/utils/Context.sol": {
-      "lastModificationDate": 1755374743840,
+      "lastModificationDate": 1756927243223,
       "contentHash": "f07feb4a44b1a4872370da5aa70e8e46",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -276,8 +283,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -303,7 +311,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
-      "lastModificationDate": 1755374743830,
+      "lastModificationDate": 1756927243223,
       "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -311,8 +319,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -338,7 +347,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
-      "lastModificationDate": 1755374743833,
+      "lastModificationDate": 1756927243223,
       "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -346,8 +355,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -375,7 +385,7 @@
       ]
     },
     "/workspaces/Modulo/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
-      "lastModificationDate": 1755374743829,
+      "lastModificationDate": 1756927243223,
       "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
       "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
       "solcConfig": {
@@ -383,8 +393,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -410,7 +421,7 @@
       ]
     },
     "/workspaces/Modulo/smart-contracts/contracts/NoteRegistryWithAccessControl.sol": {
-      "lastModificationDate": 1755981912375,
+      "lastModificationDate": 1756927236165,
       "contentHash": "72a1e94e3a00f8259d08655e118f29c1",
       "sourceName": "contracts/NoteRegistryWithAccessControl.sol",
       "solcConfig": {
@@ -418,8 +429,9 @@
         "settings": {
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 1000
           },
+          "viaIR": true,
           "outputSelection": {
             "*": {
               "*": [
@@ -442,6 +454,123 @@
       ],
       "artifacts": [
         "NoteRegistryWithAccessControl"
+      ]
+    },
+    "/workspaces/Modulo/smart-contracts/contracts/ModuloTokenOptimized.sol": {
+      "lastModificationDate": 1756927236165,
+      "contentHash": "321520a914f26d062a4c99d7d0e3053d",
+      "sourceName": "contracts/ModuloTokenOptimized.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "viaIR": true,
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol",
+        "@openzeppelin/contracts/security/Pausable.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ModuloTokenOptimized"
+      ]
+    },
+    "/workspaces/Modulo/smart-contracts/contracts/NoteRegistryOptimized.sol": {
+      "lastModificationDate": 1756927236165,
+      "contentHash": "56433a9449f95e54d455e8e31010edd8",
+      "sourceName": "contracts/NoteRegistryOptimized.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "viaIR": true,
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "NoteRegistryOptimized"
+      ]
+    },
+    "/workspaces/Modulo/smart-contracts/contracts/MaliciousReentrant.sol": {
+      "lastModificationDate": 1757090802603,
+      "contentHash": "94263aa31fa72df4404179583841143d",
+      "sourceName": "contracts/MaliciousReentrant.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "viaIR": true,
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "IModuloTokenOptimized",
+        "MaliciousReentrant"
       ]
     }
   }
