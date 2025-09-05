@@ -4,6 +4,7 @@ import com.modulo.plugin.api.renderer.NoteRenderer;
 import com.modulo.plugin.api.renderer.RendererOutput;
 import com.modulo.plugin.api.renderer.RendererOption;
 import com.modulo.plugin.api.renderer.RendererEventResponse;
+import com.modulo.entity.Note;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,8 @@ public class MindMapRenderer implements NoteRenderer {
     private static final String RENDERER_NAME = "Mind Map Renderer";
     private static final String RENDERER_VERSION = "1.0.0";
     private static final String RENDERER_DESCRIPTION = "Converts markdown notes with hierarchical structure to interactive mind maps";
+    private static final String RENDERER_AUTHOR = "Modulo Team";
+    private static final String RENDERER_ICON = "fas fa-project-diagram";
     
     // Markdown heading pattern
     private static final Pattern HEADING_PATTERN = Pattern.compile("^(#{1,6})\\s+(.+)$", Pattern.MULTILINE);
@@ -34,13 +37,8 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public String getName() {
+    public String getDisplayName() {
         return RENDERER_NAME;
-    }
-    
-    @Override
-    public String getVersion() {
-        return RENDERER_VERSION;
     }
     
     @Override
@@ -49,18 +47,33 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public List<String> getSupportedNoteTypes() {
-        return Arrays.asList("markdown", "md", "text");
+    public String getIcon() {
+        return RENDERER_ICON;
     }
     
     @Override
-    public boolean canRender(String content, String noteType) {
-        if (content == null || content.trim().isEmpty()) {
+    public String getVersion() {
+        return RENDERER_VERSION;
+    }
+    
+    @Override
+    public String getAuthor() {
+        return RENDERER_AUTHOR;
+    }
+    
+    @Override
+    public boolean canRender(Note note) {
+        if (note == null || note.getContent() == null || note.getContent().trim().isEmpty()) {
             return false;
         }
         
+        String content = note.getContent();
+        // Default to markdown since Note entity doesn't have a type field
+        String noteType = "markdown";
+        
         // Check if note type is supported
-        if (!getSupportedNoteTypes().contains(noteType.toLowerCase())) {
+        List<String> supportedTypes = Arrays.asList("markdown", "md", "text");
+        if (!supportedTypes.contains(noteType.toLowerCase())) {
             return false;
         }
         
@@ -69,8 +82,12 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public RendererOutput render(String content, String noteType, Map<String, Object> options) {
+    public RendererOutput render(Note note, Map<String, Object> options) {
         try {
+            String content = note.getContent();
+            // Default to markdown since Note entity doesn't have a type field
+            String noteType = "markdown";
+            
             // Parse options
             String theme = getStringOption(options, "theme", "default");
             String layout = getStringOption(options, "layout", "radial");
@@ -92,81 +109,82 @@ public class MindMapRenderer implements NoteRenderer {
             metadata.put("layout", layout);
             metadata.put("interactive", true);
             
-            return new RendererOutput(mindMapHtml, "text/html", metadata, true);
+            return new RendererOutput(mindMapHtml, "text/html", metadata);
             
         } catch (Exception e) {
             logger.error("Failed to render mind map: {}", e.getMessage(), e);
             return new RendererOutput(
                 "<div class=\"error\">Failed to render mind map: " + e.getMessage() + "</div>",
                 "text/html",
-                Collections.singletonMap("error", true),
-                false
+                Collections.singletonMap("error", true)
             );
         }
     }
     
     @Override
-    public List<RendererOption> getAvailableOptions() {
-        return Arrays.asList(
-            new RendererOption.Builder("theme", RendererOption.OptionType.SELECT)
+    public Map<String, RendererOption> getSupportedOptions() {
+        Map<String, RendererOption> options = new HashMap<>();
+        
+        options.put("theme", new RendererOption.Builder("theme", RendererOption.OptionType.SELECT)
                 .displayName("Theme")
                 .description("Visual theme for the mind map")
                 .defaultValue("default")
                 .allowedValues("default", "dark", "colorful", "minimal")
-                .build(),
+                .build());
                 
-            new RendererOption.Builder("layout", RendererOption.OptionType.SELECT)
+        options.put("layout", new RendererOption.Builder("layout", RendererOption.OptionType.SELECT)
                 .displayName("Layout")
                 .description("Layout algorithm for node positioning")
                 .defaultValue("radial")
                 .allowedValues("radial", "tree", "force", "hierarchical")
-                .build(),
+                .build());
                 
-            new RendererOption.Builder("showConnectors", RendererOption.OptionType.BOOLEAN)
+        options.put("showConnectors", new RendererOption.Builder("showConnectors", RendererOption.OptionType.BOOLEAN)
                 .displayName("Show Connectors")
                 .description("Display connecting lines between nodes")
                 .defaultValue(true)
-                .build(),
+                .build());
                 
-            new RendererOption.Builder("nodeColor", RendererOption.OptionType.COLOR)
+        options.put("nodeColor", new RendererOption.Builder("nodeColor", RendererOption.OptionType.COLOR)
                 .displayName("Node Color")
                 .description("Default color for mind map nodes")
                 .defaultValue("#4CAF50")
-                .build(),
+                .build());
                 
-            new RendererOption.Builder("fontSize", RendererOption.OptionType.INTEGER)
+        options.put("fontSize", new RendererOption.Builder("fontSize", RendererOption.OptionType.INTEGER)
                 .displayName("Font Size")
                 .description("Font size for node text")
                 .defaultValue(14)
                 .range(10, 24)
-                .build()
-        );
+                .build());
+                
+        return options;
     }
     
     @Override
-    public RendererEventResponse handleEvent(String eventType, Map<String, Object> eventData, Map<String, Object> context) {
+    public String[] getOutputTypes() {
+        return new String[]{"text/html"};
+    }
+    
+    @Override
+    public boolean isInteractive() {
+        return true;
+    }
+    
+    @Override
+    public RendererEventResponse handleEvent(Note note, String eventType, Map<String, Object> eventData) {
         switch (eventType) {
             case "node-click":
-                return handleNodeClick(eventData, context);
+                return handleNodeClick(eventData);
             case "node-expand":
-                return handleNodeExpand(eventData, context);
+                return handleNodeExpand(eventData);
             case "node-collapse":
-                return handleNodeCollapse(eventData, context);
+                return handleNodeCollapse(eventData);
             case "export":
-                return handleExport(eventData, context);
+                return handleExport(eventData);
             default:
                 return RendererEventResponse.none();
         }
-    }
-    
-    @Override
-    public void initialize() {
-        logger.info("Mind Map Renderer initialized");
-    }
-    
-    @Override
-    public void shutdown() {
-        logger.info("Mind Map Renderer shut down");
     }
     
     // Helper classes and methods
@@ -408,7 +426,7 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     // Event handlers
-    private RendererEventResponse handleNodeClick(Map<String, Object> eventData, Map<String, Object> context) {
+    private RendererEventResponse handleNodeClick(Map<String, Object> eventData) {
         String nodeId = (String) eventData.get("nodeId");
         String nodeText = (String) eventData.get("nodeText");
         
@@ -419,15 +437,15 @@ public class MindMapRenderer implements NoteRenderer {
             .build();
     }
     
-    private RendererEventResponse handleNodeExpand(Map<String, Object> eventData, Map<String, Object> context) {
+    private RendererEventResponse handleNodeExpand(Map<String, Object> eventData) {
         return RendererEventResponse.refreshView();
     }
     
-    private RendererEventResponse handleNodeCollapse(Map<String, Object> eventData, Map<String, Object> context) {
+    private RendererEventResponse handleNodeCollapse(Map<String, Object> eventData) {
         return RendererEventResponse.refreshView();
     }
     
-    private RendererEventResponse handleExport(Map<String, Object> eventData, Map<String, Object> context) {
+    private RendererEventResponse handleExport(Map<String, Object> eventData) {
         String format = (String) eventData.getOrDefault("format", "png");
         return RendererEventResponse.message("Export to " + format + " not yet implemented");
     }

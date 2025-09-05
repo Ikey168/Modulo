@@ -3,7 +3,7 @@ package com.modulo.service;
 import com.modulo.entity.User;
 import com.modulo.entity.User.AuthProvider;
 import com.modulo.entity.User.MigrationStatus;
-import com.modulo.repository.UserRepository;
+import com.modulo.repository.jpa.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
