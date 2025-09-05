@@ -117,6 +117,16 @@ public class Note {
     @OneToMany(mappedBy = "note", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Attachment> attachments = new HashSet<>();
 
+    // Tasks relationship - many-to-many with tasks
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+        name = "note_tasks",
+        schema = "application",
+        joinColumns = @JoinColumn(name = "note_id"),
+        inverseJoinColumns = @JoinColumn(name = "task_id")
+    )
+    private Set<Task> tasks = new HashSet<>();
+
     // @Relationship(type = "LINKS_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
 
@@ -405,6 +415,25 @@ public class Note {
     public void removeAttachment(Attachment attachment) {
         this.attachments.remove(attachment);
         attachment.setNote(null);
+    }
+
+    // Task relationship methods
+    public Set<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(Set<Task> tasks) {
+        this.tasks = tasks;
+    }
+
+    public void addTask(Task task) {
+        this.tasks.add(task);
+        task.getLinkedNotes().add(this);
+    }
+
+    public void removeTask(Task task) {
+        this.tasks.remove(task);
+        task.getLinkedNotes().remove(this);
     }
 
     /* // Neo4j specific
