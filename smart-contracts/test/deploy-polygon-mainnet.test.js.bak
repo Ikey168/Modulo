@@ -1,0 +1,143 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const { deployToPolygonMainnet } = require("../scripts/deploy-polygon-mainnet.js");
+const fs = require("fs");
+const path = require("path");
+
+describe("Polygon Mainnet Deployment", function () {
+    let deployer;
+    let deploymentResult;
+    
+    beforeEach(async function () {
+        [deployer] = await ethers.getSigners();
+        
+        // Clean up any existing deployment files
+        const deploymentsDir = path.join(__dirname, "..", "deployments");
+        if (fs.existsSync(deploymentsDir)) {
+            const files = fs.readdirSync(deploymentsDir);
+            files.forEach(file => {
+                if (file.includes("test") || file.includes("localhost")) {
+                    fs.unlinkSync(path.join(deploymentsDir, file));
+                }
+            });
+        }
+    });
+
+    describe("Contract Deployment", function () {
+        it("should deploy all contracts successfully", async function () {
+            // Mock network to avoid mainnet deployment in tests
+            const originalNetwork = hre.network.name;
+            const originalChainId = hre.network.config.chainId;
+            
+            // This test should be run on localhost/hardhat network
+            if (hre.network.name === "polygon") {
+                this.skip();
+            }
+            
+            deploymentResult = await deployToPolygonMainnet();
+            
+            expect(deploymentResult.noteRegistry).to.be.properAddress;
+            expect(deploymentResult.moduloToken).to.be.properAddress;
+            expect(deploymentResult.noteMonetization).to.be.properAddress;
+        });
+
+        it("should verify contract addresses are different", async function () {
+            if (hre.network.name === "polygon") {
+                this.skip();
+            }
+            
+            const result = await deployToPolygonMainnet();
+            
+            expect(result.noteRegistry).to.not.equal(result.moduloToken);
+            expect(result.noteRegistry).to.not.equal(result.noteMonetization);
+            expect(result.moduloToken).to.not.equal(result.noteMonetization);
+        });
+
+        it("should save deployment information correctly", async function () {
+            if (hre.network.name === "polygon") {
+                this.skip();
+            }
+            
+            await deployToPolygonMainnet();
+            
+            const deploymentsDir = path.join(__dirname, "..", "deployments");
+            const mainFile = path.join(deploymentsDir, "localhost.json");
+            
+            expect(fs.existsSync(mainFile)).to.be.true;
+            
+            const deploymentData = JSON.parse(fs.readFileSync(mainFile, 'utf8'));
+            expect(deploymentData).to.have.property('contracts');
+            expect(deploymentData).to.have.property('timestamp');
+            expect(deploymentData).to.have.property('deployer');
+            expect(deploymentData.contracts).to.have.property('noteRegistryOptimized');
+            expect(deploymentData.contracts).to.have.property('moduloTokenOptimized');
+            expect(deploymentData.contracts).to.have.property('noteMonetization');
+        });
+    });
+
+    describe("Gas Estimation and Usage", function () {
+        it("should track gas usage accurately", async function () {
+            if (hre.network.name === "polygon") {
+                this.skip();
+            }
+            
+            await deployToPolygonMainnet();
+            
+            const deploymentsDir = path.join(__dirname, "..", "deployments");
+            const gasReportFile = path.join(deploymentsDir, "localhost-gas-report.json");
+            
+            expect(fs.existsSync(gasReportFile)).to.be.true;
+            
+            const gasReport = JSON.parse(fs.readFileSync(gasReportFile, 'utf8'));
+            expect(gasReport).to.have.property('noteRegistryOptimized');
+            expect(gasReport).to.have.property('moduloTokenOptimized');
+            expect(gasReport).to.have.property('noteMonetization');
+        });
+    });
+
+    describe("Error Handling", function () {
+        it("should handle insufficient balance gracefully", async function () {
+            // This test would need to mock the balance check
+            // Implementation depends on your mocking strategy
+        });
+
+        it("should save error logs on deployment failure", async function () {
+            // This test would need to simulate deployment failure
+            // Implementation depends on your error simulation strategy
+        });
+    });
+
+    describe("Contract Interactions", function () {
+        let noteRegistry, moduloToken, noteMonetization;
+
+        beforeEach(async function () {
+            if (hre.network.name === "polygon") {
+                this.skip();
+            }
+            
+            const result = await deployToPolygonMainnet();
+            
+            noteRegistry = await ethers.getContractAt("NoteRegistryOptimized", result.noteRegistry);
+            moduloToken = await ethers.getContractAt("ModuloTokenOptimized", result.moduloToken);
+            noteMonetization = await ethers.getContractAt("NoteMonetization", result.noteMonetization);
+        });
+
+        it("should have correct contract references in NoteMonetization", async function () {
+            const tokenAddress = await noteMonetization.token();
+            const registryAddress = await noteMonetization.noteRegistry();
+            
+            expect(tokenAddress).to.equal(moduloToken.address);
+            expect(registryAddress).to.equal(noteRegistry.address);
+        });
+
+        it("should have proper initial state", async function () {
+            // Test initial contract states
+            const tokenName = await moduloToken.name();
+            const tokenSymbol = await moduloToken.symbol();
+            
+            expect(tokenName).to.equal("Modulo Token");
+            expect(tokenSymbol).to.equal("MOD");
+        });
+    });
+});
+```

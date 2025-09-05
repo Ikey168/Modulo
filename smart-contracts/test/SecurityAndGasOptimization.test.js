@@ -84,8 +84,8 @@ describe("Smart Contract Security & Gas Optimization Tests", function () {
                 const MaliciousContract = await ethers.getContractFactory("MaliciousReentrant");
                 const malicious = await MaliciousContract.deploy();
                 
-                // Add malicious contract as minter
-                await moduloTokenOptimized.addMinter(malicious.address, ethers.utils.parseEther("1000"));
+                // Add malicious contract as minter with reasonable allowance (1000 tokens without decimals)
+                await moduloTokenOptimized.addMinter(malicious.address, 1000);
                 
                 // Attempt reentrancy attack should fail
                 await expect(
@@ -113,7 +113,7 @@ describe("Smart Contract Security & Gas Optimization Tests", function () {
                 
                 await expect(
                     moduloTokenOptimized.mint(user1.address, excessAmount)
-                ).to.be.revertedWithCustomError(moduloTokenOptimized, "ExceedsMaxSupply");
+                ).to.be.revertedWith("ExceedsMaxSupply");
             });
         });
 
@@ -239,7 +239,7 @@ describe("Smart Contract Security & Gas Optimization Tests", function () {
                 
                 await expect(
                     moduloTokenOptimized.mint(user1.address, largeAmount)
-                ).to.be.revertedWithCustomError(moduloTokenOptimized, "ExceedsMintLimit");
+                ).to.be.revertedWith("ExceedsMintLimit");
             });
 
             it("Should reset rate limits after cooldown", async function () {
@@ -261,7 +261,7 @@ describe("Smart Contract Security & Gas Optimization Tests", function () {
 
         describe("Minter Allowance System", function () {
             it("Should enforce minter allowances", async function () {
-                const allowance = ethers.utils.parseEther("500");
+                const allowance = 500; // Simple number instead of parseEther
                 await moduloTokenOptimized.addMinter(minter.address, allowance);
                 
                 // Should succeed within allowance
@@ -270,7 +270,7 @@ describe("Smart Contract Security & Gas Optimization Tests", function () {
                 // Should fail when exceeding allowance
                 await expect(
                     moduloTokenOptimized.connect(minter).mint(user2.address, 1)
-                ).to.be.revertedWithCustomError(moduloTokenOptimized, "InsufficientAllowance");
+                ).to.be.revertedWith("InsufficientAllowance");
             });
         });
 

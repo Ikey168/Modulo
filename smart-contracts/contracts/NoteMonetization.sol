@@ -104,7 +104,7 @@ contract NoteMonetization is ReentrancyGuard, Ownable, Pausable {
      * @dev Constructor
      * @param _moduloToken Address of the ModuloToken contract
      */
-    constructor(address _moduloToken) {
+    constructor(address payable _moduloToken) {
         require(_moduloToken != address(0), "Invalid token address");
         moduloToken = ModuloToken(_moduloToken);
         feeRecipient = msg.sender;

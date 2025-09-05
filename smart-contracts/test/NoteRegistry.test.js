@@ -35,9 +35,13 @@ describe("NoteRegistry", function () {
 
     describe("Note Registration", function () {
         it("Should register a note successfully", async function () {
-            await expect(noteRegistry.registerNote(testHash1, testTitle1))
+            const tx = await noteRegistry.registerNote(testHash1, testTitle1);
+            const receipt = await tx.wait();
+            const block = await ethers.provider.getBlock(receipt.blockNumber);
+            
+            await expect(tx)
                 .to.emit(noteRegistry, "NoteRegistered")
-                .withArgs(owner.address, 1, testHash1, testTitle1, await getBlockTimestamp());
+                .withArgs(owner.address, 1, testHash1, testTitle1, block.timestamp);
 
             expect(await noteRegistry.getTotalNoteCount()).to.equal(1);
         });
@@ -109,9 +113,13 @@ describe("NoteRegistry", function () {
         });
 
         it("Should update note hash successfully", async function () {
-            await expect(noteRegistry.connect(addr1).updateNote(1, testHash2))
+            const tx = await noteRegistry.connect(addr1).updateNote(1, testHash2);
+            const receipt = await tx.wait();
+            const block = await ethers.provider.getBlock(receipt.blockNumber);
+            
+            await expect(tx)
                 .to.emit(noteRegistry, "NoteUpdated")
-                .withArgs(addr1.address, 1, testHash2, await getBlockTimestamp());
+                .withArgs(addr1.address, 1, testHash2, block.timestamp);
 
             const note = await noteRegistry.getNote(1);
             expect(note.hash).to.equal(testHash2);
@@ -144,9 +152,13 @@ describe("NoteRegistry", function () {
         });
 
         it("Should deactivate note successfully", async function () {
-            await expect(noteRegistry.connect(addr1).deactivateNote(1))
+            const tx = await noteRegistry.connect(addr1).deactivateNote(1);
+            const receipt = await tx.wait();
+            const block = await ethers.provider.getBlock(receipt.blockNumber);
+            
+            await expect(tx)
                 .to.emit(noteRegistry, "NoteDeactivated")
-                .withArgs(addr1.address, 1, await getBlockTimestamp());
+                .withArgs(addr1.address, 1, block.timestamp);
 
             const note = await noteRegistry.getNote(1);
             expect(note.isActive).to.be.false;

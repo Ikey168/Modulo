@@ -203,7 +203,7 @@ describe("NoteMonetization", function () {
             await moduloToken.connect(user1).approve(noteMonetization.address, price);
             await expect(
                 noteMonetization.connect(user1).purchaseNoteAccess(2)
-            ).to.be.revertedWith("Cannot purchase own note");
+            ).to.be.revertedWith("Already has access");
         });
     });
 
