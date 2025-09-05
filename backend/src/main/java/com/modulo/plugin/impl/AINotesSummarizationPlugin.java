@@ -1,6 +1,11 @@
 package com.modulo.plugin.impl;
 
-import com.modulo.plugin.Plugin;
+import com.modulo.plugin.api.Plugin;
+import com.modulo.plugin.api.PluginInfo;
+import com.modulo.plugin.api.PluginException;
+import com.modulo.plugin.api.HealthCheck;
+import com.modulo.plugin.api.PluginType;
+import com.modulo.plugin.api.PluginRuntime;
 import com.modulo.service.OpenAIService;
 import com.modulo.service.OpenAIService.SummaryOptions;
 import com.modulo.service.OpenAIService.SummaryResponse;
@@ -33,63 +38,59 @@ public class AINotesSummarizationPlugin implements Plugin {
     private static final String VERSION = "1.0.0";
     private static final String AUTHOR = "Modulo Team";
     private static final String DESCRIPTION = "Intelligent note analysis, summarization, and insight generation using AI";
+    
+    private boolean initialized = false;
+    private boolean started = false;
 
     @Override
-    public String getId() {
-        return PLUGIN_ID;
+    public PluginInfo getInfo() {
+        return new PluginInfo(PLUGIN_NAME, VERSION, DESCRIPTION, AUTHOR, PluginType.INTERNAL, PluginRuntime.JAR);
     }
 
     @Override
-    public String getName() {
-        return PLUGIN_NAME;
+    public void initialize(Map<String, Object> config) throws PluginException {
+        initialized = true;
     }
 
     @Override
-    public String getVersion() {
-        return VERSION;
+    public void start() throws PluginException {
+        if (!initialized) {
+            throw new PluginException("Plugin not initialized");
+        }
+        started = true;
     }
 
     @Override
-    public String getAuthor() {
-        return AUTHOR;
+    public void stop() throws PluginException {
+        started = false;
     }
 
     @Override
-    public String getDescription() {
-        return DESCRIPTION;
-    }
-
-    @Override
-    public void initialize() {
-        // Plugin initialization logic
-        System.out.println("AI Notes Summarization Plugin initialized successfully");
-    }
-
-    @Override
-    public void shutdown() {
-        // Plugin cleanup logic
-        System.out.println("AI Notes Summarization Plugin shutting down");
-    }
-
-    @Override
-    public Map<String, Object> getHealthCheck() {
-        Map<String, Object> health = new HashMap<>();
-        health.put("status", "healthy");
-        health.put("lastChecked", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        health.put("openAI", getOpenAIHealthStatus());
-        return health;
+    public HealthCheck healthCheck() {
+        if (!started) {
+            return new HealthCheck(HealthCheck.Status.UNHEALTHY, "Plugin not started", 0);
+        }
+        return new HealthCheck(HealthCheck.Status.HEALTHY, "Plugin is healthy", 0);
     }
 
     @Override
     public List<String> getCapabilities() {
-        return Arrays.asList(
-            "note-summarization",
-            "key-point-extraction", 
-            "insight-generation",
-            "batch-processing",
-            "multi-model-support",
-            "customizable-summaries"
-        );
+        return Arrays.asList("summarization", "analysis", "insights");
+    }
+
+    @Override
+    public List<String> getRequiredPermissions() {
+        return Arrays.asList("read_notes", "access_openai_api");
+    }
+
+    @Override
+    public List<String> getSubscribedEvents() {
+        return Arrays.asList("note_created", "note_updated");
+    }
+
+    @Override
+    public List<String> getPublishedEvents() {
+        return Arrays.asList("summary_generated", "insights_extracted");
     }
 
     /**

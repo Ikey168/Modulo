@@ -12,7 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.security.web.header.writers.StaticHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -108,23 +107,14 @@ public class CloudSecurityConfig {
                     .preload(true)
                 )
                 .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-                .addHeaderWriter(new StaticHeaderWriter("X-Content-Type-Options", "nosniff"))
-                .addHeaderWriter(new StaticHeaderWriter("X-Frame-Options", "DENY"))
-                .addHeaderWriter(new StaticHeaderWriter("X-XSS-Protection", "1; mode=block"))
-                .addHeaderWriter(new StaticHeaderWriter("Strict-Transport-Security", 
-                    "max-age=31536000; includeSubDomains; preload"))
-                .addHeaderWriter(new StaticHeaderWriter("Content-Security-Policy", 
-                    "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-                    "style-src 'self' 'unsafe-inline'; " +
-                    "img-src 'self' data: https:; " +
-                    "connect-src 'self' https:; " +
-                    "font-src 'self'; " +
-                    "object-src 'none'; " +
-                    "media-src 'self'; " +
-                    "frame-ancestors 'none'"))
-                .addHeaderWriter(new StaticHeaderWriter("Permissions-Policy", 
-                    "geolocation=(), microphone=(), camera=()"))
+                // Security headers set using direct configuration
+                .frameOptions().deny()
+                .contentTypeOptions().and()
+                .httpStrictTransportSecurity(hstsConfig2 -> hstsConfig2
+                    .maxAgeInSeconds(31536000)
+                    .includeSubdomains(true)
+                    .preload(true)
+                )
             )
 
             // OAuth2 configuration for cloud

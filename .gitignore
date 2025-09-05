@@ -101,3 +101,15 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Coverage reports
+coverage/
+coverage.json
+.nyc_output/
+
+# Gas reports
+gasReporterOutput.json
+
+# Test artifacts
+smart-contracts/deployments/localhost*
+smart-contracts/deployments/*test*
