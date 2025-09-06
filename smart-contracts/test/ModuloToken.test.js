@@ -30,7 +30,7 @@ describe("ModuloToken", function () {
         it("Should assign the total supply to the owner", async function () {
             const ownerBalance = await moduloToken.balanceOf(owner.address);
             const totalSupply = await moduloToken.totalSupply();
-            expect(totalSupply).to.equal(ownerBalance);
+            expect(totalSupply.toString()).to.equal(ownerBalance.toString());
         });
 
         it("Should set the owner as a minter", async function () {
@@ -109,9 +109,15 @@ describe("ModuloToken", function () {
         it("Should emit TokensBurned event", async function () {
             const burnAmount = ethers.utils.parseEther("100");
             
-            await expect(moduloToken.connect(user1).burn(burnAmount))
-                .to.emit(moduloToken, "TokensBurned")
-                .withArgs(user1.address, burnAmount);
+            const tx = await moduloToken.connect(user1).burn(burnAmount);
+            const receipt = await tx.wait();
+            
+            // Check event emission
+            expect(receipt.events).to.not.be.undefined;
+            const event = receipt.events.find(e => e.event === "TokensBurned");
+            expect(event).to.not.be.undefined;
+            expect(event.args[0]).to.equal(user1.address);
+            expect(event.args[1].toString()).to.equal(burnAmount.toString());
         });
 
         it("Should allow burning with approval", async function () {
@@ -124,7 +130,7 @@ describe("ModuloToken", function () {
             await moduloToken.connect(user2).burnFrom(user1.address, burnAmount);
             
             const finalBalance = await moduloToken.balanceOf(user1.address);
-            expect(finalBalance).to.equal(initialBalance.sub(burnAmount));
+            expect(finalBalance.toString()).to.equal(initialBalance.sub(burnAmount).toString());
         });
     });
 
