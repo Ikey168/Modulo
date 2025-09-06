@@ -1,0 +1,129 @@
+{
+  "name": "modulo-mobile-testing",
+  "version": "1.0.0",
+  "description": "Comprehensive mobile testing framework for Modulo application",
+  "scripts": {
+    "test:e2e:android": "detox test --configuration android.emu.debug",
+    "test:e2e:ios": "detox test --configuration ios.sim.debug",
+    "test:responsive": "node responsive/responsive-test-runner.js",
+    "test:performance": "node performance/mobile-performance-test.js",
+    "test:accessibility": "node accessibility/accessibility-test-runner.js",
+    "test:security": "node security/mobile-security-test.js",
+    "test:mobile:all": "npm run test:e2e:android && npm run test:responsive && npm run test:performance && npm run test:accessibility && npm run test:security",
+    "build:e2e:android": "detox build --configuration android.emu.debug",
+    "build:e2e:ios": "detox build --configuration ios.sim.debug",
+    "install:android": "cd ../android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug",
+    "device:android": "emulator -avd Pixel_3a_API_30_x86",
+    "device:ios": "xcrun simctl boot 'iPhone 14'",
+    "setup:android": "npm run install:android && npm run device:android",
+    "lint": "eslint . --ext .js,.ts",
+    "format": "prettier --write '**/*.{js,ts,json,md}'",
+    "clean": "detox clean-framework-cache && detox build --configuration android.emu.debug",
+    "test:visual-regression": "backstop test --config=responsive/backstop.config.js"
+  },
+  "dependencies": {
+    "detox": "^20.13.0",
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10",
+    "playwright": "^1.40.0",
+    "puppeteer": "^21.5.0",
+    "backstopjs": "^6.2.2",
+    "axe-core": "^4.8.2",
+    "lighthouse": "^11.4.0",
+    "appium": "^2.2.1",
+    "webdriverio": "^8.24.0",
+    "@wdio/cli": "^8.24.0",
+    "@wdio/mocha-framework": "^8.24.0",
+    "@wdio/spec-reporter": "^8.24.0",
+    "@wdio/appium-service": "^8.24.0",
+    "sharp": "^0.32.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@types/mocha": "^10.0.4",
+    "@types/chai": "^4.3.10",
+    "typescript": "^5.2.2",
+    "eslint": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "prettier": "^3.1.0",
+    "ts-node": "^10.9.1"
+  },
+  "detox": {
+    "testRunner": {
+      "args": {
+        "grep": ".*",
+        "opts": "e2e/mocha.opts"
+      },
+      "jest": {
+        "setupFilesAfterEnv": ["<rootDir>/e2e/init.js"]
+      }
+    },
+    "apps": {
+      "android.debug": {
+        "type": "android.apk",
+        "binaryPath": "../android/app/build/outputs/apk/debug/app-debug.apk",
+        "build": "cd ../android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug && cd ../testing"
+      },
+      "android.release": {
+        "type": "android.apk",
+        "binaryPath": "../android/app/build/outputs/apk/release/app-release.apk",
+        "build": "cd ../android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release && cd ../testing"
+      },
+      "ios.debug": {
+        "type": "ios.app",
+        "binaryPath": "../ios/build/Build/Products/Debug-iphonesimulator/Modulo.app",
+        "build": "cd ../ios && xcodebuild -workspace Modulo.xcworkspace -scheme Modulo -configuration Debug -sdk iphonesimulator -derivedDataPath ./build && cd ../testing"
+      }
+    },
+    "devices": {
+      "simulator": {
+        "type": "ios.simulator",
+        "device": {
+          "type": "iPhone 14",
+          "os": "iOS 17.0"
+        }
+      },
+      "attached": {
+        "type": "android.attached",
+        "device": {
+          "adbName": ".*"
+        }
+      },
+      "emulator": {
+        "type": "android.emulator",
+        "device": {
+          "avdName": "Pixel_3a_API_30_x86"
+        }
+      }
+    },
+    "configurations": {
+      "android.emu.debug": {
+        "device": "emulator",
+        "app": "android.debug"
+      },
+      "android.emu.release": {
+        "device": "emulator", 
+        "app": "android.release"
+      },
+      "ios.sim.debug": {
+        "device": "simulator",
+        "app": "ios.debug"
+      }
+    }
+  },
+  "keywords": [
+    "mobile-testing",
+    "detox",
+    "e2e-testing",
+    "responsive-testing",
+    "performance-testing",
+    "accessibility-testing",
+    "security-testing",
+    "android",
+    "ios",
+    "mobile-automation"
+  ],
+  "author": "Modulo Team",
+  "license": "MIT"
+}
