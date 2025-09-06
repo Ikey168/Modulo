@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Note Response Schema",
+  "description": "Schema for note API response",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unique identifier for the note"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Title of the note"
+    },
+    "content": {
+      "type": "string",
+      "description": "Content of the note"
+    },
+    "userId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "ID of the user who owns the note"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the note was created"
+    },
+    "updatedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when the note was last updated"
+    }
+  },
+  "required": ["id", "title", "content", "userId", "createdAt"],
+  "additionalProperties": false
+}
