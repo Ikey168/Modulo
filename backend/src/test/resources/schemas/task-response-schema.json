@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Task Response Schema",
+  "description": "Schema for task API response",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unique identifier for the task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Title of the task"
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "Description of the task"
+    },
+    "userId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "ID of the user who owns the task"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"],
+      "description": "Priority level of the task"
+    },
+    "completed": {
+      "type": "boolean",
+      "description": "Whether the task is completed"
+    },
+    "dueDate": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Due date for the task"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the task was created"
+    },
+    "updatedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when the task was last updated"
+    }
+  },
+  "required": ["id", "title", "userId", "priority", "completed", "createdAt"],
+  "additionalProperties": false
+}

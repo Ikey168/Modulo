@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Attachment Response Schema",
+  "description": "Schema for attachment API response",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unique identifier for the attachment"
+    },
+    "filename": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stored filename of the attachment"
+    },
+    "originalFilename": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Original filename of the uploaded file"
+    },
+    "contentType": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_.]*$",
+      "description": "MIME type of the attachment"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Size of the file in bytes"
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "Optional description of the attachment"
+    },
+    "noteId": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "ID of the associated note"
+    },
+    "taskId": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "ID of the associated task"
+    },
+    "uploadedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the attachment was uploaded"
+    }
+  },
+  "required": ["id", "filename", "originalFilename", "contentType", "size", "uploadedAt"],
+  "additionalProperties": false
+}

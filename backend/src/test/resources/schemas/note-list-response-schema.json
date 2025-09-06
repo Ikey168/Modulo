@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "title": "Note List Response Schema",
+  "description": "Schema for note list API response",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255
+      },
+      "content": {
+        "type": "string"
+      },
+      "userId": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "updatedAt": {
+        "type": ["string", "null"],
+        "format": "date-time"
+      }
+    },
+    "required": ["id", "title", "content", "userId", "createdAt"],
+    "additionalProperties": false
+  }
+}

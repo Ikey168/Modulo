@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Error Response Schema",
+  "description": "Schema for error API responses",
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Error type or category"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable error message"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the error occurred"
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599,
+      "description": "HTTP status code"
+    },
+    "path": {
+      "type": "string",
+      "description": "Request path that caused the error"
+    }
+  },
+  "required": ["error", "message", "timestamp"],
+  "additionalProperties": true
+}

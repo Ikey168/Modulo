@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "title": "Attachment List Response Schema",
+  "description": "Schema for attachment list API response",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "filename": {
+        "type": "string",
+        "minLength": 1
+      },
+      "originalFilename": {
+        "type": "string",
+        "minLength": 1
+      },
+      "contentType": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_.]*$"
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": {
+        "type": ["string", "null"]
+      },
+      "noteId": {
+        "type": ["integer", "null"],
+        "minimum": 1
+      },
+      "taskId": {
+        "type": ["integer", "null"],
+        "minimum": 1
+      },
+      "uploadedAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": ["id", "filename", "originalFilename", "contentType", "size", "uploadedAt"],
+    "additionalProperties": false
+  }
+}
