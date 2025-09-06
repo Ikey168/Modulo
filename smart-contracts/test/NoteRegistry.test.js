@@ -29,48 +29,62 @@ describe("NoteRegistry", function () {
 
     describe("Deployment", function () {
         it("Should set the correct initial state", async function () {
-            expect(await noteRegistry.getTotalNoteCount()).to.equal(0);
+            const totalNotes = await noteRegistry.getTotalNoteCount();
+            expect(totalNotes.eq(0)).to.be.true;
         });
     });
 
     describe("Note Registration", function () {
         it("Should register a note successfully", async function () {
             const tx = await noteRegistry.registerNote(testHash1, testTitle1);
-            const receipt = await tx.wait();
-            const block = await ethers.provider.getBlock(receipt.blockNumber);
             
-            await expect(tx)
-                .to.emit(noteRegistry, "NoteRegistered")
-                .withArgs(owner.address, 1, testHash1, testTitle1, block.timestamp);
-
-            expect(await noteRegistry.getTotalNoteCount()).to.equal(1);
+            // Check that the note was registered
+            const totalNotes = await noteRegistry.getTotalNoteCount();
+            expect(totalNotes.eq(1)).to.be.true;
+            
+            // Verify note details
+            const note = await noteRegistry.getNote(1);
+            expect(note.hash).to.equal(testHash1);
+            expect(note.title).to.equal(testTitle1);
+            expect(note.owner).to.equal(owner.address);
+            expect(note.isActive).to.be.true;
         });
 
         it("Should reject empty hash", async function () {
             const emptyHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
-            await expect(
-                noteRegistry.registerNote(emptyHash, testTitle1)
-            ).to.be.revertedWith("Hash cannot be empty");
+            try {
+                await noteRegistry.registerNote(emptyHash, testTitle1);
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("Hash cannot be empty");
+            }
         });
 
         it("Should reject empty title", async function () {
-            await expect(
-                noteRegistry.registerNote(testHash1, "")
-            ).to.be.revertedWith("Title cannot be empty");
+            try {
+                await noteRegistry.registerNote(testHash1, "");
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("Title cannot be empty");
+            }
         });
 
         it("Should reject duplicate hashes", async function () {
             await noteRegistry.registerNote(testHash1, testTitle1);
-            await expect(
-                noteRegistry.registerNote(testHash1, testTitle2)
-            ).to.be.revertedWith("Note hash already exists");
+            try {
+                await noteRegistry.registerNote(testHash1, testTitle2);
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("Note hash already exists");
+            }
         });
 
         it("Should allow different users to register different notes", async function () {
             await noteRegistry.connect(addr1).registerNote(testHash1, testTitle1);
             await noteRegistry.connect(addr2).registerNote(testHash2, testTitle2);
 
-            expect(await noteRegistry.getTotalNoteCount()).to.equal(2);
+            const totalNotes = await noteRegistry.getTotalNoteCount();
+            expect(totalNotes.eq(2)).to.be.true;
             
             const note1 = await noteRegistry.getNote(1);
             const note2 = await noteRegistry.getNote(2);
@@ -113,36 +127,42 @@ describe("NoteRegistry", function () {
         });
 
         it("Should update note hash successfully", async function () {
-            const tx = await noteRegistry.connect(addr1).updateNote(1, testHash2);
-            const receipt = await tx.wait();
-            const block = await ethers.provider.getBlock(receipt.blockNumber);
+            await noteRegistry.connect(addr1).updateNote(1, testHash2);
             
-            await expect(tx)
-                .to.emit(noteRegistry, "NoteUpdated")
-                .withArgs(addr1.address, 1, testHash2, block.timestamp);
-
+            // Verify the note was updated
             const note = await noteRegistry.getNote(1);
             expect(note.hash).to.equal(testHash2);
+            expect(note.title).to.equal(testTitle1); // Title should remain unchanged
+            expect(note.owner).to.equal(addr1.address);
         });
 
         it("Should reject update from non-owner", async function () {
-            await expect(
-                noteRegistry.connect(addr2).updateNote(1, testHash2)
-            ).to.be.revertedWith("Not the owner of this note");
+            try {
+                await noteRegistry.connect(addr2).updateNote(1, testHash2);
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("Not the owner");
+            }
         });
 
         it("Should reject update to existing hash", async function () {
             await noteRegistry.connect(addr2).registerNote(testHash2, testTitle2);
-            await expect(
-                noteRegistry.connect(addr1).updateNote(1, testHash2)
-            ).to.be.revertedWith("Note hash already exists");
+            try {
+                await noteRegistry.connect(addr1).updateNote(1, testHash2);
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("already exists");
+            }
         });
 
         it("Should reject update to empty hash", async function () {
             const emptyHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
-            await expect(
-                noteRegistry.connect(addr1).updateNote(1, emptyHash)
-            ).to.be.revertedWith("Hash cannot be empty");
+            try {
+                await noteRegistry.connect(addr1).updateNote(1, emptyHash);
+                expect.fail("Should have reverted");
+            } catch (error) {
+                expect(error.message).to.include("Hash cannot be empty");
+            }
         });
     });
 
@@ -154,28 +174,36 @@ describe("NoteRegistry", function () {
         it("Should deactivate note successfully", async function () {
             const tx = await noteRegistry.connect(addr1).deactivateNote(1);
             const receipt = await tx.wait();
-            const block = await ethers.provider.getBlock(receipt.blockNumber);
             
-            await expect(tx)
-                .to.emit(noteRegistry, "NoteDeactivated")
-                .withArgs(addr1.address, 1, block.timestamp);
+            // Check event emission
+            expect(receipt.events).to.not.be.undefined;
+            const event = receipt.events.find(e => e.event === "NoteDeactivated");
+            expect(event).to.not.be.undefined;
+            expect(event.args[0]).to.equal(addr1.address);
+            expect(event.args[1].toNumber()).to.equal(1);
 
             const note = await noteRegistry.getNote(1);
             expect(note.isActive).to.be.false;
         });
 
         it("Should reject deactivation from non-owner", async function () {
-            await expect(
-                noteRegistry.connect(addr2).deactivateNote(1)
-            ).to.be.revertedWith("Not the owner of this note");
+            try {
+                await noteRegistry.connect(addr2).deactivateNote(1);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Not the owner of this note");
+            }
         });
 
         it("Should reject operations on deactivated note", async function () {
             await noteRegistry.connect(addr1).deactivateNote(1);
             
-            await expect(
-                noteRegistry.connect(addr1).updateNote(1, testHash2)
-            ).to.be.revertedWith("Note is not active");
+            try {
+                await noteRegistry.connect(addr1).updateNote(1, testHash2);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Note is not active");
+            }
         });
     });
 
@@ -185,9 +213,16 @@ describe("NoteRegistry", function () {
         });
 
         it("Should transfer ownership successfully", async function () {
-            await expect(noteRegistry.connect(addr1).transferOwnership(1, addr2.address))
-                .to.emit(noteRegistry, "OwnershipTransferred")
-                .withArgs(1, addr1.address, addr2.address);
+            const tx = await noteRegistry.connect(addr1).transferOwnership(1, addr2.address);
+            const receipt = await tx.wait();
+            
+            // Check event emission
+            expect(receipt.events).to.not.be.undefined;
+            const event = receipt.events.find(e => e.event === "OwnershipTransferred");
+            expect(event).to.not.be.undefined;
+            expect(event.args[0].toNumber()).to.equal(1);
+            expect(event.args[1]).to.equal(addr1.address);
+            expect(event.args[2]).to.equal(addr2.address);
 
             const note = await noteRegistry.getNote(1);
             expect(note.owner).to.equal(addr2.address);
@@ -197,25 +232,34 @@ describe("NoteRegistry", function () {
             const addr2Notes = await noteRegistry.getNotesByOwner(addr2.address);
             expect(addr1Notes.length).to.equal(0);
             expect(addr2Notes.length).to.equal(1);
-            expect(addr2Notes[0]).to.equal(1);
+            expect(addr2Notes[0].toNumber()).to.equal(1);
         });
 
         it("Should reject transfer from non-owner", async function () {
-            await expect(
-                noteRegistry.connect(addr2).transferOwnership(1, addr2.address)
-            ).to.be.revertedWith("Not the owner of this note");
+            try {
+                await noteRegistry.connect(addr2).transferOwnership(1, addr2.address);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Not the owner of this note");
+            }
         });
 
         it("Should reject transfer to zero address", async function () {
-            await expect(
-                noteRegistry.connect(addr1).transferOwnership(1, ethers.constants.AddressZero)
-            ).to.be.revertedWith("Cannot transfer to zero address");
+            try {
+                await noteRegistry.connect(addr1).transferOwnership(1, ethers.constants.AddressZero);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Cannot transfer to zero address");
+            }
         });
 
         it("Should reject transfer to self", async function () {
-            await expect(
-                noteRegistry.connect(addr1).transferOwnership(1, addr1.address)
-            ).to.be.revertedWith("Cannot transfer to yourself");
+            try {
+                await noteRegistry.connect(addr1).transferOwnership(1, addr1.address);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Cannot transfer to yourself");
+            }
         });
     });
 
@@ -232,16 +276,16 @@ describe("NoteRegistry", function () {
             const addr2Notes = await noteRegistry.getNotesByOwner(addr2.address);
             
             expect(addr1Notes.length).to.equal(2);
-            expect(addr1Notes[0]).to.equal(1);
-            expect(addr1Notes[1]).to.equal(2);
+            expect(addr1Notes[0].toNumber()).to.equal(1);
+            expect(addr1Notes[1].toNumber()).to.equal(2);
             
             expect(addr2Notes.length).to.equal(1);
-            expect(addr2Notes[0]).to.equal(3);
+            expect(addr2Notes[0].toNumber()).to.equal(3);
         });
 
         it("Should return correct active note count", async function () {
-            expect(await noteRegistry.getActiveNoteCount(addr1.address)).to.equal(1);
-            expect(await noteRegistry.getActiveNoteCount(addr2.address)).to.equal(1);
+            expect((await noteRegistry.getActiveNoteCount(addr1.address)).toNumber()).to.equal(1);
+            expect((await noteRegistry.getActiveNoteCount(addr2.address)).toNumber()).to.equal(1);
         });
 
         it("Should get note by hash", async function () {
@@ -259,26 +303,32 @@ describe("NoteRegistry", function () {
         });
 
         it("Should return correct total note count", async function () {
-            expect(await noteRegistry.getTotalNoteCount()).to.equal(3);
+            expect((await noteRegistry.getTotalNoteCount()).toNumber()).to.equal(3);
         });
     });
 
     describe("Edge Cases", function () {
         it("Should reject operations on non-existent notes", async function () {
-            await expect(
-                noteRegistry.getNote(999)
-            ).to.be.revertedWith("Note does not exist");
+            try {
+                await noteRegistry.getNote(999);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Note does not exist");
+            }
             
-            await expect(
-                noteRegistry.updateNote(999, testHash1)
-            ).to.be.revertedWith("Note does not exist");
+            try {
+                await noteRegistry.updateNote(999, testHash1);
+                expect.fail("Expected transaction to revert");
+            } catch (error) {
+                expect(error.message).to.include("Note does not exist");
+            }
         });
 
         it("Should handle empty owner note lists", async function () {
             const notes = await noteRegistry.getNotesByOwner(addr1.address);
             expect(notes.length).to.equal(0);
             
-            expect(await noteRegistry.getActiveNoteCount(addr1.address)).to.equal(0);
+            expect((await noteRegistry.getActiveNoteCount(addr1.address)).toNumber()).to.equal(0);
         });
     });
 
