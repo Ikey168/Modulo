@@ -21,6 +21,17 @@
         <java.version>17</java.version>
         <lombok.version>1.18.30</lombok.version>
         <jacoco.version>0.8.11</jacoco.version>
+        <!-- JaCoCo Coverage Configuration -->
+        <jacoco.instruction.ratio>0.85</jacoco.instruction.ratio>
+        <jacoco.branch.ratio>0.80</jacoco.branch.ratio>
+        <jacoco.line.ratio>0.85</jacoco.line.ratio>
+        <jacoco.class.missed.count>3</jacoco.class.missed.count>
+        <!-- Maven Build Properties -->
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Plugin argument properties for JaCoCo -->
+        <surefireArgLine></surefireArgLine>
+        <failsafeArgLine></failsafeArgLine>
     </properties>
 
     <dependencies>
@@ -326,15 +337,22 @@
                     <systemPropertyVariables>
                         <spring.profiles.active>test</spring.profiles.active>
                     </systemPropertyVariables>
+                    <!-- JaCoCo integration -->
+                    <argLine>${surefireArgLine} -XX:+UnlockExperimentalVMOptions -XX:+EnableJVMCI</argLine>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
                 </configuration>
             </plugin>
             
-            <!-- JaCoCo Plugin for code coverage measurement -->
+            <!-- JaCoCo Plugin for comprehensive code coverage measurement -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
                 <configuration>
+                    <!-- Global exclusions for all executions -->
                     <excludes>
                         <!-- Exclude generated gRPC classes -->
                         <exclude>com/modulo/grpc/**/*</exclude>
@@ -345,7 +363,12 @@
                         <exclude>com/modulo/dto/**/*</exclude>
                         <!-- Exclude generated protobuf classes -->
                         <exclude>**/generated/**/*</exclude>
+                        <!-- Exclude exception classes and constants -->
+                        <exclude>com/modulo/exception/**/*</exclude>
+                        <exclude>com/modulo/constants/**/*</exclude>
                     </excludes>
+                    <!-- Enhanced output configuration -->
+                    <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
                 </configuration>
                 <executions>
                     <!-- Prepare agent for unit tests -->
@@ -354,16 +377,84 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
                     </execution>
-                    <!-- Generate coverage report after tests -->
+                    
+                    <!-- Prepare agent for integration tests -->
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>failsafeArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- Generate unit test coverage report -->
                     <execution>
                         <id>report</id>
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+                            <title>Modulo Backend Unit Test Coverage</title>
+                            <footer>Generated on ${maven.build.timestamp}</footer>
+                        </configuration>
                     </execution>
-                    <!-- Coverage check with thresholds -->
+                    
+                    <!-- Generate integration test coverage report -->
+                    <execution>
+                        <id>report-integration</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>report-integration</goal>
+                        </goals>
+                        <configuration>
+                            <title>Modulo Backend Integration Test Coverage</title>
+                            <footer>Generated on ${maven.build.timestamp}</footer>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- Merge unit and integration coverage data -->
+                    <execution>
+                        <id>merge</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>*.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <destFile>${project.build.directory}/merged.exec</destFile>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- Generate merged coverage report -->
+                    <execution>
+                        <id>report-merged</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-merged</outputDirectory>
+                            <title>Modulo Backend Complete Coverage Report</title>
+                            <footer>Combined Unit and Integration Test Coverage - Generated on ${maven.build.timestamp}</footer>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- Coverage verification with comprehensive thresholds -->
                     <execution>
                         <id>check</id>
                         <phase>verify</phase>
@@ -371,28 +462,52 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <dataFile>${project.build.directory}/merged.exec</dataFile>
                             <rules>
+                                <!-- Overall bundle coverage requirements -->
                                 <rule>
                                     <element>BUNDLE</element>
                                     <limits>
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.85</minimum>
+                                            <minimum>${jacoco.instruction.ratio}</minimum>
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.80</minimum>
+                                            <minimum>${jacoco.branch.ratio}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.line.ratio}</minimum>
                                         </limit>
                                         <limit>
                                             <counter>CLASS</counter>
                                             <value>MISSEDCOUNT</value>
-                                            <maximum>3</maximum>
+                                            <maximum>${jacoco.class.missed.count}</maximum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Package-level coverage requirements for core business logic -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.modulo.service.*</include>
+                                        <include>com.modulo.controller.*</include>
+                                        <include>com.modulo.repository.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
                             </rules>
+                            <haltOnFailure>false</haltOnFailure>
                         </configuration>
                     </execution>
                 </executions>
@@ -419,4 +534,74 @@
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <!-- Profile for comprehensive coverage analysis -->
+        <profile>
+            <id>coverage</id>
+            <properties>
+                <!-- Stricter coverage thresholds for coverage analysis -->
+                <jacoco.instruction.ratio>0.90</jacoco.instruction.ratio>
+                <jacoco.branch.ratio>0.85</jacoco.branch.ratio>
+                <jacoco.line.ratio>0.90</jacoco.line.ratio>
+                <jacoco.class.missed.count>2</jacoco.class.missed.count>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <!-- Additional coverage analysis execution -->
+                            <execution>
+                                <id>coverage-analysis</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                                <configuration>
+                                    <dataFile>${project.build.directory}/merged.exec</dataFile>
+                                    <outputDirectory>${project.reporting.outputDirectory}/jacoco-analysis</outputDirectory>
+                                    <title>Modulo Backend Detailed Coverage Analysis</title>
+                                    <footer>Detailed Coverage Analysis - Generated on ${maven.build.timestamp}</footer>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Profile for CI/CD pipeline with specific coverage requirements -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <!-- CI-specific coverage thresholds -->
+                <jacoco.instruction.ratio>0.85</jacoco.instruction.ratio>
+                <jacoco.branch.ratio>0.80</jacoco.branch.ratio>
+                <jacoco.line.ratio>0.85</jacoco.line.ratio>
+                <jacoco.class.missed.count>5</jacoco.class.missed.count>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>ci-coverage-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <haltOnFailure>true</haltOnFailure>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
