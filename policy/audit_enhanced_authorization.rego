@@ -3,15 +3,7 @@ package envoy.authz
 import rego.v1
 
 # Enhanced authorization policy with comprehensive audit logging
-default allow := {
-    "allowed": false,
-    "headers": {
-        "x-decision-id": generate_decision_id(),
-        "x-policy-version": "v1.2.0"
-    },
-    "body": "",
-    "http_status": 403
-}
+default allow = false
 
 # Main authorization decision with full audit trail
 allow := decision if {
@@ -42,32 +34,32 @@ allow := decision if {
 }
 
 # Extract comprehensive request context for audit logging
-extract_request_context(input) := context if {
+extract_request_context(req_input) := context if {
     # Parse request path to determine resource type and action
-    path_info := parse_request_path(input.attributes.request.http.path)
+    path_info := parse_request_path(req_input.attributes.request.http.path)
     
     context := {
-        "method": input.attributes.request.http.method,
-        "path": input.attributes.request.http.path,
-        "headers": sanitize_headers(input.attributes.request.http.headers),
-        "source_ip": input.attributes.source.address.socket_address.address,
-        "destination": input.attributes.destination.address.socket_address.address,
-        "request_id": get_header_value(input.attributes.request.http.headers, "x-request-id"),
-        "trace_id": get_header_value(input.attributes.request.http.headers, "x-trace-id"),
-        "span_id": get_header_value(input.attributes.request.http.headers, "x-span-id"),
-        "correlation_id": get_header_value(input.attributes.request.http.headers, "x-correlation-id"),
-        "user_agent": get_header_value(input.attributes.request.http.headers, "user-agent"),
+        "method": req_input.attributes.request.http.method,
+        "path": req_input.attributes.request.http.path,
+        "headers": sanitize_headers(req_input.attributes.request.http.headers),
+        "source_ip": req_input.attributes.source.address.socket_address.address,
+        "destination": req_input.attributes.destination.address.socket_address.address,
+        "request_id": get_header_value(req_input.attributes.request.http.headers, "x-request-id"),
+        "trace_id": get_header_value(req_input.attributes.request.http.headers, "x-trace-id"),
+        "span_id": get_header_value(req_input.attributes.request.http.headers, "x-span-id"),
+        "correlation_id": get_header_value(req_input.attributes.request.http.headers, "x-correlation-id"),
+        "user_agent": get_header_value(req_input.attributes.request.http.headers, "user-agent"),
         "resource_type": path_info.resource_type,
         "resource_id": path_info.resource_id,
-        "action": determine_action(input.attributes.request.http.method, path_info),
-        "workspace": extract_workspace_from_path(input.attributes.request.http.path)
+        "action": determine_action(req_input.attributes.request.http.method, path_info),
+        "workspace": extract_workspace_from_path(req_input.attributes.request.http.path)
     }
 }
 
 # Extract user context from JWT token with PII protection
-extract_user_context(input) := context if {
+extract_user_context(req_input) := context if {
     # Extract JWT from Authorization header
-    auth_header := get_header_value(input.attributes.request.http.headers, "authorization")
+    auth_header := get_header_value(req_input.attributes.request.http.headers, "authorization")
     startswith(auth_header, "Bearer ")
     
     token := substring(auth_header, 7, -1) # Remove "Bearer "
@@ -101,7 +93,7 @@ evaluate_authorization(request_context, user_context) := result if {
     matched_rule := get_matched_rule(request_context, user_context, authorization_result.allowed)
     
     result := {
-        "allowed": token_valid and authorization_result.allowed,
+        "allowed": count([token_valid, authorization_result.allowed]) == 2,
         "rule": matched_rule,
         "reason": authorization_result.reason,
         "policy_version": "v1.2.0",
@@ -112,8 +104,8 @@ evaluate_authorization(request_context, user_context) := result if {
 
 # Build comprehensive decision response with full audit context
 build_decision_response(authz_result, request_context, user_context, decision_id, evaluation_time_ms) := response if {
-    # Determine HTTP status
-    http_status := 200 if authz_result.allowed else 403
+    # Determine HTTP status based on allowed
+    http_status := get_http_status(authz_result.allowed)
     
     # Build response headers
     response_headers := {
@@ -173,6 +165,10 @@ build_decision_response(authz_result, request_context, user_context, decision_id
     }
 }
 
+# Helper function to get HTTP status
+get_http_status(allowed) := 200 if { allowed == true }
+get_http_status(allowed) := 403 if { allowed == false }
+
 # Resource-specific authorization logic
 check_resource_authorization(request_context, user_context) := result if {
     request_context.resource_type == "notes"
@@ -198,10 +194,13 @@ check_notes_authorization(request_context, user_context) := result if {
     # Check if user has editor or higher role in workspace
     allowed := workspace_role in ["workspace_editor", "workspace_admin", "workspace_owner"]
     
+    # Get can/cannot text
+    can_text := get_can_text(allowed)
+    
     reason := sprintf("User %s with role %s %s create notes in workspace %s", [
         user_context.username,
         workspace_role,
-        "can" if allowed else "cannot", 
+        can_text, 
         workspace
     ])
     
@@ -251,10 +250,13 @@ check_workspace_authorization(request_context, user_context) := result if {
     
     allowed := workspace_role in required_roles[action]
     
+    # Get can/cannot text
+    can_text := get_can_text(allowed)
+    
     reason := sprintf("User %s with role %s %s %s workspace %s", [
         user_context.username,
         workspace_role,
-        "can" if allowed else "cannot",
+        can_text,
         action,
         workspace_id
     ])
@@ -283,14 +285,24 @@ check_user_authorization(request_context, user_context) := result if {
     is_admin := "system_admin" in user_context.roles
     is_tenant_admin := sprintf("tenant_admin_%s", [user_context.tenant]) in user_context.roles
     
-    allowed := is_own_profile or is_admin or is_tenant_admin
+    # Check if allowed (any of the three conditions)
+    allowed := check_user_allowed(is_own_profile, is_admin, is_tenant_admin)
+    
+    # Get can/cannot text
+    can_text := get_can_text(allowed)
+    
+    # Get access type text
+    access_type := get_access_type(is_own_profile, is_admin, is_tenant_admin)
     
     reason := sprintf("User %s %s access user %s profile (%s)", [
         user_context.username,
-        "can" if allowed else "cannot",
+        can_text,
         target_user_id,
-        "own profile" if is_own_profile else "admin access" if (is_admin or is_tenant_admin) else "insufficient privileges"
+        access_type
     ])
+    
+    # Check admin access
+    admin_access := check_admin_access(is_admin, is_tenant_admin)
     
     result := {
         "allowed": allowed,
@@ -298,7 +310,7 @@ check_user_authorization(request_context, user_context) := result if {
         "workspace_context": {
             "target_user": target_user_id,
             "is_own_profile": is_own_profile,
-            "admin_access": is_admin or is_tenant_admin
+            "admin_access": admin_access
         }
     }
 }
@@ -312,10 +324,14 @@ parse_request_path(path) := info if {
     path_parts := split(clean_path, "/")
     count(path_parts) > 0
     
+    # Get resource_id if exists
+    resource_id := get_path_part(path_parts, 1)
+    sub_resource := get_path_part(path_parts, 2)
+    
     info := {
         "resource_type": path_parts[0],
-        "resource_id": path_parts[1] if count(path_parts) > 1 else "",
-        "sub_resource": path_parts[2] if count(path_parts) > 2 else ""
+        "resource_id": resource_id,
+        "sub_resource": sub_resource
     }
 } else := {
     "resource_type": "unknown",
@@ -369,15 +385,22 @@ get_matched_rule(request_context, user_context, allowed) := rule if {
 } else := "unknown_rule"
 
 # Validate JWT token (simplified)
-validate_token(user_context) := valid if {
+validate_token(user_context) := true if {
     # Check token expiration
     current_time := time.now_ns() / 1000000000 # Convert to seconds
     token_expired := current_time > user_context.expires_at
     
     # Check required fields
-    has_required_fields := user_context.user_id != "" and user_context.tenant != ""
+    user_context.user_id != ""
+    user_context.tenant != ""
     
-    valid := not token_expired and has_required_fields
+    # Token must not be expired
+    not token_expired
+}
+
+validate_token(user_context) := false if {
+    # Fallback to false if any condition fails
+    true
 }
 
 # Check note access permissions
@@ -445,3 +468,38 @@ generate_decision_id() := id if {
 array_index(arr, item) := i if {
     arr[i] == item
 } else := -1
+
+# Helper function: Get can/cannot text based on boolean
+get_can_text(allowed) := "can" if { allowed == true }
+get_can_text(allowed) := "cannot" if { allowed == false }
+
+# Helper function: Get access type for user authorization
+get_access_type(is_own_profile, is_admin, is_tenant_admin) := "own profile" if { is_own_profile == true }
+get_access_type(is_own_profile, is_admin, is_tenant_admin) := "admin access" if { 
+    is_own_profile == false
+    is_admin == true
+}
+get_access_type(is_own_profile, is_admin, is_tenant_admin) := "admin access" if { 
+    is_own_profile == false
+    is_tenant_admin == true
+}
+get_access_type(is_own_profile, is_admin, is_tenant_admin) := "insufficient privileges" if { 
+    is_own_profile == false
+    is_admin == false
+    is_tenant_admin == false
+}
+
+# Helper function: Get path part or empty string
+get_path_part(parts, index) := parts[index] if { count(parts) > index }
+get_path_part(parts, index) := "" if { count(parts) <= index }
+
+# Helper function: Check if user is allowed (OR of conditions)
+check_user_allowed(is_own_profile, is_admin, is_tenant_admin) := true if { is_own_profile == true }
+check_user_allowed(is_own_profile, is_admin, is_tenant_admin) := true if { is_admin == true }
+check_user_allowed(is_own_profile, is_admin, is_tenant_admin) := true if { is_tenant_admin == true }
+check_user_allowed(is_own_profile, is_admin, is_tenant_admin) := false if { true }
+
+# Helper function: Check admin access (OR of admin conditions)
+check_admin_access(is_admin, is_tenant_admin) := true if { is_admin == true }
+check_admin_access(is_admin, is_tenant_admin) := true if { is_tenant_admin == true }
+check_admin_access(is_admin, is_tenant_admin) := false if { true }

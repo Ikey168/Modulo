@@ -29,7 +29,7 @@ processors:
         action: upsert
         
   # Add resource detection
-  resource:
+  resourcedetection:
     detectors: [env, system]
     timeout: 2s
     
@@ -60,7 +60,7 @@ processors:
         default: unknown
       - name: user.tenant
         default: unknown
-    dimension_cache_size: 1000
+    dimensions_cache_size: 1000
 
   # Transform logs to add audit context
   transform/audit:
@@ -73,9 +73,9 @@ processors:
           - set(attributes["correlation.span_id"], span_id.string) where span_id != nil
 
 exporters:
-  # Jaeger for distributed tracing
-  jaeger:
-    endpoint: jaeger:14250
+  # OTLP for distributed tracing (replaces Jaeger)
+  otlp:
+    endpoint: jaeger:4317
     tls:
       insecure: true
       
@@ -85,78 +85,37 @@ exporters:
     const_labels:
       service: "otel-collector"
       
-  # Loki for log aggregation
-  loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
-    labels:
-      attributes:
-        service.name: "service"
-        authz.decision: "decision"
-        authz.resource_type: "resource_type"
-        user.tenant: "tenant"
-        level: "level"
-    format: json
+  # OTLP HTTP for log aggregation to Loki
+  otlphttp:
+    endpoint: "http://loki:3100/otlp"
     
   # Elasticsearch for searchable audit logs
   elasticsearch:
     endpoints: ["http://elasticsearch:9200"]
-    index: "otel-audit-logs-%{yyyy.MM.dd}"
+    logs_index: "otel-audit-logs-%{+yyyy.MM.dd}"
     pipeline: "audit-enrichment"
     mapping:
-      mode: raw
-      raw: |
-        {
-          "properties": {
-            "@timestamp": {"type": "date"},
-            "trace_id": {"type": "keyword"},
-            "span_id": {"type": "keyword"},
-            "decision_id": {"type": "keyword"},
-            "user": {
-              "properties": {
-                "id": {"type": "keyword"},
-                "username": {"type": "keyword"},
-                "tenant": {"type": "keyword"},
-                "roles": {"type": "keyword"}
-              }
-            },
-            "request": {
-              "properties": {
-                "method": {"type": "keyword"},
-                "path": {"type": "text"},
-                "resource_type": {"type": "keyword"},
-                "action": {"type": "keyword"}
-              }
-            },
-            "decision": {
-              "properties": {
-                "allow": {"type": "boolean"},
-                "rule": {"type": "keyword"},
-                "reason": {"type": "text"},
-                "evaluation_time_ms": {"type": "float"}
-              }
-            }
-          }
-        }
+      mode: ecs
 
 service:
   pipelines:
     # Traces pipeline for request correlation
     traces:
       receivers: [otlp]
-      processors: [resource, attributes, filter/audit, spanmetrics, batch]
-      exporters: [jaeger]
+      processors: [resourcedetection, attributes, filter/audit, spanmetrics, batch]
+      exporters: [otlp]
       
     # Metrics pipeline for authorization monitoring
     metrics:
       receivers: [otlp]
-      processors: [resource, attributes, batch]
+      processors: [resourcedetection, attributes, batch]
       exporters: [prometheus]
       
     # Logs pipeline for audit trail
     logs:
       receivers: [otlp, fluentforward]
-      processors: [resource, attributes, transform/audit, filter/audit, batch]
-      exporters: [loki, elasticsearch]
+      processors: [resourcedetection, attributes, transform/audit, filter/audit, batch]
+      exporters: [otlphttp, elasticsearch]
 
   # Extensions for health and monitoring
   extensions: [health_check, pprof, zpages]
