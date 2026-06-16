@@ -540,8 +540,10 @@
                 <configuration>
                     <!-- Global exclusions for all executions -->
                     <excludes>
-                        <!-- Exclude generated gRPC classes -->
+                        <!-- Exclude generated gRPC/protobuf classes (no hand-written
+                             source; generated from .proto at build time) -->
                         <exclude>com/modulo/grpc/**/*</exclude>
+                        <exclude>com/modulo/plugin/grpc/**/*</exclude>
                         <!-- Exclude configuration and main application classes -->
                         <exclude>com/modulo/ModuloApplication.class</exclude>
                         <exclude>com/modulo/config/**/*</exclude>
