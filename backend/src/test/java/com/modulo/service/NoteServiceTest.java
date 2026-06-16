@@ -69,7 +69,7 @@ class NoteServiceTest {
         testNote.setUpdatedAt(LocalDateTime.now());
 
         testTag = new Tag();
-        testTag.setId(1L);
+        testTag.setId(java.util.UUID.randomUUID());
         testTag.setName("test");
 
         // Mock Security Context

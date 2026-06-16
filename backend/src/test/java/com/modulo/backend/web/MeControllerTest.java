@@ -35,6 +35,11 @@ public class MeControllerTest {
     @MockBean
     private TracingService tracingService;
 
+    // ChaosFilter is registered as a servlet Filter bean in this web slice and
+    // autowires ChaosConfig, which is not part of the @WebMvcTest context.
+    @MockBean
+    private com.modulo.chaos.ChaosConfig chaosConfig;
+
     @Test
     void getMe() throws Exception {
         mvc.perform(get("/api/me").with(jwt().jwt(builder -> {

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,12 +43,25 @@ public class RateLimitingFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        initializeBuckets();
+    }
+
+    /**
+     * Initialize the global rate-limiting bucket. Invoked both via the servlet
+     * container's {@link #init(FilterConfig)} and via {@link PostConstruct} so the
+     * bucket is ready even when the filter is driven by Spring/MockMvc, where the
+     * servlet init lifecycle is not triggered (previously this left globalBucket
+     * null and caused a NullPointerException on the first request).
+     */
+    @PostConstruct
+    public void initializeBuckets() {
         if (rateLimitEnabled) {
-            // Create global bucket for overall API protection
-            Bandwidth globalLimit = Bandwidth.classic(1000, Refill.intervally(1000, Duration.ofMinutes(1)));
-            globalBucket = Bucket4j.builder().addLimit(globalLimit).build();
-            
-            logger.info("Rate limiting initialized: {} requests/minute per IP, burst: {}", 
+            if (globalBucket == null) {
+                // Create global bucket for overall API protection
+                Bandwidth globalLimit = Bandwidth.classic(1000, Refill.intervally(1000, Duration.ofMinutes(1)));
+                globalBucket = Bucket4j.builder().addLimit(globalLimit).build();
+            }
+            logger.info("Rate limiting initialized: {} requests/minute per IP, burst: {}",
                        requestsPerMinute, burstCapacity);
         } else {
             logger.info("Rate limiting is disabled");

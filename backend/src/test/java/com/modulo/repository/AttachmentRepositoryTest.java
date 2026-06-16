@@ -63,6 +63,8 @@ class AttachmentRepositoryTest {
         attachment1.setNote(testNote1);
         attachment1.setOriginalFilename("document1.pdf");
         attachment1.setBlobName("blob-123-document1.pdf");
+        attachment1.setContainerName("test-container");
+        attachment1.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-123-document1.pdf"));
         attachment1.setContentType("application/pdf");
         attachment1.setFileSize(1024000L); // 1MB
         attachment1.setUploadedBy("user1@example.com");
@@ -73,6 +75,8 @@ class AttachmentRepositoryTest {
         attachment2.setNote(testNote1);
         attachment2.setOriginalFilename("image1.jpg");
         attachment2.setBlobName("blob-456-image1.jpg");
+        attachment2.setContainerName("test-container");
+        attachment2.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-456-image1.jpg"));
         attachment2.setContentType("image/jpeg");
         attachment2.setFileSize(512000L); // 512KB
         attachment2.setUploadedBy("user1@example.com");
@@ -83,6 +87,8 @@ class AttachmentRepositoryTest {
         attachment3.setNote(testNote2);
         attachment3.setOriginalFilename("spreadsheet1.xlsx");
         attachment3.setBlobName("blob-789-spreadsheet1.xlsx");
+        attachment3.setContainerName("test-container");
+        attachment3.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-789-spreadsheet1.xlsx"));
         attachment3.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         attachment3.setFileSize(256000L); // 256KB
         attachment3.setUploadedBy("user2@example.com");
@@ -94,6 +100,8 @@ class AttachmentRepositoryTest {
         inactiveAttachment.setNote(testNote1);
         inactiveAttachment.setOriginalFilename("deleted_file.txt");
         inactiveAttachment.setBlobName("blob-999-deleted.txt");
+        inactiveAttachment.setContainerName("test-container");
+        inactiveAttachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-999-deleted.txt"));
         inactiveAttachment.setContentType("text/plain");
         inactiveAttachment.setFileSize(1024L);
         inactiveAttachment.setUploadedBy("user1@example.com");
@@ -118,6 +126,8 @@ class AttachmentRepositoryTest {
             newAttachment.setNote(testNote2);
             newAttachment.setOriginalFilename("newfile.txt");
             newAttachment.setBlobName("blob-new-file.txt");
+            newAttachment.setContainerName("test-container");
+            newAttachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-new-file.txt"));
             newAttachment.setContentType("text/plain");
             newAttachment.setFileSize(2048L);
             newAttachment.setUploadedBy("newuser@example.com");
@@ -322,6 +332,8 @@ class AttachmentRepositoryTest {
             inactiveOnly.setNote(testNote2);
             inactiveOnly.setOriginalFilename("inactive.txt");
             inactiveOnly.setBlobName("blob-inactive.txt");
+            inactiveOnly.setContainerName("test-container");
+            inactiveOnly.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-inactive.txt"));
             inactiveOnly.setContentType("text/plain");
             inactiveOnly.setFileSize(2048L);
             inactiveOnly.setUploadedBy("inactiveuser@example.com");
@@ -458,7 +470,9 @@ class AttachmentRepositoryTest {
             Attachment duplicateBlobAttachment = new Attachment();
             duplicateBlobAttachment.setNote(testNote2);
             duplicateBlobAttachment.setOriginalFilename("duplicate.txt");
-            duplicateBlobAttachment.setBlobName("blob-123-document1.pdf"); // Same as existing
+            duplicateBlobAttachment.setBlobName("blob-123-document1.pdf");
+            duplicateBlobAttachment.setContainerName("test-container");
+            duplicateBlobAttachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-123-document1.pdf")); // Same as existing
             duplicateBlobAttachment.setContentType("text/plain");
             duplicateBlobAttachment.setFileSize(1024L);
             duplicateBlobAttachment.setUploadedBy("user@example.com");
@@ -478,6 +492,8 @@ class AttachmentRepositoryTest {
             attachmentWithNulls.setNote(testNote1);
             attachmentWithNulls.setOriginalFilename("nulltest.txt");
             attachmentWithNulls.setBlobName("blob-null-test.txt");
+            attachmentWithNulls.setContainerName("test-container");
+            attachmentWithNulls.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-null-test.txt"));
             attachmentWithNulls.setFileSize(0L);
             attachmentWithNulls.setUploadedBy("nulluser@example.com");
             attachmentWithNulls.setIsActive(true);
@@ -497,6 +513,8 @@ class AttachmentRepositoryTest {
             largeFileAttachment.setNote(testNote1);
             largeFileAttachment.setOriginalFilename("largefile.zip");
             largeFileAttachment.setBlobName("blob-large-file.zip");
+            largeFileAttachment.setContainerName("test-container");
+            largeFileAttachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-large-file.zip"));
             largeFileAttachment.setContentType("application/zip");
             largeFileAttachment.setFileSize(Long.MAX_VALUE);
             largeFileAttachment.setUploadedBy("user@example.com");
@@ -516,6 +534,8 @@ class AttachmentRepositoryTest {
             specialCharAttachment.setNote(testNote1);
             specialCharAttachment.setOriginalFilename("файл тест 测试 🌟.txt");
             specialCharAttachment.setBlobName("blob-special-chars-file.txt");
+            specialCharAttachment.setContainerName("test-container");
+            specialCharAttachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-special-chars-file.txt"));
             specialCharAttachment.setContentType("text/plain");
             specialCharAttachment.setFileSize(1024L);
             specialCharAttachment.setUploadedBy("specialuser@example.com");
@@ -542,6 +562,8 @@ class AttachmentRepositoryTest {
                 attachment.setNote(testNote1);
                 attachment.setOriginalFilename("perf_file_" + i + ".txt");
                 attachment.setBlobName("blob-perf-" + i + ".txt");
+                attachment.setContainerName("test-container");
+                attachment.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-perf-" + i + ".txt"));
                 attachment.setContentType("text/plain");
                 attachment.setFileSize(1024L * i);
                 attachment.setUploadedBy("perfuser@example.com");
@@ -588,6 +610,8 @@ class AttachmentRepositoryTest {
             batch1.setNote(testNote2);
             batch1.setOriginalFilename("batch1.txt");
             batch1.setBlobName("blob-batch-1.txt");
+            batch1.setContainerName("test-container");
+            batch1.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-batch-1.txt"));
             batch1.setContentType("text/plain");
             batch1.setFileSize(1024L);
             batch1.setUploadedBy("batchuser@example.com");
@@ -598,6 +622,8 @@ class AttachmentRepositoryTest {
             batch2.setNote(testNote2);
             batch2.setOriginalFilename("batch2.txt");
             batch2.setBlobName("blob-batch-2.txt");
+            batch2.setContainerName("test-container");
+            batch2.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-batch-2.txt"));
             batch2.setContentType("text/plain");
             batch2.setFileSize(2048L);
             batch2.setUploadedBy("batchuser@example.com");
@@ -658,6 +684,8 @@ class AttachmentRepositoryTest {
             versionedFile.setNote(testNote1);
             versionedFile.setOriginalFilename("document_v1.2.pdf");
             versionedFile.setBlobName("blob-versioned.pdf");
+            versionedFile.setContainerName("test-container");
+            versionedFile.setBlobUrl("https://test.blob.core.windows.net/test-container/" + ("blob-versioned.pdf"));
             versionedFile.setContentType("application/pdf");
             versionedFile.setFileSize(1024L);
             versionedFile.setUploadedBy("user@example.com");
