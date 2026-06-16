@@ -99,21 +99,15 @@ public class CloudSecurityConfig {
 
             // Security headers for cloud deployment
             .headers(headers -> headers
-                .frameOptions().deny()
-                .contentTypeOptions().and()
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(contentTypeOptions -> {})
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                     .maxAgeInSeconds(31536000) // 1 year
-                    .includeSubdomains(true)
+                    .includeSubDomains(true)
                     .preload(true)
                 )
-                .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-                // Security headers set using direct configuration
-                .frameOptions().deny()
-                .contentTypeOptions().and()
-                .httpStrictTransportSecurity(hstsConfig2 -> hstsConfig2
-                    .maxAgeInSeconds(31536000)
-                    .includeSubdomains(true)
-                    .preload(true)
+                .referrerPolicy(referrerPolicy -> referrerPolicy
+                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
             )
 
@@ -203,7 +197,7 @@ public class CloudSecurityConfig {
      * Security audit logger
      */
     @Bean
-    public SecurityAuditLogger securityAuditLogger() {
-        return new SecurityAuditLogger();
+    public SecurityAuditLogger securityAuditLogger(com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new SecurityAuditLogger(objectMapper);
     }
 }

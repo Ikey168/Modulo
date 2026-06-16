@@ -58,8 +58,8 @@ public class RendererService {
      */
     public NoteRenderer getDefaultRenderer(Note note) {
         List<NoteRenderer> compatibleRenderers = rendererRegistry.getCompatibleRenderers(
-            note.getContent(), 
-            note.getType()
+            note.getContent(),
+            getNoteType(note)
         );
         
         if (compatibleRenderers.isEmpty()) {

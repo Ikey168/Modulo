@@ -125,7 +125,12 @@ public class AINotesSummarizationController {
      */
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> getHealthCheck() {
-        Map<String, Object> health = aiPlugin.getHealthCheck();
+        com.modulo.plugin.api.HealthCheck healthCheck = aiPlugin.healthCheck();
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", healthCheck.getStatus());
+        health.put("message", healthCheck.getMessage());
+        health.put("healthy", healthCheck.isHealthy());
+        health.put("timestamp", healthCheck.getTimestamp());
         return ResponseEntity.ok(health);
     }
 
@@ -135,12 +140,13 @@ public class AINotesSummarizationController {
      */
     @GetMapping("/capabilities")
     public ResponseEntity<Map<String, Object>> getCapabilities() {
+        com.modulo.plugin.api.PluginInfo info = aiPlugin.getInfo();
         Map<String, Object> response = new HashMap<>();
-        response.put("pluginId", aiPlugin.getId());
-        response.put("name", aiPlugin.getName());
-        response.put("version", aiPlugin.getVersion());
-        response.put("author", aiPlugin.getAuthor());
-        response.put("description", aiPlugin.getDescription());
+        response.put("pluginId", aiPlugin.getStatistics().getPluginId());
+        response.put("name", info.getName());
+        response.put("version", info.getVersion());
+        response.put("author", info.getAuthor());
+        response.put("description", info.getDescription());
         response.put("capabilities", aiPlugin.getCapabilities());
         response.put("lastChecked", LocalDateTime.now());
         

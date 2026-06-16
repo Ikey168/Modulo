@@ -37,7 +37,7 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public String getDisplayName() {
+    public String getName() {
         return RENDERER_NAME;
     }
     
@@ -62,32 +62,32 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public boolean canRender(Note note) {
-        if (note == null || note.getContent() == null || note.getContent().trim().isEmpty()) {
+    public List<String> getSupportedNoteTypes() {
+        return Arrays.asList("markdown", "md", "text");
+    }
+
+    @Override
+    public boolean canRender(String content, String noteType) {
+        if (content == null || content.trim().isEmpty()) {
             return false;
         }
-        
-        String content = note.getContent();
-        // Default to markdown since Note entity doesn't have a type field
-        String noteType = "markdown";
-        
+
+        if (noteType == null) {
+            noteType = "markdown";
+        }
+
         // Check if note type is supported
-        List<String> supportedTypes = Arrays.asList("markdown", "md", "text");
-        if (!supportedTypes.contains(noteType.toLowerCase())) {
+        if (!getSupportedNoteTypes().contains(noteType.toLowerCase())) {
             return false;
         }
-        
+
         // Check if content has hierarchical structure (headings)
         return HEADING_PATTERN.matcher(content).find();
     }
-    
+
     @Override
-    public RendererOutput render(Note note, Map<String, Object> options) {
+    public RendererOutput render(String content, String noteType, Map<String, Object> options) {
         try {
-            String content = note.getContent();
-            // Default to markdown since Note entity doesn't have a type field
-            String noteType = "markdown";
-            
             // Parse options
             String theme = getStringOption(options, "theme", "default");
             String layout = getStringOption(options, "layout", "radial");
@@ -122,42 +122,42 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public Map<String, RendererOption> getSupportedOptions() {
-        Map<String, RendererOption> options = new HashMap<>();
-        
-        options.put("theme", new RendererOption.Builder("theme", RendererOption.OptionType.SELECT)
+    public List<RendererOption> getAvailableOptions() {
+        List<RendererOption> options = new ArrayList<>();
+
+        options.add(new RendererOption.Builder("theme", RendererOption.OptionType.SELECT)
                 .displayName("Theme")
                 .description("Visual theme for the mind map")
                 .defaultValue("default")
                 .allowedValues("default", "dark", "colorful", "minimal")
                 .build());
-                
-        options.put("layout", new RendererOption.Builder("layout", RendererOption.OptionType.SELECT)
+
+        options.add(new RendererOption.Builder("layout", RendererOption.OptionType.SELECT)
                 .displayName("Layout")
                 .description("Layout algorithm for node positioning")
                 .defaultValue("radial")
                 .allowedValues("radial", "tree", "force", "hierarchical")
                 .build());
-                
-        options.put("showConnectors", new RendererOption.Builder("showConnectors", RendererOption.OptionType.BOOLEAN)
+
+        options.add(new RendererOption.Builder("showConnectors", RendererOption.OptionType.BOOLEAN)
                 .displayName("Show Connectors")
                 .description("Display connecting lines between nodes")
                 .defaultValue(true)
                 .build());
-                
-        options.put("nodeColor", new RendererOption.Builder("nodeColor", RendererOption.OptionType.COLOR)
+
+        options.add(new RendererOption.Builder("nodeColor", RendererOption.OptionType.COLOR)
                 .displayName("Node Color")
                 .description("Default color for mind map nodes")
                 .defaultValue("#4CAF50")
                 .build());
-                
-        options.put("fontSize", new RendererOption.Builder("fontSize", RendererOption.OptionType.INTEGER)
+
+        options.add(new RendererOption.Builder("fontSize", RendererOption.OptionType.INTEGER)
                 .displayName("Font Size")
                 .description("Font size for node text")
                 .defaultValue(14)
                 .range(10, 24)
                 .build());
-                
+
         return options;
     }
     
@@ -172,7 +172,8 @@ public class MindMapRenderer implements NoteRenderer {
     }
     
     @Override
-    public RendererEventResponse handleEvent(Note note, String eventType, Map<String, Object> eventData) {
+    public RendererEventResponse handleEvent(String eventType, Map<String, Object> eventData,
+                                             Map<String, Object> context) {
         switch (eventType) {
             case "node-click":
                 return handleNodeClick(eventData);

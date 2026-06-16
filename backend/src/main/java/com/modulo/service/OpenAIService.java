@@ -186,6 +186,8 @@ public class OpenAIService {
             return extractContentFromResponse(response.getBody());
         } catch (RestClientException e) {
             throw new RuntimeException("OpenAI API call failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process OpenAI API response: " + e.getMessage(), e);
         }
     }
 

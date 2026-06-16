@@ -4,6 +4,7 @@ import com.modulo.plugin.api.Plugin;
 import com.modulo.plugin.api.PluginInfo;
 import com.modulo.plugin.api.PluginException;
 import com.modulo.plugin.api.PluginType;
+import com.modulo.plugin.api.PluginRuntime;
 import com.modulo.plugin.api.HealthCheck;
 import com.modulo.plugin.api.NotePluginAPI;
 import com.modulo.service.TaskService;
@@ -49,13 +50,12 @@ public class CalendarTaskManagerPlugin implements Plugin {
     @Override
     public PluginInfo getInfo() {
         return new PluginInfo(
-            PLUGIN_ID,
             PLUGIN_NAME,
             PLUGIN_VERSION,
             PLUGIN_DESCRIPTION,
             PLUGIN_AUTHOR,
-            PluginType.TASK_MANAGER,
-            Arrays.asList("task-management", "calendar-integration", "note-linking")
+            PluginType.INTERNAL,
+            PluginRuntime.JAR
         );
     }
     
@@ -133,60 +133,44 @@ public class CalendarTaskManagerPlugin implements Plugin {
     
     @Override
     public HealthCheck healthCheck() {
-        HealthCheck.Builder builder = new HealthCheck.Builder(PLUGIN_NAME);
-        
         try {
             if (!initialized) {
-                return builder.status(HealthCheck.Status.DOWN)
-                             .message("Plugin not initialized")
-                             .build();
+                return HealthCheck.unhealthy("Plugin not initialized");
             }
-            
+
             if (!started) {
-                return builder.status(HealthCheck.Status.DOWN)
-                             .message("Plugin not started")
-                             .build();
+                return HealthCheck.unhealthy("Plugin not started");
             }
-            
+
             // Check TaskService health
             if (taskService == null) {
-                return builder.status(HealthCheck.Status.DOWN)
-                             .message("TaskService unavailable")
-                             .build();
+                return HealthCheck.unhealthy("TaskService unavailable");
             }
-            
+
             // Check if we can access a test user's tasks (using userId 1 as test)
             try {
                 taskService.findByUserId(1L);
             } catch (Exception e) {
-                return builder.status(HealthCheck.Status.DOWN)
-                             .message("TaskService not responding: " + e.getMessage())
-                             .build();
+                return HealthCheck.unhealthy("TaskService not responding: " + e.getMessage());
             }
-            
+
             // Check Google Calendar integration if enabled
             boolean googleCalendarEnabled = Boolean.parseBoolean(
                 configuration.getOrDefault("googleCalendarEnabled", "false").toString()
             );
-            
+
             if (googleCalendarEnabled) {
                 if (googleCalendarService == null) {
-                    return builder.status(HealthCheck.Status.WARNING)
-                                 .message("Google Calendar enabled but service unavailable")
-                                 .build();
+                    return HealthCheck.degraded("Google Calendar enabled but service unavailable");
                 }
                 // Could add more Google Calendar health checks here
             }
-            
-            return builder.status(HealthCheck.Status.UP)
-                         .message("All systems operational")
-                         .build();
-            
+
+            return HealthCheck.healthy("All systems operational");
+
         } catch (Exception e) {
             logger.error("Health check failed", e);
-            return builder.status(HealthCheck.Status.DOWN)
-                         .message("Health check failed: " + e.getMessage())
-                         .build();
+            return HealthCheck.unhealthy("Health check failed: " + e.getMessage());
         }
     }
     
@@ -208,7 +192,36 @@ public class CalendarTaskManagerPlugin implements Plugin {
             "TASK_NOTIFICATIONS"
         );
     }
-    
+
+    @Override
+    public List<String> getRequiredPermissions() {
+        return Arrays.asList(
+            "tasks.read",
+            "tasks.write",
+            "notes.read",
+            "calendar.sync"
+        );
+    }
+
+    @Override
+    public List<String> getSubscribedEvents() {
+        return Arrays.asList(
+            "note.created",
+            "note.updated",
+            "note.deleted"
+        );
+    }
+
+    @Override
+    public List<String> getPublishedEvents() {
+        return Arrays.asList(
+            "task.created",
+            "task.updated",
+            "task.deleted",
+            "task.completed"
+        );
+    }
+
     // Plugin-specific task management methods
     
     /**
