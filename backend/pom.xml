@@ -500,8 +500,13 @@
                     <systemPropertyVariables>
                         <spring.profiles.active>test</spring.profiles.active>
                     </systemPropertyVariables>
-                    <!-- JaCoCo integration -->
-                    <argLine>${surefireArgLine} -XX:+UnlockExperimentalVMOptions -XX:+EnableJVMCI</argLine>
+                    <!-- JaCoCo integration: the agent is injected via the `argLine`
+                         project property set by jacoco:prepare-agent below. The previous
+                         setup referenced ${surefireArgLine}, but that property was also
+                         declared (empty) in <properties>, which shadowed the value
+                         jacoco set at runtime, so the agent never attached and no
+                         jacoco.exec was produced. Using the default `argLine` property
+                         avoids that shadowing. -->
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
@@ -560,9 +565,8 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
-                        <configuration>
-                            <propertyName>surefireArgLine</propertyName>
-                        </configuration>
+                        <!-- Use the default `argLine` property so Surefire picks up the
+                             JaCoCo agent automatically (see Surefire argLine note above). -->
                     </execution>
                     
                     <!-- Prepare agent for integration tests -->
