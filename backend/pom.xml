@@ -482,7 +482,6 @@
                                 <testExclude>com/modulo/repository/NoteRepositoryTest.java</testExclude>
                                 <testExclude>com/modulo/repository/jpa/UserRepositoryTest.java</testExclude>
                                 <testExclude>com/modulo/service/TaskServiceTest.java</testExclude>
-                                <testExclude>com/modulo/service/UserServiceTest.java</testExclude>
                             </testExcludes>
                         </configuration>
                     </execution>
@@ -527,7 +526,6 @@
                         <exclude>**/repository/NoteRepositoryTest.java</exclude>
                         <exclude>**/repository/jpa/UserRepositoryTest.java</exclude>
                         <exclude>**/service/TaskServiceTest.java</exclude>
-                        <exclude>**/service/UserServiceTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
