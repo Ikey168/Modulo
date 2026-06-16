@@ -69,7 +69,7 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
      * Full-text search with optimization
      * Uses database-specific text search capabilities
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE " +
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE " +
            "LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(n.markdownContent) LIKE LOWER(CONCAT('%', :query, '%')) " +
@@ -77,7 +77,13 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
            "CASE WHEN LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) THEN 1 " +
            "     WHEN LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) THEN 2 " +
            "     ELSE 3 END, " +
-           "n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC")
+           "n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived
+           // count query (Hibernate QueryException).
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE " +
+           "LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(n.markdownContent) LIKE LOWER(CONCAT('%', :query, '%'))")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
