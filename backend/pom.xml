@@ -34,6 +34,32 @@
         <failsafeArgLine></failsafeArgLine>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                rest-assured 5.3.2 transitively resolves json-path / xml-path down to
+                4.5.1, which depend on the legacy org.codehaus.groovy 3.0.x modules and
+                clash at runtime with Spring Boot 3.x's org.apache.groovy 4.0.x. Pin them
+                to 5.3.2 so the whole rest-assured family uses Groovy 4 consistently.
+            -->
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>json-path</artifactId>
+                <version>5.3.2</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>xml-path</artifactId>
+                <version>5.3.2</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured-common</artifactId>
+                <version>5.3.2</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -149,12 +175,28 @@
             <artifactId>pact-jvm-consumer-junit5</artifactId>
             <version>4.0.10</version>
             <scope>test</scope>
+            <!-- Pact 4.0.x drags in the legacy org.codehaus.groovy 3.0.x modules,
+                 which clash at runtime with Spring Boot 3.x's org.apache.groovy 4.0.x
+                 (GroovyRuntimeException: Conflicting module versions). The Pact tests
+                 are excluded in this environment, so drop its Groovy entirely. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>au.com.dius</groupId>
             <artifactId>pact-jvm-provider-junit5</artifactId>
             <version>4.0.10</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- REST Assured for API testing -->
         <dependency>
