@@ -37,7 +37,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
      * Find notes by user ID with pagination and caching
      * Includes eager loading of tags to reduce N+1 queries
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.userId = :userId ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.userId = :userId ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE n.userId = :userId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -58,7 +60,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
     /**
      * Find notes by tag with optimized loading
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE t.name = :tagName ORDER BY n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE t.name = :tagName ORDER BY n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n LEFT JOIN n.tags t WHERE t.name = :tagName")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -176,7 +180,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
     /**
      * Find public notes with minimal data loading
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.isPublic = true ORDER BY n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.isPublic = true ORDER BY n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE n.isPublic = true")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
