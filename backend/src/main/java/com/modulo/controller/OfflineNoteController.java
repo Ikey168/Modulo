@@ -19,7 +19,7 @@ import java.util.*;
  */
 @RestController
 @RequestMapping("/api/offline/notes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.offline.database.enabled", havingValue = "true", matchIfMissing = true)
 public class OfflineNoteController {

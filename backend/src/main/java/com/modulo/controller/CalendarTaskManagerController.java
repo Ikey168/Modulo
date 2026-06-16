@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/plugins/calendar-task-manager")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class CalendarTaskManagerController {
     
     @Autowired

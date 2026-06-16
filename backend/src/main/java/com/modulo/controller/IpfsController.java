@@ -21,7 +21,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/ipfs")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class IpfsController {
 
     private static final Logger logger = LoggerFactory.getLogger(IpfsController.class);

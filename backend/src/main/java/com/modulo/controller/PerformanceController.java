@@ -24,7 +24,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v2/performance")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Performance Monitoring", description = "API response time monitoring and optimization metrics")
 public class PerformanceController {
 

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class NoteController {
 
     private final NoteRepository noteRepository;

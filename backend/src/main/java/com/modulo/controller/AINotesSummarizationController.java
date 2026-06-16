@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  */
 @RestController
 @RequestMapping("/api/plugin/ai-notes-summarization")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class AINotesSummarizationController {
 
     @Autowired

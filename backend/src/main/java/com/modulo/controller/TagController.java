@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tags")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class TagController {
 
     private final TagService tagService;

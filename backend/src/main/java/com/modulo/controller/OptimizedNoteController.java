@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping("/api/v2/notes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Optimized Notes API", description = "High-performance note operations with caching")
 public class OptimizedNoteController {
 
