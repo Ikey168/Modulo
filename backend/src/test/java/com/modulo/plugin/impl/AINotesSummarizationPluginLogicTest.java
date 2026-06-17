@@ -93,4 +93,32 @@ class AINotesSummarizationPluginLogicTest {
 
         assertThat(result.isSuccess()).isFalse();
     }
+
+    @Test
+    void comprehensiveAnalysisRuns() {
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+        when(openAIService.generateSummary(anyString(), any()))
+                .thenReturn(OpenAIService.SummaryResponse.builder().summary("s").success(true).build());
+        when(openAIService.generateKeyPoints(anyString(), anyInt()))
+                .thenReturn(OpenAIService.KeyPointsResponse.builder().build());
+        when(openAIService.generateInsights(anyString()))
+                .thenReturn(OpenAIService.InsightsResponse.builder().build());
+
+        AINotesSummarizationPlugin.ComprehensiveAnalysis result =
+                plugin.getComprehensiveAnalysis(1L, null, 5);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void batchSummarizeRuns() {
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+        when(openAIService.generateSummary(anyString(), any()))
+                .thenReturn(OpenAIService.SummaryResponse.builder().summary("s").success(true).build());
+
+        AINotesSummarizationPlugin.BatchSummaryResult result =
+                plugin.batchSummarizeNotes(List.of(1L), null);
+
+        assertThat(result).isNotNull();
+    }
 }

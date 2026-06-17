@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +65,26 @@ class AINotesSummarizationControllerTest {
                 .thenReturn(InsightsResult.builder().success(true).build());
 
         mockMvc.perform(post("/api/plugin/ai-notes-summarization/notes/1/insights").with(csrf()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void analyzeNote() throws Exception {
+        mockMvc.perform(post("/api/plugin/ai-notes-summarization/notes/1/analyze").with(csrf()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void batchSummarizeRejectsEmptyIds() throws Exception {
+        mockMvc.perform(post("/api/plugin/ai-notes-summarization/notes/batch-summarize").with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"noteIds\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getPluginStatus() throws Exception {
+        mockMvc.perform(get("/api/plugin/ai-notes-summarization/status"))
                 .andExpect(status().isOk());
     }
 }
