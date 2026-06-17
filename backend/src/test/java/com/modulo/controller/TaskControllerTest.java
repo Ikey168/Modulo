@@ -208,4 +208,36 @@ class TaskControllerTest {
         mockMvc.perform(get("/api/tasks/recurring").param("userId", "100"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void getTasksLinkedToNote() throws Exception {
+        when(taskService.findTasksLinkedToNote(9L)).thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/note/9"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getSubtasks() throws Exception {
+        when(taskService.findSubtasks(3L)).thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/3/subtasks"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void unlinkTaskFromNote() throws Exception {
+        mockMvc.perform(delete("/api/tasks/5/unlink-note/9").with(csrf()))
+                .andExpect(status().isOk());
+
+        verify(taskService).unlinkTaskFromNote(5L, 9L);
+    }
+
+    @Test
+    void completeTaskFailureReturnsBadRequest() throws Exception {
+        when(taskService.completeTask(7L)).thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(put("/api/tasks/7/complete").with(csrf()))
+                .andExpect(status().isBadRequest());
+    }
 }
