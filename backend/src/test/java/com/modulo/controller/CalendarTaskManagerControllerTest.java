@@ -81,4 +81,17 @@ class CalendarTaskManagerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.connected").value(true));
     }
+
+    @Test
+    void pluginInfo() throws Exception {
+        when(plugin.getCapabilities()).thenReturn(java.util.List.of("calendar", "tasks"));
+        when(plugin.healthCheck())
+                .thenReturn(com.modulo.plugin.api.HealthCheck.healthy("ok"));
+        when(plugin.isInitialized()).thenReturn(true);
+        when(plugin.isStarted()).thenReturn(true);
+
+        mockMvc.perform(get("/api/plugins/calendar-task-manager/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.initialized").value(true));
+    }
 }
