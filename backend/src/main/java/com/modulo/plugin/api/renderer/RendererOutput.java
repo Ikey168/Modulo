@@ -55,6 +55,14 @@ public class RendererOutput {
     public LocalDateTime getGeneratedAt() {
         return generatedAt;
     }
+
+    /**
+     * Get when this output was generated
+     * @return Generation timestamp
+     */
+    public LocalDateTime getTimestamp() {
+        return generatedAt;
+    }
     
     /**
      * Check if the output is interactive

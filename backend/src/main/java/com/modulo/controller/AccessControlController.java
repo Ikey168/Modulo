@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Access Control", description = "Blockchain-based access control for notes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class AccessControlController {
 
     private final BlockchainAccessControlService accessControlService;

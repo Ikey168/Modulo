@@ -20,7 +20,7 @@ import java.util.*;
  */
 @RestController
 @RequestMapping("/api/renderers")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class RendererController {
     
     @Autowired

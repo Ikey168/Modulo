@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { render } from '../../../__tests__/utils/test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Header from '../Header';
 
 // Mock the auth hook
@@ -15,7 +15,7 @@ vi.mock('../../../features/auth/useAuth', () => ({
 }));
 
 // Mock the responsive hook
-jest.mock('../../../hooks/useResponsive', () => ({
+vi.mock('../../../hooks/useResponsive', () => ({
   useResponsive: () => ({
     isMobile: false,
     isTablet: false,
@@ -24,40 +24,43 @@ jest.mock('../../../hooks/useResponsive', () => ({
 }));
 
 // Mock react-router-dom
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}));
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Mock child components
-jest.mock('../../network', () => ({
+vi.mock('../../network', () => ({
   NetworkStatusIndicator: () => <div data-testid="network-status">Network Status</div>,
 }));
 
-jest.mock('../../theme', () => ({
+vi.mock('../../theme', () => ({
   ThemeToggle: () => <button data-testid="theme-toggle">Toggle Theme</button>,
 }));
 
-jest.mock('../EnhancedMobileMenu', () => {
-  return function MockEnhancedMobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+vi.mock('../EnhancedMobileMenu', () => ({
+  default: function MockEnhancedMobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     return isOpen ? (
       <div data-testid="mobile-menu">
         <button onClick={onClose} data-testid="close-mobile-menu">Close</button>
       </div>
     ) : null;
-  };
-});
+  },
+}));
 
-jest.mock('../common/MobileOptimizedButton', () => {
-  return function MockMobileOptimizedButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+vi.mock('../../common/MobileOptimizedButton', () => ({
+  default: function MockMobileOptimizedButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
     return <button onClick={onClick} data-testid="mobile-optimized-button">{children}</button>;
-  };
-});
+  },
+}));
 
 describe('Header Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without crashing', () => {

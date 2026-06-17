@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/note-links")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class NoteLinkController {
 
     private final NoteLinkService noteLinkService;

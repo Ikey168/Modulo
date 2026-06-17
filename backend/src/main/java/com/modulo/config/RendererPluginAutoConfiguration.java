@@ -32,7 +32,7 @@ public class RendererPluginAutoConfiguration {
         
         try {
             // Initialize and register MindMap renderer
-            mindMapRenderer.initialize();
+            mindMapRenderer.initialize(new java.util.HashMap<>());
             boolean registered = rendererRegistry.registerRenderer(mindMapRenderer);
             
             if (registered) {

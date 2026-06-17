@@ -17,7 +17,7 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
 
     Optional<Attachment> findByBlobName(String blobName);
 
-    @Query("SELECT a FROM Attachment a WHERE a.note.id = :noteId AND a.originalFilename LIKE %:filename% AND a.isActive = true")
+    @Query("SELECT a FROM Attachment a WHERE a.note.id = :noteId AND LOWER(a.originalFilename) LIKE LOWER(CONCAT('%', :filename, '%')) AND a.isActive = true")
     List<Attachment> findByNoteIdAndFilenameContaining(@Param("noteId") Long noteId, @Param("filename") String filename);
 
     @Query("SELECT a FROM Attachment a WHERE a.contentType = :contentType AND a.isActive = true")

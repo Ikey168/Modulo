@@ -37,7 +37,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
      * Find notes by user ID with pagination and caching
      * Includes eager loading of tags to reduce N+1 queries
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.userId = :userId ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.userId = :userId ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE n.userId = :userId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -58,7 +60,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
     /**
      * Find notes by tag with optimized loading
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE t.name = :tagName ORDER BY n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE t.name = :tagName ORDER BY n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n LEFT JOIN n.tags t WHERE t.name = :tagName")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -69,7 +73,7 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
      * Full-text search with optimization
      * Uses database-specific text search capabilities
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE " +
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE " +
            "LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(n.markdownContent) LIKE LOWER(CONCAT('%', :query, '%')) " +
@@ -77,7 +81,13 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
            "CASE WHEN LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) THEN 1 " +
            "     WHEN LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) THEN 2 " +
            "     ELSE 3 END, " +
-           "n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC")
+           "n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived
+           // count query (Hibernate QueryException).
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE " +
+           "LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(n.markdownContent) LIKE LOWER(CONCAT('%', :query, '%'))")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -87,7 +97,7 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
     /**
      * Advanced search with multiple criteria
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE " +
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags t WHERE " +
            "(:query IS NULL OR " +
            " LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            " LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
@@ -95,7 +105,18 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
            "(:tagName IS NULL OR t.name = :tagName) AND " +
            "(:fromDate IS NULL OR n.updatedAt >= :fromDate) AND " +
            "(:toDate IS NULL OR n.updatedAt <= :toDate) " +
-           "ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC")
+           "ORDER BY n.lastViewedAt DESC NULLS LAST, n.updatedAt DESC",
+           // Explicit count query: Hibernate cannot derive a count query that
+           // contains JOIN FETCH (QueryException), which broke the
+           // optimizedNoteRepository bean and every context-loading test.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n LEFT JOIN n.tags t WHERE " +
+           "(:query IS NULL OR " +
+           " LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           " LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "(:userId IS NULL OR n.userId = :userId) AND " +
+           "(:tagName IS NULL OR t.name = :tagName) AND " +
+           "(:fromDate IS NULL OR n.updatedAt >= :fromDate) AND " +
+           "(:toDate IS NULL OR n.updatedAt <= :toDate)")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")
@@ -159,7 +180,9 @@ public interface OptimizedNoteRepository extends JpaRepository<Note, Long> {
     /**
      * Find public notes with minimal data loading
      */
-    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.isPublic = true ORDER BY n.updatedAt DESC")
+    @Query(value = "SELECT DISTINCT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.isPublic = true ORDER BY n.updatedAt DESC",
+           // Explicit count query: a JOIN FETCH cannot appear in a derived count query.
+           countQuery = "SELECT COUNT(DISTINCT n) FROM Note n WHERE n.isPublic = true")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "NORMAL")

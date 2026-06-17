@@ -419,7 +419,7 @@ class MultiServiceIntegrationTest {
             mockMvc.perform(get("/api/tasks")
                     .param("userId", testUser.getId().toString()))
                     .andExpect(status().isOk())
-                    .andExpected jsonPath("$.length()").isNumber());
+                    .andExpect(jsonPath("$.length()").isNumber());
         }
     }
 
@@ -486,7 +486,7 @@ class MultiServiceIntegrationTest {
             // Step 5: Verify data integrity across all systems
             mockMvc.perform(get("/api/notes/" + createdNote.getId()))
                     .andExpect(status().isOk())
-                    .andExpected jsonPath("$.title").value("Complete Workflow Note"))
+                    .andExpect(jsonPath("$.title").value("Complete Workflow Note"))
                     .andExpect(jsonPath("$.content").value(createdNote.getContent()));
 
             // Verify all external services were called
@@ -543,8 +543,8 @@ class MultiServiceIntegrationTest {
 
             // Note should still exist in database (partial success is OK)
             mockMvc.perform(get("/api/notes/" + createdNote.getId()))
-                    .andExpected status().isOk())
-                    .andExpected jsonPath("$.title").value("Transaction Test Note"));
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title").value("Transaction Test Note"));
         }
     }
 }

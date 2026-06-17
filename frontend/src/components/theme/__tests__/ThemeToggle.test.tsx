@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { render } from '../../../__tests__/utils/test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ThemeToggle from '../ThemeToggle';
 
 // Mock the theme context
@@ -18,7 +18,7 @@ vi.mock('../../../themes/ThemeContext', () => ({
 }));
 
 // Mock themes
-jest.mock('../../../themes/themes', () => ({
+vi.mock('../../../themes/themes', () => ({
   themes: {
     light: { name: 'Light Theme' },
     dark: { name: 'Dark Theme' },
@@ -28,12 +28,13 @@ jest.mock('../../../themes/themes', () => ({
 
 describe('ThemeToggle Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without crashing', () => {
     render(<ThemeToggle />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    // Full (non-compact) mode renders multiple buttons (selector + quick toggle).
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
   });
 
   it('renders in compact mode', () => {

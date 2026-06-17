@@ -1,8 +1,9 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import { render } from '../../../__tests__/utils/test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Dashboard from '../Dashboard';
+import { useAuth } from '../../auth/useAuth';
 
 // Mock the auth hook
 const mockUseAuth = {
@@ -14,17 +15,21 @@ const mockUseAuth = {
 };
 
 vi.mock('../../auth/useAuth', () => ({
-  useAuth: () => mockUseAuth,
+  useAuth: vi.fn(),
 }));
 
 // Mock WalletInfo component
 vi.mock('../../../components/wallet/WalletInfo', () => ({
-  return function MockWalletInfo() {
+  default: function MockWalletInfo() {
     return <div data-testid="wallet-info">Wallet Info Component</div>;
-  };
-});
+  },
+}));
 
 describe('Dashboard Component', () => {
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue(mockUseAuth as ReturnType<typeof useAuth>);
+  });
+
   it('renders without crashing', () => {
     render(<Dashboard />);
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
@@ -40,9 +45,9 @@ describe('Dashboard Component', () => {
       ...mockUseAuth,
       user: { ...mockUseAuth.user, name: undefined },
     };
-    
-    jest.mocked(require('../../auth/useAuth').useAuth).mockReturnValue(mockAuthWithoutName);
-    
+
+    vi.mocked(useAuth).mockReturnValue(mockAuthWithoutName as ReturnType<typeof useAuth>);
+
     render(<Dashboard />);
     expect(screen.getByText('Welcome back, User')).toBeInTheDocument();
   });
@@ -65,9 +70,9 @@ describe('Dashboard Component', () => {
       ...mockUseAuth,
       user: { ...mockUseAuth.user, authProvider: 'metamask' },
     };
-    
-    jest.mocked(require('../../auth/useAuth').useAuth).mockReturnValue(mockAuthWithMetamask);
-    
+
+    vi.mocked(useAuth).mockReturnValue(mockAuthWithMetamask as ReturnType<typeof useAuth>);
+
     render(<Dashboard />);
     expect(screen.getByTestId('wallet-info')).toBeInTheDocument();
   });
@@ -80,8 +85,8 @@ describe('Dashboard Component', () => {
   it('has proper layout structure', () => {
     render(<Dashboard />);
     
-    // Check for main dashboard container
-    const dashboardContainer = screen.getByText('Dashboard').closest('div');
+    // The outermost dashboard container carries the min-h-screen layout class.
+    const dashboardContainer = screen.getByText('Dashboard').closest('.min-h-screen');
     expect(dashboardContainer).toHaveClass('min-h-screen');
   });
 });

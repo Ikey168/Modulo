@@ -316,7 +316,7 @@ class FullStackIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(updatedUser))
                     .with(csrf()))
-                    .andExpected status().isOk())
+                    .andExpect(status().isOk())
                     .andExpect(jsonPath("$.username").value("updated-integration-user"))
                     .andExpect(jsonPath("$.email").value("updated@integration.com"));
         }
@@ -328,7 +328,7 @@ class FullStackIntegrationTest {
             // Get all users (admin operation)
             mockMvc.perform(get("/api/users"))
                     .andExpect(status().isOk())
-                    .andExpected jsonPath("$").isArray())
+                    .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").isNumber());
 
             // Search users
@@ -377,7 +377,7 @@ class FullStackIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(task))
                     .with(csrf()))
-                    .andExpected status().isCreated())
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.title").value("Review Project Planning"));
 
             // Search across both notes and tasks
@@ -423,12 +423,12 @@ class FullStackIntegrationTest {
             mockMvc.perform(get("/api/notes")
                     .param("userId", testUser.getId().toString()))
                     .andExpect(status().isOk())
-                    .andExpected jsonPath("$.length()").value(3));
+                    .andExpect(jsonPath("$.length()").value(3));
 
             mockMvc.perform(get("/api/tasks")
                     .param("userId", testUser.getId().toString()))
                     .andExpect(status().isOk())
-                    .andExpected jsonPath("$.length()").value(3));
+                    .andExpect(jsonPath("$.length()").value(3));
         }
     }
 
@@ -476,7 +476,7 @@ class FullStackIntegrationTest {
 
             // Test accessing non-existent task
             mockMvc.perform(get("/api/tasks/99999"))
-                    .andExpected status().isNotFound());
+                    .andExpect(status().isNotFound());
 
             // Test deleting non-existent resources
             mockMvc.perform(delete("/api/notes/99999")

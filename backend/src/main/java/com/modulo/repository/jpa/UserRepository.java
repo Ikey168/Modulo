@@ -32,12 +32,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Find user by Keycloak subject
      */
     Optional<User> findByKeycloakSubject(String keycloakSubject);
-    
-    /**
-     * Find user by MetaMask subject
-     */
-    Optional<User> findByMetaMaskSubject(String metaMaskSubject);
-    
+
+    // NOTE: findByMetaMaskSubject was removed: the User entity has no
+    // 'metaMaskSubject' property (MetaMask users are identified by
+    // walletAddress), so Spring Data could not derive the query and the
+    // userRepository bean failed to initialize, breaking every test that
+    // loads the application context. The method was also unused.
+
     /**
      * Find all users with the same email (for conflict resolution)
      */

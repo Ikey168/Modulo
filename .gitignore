@@ -113,3 +113,5 @@ gasReporterOutput.json
 # Test artifacts
 smart-contracts/deployments/localhost*
 smart-contracts/deployments/*test*
+# Runtime logs (regenerated on every test run)
+backend/logs/
