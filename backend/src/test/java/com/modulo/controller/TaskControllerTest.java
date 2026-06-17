@@ -184,4 +184,28 @@ class TaskControllerTest {
         mockMvc.perform(get("/api/tasks/due-this-week").param("userId", "100"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void searchTasks() throws Exception {
+        when(taskService.searchTasks(100L, "term")).thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/search").param("userId", "100").param("query", "term"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void linkTaskToNote() throws Exception {
+        mockMvc.perform(post("/api/tasks/5/link-note/9").with(csrf()))
+                .andExpect(status().isOk());
+
+        verify(taskService).linkTaskToNote(5L, 9L);
+    }
+
+    @Test
+    void getRecurringTasks() throws Exception {
+        when(taskService.findRecurringTasks(100L)).thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/recurring").param("userId", "100"))
+                .andExpect(status().isOk());
+    }
 }
