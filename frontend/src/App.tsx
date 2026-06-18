@@ -14,6 +14,7 @@ import LoginPage from './features/auth/LoginPage';
 import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
+import Workspace from './features/workspace/Workspace';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 
@@ -48,9 +49,24 @@ function App() {
             <Route path="/mobile/auth/google/callback" element={<GoogleOAuthCallback />} />
             <Route path="/mobile/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
             
-            {/* Protected routes */}
+            {/* New workspace UI (Notes / Graph / Dashboard / Marketplace) */}
+            <Route path="/app" element={<Navigate to="/app/notes" replace />} />
             <Route
-              path="/dashboard"
+              path="/app/:view"
+              element={
+                <RequireAuth>
+                  <Workspace />
+                </RequireAuth>
+              }
+            />
+
+            {/* Protected routes */}
+            <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="/notes" element={<Navigate to="/app/notes" replace />} />
+            <Route path="/notes-graph" element={<Navigate to="/app/graph" replace />} />
+            <Route path="/plugins/marketplace" element={<Navigate to="/app/marketplace" replace />} />
+            <Route
+              path="/legacy/dashboard"
               element={
                 <RequireAuth>
                   <Layout>
