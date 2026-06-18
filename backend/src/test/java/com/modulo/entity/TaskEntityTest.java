@@ -96,7 +96,7 @@ class TaskEntityTest {
         assertThat(overdue.isOverdue()).isTrue();
 
         Task dueToday = new Task("d", "", 1L);
-        dueToday.setDueDate(LocalDateTime.now().plusHours(1));
+        dueToday.setDueDate(java.time.LocalDate.now().atTime(12, 0)); // midday today, deterministic
         assertThat(dueToday.isDueToday()).isTrue();
 
         Task noDue = new Task("n", "", 1L);
