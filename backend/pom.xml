@@ -19,7 +19,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <java.version>17</java.version>
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.38</lombok.version>
         <jacoco.version>0.8.11</jacoco.version>
         <!-- JaCoCo Coverage Configuration -->
         <jacoco.instruction.ratio>0.85</jacoco.instruction.ratio>

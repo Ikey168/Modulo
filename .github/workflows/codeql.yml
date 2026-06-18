@@ -48,11 +48,11 @@ jobs:
         config-file: ./.github/codeql/codeql-config.yml
 
     # Java-specific build setup
-    - name: Set up JDK 11 (Java)
+    - name: Set up JDK 17 (Java)
       if: matrix.language == 'java'
       uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
 
