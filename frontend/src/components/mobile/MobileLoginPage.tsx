@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useMobileAuth } from '../../features/auth/useMobileAuth';
-import { MobileOptimizedButton } from './MobileOptimizedButton';
+import MobileOptimizedButton from '../common/MobileOptimizedButton';
 import ErrorAlert from '../common/ErrorAlert';
 import './MobileLoginPage.css';
 

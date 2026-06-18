@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mobileOAuthService } from '../../features/auth/mobileOAuthService';
-import { LoadingSpinner } from '../common/LoadingSpinner';
-import { ErrorAlert } from '../common/ErrorAlert';
+import LoadingSpinner from '../common/LoadingSpinner';
+import ErrorAlert from '../common/ErrorAlert';
 import './OAuthCallback.css';
 
 interface OAuthCallbackProps {

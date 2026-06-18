@@ -14,7 +14,7 @@ import LoginPage from './features/auth/LoginPage';
 import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
-import { MobileLoginPage } from './components/mobile/MobileLoginPage';
+import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 
 function App() {
