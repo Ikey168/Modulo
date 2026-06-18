@@ -1,8 +1,8 @@
-# Build stage - Multi-arch compatible with Java 11
-FROM eclipse-temurin:11-jdk AS build
+# Build stage - Multi-arch compatible with Java 17
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /workspace/app
 
-# Set JAVA_HOME for Java 11
+# Set JAVA_HOME for Java 17
 ENV JAVA_HOME=/opt/java/openjdk
 
 # Install Maven in a single optimized layer with better mirror
@@ -23,10 +23,10 @@ RUN mvn dependency:go-offline -T 2C --batch-mode --quiet
 COPY src src
 
 # Build application with optimizations (parallel build, skip tests, quiet mode)
-RUN mvn clean install -DskipTests -T 2C --batch-mode --quiet -Dmaven.compiler.source=11 -Dmaven.compiler.target=11
+RUN mvn clean install -DskipTests -T 2C --batch-mode --quiet -Dmaven.compiler.source=17 -Dmaven.compiler.target=17
 
-# Runtime stage - Multi-arch with enhanced security (Java 11 for consistency)
-FROM eclipse-temurin:11-jre-jammy
+# Runtime stage - Multi-arch with enhanced security (Java 17 for consistency)
+FROM eclipse-temurin:17-jre-jammy
 
 # Install required packages and clean up in single layer for efficiency
 RUN apt-get update && \
