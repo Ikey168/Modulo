@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies (including dev dependencies for build)
 COPY package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Build stage
 FROM node:21-alpine AS builder
