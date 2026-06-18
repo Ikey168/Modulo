@@ -520,19 +520,19 @@ func (ac *AuditCollector) recordMetrics(log DecisionLog) {
 }
 
 // checkForAlerts analyzes logs for suspicious patterns
-func (ac *AuditCollector) checkForAlerts(log DecisionLog) {
+func (ac *AuditCollector) checkForAlerts(entry DecisionLog) {
 	// Alert on denied high-privilege actions
-	if !log.Decision.Allow {
+	if !entry.Decision.Allow {
 		for _, action := range ac.config.AlertThresholds.HighPrivilegeActions {
-			if log.Request.Action == action {
+			if entry.Request.Action == action {
 				log.Printf("ALERT: Denied high-privilege action %s by user %s on %s:%s",
-					action, log.User.Username, log.Request.ResourceType, log.Request.ResourceID)
+					action, entry.User.Username, entry.Request.ResourceType, entry.Request.ResourceID)
 			}
 		}
 
 		// Alert on repeated denials (this would typically integrate with external alerting)
 		log.Printf("AUDIT: Authorization denied - User: %s, Action: %s, Resource: %s:%s, Reason: %s",
-			log.User.Username, log.Request.Action, log.Request.ResourceType, log.Request.ResourceID, log.Decision.Reason)
+			entry.User.Username, entry.Request.Action, entry.Request.ResourceType, entry.Request.ResourceID, entry.Decision.Reason)
 	}
 }
 
