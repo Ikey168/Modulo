@@ -163,9 +163,9 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
     switch (option.type) {
       case 'BOOLEAN':
         return (
-          <label className=\"option-checkbox\">
+          <label className="option-checkbox">
             <input
-              type=\"checkbox\"
+              type="checkbox"
               checked={value || false}
               onChange={(e) => handleOptionChange(option.name, e.target.checked)}
             />
@@ -178,7 +178,7 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
           <select
             value={value || ''}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className=\"option-select\"
+            className="option-select"
           >
             {option.allowedValues?.map(allowedValue => (
               <option key={allowedValue} value={allowedValue}>
@@ -191,10 +191,10 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       case 'COLOR':
         return (
           <input
-            type=\"color\"
+            type="color"
             value={value || option.defaultValue}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className=\"option-color\"
+            className="option-color"
           />
         );
 
@@ -202,12 +202,12 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       case 'FONT_SIZE':
         return (
           <input
-            type=\"number\"
+            type="number"
             value={value || ''}
             min={option.minValue}
             max={option.maxValue}
             onChange={(e) => handleOptionChange(option.name, parseInt(e.target.value))}
-            className=\"option-number\"
+            className="option-number"
           />
         );
 
@@ -215,13 +215,13 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       case 'PERCENTAGE':
         return (
           <input
-            type=\"number\"
-            step=\"0.1\"
+            type="number"
+            step="0.1"
             value={value || ''}
             min={option.minValue}
             max={option.maxValue}
             onChange={(e) => handleOptionChange(option.name, parseFloat(e.target.value))}
-            className=\"option-number\"
+            className="option-number"
           />
         );
 
@@ -229,10 +229,10 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       default:
         return (
           <input
-            type=\"text\"
+            type="text"
             value={value || ''}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className=\"option-text\"
+            className="option-text"
           />
         );
     }
@@ -241,12 +241,12 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
   const selectedRendererObj = availableRenderers.find(r => r.id === selectedRenderer);
 
   if (loading) {
-    return <div className=\"renderer-selector loading\">Loading renderers...</div>;
+    return <div className="renderer-selector loading">Loading renderers...</div>;
   }
 
   if (availableRenderers.length === 0) {
     return (
-      <div className=\"renderer-selector no-renderers\">
+      <div className="renderer-selector no-renderers">
         <p>No compatible renderers found for this note type: {noteType}</p>
         <p>Standard text rendering will be used.</p>
       </div>
@@ -254,15 +254,15 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
   }
 
   return (
-    <div className=\"renderer-selector\">
-      <div className=\"renderer-controls\">
-        <div className=\"renderer-select-group\">
-          <label htmlFor=\"renderer-select\">Visualization:</label>
+    <div className="renderer-selector">
+      <div className="renderer-controls">
+        <div className="renderer-select-group">
+          <label htmlFor="renderer-select">Visualization:</label>
           <select
-            id=\"renderer-select\"
+            id="renderer-select"
             value={selectedRenderer}
             onChange={(e) => handleRendererChange(e.target.value)}
-            className=\"renderer-dropdown\"
+            className="renderer-dropdown"
           >
             {availableRenderers.map(renderer => (
               <option key={renderer.id} value={renderer.id}>
@@ -274,8 +274,8 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
 
         {selectedRendererObj && selectedRendererObj.options.length > 0 && (
           <button
-            type=\"button\"
-            className=\"options-toggle\"
+            type="button"
+            className="options-toggle"
             onClick={() => setShowOptionsPanel(!showOptionsPanel)}
           >
             ⚙️ Options
@@ -283,8 +283,8 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
         )}
 
         <button
-          type=\"button\"
-          className=\"render-button\"
+          type="button"
+          className="render-button"
           onClick={renderNote}
           disabled={rendering || !selectedRenderer}
         >
@@ -293,24 +293,24 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       </div>
 
       {selectedRendererObj && (
-        <div className=\"renderer-info\">
+        <div className="renderer-info">
           <small>{selectedRendererObj.description}</small>
         </div>
       )}
 
       {showOptionsPanel && selectedRendererObj && selectedRendererObj.options.length > 0 && (
-        <div className=\"options-panel\">
+        <div className="options-panel">
           <h4>Rendering Options</h4>
-          <div className=\"options-grid\">
+          <div className="options-grid">
             {selectedRendererObj.options.map(option => (
-              <div key={option.name} className=\"option-item\">
-                <label className=\"option-label\">
+              <div key={option.name} className="option-item">
+                <label className="option-label">
                   {option.displayName}
-                  {option.required && <span className=\"required\">*</span>}
+                  {option.required && <span className="required">*</span>}
                 </label>
                 {renderOptionInput(option)}
                 {option.description && (
-                  <small className=\"option-description\">{option.description}</small>
+                  <small className="option-description">{option.description}</small>
                 )}
               </div>
             ))}
