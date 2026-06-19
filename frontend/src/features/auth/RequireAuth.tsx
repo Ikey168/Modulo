@@ -1,11 +1,17 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/store';
-import { selectIsAuthenticated, selectAuthInitialized, selectAuthLoading, initializeAuth } from './authSlice';
+import { selectIsAuthenticated, selectAuthInitialized, selectAuthLoading, initializeAuth, setCredentials } from './authSlice';
+import { AuthLoading } from './AuthScreen';
 
 interface RequireAuthProps {
   children: React.ReactNode;
 }
+
+// Dev-only escape hatch: when VITE_DEV_BYPASS_AUTH=true, the gate seeds a mock
+// user and lets you straight into the app without Keycloak. Off by default and
+// gated on import.meta.env so it cannot be enabled in a production build.
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const dispatch = useAppDispatch();
@@ -15,21 +21,29 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
+    if (DEV_BYPASS) {
+      if (!isAuthenticated) {
+        dispatch(
+          setCredentials({
+            user: { id: 'dev', name: 'Dev User', email: 'dev@modulo.local', authProvider: 'oidc', roles: ['ADMIN'] },
+          }),
+        );
+      }
+      return;
+    }
     if (!isInitialized) {
       dispatch(initializeAuth());
     }
-  }, [dispatch, isInitialized]);
+  }, [dispatch, isInitialized, isAuthenticated]);
 
-  // Show loading spinner while initializing auth
+  if (DEV_BYPASS) {
+    // Render children as soon as the mock user is seeded.
+    return isAuthenticated ? <>{children}</> : <AuthLoading message="Loading…" />;
+  }
+
+  // Show loading state while initializing auth
   if (!isInitialized || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoading message="Loading…" />;
   }
 
   if (!isAuthenticated) {
