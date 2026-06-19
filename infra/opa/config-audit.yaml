@@ -12,10 +12,8 @@ services:
       Authorization: Bearer ${AUDIT_SERVICE_TOKEN}
       Content-Type: application/json
     
-bundles:
-  authz:
-    service: bundle_server  
-    resource: bundles/authorization.tar.gz
+# Policies are loaded from the mounted /policies directory (see the OPA
+# `run ... /policies` command), so no remote bundle service is configured.
 
 plugins:
   envoy_ext_authz_grpc:

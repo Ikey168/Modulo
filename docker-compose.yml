@@ -50,6 +50,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      flyway:
+        # Run DB migrations (incl. plugin_registry) before the backend starts
+        condition: service_completed_successfully
     networks:
       - modulo-network
     restart: unless-stopped
