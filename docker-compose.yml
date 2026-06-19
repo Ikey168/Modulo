@@ -34,9 +34,10 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:-}
-      - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:-}
-      - MODULO_SECURITY_ENCRYPTION_KEY=${MODULO_SECURITY_ENCRYPTION_KEY:-}
+      # Dev-only defaults that satisfy ModuloProperties validation. Override in production.
+      - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:-ZGV2LW9ubHktSldULXNlY3JldC1jaGFuZ2UtbWUtaW4tcHJvZHVjdGlvbg==}
+      - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:-mod_devLocalApiKeyChangeMe123456}
+      - MODULO_SECURITY_ENCRYPTION_KEY=${MODULO_SECURITY_ENCRYPTION_KEY:-default-encryption-key-32-chars-long}
       # Trust Keycloak-issued bearer tokens on the API. JWKS is fetched over the
       # internal docker network; the issuer is validated against the browser-facing URL.
       - MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=${MODULO_SECURITY_KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/modulo/protocol/openid-connect/certs}
