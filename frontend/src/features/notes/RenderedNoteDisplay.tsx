@@ -96,10 +96,10 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
       return (
         <iframe
           ref={iframeRef}
-          className=\"rendered-content-iframe\"
+          className="rendered-content-iframe"
           srcDoc={content}
-          title=\"Rendered Note Content\"
-          sandbox=\"allow-scripts allow-same-origin\"
+          title="Rendered Note Content"
+          sandbox="allow-scripts allow-same-origin"
           onLoad={() => {
             // Setup communication with iframe if needed
             if (iframeRef.current && onEvent) {
@@ -117,7 +117,7 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
       // For static HTML, render directly (with sanitization in a real app)
       return (
         <div
-          className=\"rendered-content-html\"
+          className="rendered-content-html"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -127,7 +127,7 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
   const renderMarkdownContent = () => {
     // In a real implementation, you'd use a markdown parser like marked or react-markdown
     return (
-      <div className=\"rendered-content-markdown\">
+      <div className="rendered-content-markdown">
         <pre>{content}</pre>
       </div>
     );
@@ -137,13 +137,13 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
     try {
       const jsonData = typeof content === 'string' ? JSON.parse(content) : content;
       return (
-        <div className=\"rendered-content-json\">
+        <div className="rendered-content-json">
           <pre>{JSON.stringify(jsonData, null, 2)}</pre>
         </div>
       );
     } catch (error) {
       return (
-        <div className=\"rendered-content-error\">
+        <div className="rendered-content-error">
           <p>Invalid JSON content</p>
           <pre>{content}</pre>
         </div>
@@ -153,7 +153,7 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
 
   const renderPlainTextContent = () => {
     return (
-      <div className=\"rendered-content-text\">
+      <div className="rendered-content-text">
         <pre>{content}</pre>
       </div>
     );
@@ -188,19 +188,19 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
   const metadataInfo = getMetadataInfo();
 
   return (
-    <div className=\"rendered-note-display\">
-      <div className=\"rendered-content-header\">
-        <div className=\"renderer-info\">
-          <span className=\"renderer-label\">Rendered with: {rendererId}</span>
+    <div className="rendered-note-display">
+      <div className="rendered-content-header">
+        <div className="renderer-info">
+          <span className="renderer-label">Rendered with: {rendererId}</span>
           {isInteractive && (
-            <span className=\"interactive-badge\">Interactive</span>
+            <span className="interactive-badge">Interactive</span>
           )}
         </div>
         
         {metadataInfo.length > 0 && (
-          <div className=\"content-metadata\">
+          <div className="content-metadata">
             {metadataInfo.map((info, index) => (
-              <span key={index} className=\"metadata-item\">{info}</span>
+              <span key={index} className="metadata-item">{info}</span>
             ))}
           </div>
         )}
@@ -214,13 +214,13 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
       </div>
 
       {metadata.error && (
-        <div className=\"rendering-error\">
+        <div className="rendering-error">
           <strong>Rendering Error:</strong> {metadata.error}
         </div>
       )}
 
       {metadata.warnings && Array.isArray(metadata.warnings) && metadata.warnings.length > 0 && (
-        <div className=\"rendering-warnings\">
+        <div className="rendering-warnings">
           <strong>Warnings:</strong>
           <ul>
             {metadata.warnings.map((warning: string, index: number) => (
