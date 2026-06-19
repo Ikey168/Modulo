@@ -78,8 +78,9 @@ ON application.notes FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('tsvector', 'pg_catalog.english', 'title', 'content');
 
 -- Functions (Define before using in policies)
-CREATE FUNCTION current_user_id() RETURNS UUID AS $$
-  SELECT current_setting('app.current_user_id')::UUID;
+-- notes.user_id is BIGINT, so this must return BIGINT (not UUID) for the RLS policy to type-check.
+CREATE FUNCTION current_user_id() RETURNS BIGINT AS $$
+  SELECT current_setting('app.current_user_id')::BIGINT;
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- Row-Level Security (Example - adapt to your multi-tenant strategy)
