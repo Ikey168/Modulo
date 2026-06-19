@@ -34,8 +34,11 @@ function App() {
       <Provider store={store}>
         <Router>
           <Routes>
+            {/* Root lands in the workspace (RequireAuth redirects to /login if needed) */}
+            <Route path="/" element={<Navigate to="/app/notes" replace />} />
+
             {/* Public routes */}
-            <Route path="/" element={<Layout><Home /></Layout>} />
+            <Route path="/home" element={<Layout><Home /></Layout>} />
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
             <Route path="/login" element={<LoginPage />} />
