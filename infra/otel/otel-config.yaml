@@ -41,9 +41,9 @@ processors:
         - 'attributes["http.request.body"] != nil'
     logs:
       log_record:
-        - 'body matches ".*password.*"'
-        - 'body matches ".*secret.*"'
-        - 'body matches ".*token.*"'
+        - 'IsMatch(body, ".*password.*")'
+        - 'IsMatch(body, ".*secret.*")'
+        - 'IsMatch(body, ".*token.*")'
         
   # Generate span metrics for monitoring
   spanmetrics:
@@ -67,10 +67,8 @@ processors:
     log_statements:
       - context: log
         statements:
-          - set(attributes["audit.timestamp"], time_unix_nano())
+          - set(attributes["audit.timestamp"], UnixNano(Now()))
           - set(attributes["audit.service"], "modulo-opa")
-          - set(attributes["correlation.trace_id"], trace_id.string) where trace_id != nil
-          - set(attributes["correlation.span_id"], span_id.string) where span_id != nil
 
 exporters:
   # OTLP for distributed tracing (replaces Jaeger)

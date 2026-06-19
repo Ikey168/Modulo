@@ -12,7 +12,7 @@ allow := decision if {
     user_context := extract_user_context(input)
     
     # Generate unique decision ID for this request
-    decision_id := generate_decision_id()
+    decision_id := generate_decision_id
     
     # Record decision start time for performance tracking
     start_time := time.now_ns()
@@ -457,8 +457,8 @@ hash_pii(value) := hashed if {
     hashed := crypto.sha256(value)
 } else := ""
 
-# Generate unique decision ID
-generate_decision_id() := id if {
+# Generate unique decision ID (zero-arg rule, not a function)
+generate_decision_id := id if {
     # Generate UUID-like decision ID using timestamp and random component
     timestamp := time.now_ns()
     id := sprintf("dec_%d_%s", [timestamp, substring(crypto.sha256(sprintf("%d", [timestamp])), 0, 8)])
