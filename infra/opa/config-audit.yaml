@@ -20,11 +20,7 @@ plugins:
     addr: ":9191"
     query: data.envoy.authz.allow
     enable_reflection: true
-    
-server:
-  encoding:
-    gzip: true
-    
+
 status:
   console: true
   prometheus: true
