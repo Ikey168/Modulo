@@ -1,9 +1,9 @@
 // Service Worker for Modulo PWA
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'modulo-v1.0.0';
-const STATIC_CACHE_NAME = 'modulo-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.0.0';
+const CACHE_NAME = 'modulo-v1.1.0';
+const STATIC_CACHE_NAME = 'modulo-static-v1.1.0';
+const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.1.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -79,16 +79,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests (HTML pages)
+  // Handle navigation requests (HTML pages) - Network First so a new deploy's
+  // index.html is always picked up; fall back to cache when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/')
+      fetch(request)
         .then((response) => {
-          return response || fetch(request);
+          const clone = response.clone();
+          caches.open(STATIC_CACHE_NAME).then((cache) => cache.put('/', clone));
+          return response;
         })
-        .catch(() => {
-          return caches.match('/');
-        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
     );
     return;
   }

@@ -6,13 +6,15 @@ import App from './App';
 import './styles/index.css';
 import './styles/mobile-layout.css';
 
-// Service Worker registration for PWA functionality
-if ('serviceWorker' in navigator) {
+// Service Worker: register only in production. A precaching SW in dev serves a
+// stale, cached index.html (cache-first navigation) and breaks HMR, so in dev we
+// proactively unregister any existing worker and clear its caches.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         console.log('SW registered: ', registration);
-        
+
         // Check for updates
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
@@ -40,6 +42,13 @@ if ('serviceWorker' in navigator) {
       console.log('Cache updated, new content available');
     }
   });
+} else if ('serviceWorker' in navigator) {
+  // Dev: tear down any service worker / caches left over from a production build
+  // so the dev server's fresh index.html is always served.
+  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+  if (typeof caches !== 'undefined') {
+    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+  }
 }
 
 // Handle PWA install prompt
