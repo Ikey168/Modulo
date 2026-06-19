@@ -37,12 +37,18 @@ services:
       - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:-}
       - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:-}
       - MODULO_SECURITY_ENCRYPTION_KEY=${MODULO_SECURITY_ENCRYPTION_KEY:-}
+      # Trust Keycloak-issued bearer tokens on the API. JWKS is fetched over the
+      # internal docker network; the issuer is validated against the browser-facing URL.
+      - MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=${MODULO_SECURITY_KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/modulo/protocol/openid-connect/certs}
+      - MODULO_SECURITY_KEYCLOAK_ISSUER_URI=${MODULO_SECURITY_KEYCLOAK_ISSUER_URI:-http://localhost:8180/realms/modulo}
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
     depends_on:
       db:
         condition: service_healthy
       neo4j:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - modulo-network
     restart: unless-stopped
