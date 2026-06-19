@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8080}
+        - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL:-http://localhost:8180/realms/modulo}
+        - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID:-modulo-frontend}
     ports:
       - "80:80"
     depends_on:
@@ -49,6 +51,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HEALTH_ENABLED=true
+    ports:
+      # Host 8180 -> container 8080 (8080/8081 are taken by backend/audit-collector)
+      - "8180:8080"
+    volumes:
+      - ./keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro
+    networks:
+      - modulo-network
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine

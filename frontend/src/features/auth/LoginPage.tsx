@@ -1,9 +1,13 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
-import { loginWithOIDC, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from './authSlice';
+import { loginWithOIDC, setCredentials, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from './authSlice';
 import { ModuloMark, Spinner } from './AuthScreen';
 import './auth.css';
+
+// Mirrors RequireAuth: when enabled, sign-in skips Keycloak and enters the app
+// as a mock user. Gated on import.meta.env so it can't ship to production.
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 
 interface Highlight {
   title: string;
@@ -85,6 +89,16 @@ const LoginPage: React.FC = () => {
   }
 
   const handleOIDCLogin = async () => {
+    // Dev bypass: enter the app as a mock user without contacting Keycloak.
+    if (DEV_BYPASS) {
+      dispatch(
+        setCredentials({
+          user: { id: 'dev', name: 'Dev User', email: 'dev@modulo.local', authProvider: 'oidc', roles: ['ADMIN'] },
+        }),
+      );
+      return;
+    }
+
     try {
       setLocalError(null);
       dispatch(clearError());
@@ -175,11 +189,11 @@ const LoginPage: React.FC = () => {
                 <path d="M9.5 11L12.5 8 9.5 5M12.5 8h-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
-            {isLoading ? 'Signing in…' : 'Sign in with Keycloak'}
+            {isLoading ? 'Signing in…' : DEV_BYPASS ? 'Continue to workspace (dev)' : 'Sign in with Keycloak'}
           </button>
 
           <p style={{ margin: '14px 0 0', fontSize: 11.5, color: '#52525b', textAlign: 'center' }}>
-            OpenID Connect with PKCE
+            {DEV_BYPASS ? 'Dev bypass enabled — Keycloak skipped' : 'OpenID Connect with PKCE'}
           </p>
 
           <div style={{ margin: '26px 0 0', paddingTop: 20, borderTop: '1px solid #1e1e24' }}>

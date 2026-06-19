@@ -17,6 +17,10 @@ COPY . .
 # Set build arguments for environment variables
 ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_KEYCLOAK_URL=http://localhost:8180/realms/modulo
+ENV VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+ARG VITE_KEYCLOAK_CLIENT_ID=modulo-frontend
+ENV VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
 
 # Build application with optimizations
 RUN npm run build

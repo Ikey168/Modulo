@@ -2,7 +2,7 @@ import { UserManagerSettings } from 'oidc-client-ts';
 
 // OIDC configuration for Keycloak with PKCE
 export const oidcConfig: UserManagerSettings = {
-  authority: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo',
+  authority: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo',
   client_id: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'modulo-frontend',
   redirect_uri: `${window.location.origin}/auth/callback`,
   post_logout_redirect_uri: `${window.location.origin}/`,
