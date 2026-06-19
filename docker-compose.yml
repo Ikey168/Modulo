@@ -117,6 +117,9 @@ services:
 
   neo4j:
     image: neo4j:5.15-community
+    # Remove a stale pid left by an unclean shutdown (Ctrl+C) so the container
+    # doesn't crash-loop with "Neo4j is already running (pid:N)" on restart.
+    command: ["bash", "-c", "rm -f /data/run/neo4j.pid /var/lib/neo4j/run/neo4j.pid 2>/dev/null || true; exec /startup/docker-entrypoint.sh neo4j"]
     ports:
       - "7474:7474"
       - "7687:7687"
