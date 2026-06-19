@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/store';
 import { selectIsAuthenticated, selectAuthInitialized, selectAuthLoading, initializeAuth } from './authSlice';
+import { AuthLoading } from './AuthScreen';
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -20,16 +21,9 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
     }
   }, [dispatch, isInitialized]);
 
-  // Show loading spinner while initializing auth
+  // Show loading state while initializing auth
   if (!isInitialized || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoading message="Loading…" />;
   }
 
   if (!isAuthenticated) {

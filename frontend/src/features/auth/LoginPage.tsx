@@ -2,30 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { loginWithOIDC, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from './authSlice';
-import ErrorAlert from '../../components/common/ErrorAlert';
+import { AuthScreen, ModuloMark, Spinner } from './AuthScreen';
 
 const LoginPage: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
-  
+
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const isLoading = useAppSelector(selectAuthLoading);
   const authError = useAppSelector(selectAuthError);
-  
+
   const [localError, setLocalError] = useState<string | null>(null);
-  
-  // Get the intended destination from location state
-  const from = location.state?.from?.pathname || '/dashboard';
+
+  // Get the intended destination from location state (defaults into the workspace)
+  const from = location.state?.from?.pathname || '/app/notes';
 
   // Check for callback errors
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
       setLocalError(
-        error === 'callback_failed' 
-          ? 'Authentication failed. Please try again.' 
-          : 'An error occurred during authentication.'
+        error === 'callback_failed'
+          ? 'Authentication failed. Please try again.'
+          : 'An error occurred during authentication.',
       );
     }
   }, [searchParams]);
@@ -46,10 +46,10 @@ const LoginPage: React.FC = () => {
     try {
       setLocalError(null);
       dispatch(clearError());
-      
+
       // Store return URL for after authentication
       sessionStorage.setItem('returnTo', from);
-      
+
       await dispatch(loginWithOIDC()).unwrap();
       // Redirect will happen via authService
     } catch (err) {
@@ -60,69 +60,58 @@ const LoginPage: React.FC = () => {
   const error = authError || localError;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Modulo
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+    <AuthScreen>
+      <div style={{ width: '100%', maxWidth: 380, animation: 'authFadeUp .25s ease' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, justifyContent: 'center', marginBottom: 26 }}>
+          <ModuloMark size={30} />
+          <span style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-.5px' }}>Modulo</span>
+        </div>
+
+        <div style={{ background: '#111114', border: '1px solid #1e1e24', borderRadius: 14, padding: '30px 30px 26px' }}>
+          <h1 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 600, textAlign: 'center', color: '#f4f4f5' }}>Sign in</h1>
+          <p style={{ margin: '0 0 22px', fontSize: 13, color: '#71717a', textAlign: 'center' }}>
             Secure authentication with Keycloak
           </p>
-        </div>
 
-        {error && (
-          <ErrorAlert
-            message={error}
-            onClose={() => {
-              setLocalError(null);
-              dispatch(clearError());
-            }}
-          />
-        )}
-
-        <div className="mt-8 space-y-4">
-          <button
-            onClick={handleOIDCLogin}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="currentColor"
-                viewBox="0 0 24 24"
+          {error && (
+            <div className="auth-error">
+              <span>{error}</span>
+              <button
+                onClick={() => {
+                  setLocalError(null);
+                  dispatch(clearError());
+                }}
+                aria-label="Dismiss"
               >
-                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8 8s3.589 8 8 8 8-3.589 8-8-3.589 8-8 8z"></path>
-                <path d="M12 6a1 1 0 011 1v4.586l2.707 2.707a1 1 0 01-1.414 1.414L11.5 12.914A1 1 0 0111 12V7a1 1 0 011-1z"></path>
+                ×
+              </button>
+            </div>
+          )}
+
+          <button className="auth-btn" onClick={handleOIDCLogin} disabled={isLoading}>
+            {isLoading ? (
+              <Spinner size={16} />
+            ) : (
+              <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                <path d="M6.5 2h-3A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14h3" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
+                <path d="M9.5 11L12.5 8 9.5 5M12.5 8h-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
-            {isLoading ? 'Signing in...' : 'Sign in with Keycloak'}
+            {isLoading ? 'Signing in…' : 'Sign in with Keycloak'}
           </button>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-500">
-              Using secure OpenID Connect with PKCE
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <p className="text-center text-sm text-gray-500">
-            By signing in, you agree to our{' '}
-            <a href="/terms" className="font-medium text-blue-600 hover:text-blue-500">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="/privacy" className="font-medium text-blue-600 hover:text-blue-500">
-              Privacy Policy
-            </a>
+          <p style={{ margin: '16px 0 0', fontSize: 11.5, color: '#52525b', textAlign: 'center' }}>
+            OpenID Connect with PKCE
           </p>
         </div>
+
+        <p style={{ margin: '18px 0 0', fontSize: 11.5, color: '#3f3f46', textAlign: 'center', lineHeight: 1.6 }}>
+          By signing in, you agree to our{' '}
+          <a href="/terms" className="auth-link">Terms of Service</a> and{' '}
+          <a href="/privacy" className="auth-link">Privacy Policy</a>.
+        </p>
       </div>
-    </div>
+    </AuthScreen>
   );
 };
 
