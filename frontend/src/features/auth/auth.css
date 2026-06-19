@@ -49,3 +49,54 @@
   line-height: 1;
   padding: 0;
 }
+
+/* Split-screen login layout */
+.login-split {
+  display: flex;
+  min-height: 100vh;
+  background: #0a0a0b;
+  color: #f4f4f5;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+.login-aside {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-right: 1px solid #1e1e24;
+  padding: 46px 52px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #0e0e12, #0a0a0b 60%);
+}
+.login-glow {
+  position: absolute;
+  top: -200px;
+  left: -120px;
+  width: 680px;
+  height: 560px;
+  background: radial-gradient(closest-side, rgba(79, 70, 229, .20), transparent);
+  pointer-events: none;
+}
+.login-main {
+  width: 480px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  box-sizing: border-box;
+}
+.login-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.login-feature .dot {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 8px; background: #16161a; border: 1px solid #2a2a30;
+  display: flex; align-items: center; justify-content: center;
+}
+@media (max-width: 900px) {
+  .login-aside { display: none; }
+  .login-main { width: 100%; flex: 1; }
+}

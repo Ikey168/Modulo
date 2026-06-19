@@ -34,13 +34,14 @@ function App() {
       <Provider store={store}>
         <Router>
           <Routes>
-            {/* Public landing page */}
-            <Route path="/" element={<Home />} />
+            {/* Login is the main entry page */}
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
 
             {/* Public routes */}
+            <Route path="/home" element={<Home />} />
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
-            <Route path="/login" element={<LoginPage />} />
             
             {/* OIDC callback routes */}
             <Route path="/auth/callback" element={<AuthCallback />} />
