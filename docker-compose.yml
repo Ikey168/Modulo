@@ -63,7 +63,7 @@ services:
       # Host 8180 -> container 8080 (8080/8081 are taken by backend/audit-collector)
       - "8180:8080"
     volumes:
-      - ./keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro
+      - ./keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro,z
     networks:
       - modulo-network
     restart: unless-stopped
@@ -78,7 +78,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/init:/docker-entrypoint-initdb.d:z
     networks:
       - modulo-network
     restart: unless-stopped
@@ -100,9 +100,9 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - ./database:/flyway/sql
-      - ./flyway.conf:/flyway/conf/flyway.conf
-      - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf
+      - ./database:/flyway/sql:z
+      - ./flyway.conf:/flyway/conf/flyway.conf:z
+      - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf:z
     command: ["-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
 
   neo4j:
@@ -163,7 +163,7 @@ services:
     image: otel/opentelemetry-collector-contrib:0.90.1
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./infra/otel/otel-config.yaml:/etc/otel-collector-config.yaml
+      - ./infra/otel/otel-config.yaml:/etc/otel-collector-config.yaml:z
     ports:
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
@@ -195,8 +195,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alerts:/etc/prometheus/rules
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:z
+      - ./monitoring/alerts:/etc/prometheus/rules:z
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -221,8 +221,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:z
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:z
     depends_on:
       - prometheus
       - loki
@@ -237,7 +237,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml:z
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -271,8 +271,8 @@ services:
       - "9191:9191" # Envoy ext-authz gRPC
       - "8181:8181" # OPA HTTP API
     volumes:
-      - ./policy:/policies
-      - ./infra/opa/config-audit.yaml:/config.yaml
+      - ./policy:/policies:z
+      - ./infra/opa/config-audit.yaml:/config.yaml:z
     command: 
       - "run"
       - "--server"
