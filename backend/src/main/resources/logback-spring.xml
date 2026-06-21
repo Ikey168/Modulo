@@ -55,22 +55,43 @@
         <appender-ref ref="JSON"/>
     </root>
 
-    <!-- Application specific loggers -->
-    <logger name="com.modulo" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-        <appender-ref ref="JSON"/>
-    </logger>
+    <!-- Application specific loggers.
+         DEBUG is useful when actively developing (the `dev` profile) but floods
+         `docker compose up` with WebSocket-handler / security-expression noise
+         and full Hibernate DDL/SQL dumps. Keep DEBUG for `dev`, use INFO/WARN
+         everywhere else (docker/default/prod). -->
+    <springProfile name="dev">
+        <logger name="com.modulo" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="JSON"/>
+        </logger>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+    <springProfile name="!dev">
+        <logger name="com.modulo" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="JSON"/>
+        </logger>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+    </springProfile>
 
     <!-- Spring Security debugging (can be enabled for troubleshooting) -->
     <logger name="org.springframework.security" level="INFO"/>
-    
-    <!-- Database logging -->
-    <logger name="org.hibernate.SQL" level="DEBUG"/>
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
 
     <!-- OpenTelemetry logging -->
     <logger name="io.opentelemetry" level="INFO"/>
+
+    <!-- Quiet the Azure credential chain. With no Azure account configured
+         (local/dev), DefaultAzureCredential walks every credential source and
+         logs each "unavailable" attempt at INFO plus a full CredentialUnavailable
+         stack trace at ERROR. The blob initializer already catches and handles
+         this; suppress the third-party noise so the startup log stays clean. -->
+    <logger name="com.azure.identity" level="WARN"/>
+    <logger name="com.azure.core.implementation.AccessTokenCache" level="OFF"/>
     
     <!-- Reduce noise from some libraries -->
     <logger name="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" level="WARN"/>

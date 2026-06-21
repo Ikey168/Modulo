@@ -42,6 +42,10 @@ services:
       # internal docker network; the issuer is validated against the browser-facing URL.
       - MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=${MODULO_SECURITY_KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/modulo/protocol/openid-connect/certs}
       - MODULO_SECURITY_KEYCLOAK_ISSUER_URI=${MODULO_SECURITY_KEYCLOAK_ISSUER_URI:-http://localhost:8180/realms/modulo}
+      # Export traces to the in-stack OTel collector. Without this the OTel SDK
+      # defaults to localhost:4317, which isn't reachable from inside the
+      # container, and floods the log with "Failed to export spans" warnings.
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
     depends_on:
       db:
