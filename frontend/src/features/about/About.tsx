@@ -24,7 +24,11 @@ const About: React.FC = () => {
             <li>Frontend: React with TypeScript</li>
             <li>Backend: Spring Boot</li>
             <li>Smart Contracts: Solidity & Web3j</li>
-            <li>Security: Industry-standard encryption</li>
+            <li>
+              Security: OpenID Connect authentication and policy-based
+              authorization, with optional on-chain content-hash anchoring for
+              integrity and verifiable authorship
+            </li>
           </ul>
         </div>
 
