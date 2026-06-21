@@ -1,0 +1,13 @@
+# This directory is mounted into Grafana and scanned by the file-based
+# dashboard provisioner (see ../provisioning/dashboards/dashboards.yaml).
+#
+# It is intentionally empty. Drop a *.json dashboard model here to have it
+# auto-provisioned on startup.
+#
+# The authorization-audit dashboard lives in ../dashboards-available/ instead
+# of here on purpose: Grafana 10.2.3's file provisioner rejects it on every
+# load with "could not resolve dashboards:uid:authorization-audit: Dashboard
+# not found" (an upstream provisioner regression, see grafana/grafana#73043 and
+# #87342 — not a problem with the dashboard JSON itself). Keeping it out of the
+# provisioned path stops that error from spamming the logs. Import it manually
+# instead — see ../dashboards-available/README.md.
