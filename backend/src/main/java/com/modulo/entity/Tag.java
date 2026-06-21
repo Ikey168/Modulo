@@ -1,5 +1,6 @@
 package com.modulo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,6 +18,9 @@ public class Tag {
     @Column(name = "name", unique = true, nullable = false)
     private String name;
 
+    // Inverse side of Note.tags. Excluded from JSON so serializing a Note's
+    // tags doesn't recurse back into notes (Note -> tags -> Tag -> notes ...).
+    @JsonIgnore
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     private Set<Note> notes = new HashSet<>();
 
