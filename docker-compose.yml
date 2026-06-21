@@ -50,9 +50,12 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
-      # NOTE: backend does NOT depend on flyway. Hibernate (ddl-auto=update) owns
-      # the schema; flyway runs migrations in parallel (best-effort, incl. creating
-      # plugin_registry) and must never block the backend if a migration fails.
+      # NOTE: the schema is owned entirely by Hibernate (ddl-auto=update). The
+      # only non-entity tables (plugin_registry et al.) are seeded by
+      # database/init/02-plugin-registry.sql at Postgres first-init. Flyway is
+      # intentionally NOT part of this stack: its V1 migration defines a
+      # UUID-based notes/users/tags schema that collides with the JPA entities
+      # (BIGINT ids) on the `application` schema and fails the whole run.
     networks:
       - modulo-network
     restart: unless-stopped
@@ -97,23 +100,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  flyway:
-    image: flyway/flyway:9
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - modulo-network
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-    volumes:
-      - ./database:/flyway/sql:z
-      - ./flyway.conf:/flyway/conf/flyway.conf:z
-      - ./flyway.staging.conf:/flyway/conf/flyway.staging.conf:z
-    command: ["-configFiles=/flyway/conf/flyway.staging.conf", "migrate"]
 
   neo4j:
     image: neo4j:5.15-community
