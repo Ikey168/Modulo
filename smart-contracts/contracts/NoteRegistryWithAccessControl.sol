@@ -36,7 +36,16 @@ contract NoteRegistryWithAccessControl {
     mapping(uint256 => mapping(address => NotePermission)) public notePermissions;
     // noteId => list of addresses with permissions
     mapping(uint256 => address[]) public noteCollaborators;
-    
+
+    // Encrypted-sharing storage (epic #243).
+    // noteId => IPFS CID of the note's encrypted ciphertext (set by the owner).
+    mapping(uint256 => string) public noteCid;
+    // noteId => grantee => the note's symmetric key wrapped (encrypted) to that
+    // recipient. Like all on-chain storage this is public, but it is useless
+    // without the recipient's secret key: confidentiality comes from the
+    // wrapping, not from access control on the getter. Never store a raw key.
+    mapping(uint256 => mapping(address => bytes)) private wrappedKeys;
+
     uint256 public noteCount;
 
     // Events
@@ -47,6 +56,9 @@ contract NoteRegistryWithAccessControl {
     event PermissionGranted(uint256 indexed noteId, address indexed grantee, address indexed granter, Permission permission, uint256 timestamp);
     event PermissionRevoked(uint256 indexed noteId, address indexed grantee, address indexed revoker, uint256 timestamp);
     event NoteVisibilityChanged(uint256 indexed noteId, bool isPublic, uint256 timestamp);
+    event NoteCidSet(uint256 indexed noteId, string cid, uint256 timestamp);
+    event AccessGranted(uint256 indexed noteId, address indexed grantee, address indexed granter, uint256 timestamp);
+    event AccessRevoked(uint256 indexed noteId, address indexed grantee, address indexed revoker, uint256 timestamp);
 
     // Modifiers
     modifier onlyOwner(uint256 noteId) {
@@ -203,6 +215,132 @@ contract NoteRegistryWithAccessControl {
         delete notePermissions[noteId][grantee];
         
         emit PermissionRevoked(noteId, grantee, msg.sender, block.timestamp);
+    }
+
+    // ---------------------------------------------------------------------
+    // Encrypted sharing: CID pointer + per-recipient wrapped keys (epic #243)
+    // ---------------------------------------------------------------------
+
+    /**
+     * @dev Set/update the IPFS CID of the note's encrypted ciphertext.
+     * @param noteId The ID of the note
+     * @param cid IPFS Content Identifier of the ciphertext
+     */
+    function setNoteCid(uint256 noteId, string calldata cid)
+        external
+        noteExists(noteId)
+        onlyOwner(noteId)
+        noteActive(noteId)
+    {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        noteCid[noteId] = cid;
+        emit NoteCidSet(noteId, cid, block.timestamp);
+    }
+
+    /**
+     * @dev Grant a recipient read access by storing the note key wrapped to
+     *      them. The wrapped key is produced off-chain (encrypted to the
+     *      recipient's public key); the contract never sees the raw key.
+     * @param noteId The ID of the note
+     * @param grantee The address being granted access
+     * @param wrappedKey The note's symmetric key, encrypted to the grantee
+     */
+    function grantAccess(uint256 noteId, address grantee, bytes calldata wrappedKey)
+        external
+        noteExists(noteId)
+        hasAdminPermission(noteId)
+        noteActive(noteId)
+    {
+        require(grantee != address(0), "Cannot grant to zero address");
+        require(grantee != notes[noteId].owner, "Owner already has access");
+        require(wrappedKey.length > 0, "Wrapped key required");
+
+        // Track new collaborators (mirror grantPermission bookkeeping).
+        if (notePermissions[noteId][grantee].level == Permission.NONE) {
+            noteCollaborators[noteId].push(grantee);
+        }
+        notePermissions[noteId][grantee] = NotePermission({
+            level: Permission.READ,
+            grantedAt: block.timestamp,
+            grantedBy: msg.sender
+        });
+        wrappedKeys[noteId][grantee] = wrappedKey;
+
+        emit AccessGranted(noteId, grantee, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Revoke a recipient's access: drop their permission and wrapped key.
+     *      Note: this prevents future reads via this contract, but cannot
+     *      retract ciphertext/keys already downloaded -- true revocation
+     *      requires key rotation + re-encryption (tracked in #242).
+     * @param noteId The ID of the note
+     * @param grantee The address whose access is revoked
+     */
+    function revokeAccess(uint256 noteId, address grantee)
+        external
+        noteExists(noteId)
+        hasAdminPermission(noteId)
+    {
+        require(notePermissions[noteId][grantee].level != Permission.NONE, "No access to revoke");
+
+        // Remove from collaborators list.
+        address[] storage collaborators = noteCollaborators[noteId];
+        for (uint256 i = 0; i < collaborators.length; i++) {
+            if (collaborators[i] == grantee) {
+                collaborators[i] = collaborators[collaborators.length - 1];
+                collaborators.pop();
+                break;
+            }
+        }
+        delete notePermissions[noteId][grantee];
+        delete wrappedKeys[noteId][grantee];
+
+        emit AccessRevoked(noteId, grantee, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Read the caller's view of a shared note: the ciphertext CID and the
+     *      note key wrapped to the caller. The owner gets the CID and an empty
+     *      wrapped key (they hold the raw key). Reverts if the caller has no
+     *      read access.
+     * @param noteId The ID of the note
+     * @return cid The IPFS CID of the ciphertext
+     * @return wrappedKey The note key wrapped to the caller (empty for owner)
+     */
+    function getSharedNote(uint256 noteId)
+        external
+        view
+        noteExists(noteId)
+        returns (string memory cid, bytes memory wrappedKey)
+    {
+        require(
+            notes[noteId].owner == msg.sender ||
+            notePermissions[noteId][msg.sender].level >= Permission.READ,
+            "No read access"
+        );
+        return (noteCid[noteId], wrappedKeys[noteId][msg.sender]);
+    }
+
+    /**
+     * @dev Read a specific grantee's wrapped key. Restricted to the grantee,
+     *      the owner, or an admin (to limit casual metadata reads; on-chain
+     *      storage is ultimately public, and the blob is useless without the
+     *      grantee's secret key).
+     */
+    function getWrappedKey(uint256 noteId, address grantee)
+        external
+        view
+        noteExists(noteId)
+        returns (bytes memory)
+    {
+        require(
+            msg.sender == grantee ||
+            notes[noteId].owner == msg.sender ||
+            notePermissions[noteId][msg.sender].level == Permission.ADMIN,
+            "Not authorized"
+        );
+        return wrappedKeys[noteId][grantee];
     }
 
     /**
