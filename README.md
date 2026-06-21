@@ -269,6 +269,26 @@ Set up the local security tooling with:
 pip install pre-commit && pre-commit install
 ```
 
+### Data protection: current model vs. planned
+
+On-chain anchoring and IPFS are used for **integrity and provenance, not
+confidentiality**. To avoid misunderstandings about what is and isn't private:
+
+- **Authentication and authorization** protect the API today: OpenID Connect
+  (Keycloak) / JWT for authentication, and Spring Security plus Open Policy
+  Agent for authorization.
+- **On-chain anchoring stores a hash, not the note.** When a note is anchored,
+  the contract records a SHA-256 hash of its contents (tamper-evidence and
+  verifiable authorship) — the note text is not written to the chain.
+- **Note content is not end-to-end encrypted.** Notes live in PostgreSQL, and
+  any content published to IPFS is currently stored **unencrypted** — anyone
+  with the IPFS CID can read it. The on-chain access-control contract is a
+  permission registry; it does **not** cryptographically restrict who can
+  decrypt content. Do not treat anchored or IPFS-published notes as private.
+- **Planned: end-to-end encrypted sharing.** Client-side encryption,
+  per-recipient key wrapping, and on-chain delivery of wrapped keys are tracked
+  in the [end-to-end encrypted sharing epic](https://github.com/Ikey168/Modulo/issues/243).
+
 ## Performance and Monitoring
 
 Load and performance tests use k6, with thresholds aligned to service level
