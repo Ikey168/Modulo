@@ -51,7 +51,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Security headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' ws: wss:;" />
+    <!-- connect-src must allow http(s) so the SPA can reach the Keycloak token
+         endpoint (e.g. http://localhost:8180), the backend API and the audit
+         collector, which live on different origins/ports than the app. With the
+         old "connect-src 'self' ws: wss:" the OIDC code->token fetch was blocked
+         ("Refused to connect ... violates Content Security Policy"), failing
+         login. style-src allows the Google Fonts stylesheet referenced below. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' http: https: ws: wss:;" />
 
     <!-- Dark base + pre-React splash to avoid a white flash on load -->
     <style>
