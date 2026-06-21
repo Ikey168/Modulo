@@ -1,6 +1,23 @@
 -- Plugin System Database Schema
 -- Migration for adding plugin management tables and updating existing entities
 
+-- The plugin_* tables below are created WITHOUT a schema qualifier and are
+-- queried the same way by the backend (PluginRegistry uses unqualified
+-- JdbcTemplate SQL: "SELECT * FROM plugin_registry ...").
+--
+-- Flyway runs this migration with search_path = application,security (from
+-- flyway.schemas), so unqualified objects would land in `application`. But the
+-- backend's JDBC connection has no currentSchema set, so it searches `public`
+-- (like the unqualified JPA entities users/tasks/etc.) and can't see
+-- application.plugin_registry -> "relation \"plugin_registry\" does not exist".
+--
+-- Put `public` first on the search_path for this migration so every unqualified
+-- plugin object is created in `public`, where the backend looks. The
+-- explicitly application./security.-qualified statements are unaffected, and the
+-- unqualified application indexes (user_custom_attributes, user_preferences)
+-- still resolve because `application` stays on the path.
+SET search_path TO public, application, security;
+
 -- Update notes table for plugin system support (note_id and user_id already exist as UUID from V1)
 ALTER TABLE application.notes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;
 ALTER TABLE application.notes ADD COLUMN IF NOT EXISTS last_viewed_at TIMESTAMP;
