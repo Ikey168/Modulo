@@ -21,8 +21,13 @@ plugins:
     query: data.envoy.authz.allow
     enable_reflection: true
 
+# Expose status/metrics on the Prometheus endpoint (scraped by the prometheus
+# service), but do NOT print them to stdout: status.console=true makes OPA
+# serialize its entire Prometheus metric set into the status output on every
+# status update (~every 20s), which floods `docker compose up`. The metrics are
+# unchanged and still available at OPA's /metrics endpoint.
 status:
-  console: true
+  console: false
   prometheus: true
 
 # OpenTelemetry configuration for trace correlation
