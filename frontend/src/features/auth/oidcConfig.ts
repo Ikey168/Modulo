@@ -11,7 +11,12 @@ export const oidcConfig: UserManagerSettings = {
   automaticSilentRenew: true,
   silent_redirect_uri: `${window.location.origin}/auth/silent-callback`,
   includeIdTokenInSilentRenew: true,
-  loadUserInfo: true,
+  // Don't call the UserInfo endpoint. Keycloak already puts everything we read
+  // (sub, email, name, preferred_username, realm_access/resource_access roles)
+  // in the ID token, so UserInfo is redundant -- and oidc-client-ts asserts
+  // userInfo.sub === idToken.sub, which was throwing "subject from UserInfo
+  // response does not match subject in ID Token" and failing the callback.
+  loadUserInfo: false,
   
   // PKCE configuration
   response_mode: 'query',
