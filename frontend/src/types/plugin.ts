@@ -31,7 +31,8 @@ export enum PluginType {
 
 export enum PluginRuntime {
   JAR = 'JAR',
-  GRPC = 'GRPC'
+  GRPC = 'GRPC',
+  BLUEPRINT = 'BLUEPRINT',
 }
 
 export interface PluginHealthCheck {
