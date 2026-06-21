@@ -35,10 +35,15 @@ services:
       # mappings resolve as written. application.yml sets a "/api" servlet
       # context-path, which combined with the "/api/..." mappings would push
       # every endpoint to "/api/api/..." -- so GET /api/notes (what the
-      # frontend and the MockMvc tests expect) 404s. Clearing it here fixes the
-      # docker stack without touching the k8s/azure configs, whose actuator
-      # probes (/api/actuator/health) still rely on the context-path.
-      - SERVER_SERVLET_CONTEXT_PATH=
+      # frontend and the MockMvc tests expect) 404s. Scoped here so the
+      # k8s/azure configs, whose actuator probes (/api/actuator/health) rely on
+      # the context-path, are untouched.
+      #
+      # The value must be "/" (not empty): Spring Boot normalizes "/" to root
+      # (cleanContextPath strips the trailing slash), but the app's custom
+      # ServerProperties validator has @NotBlank on contextPath, so an empty
+      # string fails startup with "Context path is required".
+      - SERVER_SERVLET_CONTEXT_PATH=/
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
