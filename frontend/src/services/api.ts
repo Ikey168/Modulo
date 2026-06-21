@@ -1,7 +1,12 @@
 import { clearCredentials } from '../features/auth/authSlice';
 import { store } from '../store/store';
 
-const API_BASE_URL = 'http://localhost:8081/api';
+// Same-origin '/api' so requests go through the nginx reverse proxy
+// (location /api -> backend:8080). The previous value pointed cross-origin at
+// the audit-collector (localhost:8081), which has neither these endpoints nor
+// CORS headers, so every call failed preflight. Callers pass bare paths
+// (e.g. '/notes', '/note-links/...'); this base supplies the '/api' prefix.
+const API_BASE_URL = '/api';
 
 export interface ApiOptions extends RequestInit {
   skipAuth?: boolean;

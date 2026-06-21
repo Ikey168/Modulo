@@ -87,7 +87,7 @@ class NetworkStatusService {
    */
   async checkNetworkStatus(): Promise<NetworkStatus> {
     try {
-      const response = await api.get('/api/network/status');
+      const response = await api.get('/network/status');
       const status = response as NetworkStatus;
       
       // Update current status and notify listeners
@@ -115,7 +115,7 @@ class NetworkStatusService {
    */
   async forceNetworkCheck(): Promise<NetworkStatus> {
     try {
-      const response = await api.post('/api/network/check', {});
+      const response = await api.post('/network/check', {});
       const status = response as NetworkStatus;
       
       this.updateStatus(status);
@@ -131,7 +131,7 @@ class NetworkStatusService {
    */
   async forceSync(): Promise<{ status: string; message: string }> {
     try {
-      const response = await api.post('/api/network/sync', {});
+      const response = await api.post('/network/sync', {});
       
       // Refresh network status after sync
       setTimeout(() => this.checkNetworkStatus(), 1000);
@@ -148,7 +148,7 @@ class NetworkStatusService {
    */
   async getSyncStatus(): Promise<SyncStatus> {
     try {
-      const response = await api.get('/api/network/sync/status');
+      const response = await api.get('/network/sync/status');
       return response.data;
     } catch (error) {
       console.error('Failed to get sync status:', error);
