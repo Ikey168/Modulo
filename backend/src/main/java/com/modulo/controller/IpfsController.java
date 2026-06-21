@@ -99,6 +99,64 @@ public class IpfsController {
     }
 
     /**
+     * Relay client-encrypted content to IPFS without reading it.
+     * POST /api/ipfs/encrypted   body: { "ciphertext": "<opaque envelope>" }
+     *
+     * The body is an opaque ciphertext envelope produced on the client; the
+     * server stores it verbatim and never has the key, so it cannot decrypt
+     * the note. Part of the encrypted-sharing epic (#243).
+     */
+    @PostMapping("/encrypted")
+    public ResponseEntity<Map<String, Object>> uploadEncryptedContent(@RequestBody Map<String, String> body) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String ciphertext = body != null ? body.get("ciphertext") : null;
+            if (ciphertext == null || ciphertext.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Missing 'ciphertext'");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            String cid = ipfsService.uploadEncryptedContent(ciphertext);
+
+            response.put("success", true);
+            response.put("cid", cid);
+            response.put("gatewayUrl", ipfsService.getGatewayUrl(cid));
+
+            logger.info("Relayed encrypted content to IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Failed to relay encrypted content to IPFS: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * Retrieve opaque encrypted content from IPFS verbatim.
+     * GET /api/ipfs/encrypted/{cid}   ->  { "ciphertext": "<opaque envelope>" }
+     */
+    @GetMapping("/encrypted/{cid}")
+    public ResponseEntity<Map<String, Object>> getEncryptedContent(@PathVariable String cid) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String ciphertext = ipfsService.retrieveRawContent(cid);
+            response.put("success", true);
+            response.put("cid", cid);
+            response.put("ciphertext", ciphertext);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Failed to retrieve encrypted content from IPFS CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+
+    /**
      * Verify note integrity using IPFS
      * POST /api/ipfs/notes/{noteId}/verify
      */
