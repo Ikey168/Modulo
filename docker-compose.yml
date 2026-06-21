@@ -31,6 +31,14 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
+      # Serve the API at the root so the controllers' own "/api/..." request
+      # mappings resolve as written. application.yml sets a "/api" servlet
+      # context-path, which combined with the "/api/..." mappings would push
+      # every endpoint to "/api/api/..." -- so GET /api/notes (what the
+      # frontend and the MockMvc tests expect) 404s. Clearing it here fixes the
+      # docker stack without touching the k8s/azure configs, whose actuator
+      # probes (/api/actuator/health) still rely on the context-path.
+      - SERVER_SERVLET_CONTEXT_PATH=
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
