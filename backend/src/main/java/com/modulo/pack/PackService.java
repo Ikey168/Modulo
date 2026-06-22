@@ -250,21 +250,18 @@ public class PackService {
 
     public List<PackEntry> listPacks() {
         return jdbc.query(
-            "SELECT id, name, version, description, status, config::text, created_at, updated_at " +
+            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
             "FROM plugin_registry WHERE runtime = ? ORDER BY created_at",
-            (rs, i) -> {
-                PackEntry e = new PackEntry();
-                e.setId(rs.getLong("id"));
-                e.setPackId(rs.getString("name"));
-                e.setVersion(rs.getString("version"));
-                e.setName(rs.getString("name"));
-                e.setDescription(rs.getString("description"));
-                e.setStatus(rs.getString("status"));
-                e.setManifest(parseManifest(rs.getString("config")));
-                e.setInstalledAt(rs.getTimestamp("created_at").toLocalDateTime().toString());
-                e.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime().toString());
-                return e;
-            },
+            (rs, i) -> mapRow(rs),
+            RUNTIME
+        );
+    }
+
+    public List<PackEntry> listPublishedPacks() {
+        return jdbc.query(
+            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
+            "FROM plugin_registry WHERE runtime = ? AND ipfs_cid IS NOT NULL ORDER BY created_at",
+            (rs, i) -> mapRow(rs),
             RUNTIME
         );
     }
@@ -272,27 +269,32 @@ public class PackService {
     public Optional<PackEntry> getPack(String packId) {
         try {
             PackEntry e = jdbc.queryForObject(
-                "SELECT id, name, version, description, status, config::text, created_at, updated_at " +
+                "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
                 "FROM plugin_registry WHERE runtime = ? AND name = ?",
-                (rs, i) -> {
-                    PackEntry entry = new PackEntry();
-                    entry.setId(rs.getLong("id"));
-                    entry.setPackId(rs.getString("name"));
-                    entry.setVersion(rs.getString("version"));
-                    entry.setName(rs.getString("name"));
-                    entry.setDescription(rs.getString("description"));
-                    entry.setStatus(rs.getString("status"));
-                    entry.setManifest(parseManifest(rs.getString("config")));
-                    entry.setInstalledAt(rs.getTimestamp("created_at").toLocalDateTime().toString());
-                    entry.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime().toString());
-                    return entry;
-                },
+                (rs, i) -> mapRow(rs),
                 RUNTIME, packId
             );
             return Optional.ofNullable(e);
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    private PackEntry mapRow(java.sql.ResultSet rs) throws java.sql.SQLException {
+        PackEntry e = new PackEntry();
+        e.setId(rs.getLong("id"));
+        e.setPackId(rs.getString("name"));
+        e.setVersion(rs.getString("version"));
+        e.setName(rs.getString("name"));
+        e.setDescription(rs.getString("description"));
+        e.setStatus(rs.getString("status"));
+        e.setManifest(parseManifest(rs.getString("config")));
+        e.setInstalledAt(rs.getTimestamp("created_at").toLocalDateTime().toString());
+        e.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime().toString());
+        e.setIpfsCid(rs.getString("ipfs_cid"));
+        e.setContentHash(rs.getString("content_hash"));
+        e.setSource(rs.getString("source"));
+        return e;
     }
 
     // -------------------------------------------------------------------------
