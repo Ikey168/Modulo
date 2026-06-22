@@ -17,6 +17,10 @@ public class PackEntry {
     private PackManifest manifest;
     private String installedAt;
     private String updatedAt;
+    private String ipfsCid;
+    private String contentHash;
+    private String source;
+    private String gatewayUrl;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,4 +48,16 @@ public class PackEntry {
 
     public String getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getIpfsCid() { return ipfsCid; }
+    public void setIpfsCid(String ipfsCid) { this.ipfsCid = ipfsCid; }
+
+    public String getContentHash() { return contentHash; }
+    public void setContentHash(String contentHash) { this.contentHash = contentHash; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+
+    public String getGatewayUrl() { return gatewayUrl; }
+    public void setGatewayUrl(String gatewayUrl) { this.gatewayUrl = gatewayUrl; }
 }

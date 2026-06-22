@@ -103,9 +103,132 @@
   cursor: not-allowed;
 }
 
+/* Tabs */
+.pack-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0;
+}
+
+.pack-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #888;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-bottom: -1px;
+  transition: color 0.15s;
+}
+
+.pack-tab:hover {
+  color: #ccc;
+}
+
+.pack-tab--active {
+  color: #7eb8f7;
+  border-bottom-color: #7eb8f7;
+}
+
+/* Source badge */
+.pack-source {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pack-source--local {
+  background: #2a2a2a;
+  color: #888;
+  border: 1px solid #444;
+}
+
+.pack-source--ipfs {
+  background: #1a2a3a;
+  color: #7eb8f7;
+  border: 1px solid #3a5a7a;
+}
+
+/* IPFS cell */
+.pack-ipfs-cell {
+  font-size: 0.8rem;
+}
+
+.pack-cid-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pack-cid-link {
+  color: #7eb8f7;
+  text-decoration: none;
+  font-family: monospace;
+}
+
+.pack-cid-link:hover {
+  text-decoration: underline;
+}
+
+.pack-hash {
+  color: #666;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.pack-publish-btn {
+  background: transparent;
+  border: 1px solid #3a5a7a;
+  color: #7eb8f7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.pack-publish-btn:hover:not(:disabled) {
+  background: #1a2a3a;
+}
+
+.pack-publish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* CID install input */
+.pack-cid-input {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+
+.pack-cid-input:focus {
+  outline: none;
+  border-color: #7eb8f7;
+}
+
+/* Install sections */
+.pack-install-section {
+  margin-bottom: 24px;
+}
+
 .pack-install-panel {
-  border-top: 1px solid #333;
-  padding-top: 24px;
+  padding-top: 8px;
 }
 
 .pack-install-hint {
@@ -151,4 +274,171 @@
 .pack-install-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* PackMarketplace */
+.pm-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #1e1e24;
+}
+
+.pm-section-header {
+  margin-bottom: 16px;
+}
+
+.pm-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  margin: 0 0 4px;
+}
+
+.pm-section-subtitle {
+  font-size: 12px;
+  color: #52525b;
+  margin: 0;
+}
+
+.pm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.pm-card {
+  background: #111114;
+  border: 1px solid #1e1e24;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+
+.pm-card:hover {
+  border-color: #2a2a30;
+}
+
+.pm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #1a1a1f;
+  border: 1px solid #2a2a30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #818cf8;
+  flex-shrink: 0;
+}
+
+.pm-card-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pm-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-card-author {
+  font-size: 11px;
+  color: #52525b;
+}
+
+.pm-install-btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #4f46e5;
+  color: #fff;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.1s;
+}
+
+.pm-install-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.pm-install-btn--installed {
+  background: transparent;
+  color: #52525b;
+  border-color: #2a2a30;
+  cursor: default;
+}
+
+.pm-install-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pm-card-desc {
+  font-size: 12.5px;
+  color: #71717a;
+  line-height: 1.55;
+}
+
+.pm-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.pm-badge {
+  background: #1c1c22;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 10.5px;
+  color: #888;
+}
+
+.pm-badge--ipfs {
+  background: #0d1f2d;
+  color: #7eb8f7;
+}
+
+.pm-badge--hash {
+  background: #0d2010;
+  color: #6f6;
+}
+
+.pm-card-error {
+  font-size: 11px;
+  color: #f88;
+  background: #3a1a1a;
+  border: 1px solid #a33;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.pm-loading,
+.pm-error {
+  font-size: 13px;
+  color: #52525b;
+  padding: 12px 0;
+}
+
+.pm-error {
+  color: #f88;
 }

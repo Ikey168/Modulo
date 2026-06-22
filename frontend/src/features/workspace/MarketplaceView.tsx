@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PLUGINS, type PluginInfo } from './plugins';
+import PackMarketplace from '../blueprint/pack/PackMarketplace';
 
 interface MarketplaceViewProps {
   installedPlugins: Set<string>;
@@ -22,6 +23,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
           <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
         ))}
       </div>
+      <PackMarketplace />
     </div>
   );
 }
