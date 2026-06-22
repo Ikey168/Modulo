@@ -34,6 +34,7 @@ public class PackIpfsService {
 
     @Autowired private IpfsService ipfsService;
     @Autowired private PackService packService;
+    @Autowired private PackProvenanceService packProvenanceService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
 
@@ -117,6 +118,19 @@ public class PackIpfsService {
      */
     @Transactional
     public PackService.PackCheck installFromCid(String cid, String expectedHash) {
+        return installFromCid(cid, expectedHash, null);
+    }
+
+    /**
+     * Fetch a pack manifest by IPFS CID, optionally verify its SHA-256 hash,
+     * enforce paid-pack entitlement, and install it via PackService.
+     *
+     * @param cid          the IPFS CID to fetch
+     * @param expectedHash optional SHA-256 hex digest for integrity verification
+     * @param buyerAddress wallet address of the installer (required for premium packs)
+     */
+    @Transactional
+    public PackService.PackCheck installFromCid(String cid, String expectedHash, String buyerAddress) {
         if (!ipfsService.isAvailable()) {
             return PackService.PackCheck.fail("IPFS node is not available");
         }
@@ -152,6 +166,15 @@ public class PackIpfsService {
             manifest = objectMapper.readValue(manifestJson, PackManifest.class);
         } catch (Exception e) {
             return PackService.PackCheck.fail("Failed to parse manifest from CID: " + e.getMessage());
+        }
+
+        // Paid-pack gating: a premium pack requires a completed on-chain purchase
+        PackEntry existing = packService.getPack(manifest.getId()).orElse(null);
+        if (existing != null && Boolean.TRUE.equals(existing.getPremium())
+                && !packProvenanceService.hasEntitlement(existing, buyerAddress)) {
+            return PackService.PackCheck.fail(
+                "Purchase required: \"" + manifest.getId() + "\" is a paid pack. "
+                + "Buy access before installing.");
         }
 
         // Delegate to PackService for full lifecycle validation + install

@@ -21,6 +21,12 @@ public class PackEntry {
     private String contentHash;
     private String source;
     private String gatewayUrl;
+    private String anchorTx;
+    private Long onchainId;
+    private String authorAddress;
+    private Boolean premium;
+    private String accessPrice;
+    private Integer royaltyBps;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -60,4 +66,22 @@ public class PackEntry {
 
     public String getGatewayUrl() { return gatewayUrl; }
     public void setGatewayUrl(String gatewayUrl) { this.gatewayUrl = gatewayUrl; }
+
+    public String getAnchorTx() { return anchorTx; }
+    public void setAnchorTx(String anchorTx) { this.anchorTx = anchorTx; }
+
+    public Long getOnchainId() { return onchainId; }
+    public void setOnchainId(Long onchainId) { this.onchainId = onchainId; }
+
+    public String getAuthorAddress() { return authorAddress; }
+    public void setAuthorAddress(String authorAddress) { this.authorAddress = authorAddress; }
+
+    public Boolean getPremium() { return premium; }
+    public void setPremium(Boolean premium) { this.premium = premium; }
+
+    public String getAccessPrice() { return accessPrice; }
+    public void setAccessPrice(String accessPrice) { this.accessPrice = accessPrice; }
+
+    public Integer getRoyaltyBps() { return royaltyBps; }
+    public void setRoyaltyBps(Integer royaltyBps) { this.royaltyBps = royaltyBps; }
 }

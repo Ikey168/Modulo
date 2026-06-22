@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { listPublishedPacks, installPackFromCid, type PackEntry } from './packService';
+import { metaMaskService } from '../../../services/metamask';
 import './pack.css';
 
 /**
@@ -26,7 +27,18 @@ export default function PackMarketplace() {
     setInstalling(pack.packId);
     setInstallErrors(prev => { const n = { ...prev }; delete n[pack.packId]; return n; });
     try {
-      const result = await installPackFromCid(pack.ipfsCid, pack.contentHash ?? undefined);
+      // Premium packs need the buyer's wallet address so the backend can verify
+      // an on-chain purchase entitlement before installing.
+      let buyerAddress: string | undefined;
+      if (pack.premium) {
+        const account = await metaMaskService.getCurrentAccount();
+        buyerAddress = account?.walletAddress;
+        if (!buyerAddress) {
+          setInstallErrors(prev => ({ ...prev, [pack.packId]: 'Connect your wallet to buy this pack' }));
+          return;
+        }
+      }
+      const result = await installPackFromCid(pack.ipfsCid, pack.contentHash ?? undefined, buyerAddress);
       if (result.ok) {
         setInstalled(prev => new Set([...prev, pack.packId]));
       } else {
@@ -67,12 +79,24 @@ export default function PackMarketplace() {
                   onClick={() => !isInstalled && handleInstall(pack)}
                   disabled={isInstalling || isInstalled}
                 >
-                  {isInstalling ? '…' : isInstalled ? 'Installed' : 'Install'}
+                  {isInstalling ? '…' : isInstalled ? 'Installed' : pack.premium ? 'Buy & Install' : 'Install'}
                 </button>
               </div>
               <div className="pm-card-desc">{pack.description ?? 'No description provided.'}</div>
               <div className="pm-card-footer">
                 <span className="pm-badge">v{pack.version}</span>
+                {pack.premium ? (
+                  <span className="pm-badge pm-badge--price" title={`${pack.accessPrice} MODO base units`}>
+                    {pack.accessPrice} MODO
+                  </span>
+                ) : (
+                  <span className="pm-badge pm-badge--free">Free</span>
+                )}
+                {pack.anchorTx && (
+                  <span className="pm-badge pm-badge--chain" title={`tx: ${pack.anchorTx}\nauthor: ${pack.authorAddress ?? ''}`}>
+                    ⛓ verified author
+                  </span>
+                )}
                 {pack.ipfsCid && (
                   <span className="pm-badge pm-badge--ipfs" title={pack.ipfsCid}>
                     IPFS {pack.ipfsCid.slice(0, 8)}…

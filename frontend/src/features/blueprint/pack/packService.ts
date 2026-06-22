@@ -14,6 +14,31 @@ export interface PackEntry {
   contentHash?: string;
   source?: string;
   gatewayUrl?: string;
+  anchorTx?: string;
+  onchainId?: number;
+  authorAddress?: string;
+  premium?: boolean;
+  accessPrice?: string;
+  royaltyBps?: number;
+}
+
+export interface AnchorResult {
+  ok: boolean;
+  reason?: string;
+  txHash?: string;
+  onchainId?: number;
+  authorAddress?: string;
+  placeholder?: boolean;
+}
+
+export interface ProvenanceInfo {
+  anchored: boolean;
+  txHash?: string;
+  onchainId?: number;
+  authorAddress?: string;
+  contentHash?: string;
+  verified: boolean;
+  placeholder: boolean;
 }
 
 export interface PackResult {
@@ -40,13 +65,51 @@ export async function installPack(manifest: PackManifest): Promise<PackResult> {
   return res.json();
 }
 
-export async function installPackFromCid(cid: string, expectedHash?: string): Promise<PackResult> {
+export async function installPackFromCid(
+  cid: string,
+  expectedHash?: string,
+  buyerAddress?: string,
+): Promise<PackResult> {
   const res = await fetch(`${BASE}/install-from-cid`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cid, expectedHash }),
+    body: JSON.stringify({ cid, expectedHash, buyerAddress }),
   });
   return res.json();
+}
+
+export async function anchorPack(packId: string): Promise<AnchorResult> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(packId)}/anchor`, { method: 'POST' });
+  return res.json();
+}
+
+export async function getProvenance(packId: string): Promise<ProvenanceInfo | null> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(packId)}/provenance`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Failed to get provenance');
+  return res.json();
+}
+
+export async function setPackPricing(
+  packId: string,
+  premium: boolean,
+  accessPrice?: string,
+  royaltyBps = 0,
+): Promise<PackResult> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(packId)}/pricing`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ premium, accessPrice, royaltyBps }),
+  });
+  return res.json();
+}
+
+export async function checkEntitlement(packId: string, address?: string): Promise<boolean> {
+  const qs = address ? `?address=${encodeURIComponent(address)}` : '';
+  const res = await fetch(`${BASE}/${encodeURIComponent(packId)}/entitlement${qs}`);
+  if (!res.ok) return false;
+  const data = await res.json();
+  return Boolean(data.entitled);
 }
 
 export async function publishPackToIpfs(packId: string): Promise<PublishResult> {
