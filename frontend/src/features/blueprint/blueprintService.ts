@@ -70,6 +70,34 @@ export async function listBlueprints(): Promise<BlueprintListItem[]> {
   return res.json() as Promise<BlueprintListItem[]>;
 }
 
+// ---- Permissions / capabilities (#275) ------------------------------------
+
+export interface BlueprintPermission {
+  capability: string;
+  granted: boolean;
+}
+
+export async function getBlueprintPermissions(name: string): Promise<BlueprintPermission[]> {
+  const res = await fetch(`${API}/${encodeURIComponent(name)}/permissions`);
+  if (res.status === 404) throw new Error(`Blueprint not found: ${name}`);
+  if (!res.ok) throw new Error(`Failed to load permissions: ${res.statusText}`);
+  return res.json() as Promise<BlueprintPermission[]>;
+}
+
+export async function setBlueprintPermission(
+  name: string,
+  capability: string,
+  granted: boolean,
+): Promise<void> {
+  const res = await fetch(`${API}/${encodeURIComponent(name)}/permissions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ capability, granted }),
+  });
+  if (res.status === 404) throw new Error(`Blueprint or capability not found`);
+  if (!res.ok) throw new Error(`Failed to update permission: ${res.statusText}`);
+}
+
 export interface BlueprintExecution {
   executionType: string;
   status: 'success' | 'error' | 'timeout' | string;

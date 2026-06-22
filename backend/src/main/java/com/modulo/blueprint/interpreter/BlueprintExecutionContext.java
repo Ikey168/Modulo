@@ -19,8 +19,12 @@ public class BlueprintExecutionContext {
     private final Map<String, Object> pinValues = new HashMap<>();
     private final List<String> executedNodes = new ArrayList<>();
     private int stepCount = 0;
+    private Long registryId;
 
     public String getExecutionId() { return executionId; }
+
+    public Long getRegistryId() { return registryId; }
+    public void setRegistryId(Long registryId) { this.registryId = registryId; }
 
     /** Record a node as having executed, in execution order. */
     public void recordExecutedNode(String nodeId) {
