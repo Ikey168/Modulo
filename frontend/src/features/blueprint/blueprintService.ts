@@ -70,6 +70,23 @@ export async function listBlueprints(): Promise<BlueprintListItem[]> {
   return res.json() as Promise<BlueprintListItem[]>;
 }
 
+export interface BlueprintExecution {
+  executionType: string;
+  status: 'success' | 'error' | 'timeout' | string;
+  message?: string;
+  /** Node ids that executed, in order — used to highlight the path in the editor. */
+  executedNodes?: string[];
+  executionTimeMs?: number;
+  createdAt: string;
+}
+
+export async function getBlueprintExecutions(name: string, limit = 20): Promise<BlueprintExecution[]> {
+  const res = await fetch(`${API}/${encodeURIComponent(name)}/executions?limit=${limit}`);
+  if (res.status === 404) throw new Error(`Blueprint not found: ${name}`);
+  if (!res.ok) throw new Error(`Failed to load executions: ${res.statusText}`);
+  return res.json() as Promise<BlueprintExecution[]>;
+}
+
 export async function deleteBlueprint(name: string): Promise<void> {
   const res = await fetch(`${API}/${encodeURIComponent(name)}`, { method: 'DELETE' });
   if (res.status === 404) throw new Error(`Blueprint not found: ${name}`);

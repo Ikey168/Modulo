@@ -87,6 +87,21 @@ public class BlueprintController {
         }
     }
 
+    @GetMapping("/{name}/executions")
+    public ResponseEntity<List<BlueprintExecution>> getExecutions(
+            @PathVariable String name,
+            @RequestParam(defaultValue = "20") int limit) {
+        try {
+            int capped = Math.max(1, Math.min(limit, 100));
+            return blueprintRepository.findByName(name)
+                .map(bp -> ResponseEntity.ok(blueprintRepository.findExecutions(bp.getId(), capped)))
+                .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            logger.error("Error fetching blueprint executions: {}", LogSanitizer.sanitize(name), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteBlueprint(@PathVariable String name) {
         try {

@@ -15,6 +15,7 @@ import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
 import Workspace from './features/workspace/Workspace';
+import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 
@@ -59,6 +60,16 @@ function App() {
               element={
                 <RequireAuth>
                   <Workspace />
+                </RequireAuth>
+              }
+            />
+
+            {/* Blueprint visual editor (#274) */}
+            <Route
+              path="/blueprints"
+              element={
+                <RequireAuth>
+                  <BlueprintEditor />
                 </RequireAuth>
               }
             />

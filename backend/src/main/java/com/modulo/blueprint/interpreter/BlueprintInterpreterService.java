@@ -178,11 +178,13 @@ public class BlueprintInterpreterService implements ApplicationRunner {
 
         try {
             triggerOutputs.forEach((pin, value) -> ctx.setPinValue(triggerNodeId, pin, value));
+            ctx.recordExecutedNode(triggerNodeId);
             executeExecFlow(graph, ctx, triggerNodeId, "then");
 
             long elapsed = System.currentTimeMillis() - startMs;
             log(registryId, "event_handle", "success",
-                "Executed " + ctx.getStepCount() + " step(s) [run=" + ctx.getExecutionId() + "]", elapsed);
+                "Executed " + ctx.getStepCount() + " step(s) [run=" + ctx.getExecutionId() + "]"
+                    + " [nodes=" + String.join(",", ctx.getExecutedNodes()) + "]", elapsed);
 
         } catch (BlueprintLoopGuardException e) {
             long elapsed = System.currentTimeMillis() - startMs;
@@ -215,6 +217,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             .orElseThrow(() -> new IllegalStateException("Edge references unknown node: " + targetId));
 
         ctx.incrementStep(); // throws BlueprintLoopGuardException when > MAX_STEPS
+        ctx.recordExecutedNode(targetId);
 
         Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
         NodeResult result = executeNode(target, inputs);
