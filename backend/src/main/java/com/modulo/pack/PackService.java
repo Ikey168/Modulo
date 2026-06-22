@@ -250,7 +250,8 @@ public class PackService {
 
     public List<PackEntry> listPacks() {
         return jdbc.query(
-            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
+            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source, " +
+            "anchor_tx, onchain_id, author_address, is_premium, access_price, royalty_bps " +
             "FROM plugin_registry WHERE runtime = ? ORDER BY created_at",
             (rs, i) -> mapRow(rs),
             RUNTIME
@@ -259,7 +260,8 @@ public class PackService {
 
     public List<PackEntry> listPublishedPacks() {
         return jdbc.query(
-            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
+            "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source, " +
+            "anchor_tx, onchain_id, author_address, is_premium, access_price, royalty_bps " +
             "FROM plugin_registry WHERE runtime = ? AND ipfs_cid IS NOT NULL ORDER BY created_at",
             (rs, i) -> mapRow(rs),
             RUNTIME
@@ -269,7 +271,8 @@ public class PackService {
     public Optional<PackEntry> getPack(String packId) {
         try {
             PackEntry e = jdbc.queryForObject(
-                "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source " +
+                "SELECT id, name, version, description, status, config::text, created_at, updated_at, ipfs_cid, content_hash, source, " +
+                "anchor_tx, onchain_id, author_address, is_premium, access_price, royalty_bps " +
                 "FROM plugin_registry WHERE runtime = ? AND name = ?",
                 (rs, i) -> mapRow(rs),
                 RUNTIME, packId
@@ -294,7 +297,54 @@ public class PackService {
         e.setIpfsCid(rs.getString("ipfs_cid"));
         e.setContentHash(rs.getString("content_hash"));
         e.setSource(rs.getString("source"));
+        e.setAnchorTx(rs.getString("anchor_tx"));
+        long onchainId = rs.getLong("onchain_id");
+        if (!rs.wasNull()) e.setOnchainId(onchainId);
+        e.setAuthorAddress(rs.getString("author_address"));
+        boolean premium = rs.getBoolean("is_premium");
+        e.setPremium(premium);
+        java.math.BigDecimal price = rs.getBigDecimal("access_price");
+        if (price != null) e.setAccessPrice(price.toBigInteger().toString());
+        int royalty = rs.getInt("royalty_bps");
+        if (!rs.wasNull()) e.setRoyaltyBps(royalty);
         return e;
+    }
+
+    // -------------------------------------------------------------------------
+    // Pricing (paid packs — #278)
+    // -------------------------------------------------------------------------
+
+    /** Set premium pricing + royalty for an installed pack. */
+    @Transactional
+    public PackCheck setPricing(String packId, boolean premium, String accessPrice, int royaltyBps) {
+        if (getPack(packId).isEmpty()) {
+            return PackCheck.fail("Pack \"" + packId + "\" is not installed");
+        }
+        if (royaltyBps < 0 || royaltyBps > 10000) {
+            return PackCheck.fail("royaltyBps must be between 0 and 10000");
+        }
+        java.math.BigDecimal price = null;
+        if (premium) {
+            if (accessPrice == null || accessPrice.isBlank()) {
+                return PackCheck.fail("accessPrice is required for premium packs");
+            }
+            try {
+                price = new java.math.BigDecimal(accessPrice);
+            } catch (NumberFormatException ex) {
+                return PackCheck.fail("accessPrice must be an integer (token base units)");
+            }
+            if (price.signum() <= 0) {
+                return PackCheck.fail("accessPrice must be positive");
+            }
+        }
+        jdbc.update(
+            "UPDATE plugin_registry SET is_premium = ?, access_price = ?, royalty_bps = ?, updated_at = ? " +
+            "WHERE runtime = ? AND name = ?",
+            premium, price, royaltyBps, LocalDateTime.now(), RUNTIME, packId
+        );
+        logger.info("Pricing updated for pack {}: premium={} price={} royaltyBps={}",
+            LogSanitizer.sanitize(packId), premium, accessPrice, royaltyBps);
+        return PackCheck.pass();
     }
 
     // -------------------------------------------------------------------------
