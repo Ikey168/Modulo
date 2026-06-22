@@ -134,6 +134,17 @@ export default function Workspace() {
             }
             label="Blueprints"
           />
+          <NavItem
+            active={false}
+            onClick={() => navigate('/packs')}
+            icon={
+              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
+                <rect x={1.5} y={1.5} width={12} height={12} rx={1.5} stroke="currentColor" strokeWidth={1.2} />
+                <path d="M5 7.5h5M7.5 5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
+              </svg>
+            }
+            label="Packs"
+          />
         </nav>
 
         <div style={{ padding: '10px 10px 14px', borderTop: '1px solid #1e1e24' }}>
