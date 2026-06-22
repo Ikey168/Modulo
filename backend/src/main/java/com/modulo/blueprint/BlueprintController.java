@@ -1,5 +1,6 @@
 package com.modulo.blueprint;
 
+import com.modulo.blueprint.interpreter.BlueprintInterpreterService;
 import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,9 @@ public class BlueprintController {
 
     @Autowired
     private BlueprintRepository blueprintRepository;
+
+    @Autowired
+    private BlueprintInterpreterService interpreterService;
 
     @GetMapping
     public ResponseEntity<List<BlueprintEntry>> listBlueprints() {
@@ -56,6 +60,7 @@ public class BlueprintController {
         try {
             String actor = auth != null ? auth.getName() : "system";
             BlueprintEntry created = blueprintRepository.create(req, actor);
+            interpreterService.registerBlueprint(created);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (Exception e) {
             logger.error("Error creating blueprint", e);
@@ -71,7 +76,10 @@ public class BlueprintController {
         try {
             String actor = auth != null ? auth.getName() : "system";
             return blueprintRepository.update(name, req, actor)
-                .map(ResponseEntity::ok)
+                .map(updated -> {
+                    interpreterService.registerBlueprint(updated);
+                    return ResponseEntity.ok(updated);
+                })
                 .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             logger.error("Error updating blueprint: {}", LogSanitizer.sanitize(name), e);
@@ -85,6 +93,7 @@ public class BlueprintController {
             if (!blueprintRepository.delete(name)) {
                 return ResponseEntity.notFound().build();
             }
+            interpreterService.unregisterBlueprint(name);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             logger.error("Error deleting blueprint: {}", LogSanitizer.sanitize(name), e);

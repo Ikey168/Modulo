@@ -2,6 +2,8 @@ package com.modulo.service;
 
 import com.modulo.entity.Note;
 import com.modulo.entity.NoteLink;
+import com.modulo.plugin.event.LinkEvent;
+import com.modulo.plugin.event.PluginEventBus;
 import com.modulo.repository.NoteLinkRepository;
 import com.modulo.repository.NoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +18,14 @@ public class NoteLinkService {
 
     private final NoteLinkRepository noteLinkRepository;
     private final NoteRepository noteRepository;
+    private final PluginEventBus eventBus;
 
     @Autowired
-    public NoteLinkService(NoteLinkRepository noteLinkRepository, NoteRepository noteRepository) {
+    public NoteLinkService(NoteLinkRepository noteLinkRepository, NoteRepository noteRepository,
+                           PluginEventBus eventBus) {
         this.noteLinkRepository = noteLinkRepository;
         this.noteRepository = noteRepository;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -39,7 +44,9 @@ public class NoteLinkService {
         }
 
         NoteLink noteLink = new NoteLink(sourceNote.get(), targetNote.get(), linkType);
-        return noteLinkRepository.save(noteLink);
+        NoteLink saved = noteLinkRepository.save(noteLink);
+        eventBus.publishAsync(new LinkEvent.LinkCreated(saved));
+        return saved;
     }
 
     /**
