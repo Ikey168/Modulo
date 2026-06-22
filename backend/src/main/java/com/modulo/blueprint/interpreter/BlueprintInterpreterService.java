@@ -1,6 +1,7 @@
 package com.modulo.blueprint.interpreter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
 import com.modulo.entity.Note;
@@ -49,6 +50,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private static final long ACTION_TIMEOUT_SECS = 30;
 
     @Autowired private BlueprintRepository blueprintRepository;
+    @Autowired private BlueprintCapabilityService capabilityService;
     @Autowired private PluginEventBus eventBus;
     @Autowired private NoteService noteService;
     @Autowired private TagService tagService;
@@ -175,6 +177,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                                    String triggerNodeId, Map<String, Object> triggerOutputs) {
         long startMs = System.currentTimeMillis();
         BlueprintExecutionContext ctx = new BlueprintExecutionContext();
+        ctx.setRegistryId(registryId);
 
         try {
             triggerOutputs.forEach((pin, value) -> ctx.setPinValue(triggerNodeId, pin, value));
@@ -220,7 +223,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         ctx.recordExecutedNode(targetId);
 
         Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
-        NodeResult result = executeNode(target, inputs);
+        NodeResult result = executeNode(target, inputs, ctx.getRegistryId());
         result.outputs().forEach((pinId, value) -> ctx.setPinValue(targetId, pinId, value));
 
         if (result.nextExecOut() != null) {
@@ -241,9 +244,21 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         return inputs;
     }
 
-    /** Execute a single action or logic node. Returns output pin values and the next exec-out name. */
-    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs) {
+    /**
+     * Execute a single action or logic node. Returns output pin values and the next exec-out name.
+     * Capability checks (#275): if the node declares a required capability and the blueprint does
+     * not have a grant for it, execution is skipped (empty outputs, flow continues via 'then').
+     */
+    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId) {
         Map<String, Object> outputs = new HashMap<>();
+
+        // Enforce capability grant before running any action node.
+        String requiredCap = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
+        if (requiredCap != null && !capabilityService.isGranted(registryId, requiredCap)) {
+            logger.warn("Blueprint {}: node '{}' skipped — capability '{}' not granted",
+                registryId, node.getId(), requiredCap);
+            return new NodeResult(outputs, "then");
+        }
 
         switch (node.getType()) {
 

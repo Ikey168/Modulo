@@ -1,6 +1,7 @@
 package com.modulo.blueprint.interpreter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
 import com.modulo.entity.Note;
@@ -40,6 +41,7 @@ class BlueprintInterpreterServiceTest {
     @InjectMocks private BlueprintInterpreterService interpreter;
 
     @Mock private BlueprintRepository blueprintRepository;
+    @Mock private BlueprintCapabilityService capabilityService;
     @Mock private PluginEventBus eventBus;
     @Mock private NoteService noteService;
     @Mock private TagService tagService;
@@ -73,6 +75,9 @@ class BlueprintInterpreterServiceTest {
             return n;
         });
         when(tagService.createOrGetTag(anyString())).thenAnswer(inv -> new Tag(inv.getArgument(0)));
+
+        // Grant all capabilities by default so existing tests are not affected.
+        when(capabilityService.isGranted(anyLong(), any())).thenReturn(true);
     }
 
     private BlueprintEntry entry(Map<String, Object> ir) {

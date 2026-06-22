@@ -33,6 +33,8 @@ import {
   updateBlueprint,
   type BlueprintListItem,
 } from '../blueprintService';
+import { deriveRequiredCapabilities } from '../capabilities';
+import { CapabilityConsentScreen } from './CapabilityConsentScreen';
 import { BlueprintNodeView } from './BlueprintNodeView';
 import { NodePalette } from './NodePalette';
 import {
@@ -63,6 +65,7 @@ function EditorInner() {
   const [saved, setSaved] = useState<BlueprintListItem[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
+  const [showConsent, setShowConsent] = useState(false);
 
   const rfInstance = useRef<ReactFlowInstance | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -192,10 +195,13 @@ function EditorInner() {
         setStatus({ kind: 'success', text: `Created “${name}”.` });
       }
       refreshList();
+      // Show consent screen if there are capabilities that need to be reviewed.
+      const requiredCaps = deriveRequiredCapabilities(nodes as FlowNode[]);
+      if (requiredCaps.length > 0) setShowConsent(true);
     } catch (err) {
       setStatus({ kind: 'error', text: `Save failed: ${(err as Error).message}` });
     }
-  }, [buildIR, loadedName, name, description, refreshList]);
+  }, [buildIR, loadedName, name, description, refreshList, nodes]);
 
   const handleLoad = useCallback(
     async (toLoad: string) => {
@@ -208,6 +214,7 @@ function EditorInner() {
         setDescription(bp.description ?? '');
         setLoadedName(bp.name);
         setHighlighted(new Set());
+        setShowConsent(false);
         setStatus({ kind: 'info', text: `Loaded “${bp.name}”.` });
       } catch (err) {
         setStatus({ kind: 'error', text: `Load failed: ${(err as Error).message}` });
@@ -223,6 +230,7 @@ function EditorInner() {
     setDescription('');
     setLoadedName(null);
     setHighlighted(new Set());
+    setShowConsent(false);
     setStatus(null);
   }, [setNodes, setEdges]);
 
@@ -317,6 +325,9 @@ function EditorInner() {
           <button type="button" className="bp-btn-primary" onClick={handleSave}>Save</button>
           <button type="button" onClick={handleTestRun}>Test Run</button>
           <button type="button" onClick={handleDebugLastRun}>Debug Last Run</button>
+          {loadedName && (
+            <button type="button" onClick={() => setShowConsent(true)}>Permissions</button>
+          )}
           {highlighted.size > 0 && (
             <button type="button" onClick={clearHighlight}>Clear Highlight</button>
           )}
@@ -346,6 +357,12 @@ function EditorInner() {
           </ReactFlow>
         </div>
       </div>
+      {showConsent && loadedName && (
+        <CapabilityConsentScreen
+          blueprintName={loadedName}
+          onClose={() => setShowConsent(false)}
+        />
+      )}
     </div>
   );
 }
