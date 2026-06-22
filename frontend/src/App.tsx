@@ -16,6 +16,7 @@ import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
 import Workspace from './features/workspace/Workspace';
 import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
+import PackManager from './features/blueprint/pack/PackManager';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 
@@ -70,6 +71,16 @@ function App() {
               element={
                 <RequireAuth>
                   <BlueprintEditor />
+                </RequireAuth>
+              }
+            />
+
+            {/* Pack manager (#276) */}
+            <Route
+              path="/packs"
+              element={
+                <RequireAuth>
+                  <PackManager />
                 </RequireAuth>
               }
             />
