@@ -68,8 +68,11 @@ When a trigger fires:
 Every run writes a row to `plugin_execution_logs` (`execution_type =
 'event_handle'`):
 
-- `status = 'success'` with the step count and a run id, or
+- `status = 'success'` with the step count, a run id, and the executed node
+  path as a `[nodes=id1,id2,…]` token, or
 - `status = 'error'` with the failure message (including loop-guard hits).
 
 `plugin_id` is the blueprint's `plugin_registry.id`, so a blueprint's execution
-history is queryable alongside the rest of the plugin system.
+history is queryable alongside the rest of the plugin system. The visual editor
+(#274) reads this history via `GET /api/blueprints/{name}/executions` and parses
+the `[nodes=…]` token to highlight the path the last run took.

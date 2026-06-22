@@ -121,6 +121,19 @@ export default function Workspace() {
           {VIEWS.map((v) => (
             <NavItem key={v} active={view === v} onClick={() => goTo(v)} icon={NAV_ICONS[v]} label={v.charAt(0).toUpperCase() + v.slice(1)} />
           ))}
+          <NavItem
+            active={false}
+            onClick={() => navigate('/blueprints')}
+            icon={
+              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
+                <rect x={1.5} y={5.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <rect x={9.5} y={1.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <rect x={9.5} y={9.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <path d="M5.5 7.5h2.2M7.7 7.5V3.5h1.8M7.7 7.5v4h1.8" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" fill="none" />
+              </svg>
+            }
+            label="Blueprints"
+          />
         </nav>
 
         <div style={{ padding: '10px 10px 14px', borderTop: '1px solid #1e1e24' }}>

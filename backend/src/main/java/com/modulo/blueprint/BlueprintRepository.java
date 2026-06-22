@@ -9,9 +9,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * JDBC repository for blueprints stored in plugin_registry (runtime = 'BLUEPRINT').
@@ -136,6 +138,42 @@ public class BlueprintRepository {
     public boolean delete(String name) {
         int rows = jdbc.update("DELETE FROM plugin_registry WHERE runtime = ? AND name = ?", RUNTIME, name);
         return rows > 0;
+    }
+
+    /**
+     * Recent execution-log rows for a blueprint, newest first. Used by the editor's
+     * run/debug panel to show run history and highlight the executed node path.
+     */
+    public List<BlueprintExecution> findExecutions(Long pluginId, int limit) {
+        String sql = "SELECT execution_type, status, message, execution_time_ms, created_at " +
+                     "FROM plugin_execution_logs WHERE plugin_id = ? ORDER BY created_at DESC, id DESC LIMIT ?";
+        return jdbc.query(sql, (rs, i) -> {
+            BlueprintExecution e = new BlueprintExecution();
+            e.setExecutionType(rs.getString("execution_type"));
+            e.setStatus(rs.getString("status"));
+            String message = rs.getString("message");
+            e.setMessage(message);
+            e.setExecutedNodes(parseExecutedNodes(message));
+            long ms = rs.getLong("execution_time_ms");
+            e.setExecutionTimeMs(rs.wasNull() ? null : ms);
+            e.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime().toString());
+            return e;
+        }, pluginId, limit);
+    }
+
+    /** Extract node ids from the {@code [nodes=a,b,c]} token the interpreter writes on success. */
+    static List<String> parseExecutedNodes(String message) {
+        if (message == null) return List.of();
+        int start = message.indexOf("[nodes=");
+        if (start < 0) return List.of();
+        int end = message.indexOf(']', start);
+        if (end < 0) return List.of();
+        String body = message.substring(start + "[nodes=".length(), end).trim();
+        if (body.isEmpty()) return List.of();
+        return Arrays.stream(body.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
