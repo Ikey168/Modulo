@@ -3,10 +3,10 @@
 // the sides, colour-coded by data type. Handle ids are encoded by reactFlowAdapter.
 
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { DataType } from '../nodeModel';
 import {
-  BlueprintNodeData,
+  FlowNode,
   EXEC_IN_HANDLE,
   dataInHandle,
   dataOutHandle,
@@ -35,7 +35,7 @@ function typeColor(type: DataType): string {
   return TYPE_COLORS[type] ?? '#9ca3af';
 }
 
-function BlueprintNodeViewImpl({ data, selected }: NodeProps<BlueprintNodeData>) {
+function BlueprintNodeViewImpl({ data, selected }: NodeProps<FlowNode>) {
   const { descriptor } = data;
   const accent = CATEGORY_COLORS[descriptor.category] ?? '#6b7280';
 

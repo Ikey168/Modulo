@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Connection } from 'reactflow';
+import type { Connection } from '@xyflow/react';
 import { BlueprintIR, IR_VERSION } from '../../blueprintIR';
 import { createCoreCatalog } from '../../nodeCatalog';
 import { NodeDescriptor } from '../../nodeModel';

@@ -5,7 +5,8 @@
 // plugin_execution_logs).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ReactFlow, {
+import {
+  ReactFlow,
   addEdge,
   Background,
   Controls,
@@ -13,12 +14,11 @@ import ReactFlow, {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   type Connection,
   type Edge,
-  type Node,
-  type ReactFlowInstance,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import './editor.css';
 
 import { BlueprintIR } from '../blueprintIR';
@@ -38,7 +38,6 @@ import { CapabilityConsentScreen } from './CapabilityConsentScreen';
 import { BlueprintNodeView } from './BlueprintNodeView';
 import { NodePalette } from './NodePalette';
 import {
-  BlueprintNodeData,
   FlowEdge,
   FlowNode,
   checkFlowConnection,
@@ -57,8 +56,8 @@ interface Status {
 
 function EditorInner() {
   const catalog = useMemo(() => createCoreCatalog(), []);
-  const [nodes, setNodes, onNodesChange] = useNodesState<BlueprintNodeData>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [name, setName] = useState('Untitled Blueprint');
   const [description, setDescription] = useState('');
   const [loadedName, setLoadedName] = useState<string | null>(null);
@@ -67,7 +66,7 @@ function EditorInner() {
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
   const [showConsent, setShowConsent] = useState(false);
 
-  const rfInstance = useRef<ReactFlowInstance | null>(null);
+  const { screenToFlowPosition } = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const getDescriptor = useCallback(
@@ -77,11 +76,11 @@ function EditorInner() {
   );
 
   // Apply highlight styling without mutating node identity each render.
-  const styledNodes = useMemo<Node<BlueprintNodeData>[]>(
+  const styledNodes = useMemo<FlowNode[]>(
     () =>
       nodes.map((n) => ({
         ...n,
-        className: highlighted.has(n.id) ? 'bp-node-highlight' : undefined,
+        className: highlighted.has(n.id) ? 'bp-node-highlight' : '',
       })),
     [nodes, highlighted],
   );
@@ -101,7 +100,7 @@ function EditorInner() {
   // --- Connection validation ------------------------------------------------
 
   const isValidConnection = useCallback(
-    (connection: Connection) => checkFlowConnection(connection, getDescriptor).ok,
+    (connection: Connection | Edge) => checkFlowConnection(connection as Connection, getDescriptor).ok,
     [getDescriptor],
   );
 
@@ -135,9 +134,7 @@ function EditorInner() {
 
   const addNode = useCallback(
     (descriptor: NodeDescriptor, position?: { x: number; y: number }) => {
-      const pos =
-        position ??
-        rfInstance.current?.project({ x: 220, y: 120 }) ?? { x: 220, y: 120 };
+      const pos = position ?? { x: 220, y: 120 };
       const node: FlowNode = {
         id: makeId('n'),
         type: 'blueprintNode',
@@ -158,24 +155,22 @@ function EditorInner() {
     (e: React.DragEvent) => {
       e.preventDefault();
       const key = e.dataTransfer.getData('application/blueprint-node');
-      if (!key || !rfInstance.current) return;
+      if (!key) return;
       const [type, version] = key.split('@');
       const descriptor = catalog.get(type, version ? Number(version) : undefined);
       if (!descriptor) return;
-      const position = rfInstance.current.project({
-        x: e.clientX - (wrapperRef.current?.getBoundingClientRect().left ?? 0),
-        y: e.clientY - (wrapperRef.current?.getBoundingClientRect().top ?? 0),
-      });
+      // screenToFlowPosition converts screen coordinates to flow canvas coordinates.
+      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       addNode(descriptor, position);
     },
-    [addNode, catalog],
+    [addNode, catalog, screenToFlowPosition],
   );
 
   // --- Save / load ----------------------------------------------------------
 
   const buildIR = useCallback((): BlueprintIR => {
     const now = new Date().toISOString();
-    return flowToIR(nodes, edges as FlowEdge[], {
+    return flowToIR(nodes, edges, {
       name,
       description: description || undefined,
       createdAt: now,
@@ -242,7 +237,7 @@ function EditorInner() {
    * client-side). This gives a quick visual of the flow without a live run.
    */
   const handleTestRun = useCallback(() => {
-    const execEdges = (edges as FlowEdge[]).filter((e) => e.data?.kind === 'exec');
+    const execEdges = edges.filter((e) => e.data?.kind === 'exec');
     const adjacency = new Map<string, string[]>();
     for (const e of execEdges) {
       adjacency.set(e.source, [...(adjacency.get(e.source) ?? []), e.target]);
@@ -347,7 +342,6 @@ function EditorInner() {
             onConnect={onConnect}
             isValidConnection={isValidConnection}
             nodeTypes={nodeTypes}
-            onInit={(inst) => (rfInstance.current = inst)}
             fitView
             deleteKeyCode={['Backspace', 'Delete']}
           >

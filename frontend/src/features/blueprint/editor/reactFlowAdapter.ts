@@ -3,7 +3,7 @@
 // direction, and name into the handle id so onConnect can reconstruct a
 // ConnectionEndpoint and reuse validateConnection from the shared node model.
 
-import type { Connection, Edge as RFEdge, Node as RFNode } from 'reactflow';
+import type { Connection, Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import {
   BlueprintEdge,
   BlueprintIR,
@@ -20,7 +20,7 @@ import {
 } from '../nodeModel';
 
 /** Data carried on every React Flow node so the custom renderer can draw pins. */
-export interface BlueprintNodeData {
+export interface BlueprintNodeData extends Record<string, unknown> {
   descriptor: NodeDescriptor;
   nodeVersion: number;
   config?: Record<string, unknown>;
