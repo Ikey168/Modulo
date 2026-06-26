@@ -4,6 +4,7 @@ import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
+import GraphPanels from './graph/GraphPanels';
 // TODO: Fix module resolution issue
 // import ConflictResolutionModal from '../../components/conflicts/ConflictResolutionModal';
 import TouchHandler from '../../components/common/TouchHandler';
@@ -144,6 +145,25 @@ const Notes: React.FC = () => {
   }, [selectedNote]);
 
   const { isConnected, connectionStatus } = useNotesSync(handleNoteUpdate);
+
+  // Open another note by id (used by the knowledge-graph panels to navigate).
+  const handleOpenNote = useCallback(async (noteId: number) => {
+    setIsEditing(false);
+    setIsCreating(false);
+    const existing = notes.find(n => n.id === noteId);
+    if (existing) {
+      setSelectedNote(existing);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/notes/${noteId}`);
+      if (response.ok) {
+        setSelectedNote(await response.json());
+      }
+    } catch (err) {
+      console.error('Failed to open note', noteId, err);
+    }
+  }, [notes]);
 
   useEffect(() => {
     loadNotes();
@@ -525,6 +545,11 @@ const Notes: React.FC = () => {
                   allNotes={notes.filter(note => note.id !== undefined)}
                   onLinksChanged={loadNotes}
                 />
+              )}
+
+              {/* Knowledge-graph panels: backlinks, unlinked mentions, related, local graph */}
+              {selectedNote.id && (
+                <GraphPanels noteId={selectedNote.id} onOpenNote={handleOpenNote} />
               )}
             </div>
           ) : (
