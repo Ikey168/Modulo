@@ -29,4 +29,24 @@ public abstract class LinkEvent extends PluginEvent {
         public Note getSourceNote() { return sourceNote; }
         public Note getTargetNote() { return targetNote; }
     }
+
+    /**
+     * Fired when a link between two notes is deleted. Carries the endpoint ids only,
+     * since the {@link NoteLink} row is gone by the time consumers (e.g. the Neo4j
+     * projection) handle the event.
+     */
+    public static class LinkDeleted extends LinkEvent {
+
+        private final Long sourceNoteId;
+        private final Long targetNoteId;
+
+        public LinkDeleted(Long sourceNoteId, Long targetNoteId) {
+            super("link.deleted", sourceNoteId);
+            this.sourceNoteId = sourceNoteId;
+            this.targetNoteId = targetNoteId;
+        }
+
+        public Long getSourceNoteId() { return sourceNoteId; }
+        public Long getTargetNoteId() { return targetNoteId; }
+    }
 }
