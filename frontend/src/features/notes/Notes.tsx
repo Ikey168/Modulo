@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -13,6 +13,9 @@ import { NoteUpdateMessage } from '../../services/websocket';
 // TODO: Re-enable when ConflictResolutionModal is fixed
 // import { ConflictResolution } from '../../types/conflicts';
 import { conflictResolutionService } from '../../services/conflictResolution';
+import { useAuth } from '../auth/useAuth';
+import { AttachmentPanel, SlashCommandMenu, TemplateManager, ExportButton, useSlashCommands, templateApi } from './editor';
+import { NoteTemplate } from './editor/templateApi';
 import './Notes.css';
 
 interface Tag {
@@ -29,6 +32,9 @@ interface Note {
 }
 
 const Notes: React.FC = () => {
+  const { user } = useAuth();
+  const editorUserId = user?.id ?? 'current-user';
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -40,7 +46,14 @@ const Notes: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('');
-  
+
+  // Editor feature state
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [templates, setTemplates] = useState<NoteTemplate[]>([]);
+  const [showAttachments, setShowAttachments] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { menuState: slashMenu, handleKeyUp: handleSlashKeyUp, applyCommand: applySlash, closeMenu: closeSlash } = useSlashCommands(textareaRef);
+
   // Conflict resolution state
   // TODO: Re-enable when ConflictResolutionModal is fixed
   // const [conflictResolution, setConflictResolution] = useState<ConflictResolution | null>(null);
@@ -145,10 +158,19 @@ const Notes: React.FC = () => {
 
   const { isConnected, connectionStatus } = useNotesSync(handleNoteUpdate);
 
+  const loadTemplates = useCallback(async () => {
+    try {
+      setTemplates(await templateApi.list(editorUserId));
+    } catch {
+      // non-critical
+    }
+  }, [editorUserId]);
+
   useEffect(() => {
     loadNotes();
     loadTags();
-  }, []);
+    loadTemplates();
+  }, [loadTemplates]);
 
   const handleCreateNote = () => {
     setIsCreating(true);
@@ -474,15 +496,48 @@ const Notes: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="note-content">Content</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <label htmlFor="note-content" style={{ margin: 0 }}>Content</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplateManager(true)}
+                    style={{ marginLeft: 'auto', padding: '3px 10px', fontSize: '12px', background: 'var(--color-surface-raised, #f3f4f6)', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Templates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAttachments(v => !v)}
+                    style={{ padding: '3px 10px', fontSize: '12px', background: showAttachments ? 'var(--color-primary-subtle, #eff6ff)' : 'var(--color-surface-raised, #f3f4f6)', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    📎 Attachments
+                  </button>
+                </div>
                 <textarea
+                  ref={textareaRef}
                   id="note-content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write your note content..."
+                  onKeyUp={handleSlashKeyUp}
+                  placeholder="Write your note content… type / for commands"
                   className="form-textarea"
                   rows={15}
                 />
+                {slashMenu.open && (
+                  <SlashCommandMenu
+                    query={slashMenu.query}
+                    position={slashMenu.position}
+                    templates={templates}
+                    onSelect={applySlash}
+                    onClose={closeSlash}
+                  />
+                )}
+                {showAttachments && selectedNote?.id && (
+                  <AttachmentPanel
+                    noteId={selectedNote.id}
+                    onInsertMarkdown={(md) => setContent(prev => prev + md)}
+                  />
+                )}
               </div>
 
               <div className="editor-actions">
@@ -504,7 +559,10 @@ const Notes: React.FC = () => {
             </div>
           ) : selectedNote ? (
             <div className="note-viewer">
-              <h2>{selectedNote.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h2 style={{ margin: 0, flex: 1 }}>{selectedNote.title}</h2>
+                {selectedNote.id && <ExportButton noteId={selectedNote.id} noteTitle={selectedNote.title} />}
+              </div>
               {selectedNote.tags && selectedNote.tags.length > 0 && (
                 <div className="note-tags">
                   {selectedNote.tags.map((tag, index) => (
@@ -549,6 +607,17 @@ const Notes: React.FC = () => {
         />
       )}
       */}
+
+      {showTemplateManager && (
+        <TemplateManager
+          userId={editorUserId}
+          onApply={(templateContent) => {
+            setContent(templateContent);
+            setShowTemplateManager(false);
+          }}
+          onClose={() => setShowTemplateManager(false)}
+        />
+      )}
     </div>
   );
 };
