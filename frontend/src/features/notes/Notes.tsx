@@ -14,7 +14,14 @@ import { NoteUpdateMessage } from '../../services/websocket';
 // TODO: Re-enable when ConflictResolutionModal is fixed
 // import { ConflictResolution } from '../../types/conflicts';
 import { conflictResolutionService } from '../../services/conflictResolution';
+import { CollabEditor, PresenceAvatars, CommentsSidebar, usePresence } from './collab';
+import { useAuth } from '../auth/useAuth';
 import './Notes.css';
+
+const NotePresenceBar: React.FC<{ noteId: number; userId: string; userName: string }> = ({ noteId, userId, userName }) => {
+  const { participants } = usePresence(noteId, userId, userName);
+  return <PresenceAvatars participants={participants} />;
+};
 
 interface Tag {
   id: string;
@@ -30,6 +37,10 @@ interface Note {
 }
 
 const Notes: React.FC = () => {
+  const { user } = useAuth();
+  const collabUserId = user?.id ?? 'current-user';
+  const collabUserName = user?.name ?? 'Anonymous';
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -495,14 +506,24 @@ const Notes: React.FC = () => {
 
               <div className="form-group">
                 <label htmlFor="note-content">Content</label>
-                <textarea
-                  id="note-content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write your note content..."
-                  className="form-textarea"
-                  rows={15}
-                />
+                {isEditing && selectedNote?.id ? (
+                  <CollabEditor
+                    noteId={selectedNote.id}
+                    userId={collabUserId}
+                    userName={collabUserName}
+                    initialContent={content}
+                    onContentChange={setContent}
+                  />
+                ) : (
+                  <textarea
+                    id="note-content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Write your note content..."
+                    className="form-textarea"
+                    rows={15}
+                  />
+                )}
               </div>
 
               <div className="editor-actions">
@@ -524,7 +545,12 @@ const Notes: React.FC = () => {
             </div>
           ) : selectedNote ? (
             <div className="note-viewer">
-              <h2>{selectedNote.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0 }}>{selectedNote.title}</h2>
+                {selectedNote.id && (
+                  <NotePresenceBar noteId={selectedNote.id} userId={collabUserId} userName={collabUserName} />
+                )}
+              </div>
               {selectedNote.tags && selectedNote.tags.length > 0 && (
                 <div className="note-tags">
                   {selectedNote.tags.map((tag, index) => (
@@ -550,6 +576,15 @@ const Notes: React.FC = () => {
               {/* Knowledge-graph panels: backlinks, unlinked mentions, related, local graph */}
               {selectedNote.id && (
                 <GraphPanels noteId={selectedNote.id} onOpenNote={handleOpenNote} />
+              )}
+
+              {/* Collaboration: comments sidebar (#262) */}
+              {selectedNote.id && (
+                <CommentsSidebar
+                  noteId={selectedNote.id}
+                  userId={collabUserId}
+                  userName={collabUserName}
+                />
               )}
             </div>
           ) : (
