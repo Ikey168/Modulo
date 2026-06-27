@@ -3,17 +3,32 @@
 **Issue:** #295  
 **Branch:** `claude/issues-295`  
 **Date:** 2026-06-27  
-**Status:** Audit complete. ESLint guard active. Fixes tracked in B4–B7.
+**Status:** ✅ All violations fixed (B4–B7). CI guard active in `error` mode (B9 #302).
 
-## How to regenerate
+## B9 CI gate (added #302)
+
+The `no-restricted-imports` rule is now `'error'` in `frontend/.eslintrc.cjs`.
+A dedicated `boundary-lint` job runs on every push and PR:
 
 ```sh
 cd frontend
-npm run lint:boundary
+npm run lint:boundary:ci   # uses .eslintrc.boundary.cjs — boundary rule only
 ```
 
-The `lint:boundary` script runs ESLint with only the `no-restricted-imports` rule
-so the output is purely boundary violations, with no noise from other rules.
+The CI job fails if any feature-pack file imports from:
+- `**/features/workspace/workspaceApi`
+- `**/features/workspace/types`
+- `**/features/workspace/useWorkspaceData`
+
+`src/core/**` is excluded from the check (core implements the boundary, not a consumer).
+
+## How to inspect violations locally
+
+```sh
+cd frontend
+npm run lint:boundary       # human-readable grep filter (always exits 0)
+npm run lint:boundary:ci    # strict check — exits 1 if any violations (mirrors CI)
+```
 
 ---
 
