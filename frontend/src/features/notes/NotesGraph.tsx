@@ -1,80 +1,64 @@
 // @ts-nocheck
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents, useSigma } from '@react-sigma/core';
 import { DirectedGraph } from 'graphology';
-import { api } from '../../services/api';
+import { createCoreAPI } from '@modulo/core';
+import type { CoreNote, CoreLink } from '@modulo/core';
 import { useNotesSync } from '../../hooks/useWebSocket';
 import { NoteUpdateMessage } from '../../services/websocket';
-import { 
-  createGraphFromData, 
-  applyCommunityDetection, 
+import {
+  createGraphFromData,
+  applyCommunityDetection,
   applyForceAtlas2Layout,
   getGraphStatistics,
   filterGraphByTags,
   searchNodes,
-  LINK_TYPE_COLORS 
+  LINK_TYPE_COLORS
 } from './graphUtils';
 import './NotesGraph.css';
 
-// Type definitions
-interface Tag {
-  id: string;
-  name: string;
-}
-
-interface Note {
-  id: number;
-  title: string;
-  content: string;
-  tags?: Tag[];
-  createdAt: string;
-  updatedAt?: string;
-}
-
-interface NoteLink {
-  id: string;
-  sourceNote: Note;
-  targetNote: Note;
-  linkType: string;
-}
-
 // Import Sigma.js CSS
 import '@react-sigma/core/lib/react-sigma.min.css';
+
+/** Convert CoreLink[] to the shape createGraphFromData expects. */
+function toGraphLinks(
+  coreLinks: CoreLink[],
+  noteById: Map<number, CoreNote>,
+) {
+  const result = [];
+  for (const l of coreLinks) {
+    const src = noteById.get(l.sourceNoteId);
+    const tgt = noteById.get(l.targetNoteId);
+    if (src && tgt) result.push({ id: l.id, sourceNote: src, targetNote: tgt, linkType: l.linkType });
+  }
+  return result;
+}
 
 const GraphLoader: React.FC<{ graph: DirectedGraph }> = ({ graph }) => {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
 
   useEffect(() => {
-    // Apply community detection and layout
     applyCommunityDetection(graph);
     applyForceAtlas2Layout(graph);
 
     loadGraph(graph);
 
-    // Enable hover effects
     sigma.on('enterNode', ({ node }) => {
       sigma.getGraph().setNodeAttribute(node, 'highlighted', true);
-      
-      // Highlight connected edges
       sigma.getGraph().forEachEdge(node, (edge) => {
         sigma.getGraph().setEdgeAttribute(edge, 'highlighted', true);
       });
-      
       sigma.refresh();
     });
 
     sigma.on('leaveNode', ({ node }) => {
       sigma.getGraph().setNodeAttribute(node, 'highlighted', false);
-      
-      // Remove edge highlights
       sigma.getGraph().forEachEdge(node, (edge) => {
         sigma.getGraph().setEdgeAttribute(edge, 'highlighted', false);
       });
-      
       sigma.refresh();
     });
-
   }, [loadGraph, sigma, graph]);
 
   return null;
@@ -95,10 +79,12 @@ const GraphEvents: React.FC<{ onNodeClick: (nodeId: string) => void }> = ({ onNo
 };
 
 const NotesGraph: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const api = useMemo(() => createCoreAPI(), []);
+
+  const [notes, setNotes] = useState<CoreNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNote, setSelectedNote] = useState<CoreNote | null>(null);
   const [graph, setGraph] = useState<DirectedGraph>(new DirectedGraph());
   const [filteredGraph, setFilteredGraph] = useState<DirectedGraph>(new DirectedGraph());
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,37 +97,20 @@ const NotesGraph: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Load notes
-      const notesResponse = await api.get('/notes');
-      const notesData = notesResponse || [];
-      setNotes(notesData);
+      // Two parallel requests instead of O(n) serial link fetches.
+      const [coreNotes, coreLinks] = await Promise.all([api.notes(), api.links()]);
+      setNotes(coreNotes);
 
-      // Extract available tags
       const allTags = new Set<string>();
-      notesData.forEach((note: Note) => {
+      for (const note of coreNotes) {
         note.tags?.forEach(tag => allTags.add(tag.name));
-      });
+      }
       setAvailableTags(Array.from(allTags));
 
-      // Load all note links
-      const allLinks: NoteLink[] = [];
-      for (const note of notesData) {
-        try {
-          const linksResponse = await api.get(`/note-links/note/${note.id}/all`);
-          const noteLinks = linksResponse || [];
-          allLinks.push(...noteLinks);
-        } catch (err) {
-          console.warn(`Failed to load links for note ${note.id}:`, err);
-        }
-      }
-      
-      // Remove duplicates (since we get both directions)
-      const uniqueLinks = allLinks.filter((link, index, arr) => 
-        index === arr.findIndex(l => l.id === link.id)
-      );
+      const noteById = new Map(coreNotes.map(n => [n.id, n]));
+      const graphLinks = toGraphLinks(coreLinks, noteById);
 
-      // Create and process graph
-      const newGraph = createGraphFromData(notesData, uniqueLinks);
+      const newGraph = createGraphFromData(coreNotes, graphLinks);
       setGraph(newGraph);
       setFilteredGraph(newGraph);
       setGraphStats(getGraphStatistics(newGraph));
@@ -154,20 +123,18 @@ const NotesGraph: React.FC = () => {
     }
   };
 
-  // WebSocket integration for real-time graph updates
   const handleGraphUpdate = useCallback((message: NoteUpdateMessage) => {
     console.log('Received real-time graph update:', message);
-    
+
     switch (message.eventType) {
       case 'NOTE_CREATED':
       case 'NOTE_UPDATED':
       case 'NOTE_DELETED':
       case 'NOTE_LINK_CREATED':
       case 'NOTE_LINK_DELETED':
-        // Reload graph data for any note or link changes
         loadData();
         break;
-        
+
       default:
         console.log('Unknown graph update message type:', message.eventType);
     }
@@ -177,11 +144,6 @@ const NotesGraph: React.FC = () => {
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    if (!query.trim()) {
-      applyFilters(selectedTags, '');
-      return;
-    }
-    
     applyFilters(selectedTags, query);
   }, [selectedTags]);
 
@@ -192,28 +154,23 @@ const NotesGraph: React.FC = () => {
 
   const applyFilters = useCallback((tags: string[], query: string) => {
     let filtered = graph;
-    
-    // Apply tag filter
+
     if (tags.length > 0) {
       filtered = filterGraphByTags(filtered, tags);
     }
-    
-    // Apply search filter
+
     if (query.trim()) {
       const matchingNodes = searchNodes(filtered, query);
       const searchGraph = new DirectedGraph();
-      
-      // Add matching nodes and their connections
+
       matchingNodes.forEach(nodeId => {
         if (filtered.hasNode(nodeId)) {
           searchGraph.addNode(nodeId, filtered.getNodeAttributes(nodeId));
-          
-          // Add connected nodes and edges
+
           filtered.forEachNeighbor(nodeId, (neighbor) => {
             if (!searchGraph.hasNode(neighbor)) {
               searchGraph.addNode(neighbor, filtered.getNodeAttributes(neighbor));
             }
-            
             filtered.forEachEdge(nodeId, neighbor, (_edge, attributes) => {
               if (!searchGraph.hasEdge(nodeId, neighbor)) {
                 searchGraph.addDirectedEdge(nodeId, neighbor, attributes);
@@ -222,24 +179,20 @@ const NotesGraph: React.FC = () => {
           });
         }
       });
-      
+
       filtered = searchGraph;
     }
-    
+
     setFilteredGraph(filtered);
     setGraphStats(getGraphStatistics(filtered));
   }, [graph]);
 
   const handleNodeClick = useCallback((nodeId: string) => {
     const note = notes.find(n => n.id.toString() === nodeId);
-    if (note) {
-      setSelectedNote(note);
-    }
+    if (note) setSelectedNote(note);
   }, [notes]);
 
-  const handleCloseModal = () => {
-    setSelectedNote(null);
-  };
+  const handleCloseModal = () => setSelectedNote(null);
 
   useEffect(() => {
     loadData();
@@ -307,7 +260,7 @@ const NotesGraph: React.FC = () => {
             className="search-input"
           />
         </div>
-        
+
         {availableTags.length > 0 && (
           <div className="filter-section">
             <label>Filter by tags:</label>
@@ -333,8 +286,8 @@ const NotesGraph: React.FC = () => {
         <div className="legend-items">
           {Object.entries(LINK_TYPE_COLORS).map(([type, color]) => (
             <div key={type} className="legend-item">
-              <div 
-                className="legend-color" 
+              <div
+                className="legend-color"
                 style={{ backgroundColor: color }}
               ></div>
               <span>{type.replace('_', ' ')}</span>
@@ -344,7 +297,7 @@ const NotesGraph: React.FC = () => {
       </div>
 
       <div className="notes-graph-viewport">
-        <SigmaContainer 
+        <SigmaContainer
           style={{ height: '600px', width: '100%' }}
           settings={{
             defaultNodeColor: '#6366f1',
@@ -365,8 +318,8 @@ const NotesGraph: React.FC = () => {
           <div className="note-modal" onClick={(e) => e.stopPropagation()}>
             <div className="note-modal-header">
               <h2>{selectedNote.title}</h2>
-              <button 
-                className="note-modal-close" 
+              <button
+                className="note-modal-close"
                 onClick={handleCloseModal}
                 aria-label="Close"
               >

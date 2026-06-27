@@ -58,19 +58,24 @@ props) so it is not a boundary violation.
 
 ### C. Graph view (`features/notes/NotesGraph.tsx`, `features/workspace/GraphView.tsx`)
 
-| # | File | Violating import | Bypasses | CoreAPI coverage | Fix in |
-|---|------|-----------------|----------|-----------------|--------|
-| V2 | `src/features/notes/NotesGraph.tsx:5` | `import { api } from '../../services/api'` | REST client directly (`/notes`, `/note-links`) | `api.graph()` | **B6** (#299) |
-| V3 | `src/features/workspace/GraphView.tsx:13` | `import { …type NormalizedLink, type WorkspaceNote } from './types'` | Workspace domain types | `CoreNote`, `CoreLink` from `@modulo/core` | **B6** (#299) |
+**Status: V2 and V3 both fixed in B6 (#299).**
 
-**Detail for V2:** `NotesGraph` fetches `GET /notes` and then per-note
-`GET /note-links/note/:id/all` in a loop — an O(n) chattiness pattern that
-`CoreAPIImpl.graph()` consolidates into two parallel requests and builds a
-`GraphQueryResult` client-side with `buildGraph()`.
+| # | File | Violating import | Bypasses | CoreAPI coverage | Fix in | Status |
+|---|------|-----------------|----------|-----------------|--------|--------|
+| V2 | `src/features/notes/NotesGraph.tsx:5` | `import { api } from '../../services/api'` | REST client directly (`/notes`, `/note-links`) | `api.notes()` + `api.links()` in parallel | **B6** (#299) | ✅ Fixed |
+| V3 | `src/features/workspace/GraphView.tsx:13` | `import { …type NormalizedLink, type WorkspaceNote } from './types'` | Workspace domain types | `CoreNote`, `CoreLink` from `@modulo/core` | **B6** (#299) | ✅ Fixed |
 
-**Detail for V3:** `GraphView` (the D3 variant) types its node/link data as
-`WorkspaceNote` and `NormalizedLink`. After B6 it will accept `CoreNote` and
-`CoreLink` and call the `CoreAPIImpl` for data.
+**B6 changes for V2:** Replaced the `api` service import with `createCoreAPI()`. The
+O(n) serial `GET /note-links/note/:id/all` loop is gone — replaced with two parallel
+calls (`api.notes()` + `api.links()`). A local `toGraphLinks()` adapter converts
+`CoreLink[]` (IDs only) to the embedded-note shape that `createGraphFromData` expects,
+keeping `graphUtils.ts` untouched.
+
+**B6 changes for V3:** `GraphView` now accepts `CoreNote[]` and `CoreLink[]`. The
+`WorkspaceNote`/`NormalizedLink` imports from `./types` are removed. `isAnchored` and
+`relativeTime` are defined locally (same pattern as `NotesView`/`DashboardView`). The
+temporary `graphLinks` adapter in `Workspace.tsx` (added in B4 as a placeholder) is
+removed — `data.links: CoreLink[]` is passed directly.
 
 ---
 
