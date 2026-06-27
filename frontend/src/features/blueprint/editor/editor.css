@@ -389,3 +389,28 @@
   font-size: 12.5px;
   color: #fbbf24;
 }
+
+/* Custom code node inline editor (#279) */
+.bp-node__code {
+  padding: 6px 8px;
+  border-top: 1px solid #2a2a32;
+}
+
+.bp-code-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0a0b;
+  color: #a5f3fc;
+  border: 1px solid #2a2a32;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 4px 6px;
+  resize: vertical;
+  outline: none;
+}
+
+.bp-code-textarea:focus {
+  border-color: #4f46e5;
+}

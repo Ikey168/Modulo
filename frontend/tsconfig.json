@@ -24,7 +24,8 @@
       "@/*": ["*"],
       "@components/*": ["components/*"],
       "@features/*": ["features/*"],
-      "@store/*": ["store/*"]
+      "@store/*": ["store/*"],
+      "@modulo/core": ["core/index.ts"]
     }
   },
   "include": ["src"],

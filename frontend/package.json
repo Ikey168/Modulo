@@ -9,6 +9,7 @@
     "build:strict": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:boundary": "eslint . --ext ts,tsx 2>&1 | grep 'no-restricted-imports' || true",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
