@@ -147,6 +147,21 @@ export const CORE_NODES: NodeDescriptor[] = [
     outputs: [{ id: 'summary', name: 'Summary', type: DataTypes.String }],
     capability: 'ai:invoke',
   },
+  {
+    type: 'action.code.execute',
+    version: 1,
+    category: 'action',
+    title: 'Custom Code',
+    description:
+      'Runs a sandboxed JavaScript function with the note as input. ' +
+      'Write a function expression in the node body: function(note) { return note.title; }. ' +
+      'No Java, filesystem, or network access. CPU time and instruction count are bounded.',
+    execIn: true,
+    execOut: ['then'],
+    inputs: [{ id: 'note', name: 'Note', type: DataTypes.Note }],
+    outputs: [{ id: 'output', name: 'Output', type: DataTypes.String }],
+    capability: 'code:execute',
+  },
 
   // ----- Logic -----
   {

@@ -32,6 +32,13 @@ export const CAPABILITY_LABELS: Record<string, { label: string; description: str
     label: 'AI — Invoke',
     description: 'Send note content to the AI service for summarisation.',
   },
+  'code:execute': {
+    label: 'Custom Code — Execute',
+    description:
+      'Run sandboxed JavaScript in this blueprint. ' +
+      'The script receives note fields (title, content) and returns a string. ' +
+      'No Java, filesystem, or network access is available.',
+  },
 };
 
 export function capabilityLabel(cap: string): string {

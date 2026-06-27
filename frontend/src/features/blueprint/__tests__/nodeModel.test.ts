@@ -134,7 +134,7 @@ describe('NodeCatalog', () => {
   it('lists by category', () => {
     const catalog = createCoreCatalog();
     expect(catalog.listByCategory('trigger').length).toBe(3);
-    expect(catalog.listByCategory('action').length).toBe(4);
+    expect(catalog.listByCategory('action').length).toBe(5);
     expect(catalog.listByCategory('logic').length).toBe(2);
   });
 

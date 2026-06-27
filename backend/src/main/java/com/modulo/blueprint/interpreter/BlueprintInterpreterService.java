@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
+import com.modulo.blueprint.sandbox.SandboxedScriptService;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.plugin.event.LinkEvent;
@@ -56,6 +57,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private TagService tagService;
     @Autowired private OpenAIService openAIService;
     @Autowired private BlockchainService blockchainService;
+    @Autowired private SandboxedScriptService sandboxedScriptService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
 
@@ -316,6 +318,28 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     }
                 }
                 outputs.put("summary", summary);
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.code.execute": {
+                String code = node.getConfig() != null
+                    ? (String) node.getConfig().get("code") : null;
+                if (code == null || code.isBlank()) {
+                    logger.warn("action.code.execute: node '{}' has no 'code' config", node.getId());
+                    outputs.put("output", "");
+                    return new NodeResult(outputs, "then");
+                }
+                Note note = (Note) inputs.get("note");
+                String title   = note != null && note.getTitle()   != null ? note.getTitle()   : "";
+                String content = note != null && note.getContent() != null ? note.getContent() : "";
+                String output;
+                try {
+                    output = sandboxedScriptService.execute(code, title, content);
+                } catch (SandboxedScriptService.ScriptExecutionException e) {
+                    logger.warn("action.code.execute: script error on node '{}' — {}", node.getId(), e.getMessage());
+                    output = "";
+                }
+                outputs.put("output", output);
                 return new NodeResult(outputs, "then");
             }
 

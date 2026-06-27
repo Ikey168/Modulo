@@ -2,8 +2,8 @@
 // typed handle for each pin: exec pins on the top/edges (white), data pins on
 // the sides, colour-coded by data type. Handle ids are encoded by reactFlowAdapter.
 
-import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { memo, useCallback } from 'react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { DataType } from '../nodeModel';
 import {
   FlowNode,
@@ -35,9 +35,22 @@ function typeColor(type: DataType): string {
   return TYPE_COLORS[type] ?? '#9ca3af';
 }
 
-function BlueprintNodeViewImpl({ data, selected }: NodeProps<FlowNode>) {
+const CODE_EXECUTE_DEFAULT = `function(note) {
+  // note.title, note.content
+  return note.title;
+}`;
+
+function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
   const { descriptor } = data;
   const accent = CATEGORY_COLORS[descriptor.category] ?? '#6b7280';
+  const { updateNodeData } = useReactFlow();
+
+  const onCodeChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      updateNodeData(id, { ...data, config: { ...(data.config ?? {}), code: e.target.value } });
+    },
+    [id, data, updateNodeData],
+  );
 
   return (
     <div
@@ -110,6 +123,20 @@ function BlueprintNodeViewImpl({ data, selected }: NodeProps<FlowNode>) {
           ))}
         </div>
       </div>
+
+      {descriptor.type === 'action.code.execute' && (
+        <div className="bp-node__code">
+          <textarea
+            className="bp-code-textarea"
+            value={(data.config?.code as string) ?? CODE_EXECUTE_DEFAULT}
+            onChange={onCodeChange}
+            onMouseDown={(e) => e.stopPropagation()}
+            rows={5}
+            spellCheck={false}
+            aria-label="JavaScript function body"
+          />
+        </div>
+      )}
     </div>
   );
 }

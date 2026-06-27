@@ -36,7 +36,8 @@ public class BlueprintCapabilityService {
         "action.note.create",  "notes:write",
         "action.tag.add",      "notes:write",
         "action.note.anchor",  "blockchain:anchor",
-        "action.ai.summarize", "ai:invoke"
+        "action.ai.summarize", "ai:invoke",
+        "action.code.execute", "code:execute"
     );
 
     @Autowired private JdbcTemplate jdbc;

@@ -392,6 +392,13 @@
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
         </dependency>
+
+        <!-- Rhino: sandboxed JS execution for action.code.execute (#279) -->
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>1.7.15</version>
+        </dependency>
     </dependencies>
 
     <build>
