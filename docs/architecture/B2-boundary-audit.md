@@ -38,11 +38,17 @@ imported. ✓ Clean.
 
 ### B. Link parser / link manager (`features/notes/NoteLinkManager.tsx`)
 
-| # | File | Violating import | Bypasses | CoreAPI coverage | Fix in |
-|---|------|-----------------|----------|-----------------|--------|
-| V1 | `src/features/notes/NoteLinkManager.tsx:2` | `import { api } from '../../services/api'` | REST client directly (`/note-links/*`) | `api.links()`, `api.createLink()`, `api.removeLink()` | **B5** (#298) |
+**Status: V1 fixed in B5 (#298).**
 
-**Detail:** The component calls `GET /note-links/note/:id/outgoing`, `GET /note-links/note/:id/incoming`, `POST /note-links`, and `DELETE /note-links/:id` through the raw `api` fetch wrapper. It also re-declares `Note` and `NoteLink` interfaces that duplicate `CoreNote` and `CoreLink`.
+| # | File | Violating import | Bypasses | CoreAPI coverage | Fix in | Status |
+|---|------|-----------------|----------|-----------------|--------|--------|
+| V1 | `src/features/notes/NoteLinkManager.tsx:2` | `import { api } from '../../services/api'` | REST client directly (`/note-links/*`) | `api.outgoingLinks()`, `api.incomingLinks()`, `api.createLink()`, `api.removeLink()` | **B5** (#298) | ✅ Fixed |
+
+**B5 changes:** Replaced the raw `api` fetch wrapper with `createCoreAPI()` from
+`@modulo/core`. `outgoingLinks`/`incomingLinks` now return `CoreLink[]` (IDs only);
+note titles are resolved from the `allNotes` prop. Duplicate `Note`, `NoteLink`, and
+`NoteLinkCreate` interfaces removed. `createLink()` and `removeLink()` emit
+`link.created`/`link.removed` on the `CoreEventBus` automatically.
 
 **Note:** `components/common/NoteLinkManager.tsx` is a separate copy in the shared
 component tree — it does _not_ import from `services/api` (it receives data via
