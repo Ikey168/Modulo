@@ -59,6 +59,9 @@ services:
       # defaults to localhost:4317, which isn't reachable from inside the
       # container, and floods the log with "Failed to export spans" warnings.
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - MODULO_INTEGRATIONS_IPFS_NODE_URL=http://ipfs:5001
+      - MODULO_INTEGRATIONS_IPFS_GATEWAY_URL=http://ipfs:8080
+      - MODULO_INTEGRATIONS_IPFS_ENABLED=true
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
     depends_on:
       db:
@@ -280,6 +283,26 @@ services:
       timeout: 10s
       retries: 5
 
+  # IPFS node for E2E encrypted note sharing (#265)
+  ipfs:
+    image: ipfs/kubo:v0.26.0
+    ports:
+      - "4001:4001"   # Swarm
+      - "5001:5001"   # API
+      - "8082:8080"   # Gateway
+    volumes:
+      - ipfs_data:/data/ipfs
+    environment:
+      - IPFS_PROFILE=server
+    networks:
+      - modulo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   # OPA with audit logging configuration
   opa:
     image: openpolicyagent/opa:0.59.0-envoy
@@ -324,6 +347,8 @@ volumes:
   loki_data:
     driver: local
   elasticsearch_data:
+    driver: local
+  ipfs_data:
     driver: local
 
 networks:
