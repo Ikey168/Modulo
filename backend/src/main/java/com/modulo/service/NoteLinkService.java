@@ -85,7 +85,10 @@ public class NoteLinkService {
      * Delete a link
      */
     public void deleteLink(UUID linkId) {
+        Optional<NoteLink> linkOpt = noteLinkRepository.findById(linkId);
         noteLinkRepository.deleteById(linkId);
+        linkOpt.ifPresent(link -> eventBus.publishAsync(
+            new LinkEvent.LinkDeleted(link.getSourceNote().getId(), link.getTargetNote().getId())));
     }
 
     /**
@@ -94,6 +97,7 @@ public class NoteLinkService {
     public void deleteAllLinksBetweenNotes(Long sourceNoteId, Long targetNoteId) {
         List<NoteLink> links = noteLinkRepository.findBySourceNoteIdAndTargetNoteId(sourceNoteId, targetNoteId);
         noteLinkRepository.deleteAll(links);
+        eventBus.publishAsync(new LinkEvent.LinkDeleted(sourceNoteId, targetNoteId));
     }
 
     /**
