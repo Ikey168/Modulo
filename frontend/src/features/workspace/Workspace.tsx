@@ -54,13 +54,6 @@ export default function Workspace() {
   const { user, logout } = useAuth();
   const data = useCoreWorkspace();
 
-  // GraphView (fixed in B6) still expects NormalizedLink shape {sourceId, targetId}.
-  // Map CoreLink here to avoid a breaking change in GraphView's interface.
-  const graphLinks = useMemo(
-    () => data.links.map((l) => ({ id: l.id, linkType: l.linkType, sourceId: l.sourceNoteId, targetId: l.targetNoteId })),
-    [data.links],
-  );
-
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,7 +167,7 @@ export default function Workspace() {
           />
         )}
         {view === 'graph' && (
-          <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
+          <GraphView notes={data.notes} links={data.links} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
         )}
         {view === 'dashboard' && (
           <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />
