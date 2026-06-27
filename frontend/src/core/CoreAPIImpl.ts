@@ -51,6 +51,10 @@ function toNote(n: WorkspaceNote): CoreNote {
     createdAt: n.createdAt,
     updatedAt: n.updatedAt,
     version: n.version,
+    isOnBlockchain: n.isOnBlockchain,
+    isDecentralized: n.isDecentralized,
+    blockchainTxHash: n.blockchainTxHash,
+    ipfsCid: n.ipfsCid,
   };
 }
 

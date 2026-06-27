@@ -13,6 +13,11 @@ export interface CoreNote {
   createdAt?: string;
   updatedAt?: string;
   version?: number;
+  // On-chain provenance — only present if the note has been anchored.
+  isOnBlockchain?: boolean;
+  isDecentralized?: boolean;
+  blockchainTxHash?: string;
+  ipfsCid?: string;
 }
 
 /** A tag as seen by a feature pack. */
