@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run typecheck *)",
+      "Bash(npm run lint:boundary)",
+      "Bash(npm run lint:boundary *)",
+      "Bash(npm run test:run *)",
+      "Bash(claude mcp list)",
+      "Bash(mvn test -pl . *)",
+      "Bash(mvn -q test -Dtest=*)",
+      "Bash(mvn test -Dtest=*)",
+      "Bash(mvn -q -o test -Dtest=*)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run *)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc --noEmit *)"
+    ]
+  }
+}
