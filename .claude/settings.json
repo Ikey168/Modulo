@@ -6,6 +6,7 @@
       "Bash(npm run lint)",
       "Bash(npm run lint:boundary)",
       "Bash(npm run lint:boundary *)",
+      "Bash(npm run lint:boundary:ci)",
       "Bash(npm run test:run *)",
       "Bash(claude mcp list)",
       "Bash(mvn test -pl . *)",

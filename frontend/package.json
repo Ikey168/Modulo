@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:boundary": "eslint . --ext ts,tsx 2>&1 | grep 'no-restricted-imports' || true",
+    "lint:boundary:ci": "eslint --no-eslintrc -c .eslintrc.boundary.cjs . --ext ts,tsx --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

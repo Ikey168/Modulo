@@ -1,7 +1,7 @@
 // ESLint config for the Modulo frontend.
 // Boundary rule (no-restricted-imports) guards the @modulo/core API surface:
 // feature-pack code must not bypass the core API by importing workspace internals
-// directly. The rule is 'warn' now; it becomes 'error' in B9 (#302).
+// directly. Rule is 'error' as of B9 (#302) — violations block CI.
 module.exports = {
   root: true,
   env: { browser: true, es2020: true },
@@ -10,26 +10,27 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules'],
+  ignorePatterns: ['dist', '.eslintrc.cjs', '.eslintrc.boundary.cjs', 'node_modules'],
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-    // B2 boundary guard — import core types/data via @modulo/core, not internal paths.
-    // Will be 'error' in B9 once B4-B7 land and fix the violations.
+    // B9 boundary guard — feature-pack code must import via @modulo/core, not workspace internals.
+    // Flipped to 'error' in B9 (#302) after B4–B7 cleared all violations.
+    // See docs/architecture/B2-boundary-audit.md for violation history.
     'no-restricted-imports': [
-      'warn',
+      'error',
       {
         patterns: [
           {
             group: ['**/features/workspace/workspaceApi', '../features/workspace/workspaceApi'],
             message:
-              "Use @modulo/core instead of workspaceApi directly (B1 #294). Will be 'error' in B9 (#302).",
+              'Import from @modulo/core instead of workspaceApi directly. See B1 #294 / B9 #302.',
           },
           {
             group: ['**/features/workspace/types', '../features/workspace/types'],
             message:
-              "Use CoreNote/CoreLink/CoreTag from @modulo/core instead of workspace types (B1 #294). Will be 'error' in B9 (#302).",
+              'Use CoreNote/CoreLink/CoreTag from @modulo/core instead of workspace types. See B1 #294 / B9 #302.',
           },
           {
             group: [
@@ -37,7 +38,7 @@ module.exports = {
               '../features/workspace/useWorkspaceData',
             ],
             message:
-              "Use createCoreAPI() from @modulo/core instead of useWorkspaceData (B1 #294). Will be 'error' in B9 (#302).",
+              'Use createCoreAPI() from @modulo/core instead of useWorkspaceData. See B1 #294 / B9 #302.',
           },
         ],
       },

@@ -47,10 +47,11 @@ instead.**
 - Capability map in `BlueprintCapabilityService.java`
 - Sandboxed JS nodes: `SandboxedScriptService.java` (Rhino engine, 500k instruction limit, 2s wall timeout)
 
-### Boundary enforcement (B2 #295)
-ESLint `no-restricted-imports` rule in `frontend/.eslintrc.cjs` (currently `warn`).
-Violations catalogued in `docs/architecture/B2-boundary-audit.md`.
-Run `npm run lint:boundary` for boundary-specific output.
+### Boundary enforcement (B9 #302)
+ESLint `no-restricted-imports` rule in `frontend/.eslintrc.cjs` — **`error`** since B9.
+All violations cleared in B4–B7. CI gate: `boundary-lint` job in `.github/workflows/ci.yml`.
+- `npm run lint:boundary` — human-readable grep filter (always exits 0)
+- `npm run lint:boundary:ci` — strict CI check (exits 1 on any violation)
 
 ## How to run tests
 
@@ -88,14 +89,14 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 | Issue | Title | Status |
 |-------|-------|--------|
 | #294 / B1 | Define public `ModuloCoreAPI` interface | Done |
-| #295 / B2 | Boundary audit & inventory | Done (this branch) |
-| #296 / B3 | ADR: boundary contract | Open |
-| #297 / B4 | Wire workspace route to CoreAPIImpl | Open |
-| #298 / B5 | Wire link parser to CoreAPIImpl | Open |
-| #299 / B6 | Wire graph views to CoreAPIImpl | Open |
-| #300 / B7 | Wire blueprint invocation to CoreAPIImpl | Open |
+| #295 / B2 | Boundary audit & inventory | Done |
+| #296 / B3 | Feature-pack contract (FeatureRegistry) | Done |
+| #297 / B4 | Wire workspace route to CoreAPIImpl | Done |
+| #298 / B5 | Wire link parser to CoreAPIImpl | Done |
+| #299 / B6 | Wire graph views to CoreAPIImpl | Done |
+| #300 / B7 | Register note-workbench feature pack | Done |
 | #301 / B8 | Pack SDK scaffold + example pack | Open |
-| #302 / B9 | Flip lint rule to `error`, add CI gate | Open |
+| #302 / B9 | Flip lint rule to `error`, add CI gate | Done (this branch) |
 
 ## Common patterns
 
