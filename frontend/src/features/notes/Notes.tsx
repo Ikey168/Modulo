@@ -4,6 +4,7 @@ import TagInput from '../../components/common/TagInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import NoteLinkManager from './NoteLinkManager';
+import GraphPanels from './graph/GraphPanels';
 // TODO: Fix module resolution issue
 // import ConflictResolutionModal from '../../components/conflicts/ConflictResolutionModal';
 import TouchHandler from '../../components/common/TouchHandler';
@@ -19,7 +20,14 @@ import { NoteTemplate } from './editor/templateApi';
 import ShareLinkManager from './sharing/ShareLinkManager';
 import EncryptedSharePanel from './sharing/EncryptedSharePanel';
 import AuditTimeline from './audit/AuditTimeline';
+import { CollabEditor, PresenceAvatars, CommentsSidebar, usePresence } from './collab';
+import { useAuth } from '../auth/useAuth';
 import './Notes.css';
+
+const NotePresenceBar: React.FC<{ noteId: number; userId: string; userName: string }> = ({ noteId, userId, userName }) => {
+  const { participants } = usePresence(noteId, userId, userName);
+  return <PresenceAvatars participants={participants} />;
+};
 
 interface Tag {
   id: string;
@@ -37,6 +45,8 @@ interface Note {
 const Notes: React.FC = () => {
   const { user } = useAuth();
   const editorUserId = user?.id ?? 'current-user';
+  const collabUserId = user?.id ?? 'current-user';
+  const collabUserName = user?.name ?? 'Anonymous';
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -168,6 +178,24 @@ const Notes: React.FC = () => {
       // non-critical
     }
   }, [editorUserId]);
+  // Open another note by id (used by the knowledge-graph panels to navigate).
+  const handleOpenNote = useCallback(async (noteId: number) => {
+    setIsEditing(false);
+    setIsCreating(false);
+    const existing = notes.find(n => n.id === noteId);
+    if (existing) {
+      setSelectedNote(existing);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/notes/${noteId}`);
+      if (response.ok) {
+        setSelectedNote(await response.json());
+      }
+    } catch (err) {
+      console.error('Failed to open note', noteId, err);
+    }
+  }, [notes]);
 
   useEffect(() => {
     loadNotes();
@@ -539,6 +567,23 @@ const Notes: React.FC = () => {
                   <AttachmentPanel
                     noteId={selectedNote.id}
                     onInsertMarkdown={(md) => setContent(prev => prev + md)}
+                <label htmlFor="note-content">Content</label>
+                {isEditing && selectedNote?.id ? (
+                  <CollabEditor
+                    noteId={selectedNote.id}
+                    userId={collabUserId}
+                    userName={collabUserName}
+                    initialContent={content}
+                    onContentChange={setContent}
+                  />
+                ) : (
+                  <textarea
+                    id="note-content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Write your note content..."
+                    className="form-textarea"
+                    rows={15}
                   />
                 )}
               </div>
@@ -565,6 +610,11 @@ const Notes: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                 <h2 style={{ margin: 0, flex: 1 }}>{selectedNote.title}</h2>
                 {selectedNote.id && <ExportButton noteId={selectedNote.id} noteTitle={selectedNote.title} />}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0 }}>{selectedNote.title}</h2>
+                {selectedNote.id && (
+                  <NotePresenceBar noteId={selectedNote.id} userId={collabUserId} userName={collabUserName} />
+                )}
               </div>
               {selectedNote.tags && selectedNote.tags.length > 0 && (
                 <div className="note-tags">
@@ -601,6 +651,18 @@ const Notes: React.FC = () => {
               {/* Audit timeline (#266) */}
               {selectedNote.id && (
                 <AuditTimeline noteId={selectedNote.id} userId={editorUserId} />
+              {/* Knowledge-graph panels: backlinks, unlinked mentions, related, local graph */}
+              {selectedNote.id && (
+                <GraphPanels noteId={selectedNote.id} onOpenNote={handleOpenNote} />
+              )}
+
+              {/* Collaboration: comments sidebar (#262) */}
+              {selectedNote.id && (
+                <CommentsSidebar
+                  noteId={selectedNote.id}
+                  userId={collabUserId}
+                  userName={collabUserName}
+                />
               )}
             </div>
           ) : (

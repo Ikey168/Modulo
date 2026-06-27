@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
+import NotificationBell from '../../features/notes/collab/NotificationBell';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -64,6 +65,7 @@ const Navbar = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                <NotificationBell userId={user?.id ?? 'current-user'} />
                 <div className="flex items-center space-x-2">
                   {user?.picture && (
                     <img
