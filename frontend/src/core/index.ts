@@ -15,6 +15,24 @@
 export { CoreAPIImpl } from './CoreAPIImpl';
 export type { ModuloCoreAPI } from './ModuloCoreAPI';
 
+// ── Feature-pack contract ─────────────────────────────────────────────────────
+export type {
+  CommandContribution,
+  EditorSurfaceContribution,
+  FeaturePack,
+  RouteContribution,
+  ViewContribution,
+} from './featurePack';
+
+export {
+  FeatureRegistry,
+  getFeatureRegistry,
+  mountFeature,
+  registerFeature,
+  unmountFeature,
+} from './featureRegistry';
+export type { PackState } from './featureRegistry';
+
 export type {
   BlueprintInvokeOptions,
   BlueprintListItem,
