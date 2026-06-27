@@ -19,6 +19,7 @@ import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
 import PackManager from './features/blueprint/pack/PackManager';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
+import SharedNotePage from './features/notes/sharing/SharedNotePage';
 
 function App() {
   useEffect(() => {
@@ -42,6 +43,8 @@ function App() {
 
             {/* Public routes */}
             <Route path="/home" element={<Home />} />
+            {/* E2E encrypted shared note viewer — no auth required (#265) */}
+            <Route path="/shared/:noteId" element={<SharedNotePage />} />
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
             

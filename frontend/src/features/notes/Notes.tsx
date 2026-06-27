@@ -17,6 +17,9 @@ import { conflictResolutionService } from '../../services/conflictResolution';
 import { useAuth } from '../auth/useAuth';
 import { AttachmentPanel, SlashCommandMenu, TemplateManager, ExportButton, useSlashCommands, templateApi } from './editor';
 import { NoteTemplate } from './editor/templateApi';
+import ShareLinkManager from './sharing/ShareLinkManager';
+import EncryptedSharePanel from './sharing/EncryptedSharePanel';
+import AuditTimeline from './audit/AuditTimeline';
 import { CollabEditor, PresenceAvatars, CommentsSidebar, usePresence } from './collab';
 import { useAuth } from '../auth/useAuth';
 import './Notes.css';
@@ -635,6 +638,19 @@ const Notes: React.FC = () => {
                 />
               )}
 
+              {/* Share links (#264) */}
+              {selectedNote.id && (
+                <ShareLinkManager noteId={selectedNote.id} userId={editorUserId} />
+              )}
+
+              {/* E2E encrypted sharing (#265) */}
+              {selectedNote.id && (
+                <EncryptedSharePanel noteId={selectedNote.id} content={selectedNote.content} />
+              )}
+
+              {/* Audit timeline (#266) */}
+              {selectedNote.id && (
+                <AuditTimeline noteId={selectedNote.id} userId={editorUserId} />
               {/* Knowledge-graph panels: backlinks, unlinked mentions, related, local graph */}
               {selectedNote.id && (
                 <GraphPanels noteId={selectedNote.id} onOpenNote={handleOpenNote} />
