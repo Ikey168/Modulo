@@ -15,13 +15,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableJpaRepositories(
-    basePackages = {"com.modulo.repository", "com.modulo.plugin.submission"}, 
+    basePackages = "com.modulo",
     excludeFilters = @ComponentScan.Filter(
-        type = FilterType.REGEX, 
+        type = FilterType.REGEX,
         pattern = "com\\.modulo\\.repository\\.offline\\..*"
     )
 )
-@EntityScan({"com.modulo.model", "com.modulo.entity", "com.modulo.plugin.submission"})
+@EntityScan("com.modulo")
 @EnableAsync
 @EnableScheduling
 @EnableAspectJAutoProxy
