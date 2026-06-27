@@ -71,9 +71,12 @@ mvn -q -o test -Dtest=Foo        # offline mode (faster, needs prior compile)
 - Committer identity: `prod-claude@krasnjanski-mail.com` / `Ikey168`
 - Branch naming: `claude/issues-NNN` or `claude/issues-NNN-MMM` for multi-issue branches
 
+The shell has no global git identity configured, so always pass `-c` flags:
+
 ```sh
 git add <specific files>
-git commit --no-verify -m "feat(#NNN): description
+git -c user.email="prod-claude@krasnjanski-mail.com" -c user.name="Ikey168" \
+  commit --no-verify -m "feat(#NNN): description
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
