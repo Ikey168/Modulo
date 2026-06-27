@@ -89,19 +89,22 @@ definition, issue #293).
 
 ### E. App-shell / workspace route (`features/workspace/`)
 
-These are **implementation-layer** violations — the workspace module wiring
-itself uses internal APIs that will be re-routed through `CoreAPIImpl` in B4.
+**Status: V4–V7 fixed in B4 (#297).** V8 remains open for B6 (#299).
 
-| # | File | Violating import | CoreAPI coverage | Fix in |
-|---|------|-----------------|-----------------|--------|
-| V4 | `src/features/workspace/NotesView.tsx:4` | `import { …type WorkspaceNote } from './types'` | `CoreNote` from `@modulo/core` | **B4** (#297) |
-| V5 | `src/features/workspace/NotesView.tsx:5` | `import type { WorkspaceData } from './useWorkspaceData'` | `createCoreAPI()` | **B4** (#297) |
-| V6 | `src/features/workspace/Workspace.tsx:10` | `import { useWorkspaceData } from './useWorkspaceData'` | `createCoreAPI()` | **B4** (#297) |
-| V7 | `src/features/workspace/useWorkspaceData.ts:2` | `import { notesApi, tagsApi, linksApi } from './workspaceApi'` | `CoreAPIImpl` internals | **B4** (#297) |
-| V8 | `src/features/workspace/GraphView.tsx:13` _(types only)_ | `import { isAnchored, relativeTime, type WorkspaceNote } from './types'` | `CoreNote`, utilities | **B6** (#299) |
+| # | File | Violating import | CoreAPI coverage | Fix in | Status |
+|---|------|-----------------|-----------------|--------|--------|
+| V4 | `src/features/workspace/NotesView.tsx:4` | `import { …type WorkspaceNote } from './types'` | `CoreNote` from `@modulo/core` | **B4** (#297) | ✅ Fixed |
+| V5 | `src/features/workspace/NotesView.tsx:5` | `import type { WorkspaceData } from './useWorkspaceData'` | `createCoreAPI()` | **B4** (#297) | ✅ Fixed |
+| V6 | `src/features/workspace/Workspace.tsx:10` | `import { useWorkspaceData } from './useWorkspaceData'` | `createCoreAPI()` | **B4** (#297) | ✅ Fixed |
+| V7 | `src/features/workspace/useWorkspaceData.ts:2` | `import { notesApi, tagsApi, linksApi } from './workspaceApi'` | `CoreAPIImpl` internals | **B4** (#297) | ✅ Fixed |
+| V8 | `src/features/workspace/GraphView.tsx:13` _(types only)_ | `import { isAnchored, relativeTime, type WorkspaceNote } from './types'` | `CoreNote`, utilities | **B6** (#299) | ⏳ Open |
 
-`DashboardView.tsx` also imports `WorkspaceNote` and `WorkspaceTag` from
-`./types` — same pattern as V4/V8, fixed with the same B4/B6 pass.
+**B4 changes:** `useCoreWorkspace.ts` replaces `useWorkspaceData.ts` as the
+workspace data hook, delegating all note/tag/link I/O to `createCoreAPI()`.
+`NotesView`, `DashboardView`, and `Markdown` now use `CoreNote`/`CoreTag`/`CoreLink`
+from `@modulo/core`. Blockchain anchoring calls the REST endpoint directly (not
+through workspaceApi) since it is outside the core note-data contract.
+`DashboardView.tsx` was also fixed (same pattern as V4).
 
 ---
 

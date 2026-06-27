@@ -3,6 +3,7 @@
     "allow": [
       "Bash(npm run typecheck)",
       "Bash(npm run typecheck *)",
+      "Bash(npm run lint)",
       "Bash(npm run lint:boundary)",
       "Bash(npm run lint:boundary *)",
       "Bash(npm run test:run *)",

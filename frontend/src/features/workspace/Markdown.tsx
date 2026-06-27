@@ -1,11 +1,11 @@
 import { useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { WorkspaceNote } from './types';
+import type { CoreNote } from '@modulo/core';
 
 interface MarkdownProps {
   content: string;
-  notes: WorkspaceNote[];
+  notes: CoreNote[];
   onSelectNote: (id: number) => void;
 }
 
@@ -13,7 +13,7 @@ const WIKI_PREFIX = '#wiki:';
 
 // Rewrites [[Note Title]] into markdown links the custom <a> renderer can
 // resolve, so wiki-links stay navigable without raw HTML / sanitization risk.
-function preprocess(content: string, notes: WorkspaceNote[]): string {
+function preprocess(content: string, notes: CoreNote[]): string {
   return content.replace(/\[\[([^\]]+)\]\]/g, (_match, title: string) => {
     const note = notes.find((n) => n.title === title.trim());
     const target = note ? String(note.id) : 'missing';

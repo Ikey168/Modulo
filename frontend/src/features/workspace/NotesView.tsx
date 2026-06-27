@@ -1,8 +1,29 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { CoreNote } from '@modulo/core';
 import { Hover } from './atoms';
 import { Markdown } from './Markdown';
-import { anchorRef, isAnchored, relativeTime, type WorkspaceNote } from './types';
-import type { WorkspaceData } from './useWorkspaceData';
+import type { WorkspaceData } from './useCoreWorkspace';
+
+function isAnchored(note: CoreNote): boolean {
+  return Boolean(note.isOnBlockchain || note.isDecentralized);
+}
+
+function anchorRef(note: CoreNote): string | null {
+  if (note.blockchainTxHash) return `tx: ${note.blockchainTxHash.slice(0, 8)}…`;
+  if (note.ipfsCid) return `cid: ${note.ipfsCid.slice(0, 8)}…`;
+  return null;
+}
+
+function relativeTime(iso?: string): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 interface NotesViewProps {
   data: WorkspaceData;
@@ -45,17 +66,17 @@ export function NotesView({
   const outgoing = useMemo(() => {
     if (!note) return [];
     return links
-      .filter((l) => l.sourceId === note.id)
-      .map((l) => notes.find((n) => n.id === l.targetId))
-      .filter((n): n is WorkspaceNote => Boolean(n));
+      .filter((l) => l.sourceNoteId === note.id)
+      .map((l) => notes.find((n) => n.id === l.targetNoteId))
+      .filter((n): n is CoreNote => Boolean(n));
   }, [links, notes, note]);
 
   const backlinks = useMemo(() => {
     if (!note) return [];
     return links
-      .filter((l) => l.targetId === note.id)
-      .map((l) => notes.find((n) => n.id === l.sourceId))
-      .filter((n): n is WorkspaceNote => Boolean(n));
+      .filter((l) => l.targetNoteId === note.id)
+      .map((l) => notes.find((n) => n.id === l.sourceNoteId))
+      .filter((n): n is CoreNote => Boolean(n));
   }, [links, notes, note]);
 
   if (!note) {
@@ -116,7 +137,7 @@ export function NotesView({
 // ── Note list column ───────────────────────────────────────────────────────
 
 interface NoteListColumnProps {
-  notes: WorkspaceNote[];
+  notes: CoreNote[];
   selectedId: number | null;
   searchQuery: string;
   onSearch: (q: string) => void;
@@ -175,7 +196,7 @@ function NoteListColumn({ notes, selectedId, searchQuery, onSearch, onNewNote, o
   );
 }
 
-function FlatNoteItem({ note, selected, onSelect }: { note: WorkspaceNote; selected: boolean; onSelect: (id: number) => void }) {
+function FlatNoteItem({ note, selected, onSelect }: { note: CoreNote; selected: boolean; onSelect: (id: number) => void }) {
   const [h, setH] = useState(false);
   return (
     <div
@@ -205,12 +226,12 @@ function FlatNoteItem({ note, selected, onSelect }: { note: WorkspaceNote; selec
 // ── Editor ───────────────────────────────────────────────────────────────────
 
 interface EditorProps {
-  note: WorkspaceNote;
+  note: CoreNote;
   editMode: boolean;
   onToggleEdit: (v: boolean) => void;
   onSave: (title: string, content: string) => void;
   onSelectNote: (id: number) => void;
-  allNotes: WorkspaceNote[];
+  allNotes: CoreNote[];
 }
 
 function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }: EditorProps) {
@@ -313,10 +334,10 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }
 // ── Info panel ─────────────────────────────────────────────────────────────
 
 interface InfoPanelProps {
-  note: WorkspaceNote;
-  outgoing: WorkspaceNote[];
-  backlinks: WorkspaceNote[];
-  allNotes: WorkspaceNote[];
+  note: CoreNote;
+  outgoing: CoreNote[];
+  backlinks: CoreNote[];
+  allNotes: CoreNote[];
   onSelect: (id: number) => void;
   onAnchor: () => void;
   onAddTag: (name: string) => void;
@@ -447,7 +468,7 @@ function InfoSection({ title, children, topPad = 16 }: { title: string; children
   );
 }
 
-function LinkItem({ note, dir, onSelect }: { note: WorkspaceNote; dir: 'out' | 'in'; onSelect: (id: number) => void }) {
+function LinkItem({ note, dir, onSelect }: { note: CoreNote; dir: 'out' | 'in'; onSelect: (id: number) => void }) {
   const [h, setH] = useState(false);
   const isOut = dir === 'out';
   return (
