@@ -1,16 +1,15 @@
 name: OWASP ZAP Security Scan
 
 on:
+  # Full-stack DAST stands up the whole app (Postgres, Neo4j, backend, frontend)
+  # and can run for tens of minutes, so it is not used as a per-PR gate. It runs
+  # on pushes to long-lived branches, on a weekly schedule, and on demand.
   push:
-    branches: 
+    branches:
       - main
       - develop
       - 'feature/*'
       - 'release/*'
-  pull_request:
-    branches: 
-      - main
-      - develop
   schedule:
     # Weekly comprehensive scan - Sundays at 3 AM UTC
     - cron: '0 3 * * 0'
@@ -85,7 +84,8 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          # Workspaces monorepo: the lockfile lives at the repo root, not in frontend/.
+          cache-dependency-path: package-lock.json
 
       - name: Install root dependencies
         run: |
@@ -139,11 +139,10 @@ jobs:
           mvn clean package -DskipTests
           cd ..
           
-          # Build frontend (skip husky scripts in CI)
-          cd frontend
+          # Build frontend (skip husky scripts in CI).
+          # npm ci runs at the workspace root; build the frontend workspace.
           npm ci --prefer-offline --no-audit --ignore-scripts
-          npm run build
-          cd ..
+          npm run build --workspace frontend
           
           echo "Application built successfully"
 
