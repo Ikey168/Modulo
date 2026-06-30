@@ -148,7 +148,7 @@ Successfully implemented SQLite-based offline note storage with automatic synchr
 - ✅ `frontend/src/features/notes/Notes.tsx` - Enhanced with offline support
 
 ### Documentation:
-- ✅ `SQLITE_OFFLINE_IMPLEMENTATION.md` - This comprehensive implementation guide
+- ✅ `docs/sync/sqlite-offline.md` - This comprehensive implementation guide
 
 ## ⚙️ Configuration
 

@@ -228,8 +228,8 @@ events:
 ## 📚 Documentation
 
 ### Created Documentation
-1. **PLUGIN_ARCHITECTURE.md** - Detailed system architecture
-2. **PLUGIN_DEVELOPMENT_GUIDE.md** - Complete developer guide
+1. [**architecture.md**](architecture.md) - Detailed system architecture
+2. [**development-guide.md**](development-guide.md) - Complete developer guide
 3. **API Documentation** - Comprehensive API reference
 4. **Database Schema** - Migration scripts and table documentation
 

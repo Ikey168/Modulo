@@ -206,6 +206,10 @@ app:
 
 Core REST resources include `/api/notes`, `/api/tags`, and `/api/note-links`.
 
+For everything else — architecture, plugins, mobile, sync, security, authz,
+observability, deployment, and more — see the
+[documentation hub](docs/README.md).
+
 ## Configuration and Secrets
 
 Local development secrets are managed with SOPS and direnv, keeping encrypted
@@ -374,6 +378,6 @@ for details.
 
 ## Support
 
-- Documentation: [docs/](docs/)
+- Documentation: [docs/](docs/README.md)
 - Bug reports: [GitHub Issues](https://github.com/Ikey168/Modulo/issues)
 - Discussions: [GitHub Discussions](https://github.com/Ikey168/Modulo/discussions)
