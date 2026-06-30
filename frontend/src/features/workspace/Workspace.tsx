@@ -8,6 +8,7 @@ import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
 import { useCoreWorkspace } from './useCoreWorkspace';
+import { mergeWithWikiLinks } from './deriveWikiLinks';
 
 const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
 type View = (typeof VIEWS)[number];
@@ -65,6 +66,12 @@ export default function Workspace() {
       setSelectedId(data.notes[0].id);
     }
   }, [data.notes, selectedId]);
+
+  // [[wiki-links]] in note bodies become graph edges alongside explicit links.
+  const graphLinks = useMemo(
+    () => mergeWithWikiLinks(data.notes, data.links),
+    [data.notes, data.links],
+  );
 
   const goTo = (v: View) => navigate(`/app/${v}`);
 
@@ -167,7 +174,7 @@ export default function Workspace() {
           />
         )}
         {view === 'graph' && (
-          <GraphView notes={data.notes} links={data.links} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
+          <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
         )}
         {view === 'dashboard' && (
           <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />
