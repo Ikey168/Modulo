@@ -5,6 +5,8 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Node; // Neo4j
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -55,6 +57,12 @@ public class Note {
     @Column(name = "last_viewed_at")
     private LocalDateTime lastViewedAt;
 
+    // Lazy collections below are not part of the note JSON payload — links,
+    // attachments and tasks are served by their own endpoints, and metadata is
+    // not consumed by the client. Serializing them would dereference a lazy
+    // proxy after the Hibernate session has closed (open-in-view=false),
+    // throwing LazyInitializationException and surfacing as an HTTP 500.
+    @JsonIgnore
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "note_metadata", schema = "application", joinColumns = @JoinColumn(name = "note_id"))
     @MapKeyColumn(name = "metadata_key")
@@ -106,18 +114,22 @@ public class Note {
     private Set<Tag> tags = new HashSet<>();
 
         // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
+    @JsonIgnore
     @OneToMany(mappedBy = "sourceNote", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<NoteLink> outgoingLinks = new HashSet<>();
 
     // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.INCOMING) // Neo4j
+    @JsonIgnore
     @OneToMany(mappedBy = "targetNote", fetch = FetchType.LAZY)
     private Set<NoteLink> incomingLinks = new HashSet<>();
 
     // Attachments relationship
+    @JsonIgnore
     @OneToMany(mappedBy = "note", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Attachment> attachments = new HashSet<>();
 
     // Tasks relationship - many-to-many with tasks
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "note_tasks",

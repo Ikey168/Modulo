@@ -73,7 +73,7 @@ class NoteControllerTest {
 
     @Test
     void getNoteByIdFound() throws Exception {
-        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+        when(noteRepository.findByIdWithTags(1L)).thenReturn(Optional.of(note));
 
         mockMvc.perform(get("/api/notes/1"))
                 .andExpect(status().isOk())
@@ -82,7 +82,7 @@ class NoteControllerTest {
 
     @Test
     void getNoteByIdNotFound() throws Exception {
-        when(noteRepository.findById(2L)).thenReturn(Optional.empty());
+        when(noteRepository.findByIdWithTags(2L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/notes/2"))
                 .andExpect(status().isNotFound());
