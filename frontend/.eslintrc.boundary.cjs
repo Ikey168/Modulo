@@ -5,6 +5,8 @@
 //
 // Run via: npm run lint:boundary:ci
 // Rationale: docs/architecture/B2-boundary-audit.md
+// Non-goal guard (the core stays concretely typed, not a generic graph):
+// docs/architecture/adr-0002-core-keeps-first-class-types.md (B8 #301).
 
 module.exports = {
   root: true,

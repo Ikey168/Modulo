@@ -3,7 +3,8 @@
 **Issue:** #295  
 **Branch:** `claude/issues-295`  
 **Date:** 2026-06-27  
-**Status:** ✅ All violations fixed (B4–B7). CI guard active in `error` mode (B9 #302).
+**Status:** ✅ All violations fixed (B4–B7). CI guard active in `error` mode (B9 #302).  
+**Rationale for the boundary:** [ADR 0002 — the core keeps first-class types](adr-0002-core-keeps-first-class-types.md) (B8 #301).
 
 ## B9 CI gate (added #302)
 
