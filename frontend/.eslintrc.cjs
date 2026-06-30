@@ -18,6 +18,8 @@ module.exports = {
     // B9 boundary guard — feature-pack code must import via @modulo/core, not workspace internals.
     // Flipped to 'error' in B9 (#302) after B4–B7 cleared all violations.
     // See docs/architecture/B2-boundary-audit.md for violation history.
+    // Rationale (why a typed core behind a public API, not a generic graph):
+    // docs/architecture/adr-0002-core-keeps-first-class-types.md (B8 #301).
     'no-restricted-imports': [
       'error',
       {

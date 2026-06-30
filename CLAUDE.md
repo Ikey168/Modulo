@@ -95,8 +95,8 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 | #298 / B5 | Wire link parser to CoreAPIImpl | Done |
 | #299 / B6 | Wire graph views to CoreAPIImpl | Done |
 | #300 / B7 | Register note-workbench feature pack | Done |
-| #301 / B8 | Pack SDK scaffold + example pack | Open |
-| #302 / B9 | Flip lint rule to `error`, add CI gate | Done (this branch) |
+| #301 / B8 | Decision record: core keeps first-class note types (non-goal guard) | Done (this branch) |
+| #302 / B9 | Flip lint rule to `error`, add CI gate | Done |
 
 ## Common patterns
 
