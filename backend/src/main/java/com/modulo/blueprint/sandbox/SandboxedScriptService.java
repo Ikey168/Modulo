@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 /**
  * Sandboxed JavaScript execution for action.code.execute (#279).
  *
+ * Isolation model decision + threat model + residual-risk register:
+ *   docs/architecture/adr-0003-custom-code-node-sandbox.md
+ *
  * Isolation model — security spike decision:
  *
  *   GraalVM Polyglot Sandbox: best-in-class isolation and resource limits, but requires

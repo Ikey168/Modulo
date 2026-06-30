@@ -13,6 +13,7 @@ section at the bottom.
 - [B2 — Core/Experience boundary audit](architecture/B2-boundary-audit.md)
 - [ADR 0001 — Encryption key derivation](architecture/adr-0001-encryption-key-derivation.md)
 - [ADR 0002 — Core keeps first-class note/link/tag/user types](architecture/adr-0002-core-keeps-first-class-types.md)
+- [ADR 0003 — Custom-code blueprint node sandbox](architecture/adr-0003-custom-code-node-sandbox.md)
 - [Knowledge graph milestone](knowledge-graph.md)
 
 ## Plugins
