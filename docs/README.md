@@ -8,6 +8,10 @@ section at the bottom.
 > New here? Start with the root [README](../README.md) for the project
 > overview, quick start, and architecture summary.
 
+## Roadmap
+
+- [Feature ideas & roadmap](roadmap/feature-ideas.md)
+
 ## Architecture
 
 - [B2 — Core/Experience boundary audit](architecture/B2-boundary-audit.md)
