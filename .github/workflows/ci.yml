@@ -23,7 +23,10 @@ jobs:
 
     - name: Build and test
       run: mvn -B verify -Dmaven.test.failure.ignore=false
-      timeout-minutes: 10
+      # Full `verify` runs the 544-test suite (incl. Testcontainers integration
+      # tests) plus the JaCoCo coverage gate; 10 min was too tight once the suite
+      # runs to completion rather than fast-failing.
+      timeout-minutes: 25
 
   # B9 (#302) — core/experience boundary guard.
   # Blocks merges that re-introduce direct imports of workspace internals
