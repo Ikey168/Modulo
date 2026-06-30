@@ -1,5 +1,6 @@
 package com.modulo.graph;
 
+import com.modulo.aspect.NoTrace;
 import com.modulo.graph.dto.GraphEdge;
 import com.modulo.graph.dto.GraphNode;
 import com.modulo.graph.dto.RelatedNote;
@@ -41,7 +42,16 @@ public class GraphProjectionService {
         this.driver = driver;
     }
 
-    /** @return true when a Neo4j driver is configured (feature enabled). */
+    /**
+     * @return true when a Neo4j driver is configured (feature enabled).
+     *
+     * <p>Excluded from tracing: it is a trivial guard called at the top of every
+     * other method (and during bean initialisation). Tracing it via the service
+     * pointcut also makes the whole context fail to load in tests that mock
+     * {@code TracingService}, because the mocked advice returns {@code null} for
+     * this primitive {@code boolean} return type.</p>
+     */
+    @NoTrace
     public boolean isAvailable() {
         return driver.isPresent();
     }
