@@ -1,6 +1,6 @@
 # ADR 0003: Isolation model for the custom-code blueprint node
 
-- **Status:** Accepted (implementation shipped; residual hardening tracked below)
+- **Status:** Accepted (implementation shipped; hardening applied — see below)
 - **Context:** [#279](https://github.com/Ikey168/Modulo/issues/279) — "sandboxed
   custom-code node (security spike first)", part of the Modular Plugin System
   milestone (Phase 3).
@@ -79,40 +79,54 @@ The interpreter enforces the grant **before** invoking the sandbox: if
   cannot be JIT-compiled. Acceptable: these scripts are short transforms, not
   hot paths.
 
-### Residual risks (accepted for now; hardening recommended)
+### Resource-exhaustion analysis and hardening
 
-The spike surfaced three resource-exhaustion paths the current limits do **not**
-fully close. They share one root cause: the instruction/wall-clock observer only
-fires *between* interpreted bytecode instructions, so any single long-running
-**native** operation bypasses it.
+The cooperative instruction/wall-clock observer only fires *between* interpreted
+bytecode instructions. The spike asked: which exhaustion paths bypass it, and
+are they bounded? Three were examined; the implementation was hardened in
+response.
 
-1. **Memory bomb via one native allocation.** `'x'.repeat(1e9)` (or a large
-   `Array(n)`) allocates hundreds of MB in a single instruction-cheap call.
-   Instruction counting never trips, and `MAX_OUTPUT_CHARS` only bounds the
-   *returned* value, not intermediates. There is no heap cap.
-2. **Timeout evasion by native calls (ReDoS).** Catastrophic regex backtracking
-   or a huge `repeat` runs entirely inside one native call. The observer is
-   never reached, so neither the instruction limit nor the 2s wall timeout
-   fires — execution runs synchronously on the caller thread with no watchdog
-   able to interrupt it.
-3. **`StackOverflowError` not caught.** Deep recursion exhausts the Java stack
-   (Rhino's `setMaximumInterpreterStackDepth` is not configured). The result is
-   a `StackOverflowError`, which is an `Error` — the `catch` clauses handle only
-   `ScriptExecutionException` and `RhinoException`, so it propagates past the
-   sandbox.
+1. **Deep recursion → `StackOverflowError` (closed).** Previously unbounded
+   recursion exhausted the Java stack and raised a `StackOverflowError` — an
+   `Error` the `catch` clauses did not handle, so it propagated past the sandbox.
+   *Hardening:* `Context.setMaximumInterpreterStackDepth(MAX_STACK_DEPTH)` now
+   makes recursion raise a catchable Rhino error, with `StackOverflowError`
+   caught defensively as a backstop. Both map to `ScriptExecutionException`.
+   Test: `deepRecursionIsAbortedByStackDepthLimit`.
 
-**Recommended hardening (follow-up issue):**
-- Run `execute()` on a dedicated thread with a hard wall-clock deadline and
-  `Thread.interrupt()` / forced termination, so timeouts no longer depend on the
-  cooperative observer.
-- Set `Context.setMaximumInterpreterStackDepth(...)` and broaden the catch to
-  include `StackOverflowError` (and `Error` defensively), mapping to
-  `ScriptExecutionException`.
-- Guard against single-call memory bombs: cap or wrap `String.prototype.repeat`
-  and large array construction, or run under a `-Xss`/heap-limited worker.
+2. **Non-yielding native CPU (bounded).** A long native call cannot be
+   interrupted by the cooperative observer. *Hardening:* the script now runs on
+   a dedicated **daemon worker thread** bounded by a hard wall-clock deadline
+   (`WALL_TIMEOUT_MS + HARD_DEADLINE_GRACE_MS`); on expiry the caller is
+   unblocked with a timeout error and the thread is interrupted and abandoned.
+   **Finding:** the obvious example — catastrophic regex backtracking — turned
+   out *not* to bypass the observer: Rhino counts backtracking against the
+   instruction limit, so it trips `MAX_INSTRUCTIONS` first. The hard deadline
+   remains the backstop for any genuinely non-counted native spin.
+   Test: `catastrophicRegexIsBoundedQuickly`.
 
-Until those land, treat `code:execute` as a **trusted-author** capability: grant
-it only to blueprints whose code has been reviewed, not to untrusted
-marketplace submissions. If untrusted custom code becomes a requirement,
-re-evaluate Option A (GraalVM sandbox), which closes risks 1–3 natively, and
-supersede this ADR.
+3. **Single-call memory allocation (mitigated, not eliminated).**
+   `'x'.repeat(2147483647)` or a large `Array(n)` allocates in one native call
+   that the observer never sees; `MAX_OUTPUT_CHARS` only bounds the *returned*
+   value, not intermediates. *Hardening:* `OutOfMemoryError` from such an
+   allocation is now caught on the worker thread and surfaced as a bounded
+   `ScriptExecutionException` ("memory limit exceeded"), so a runaway allocation
+   cannot crash the caller. Test: `singleCallAllocationBombIsCaught`.
+
+### Remaining limitations (accepted)
+
+- **No hard heap cap.** Catching `OutOfMemoryError` protects the *caller*, but a
+  script that allocates aggressively still strains the shared JVM heap before
+  the allocation fails. True per-execution memory isolation is not achievable
+  in-process with Rhino.
+- **Abandoned threads.** A script stuck in a non-interruptible native call keeps
+  running on its daemon thread after the deadline unblocks the caller; it ties
+  up a thread/core until the native operation finishes. Per-call daemon threads
+  avoid pool exhaustion but allow thread accumulation under sustained abuse.
+
+Both are closed only by out-of-process or GraalVM-sandbox isolation. Until then,
+treat `code:execute` as a **trusted-author** capability: grant it to blueprints
+whose code has been reviewed, not to untrusted marketplace submissions. If
+untrusted custom code becomes a requirement, re-evaluate Option A (GraalVM
+sandbox) — which closes the remaining limitations natively — and supersede this
+ADR.
