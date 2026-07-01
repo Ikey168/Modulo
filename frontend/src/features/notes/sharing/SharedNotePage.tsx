@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Lock, Wallet } from 'lucide-react';
+import { Button } from '@/ui';
 import { deriveEncryptionKeyPairFromWallet } from '../../workspace/crypto/recipientKeys';
 import { IpfsCiphertextStore } from '../../workspace/crypto/noteSharing';
 import { NoteSharingContract } from '../../workspace/crypto/sharingContract';
@@ -53,55 +55,39 @@ const SharedNotePage: React.FC = () => {
 
   if (!CONTRACT_ADDRESS) {
     return (
-      <div style={pageStyle}>
-        <p style={{ color: '#6b7280' }}>Encrypted sharing is not configured in this deployment.</p>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-[13px] text-muted-foreground">Encrypted sharing is not configured in this deployment.</p>
       </div>
     );
   }
 
   return (
-    <div style={pageStyle}>
-      <header style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '1.5rem', margin: '0 0 8px' }}>Shared Note</h1>
-        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-          This note is end-to-end encrypted. Connect the wallet address that was granted access to read it.
-        </p>
-      </header>
+    <div className="min-h-screen bg-background px-4 py-16">
+      <div className="mx-auto w-full max-w-[720px] animate-fade-up">
+        <header className="mb-8">
+          <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Lock className="size-5" />
+          </div>
+          <h1 className="m-0 mb-2 text-2xl font-semibold tracking-tight text-foreground">Shared Note</h1>
+          <p className="m-0 text-[13px] leading-relaxed text-muted-foreground">
+            This note is end-to-end encrypted. Connect the wallet address that was granted access to read it.
+          </p>
+        </header>
 
-      {!secretKeyB64 ? (
-        <div>
-          {walletError && <p style={{ color: '#ef4444', marginBottom: '12px', fontSize: '13px' }}>{walletError}</p>}
-          <button
-            onClick={handleConnect}
-            disabled={deriving}
-            style={{
-              padding: '10px 20px',
-              fontSize: '14px',
-              background: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: deriving ? 'not-allowed' : 'pointer',
-              opacity: deriving ? 0.6 : 1,
-            }}
-          >
-            {deriving ? 'Signing with wallet…' : 'Connect wallet to decrypt'}
-          </button>
-        </div>
-      ) : (
-        <SharedNoteView state={sharedNote} />
-      )}
+        {!secretKeyB64 ? (
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+            {walletError && <p className="mb-3 text-[13px] text-destructive">{walletError}</p>}
+            <Button onClick={handleConnect} disabled={deriving} loading={deriving} size="lg">
+              {!deriving && <Wallet />}
+              {deriving ? 'Signing with wallet…' : 'Connect wallet to decrypt'}
+            </Button>
+          </div>
+        ) : (
+          <SharedNoteView state={sharedNote} />
+        )}
+      </div>
     </div>
   );
-};
-
-const pageStyle: React.CSSProperties = {
-  maxWidth: '720px',
-  margin: '64px auto',
-  padding: '0 16px',
-  fontFamily: 'Georgia, serif',
-  lineHeight: '1.7',
-  color: '#111',
 };
 
 export default SharedNotePage;

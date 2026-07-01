@@ -585,11 +585,11 @@ export const MobileTestSuite: React.FC<Props> = ({
 
   const getStatusColor = (status: TestResult['status']) => {
     switch (status) {
-      case 'passed': return '#28a745';
-      case 'failed': return '#dc3545';
-      case 'running': return '#ffc107';
-      case 'skipped': return '#6c757d';
-      default: return '#6c757d';
+      case 'passed': return '#22c55e';
+      case 'failed': return '#ef4444';
+      case 'running': return '#f59e0b';
+      case 'skipped': return '#71717a';
+      default: return '#71717a';
     }
   };
 

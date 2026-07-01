@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { RemotePluginEntry } from '../../types/marketplace';
 import { MarketplaceService } from '../../services/marketplaceService';
+import { Button, EmptyState, Spinner } from '@/ui';
+import { Sparkles } from 'lucide-react';
 import PluginMarketCard from './PluginMarketCard';
-import './FeaturedPlugins.css';
 
 interface FeaturedPluginsProps {
   onPluginSelect: (plugin: RemotePluginEntry) => void;
@@ -36,9 +37,9 @@ const FeaturedPlugins: React.FC<FeaturedPluginsProps> = ({
 
   if (loading) {
     return (
-      <div className="featured-plugins loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Spinner className="size-8 text-primary" />
           <p>Loading featured plugins...</p>
         </div>
       </div>
@@ -47,50 +48,53 @@ const FeaturedPlugins: React.FC<FeaturedPluginsProps> = ({
 
   if (error) {
     return (
-      <div className="featured-plugins error">
-        <div className="error-message">
-          <h3>Failed to load featured plugins</h3>
-          <p>{error}</p>
-          <button onClick={loadFeaturedPlugins} className="btn-primary">
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-6 text-center text-destructive">
+          <h3 className="mb-2 text-lg font-semibold">Failed to load featured plugins</h3>
+          <p className="mb-4 text-[13px]">{error}</p>
+          <Button onClick={loadFeaturedPlugins} variant="destructive">
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="featured-plugins">
-      <section className="hero-section">
-        <h2>🌟 Featured Plugins</h2>
-        <p>Discover the most popular and highly-rated plugins in our marketplace</p>
+    <div className="animate-fade-in">
+      <section className="mb-8 rounded-xl border border-border-strong bg-gradient-to-br from-primary/20 via-surface to-surface p-12 text-center">
+        <h2 className="mb-4 text-4xl font-bold text-foreground">🌟 Featured Plugins</h2>
+        <p className="text-lg text-subtle-foreground">Discover the most popular and highly-rated plugins in our marketplace</p>
       </section>
 
       {featuredPlugins.length === 0 ? (
-        <div className="no-featured">
-          <h3>No featured plugins available</h3>
-          <p>Check back later for featured plugins from our marketplace.</p>
-        </div>
+        <EmptyState
+          icon={<Sparkles />}
+          title="No featured plugins available"
+          description="Check back later for featured plugins from our marketplace."
+        />
       ) : (
         <>
           {/* Top 3 plugins - highlighted display */}
           {featuredPlugins.length >= 3 && (
-            <section className="top-picks">
-              <h3>🏆 Top Picks</h3>
-              <div className="top-picks-grid">
+            <section className="mb-12">
+              <h3 className="mb-6 text-center text-2xl font-semibold text-foreground">🏆 Top Picks</h3>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-8">
                 {featuredPlugins.slice(0, 3).map(plugin => (
-                  <div key={plugin.id} className="top-pick-card">
+                  <div key={plugin.id} className="relative">
                     <PluginMarketCard
                       plugin={plugin}
                       onInstallSuccess={onInstallSuccess}
                       variant="featured"
                     />
-                    <button
-                      className="view-details-btn"
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute right-4 top-4 rounded-full backdrop-blur-sm"
                       onClick={() => onPluginSelect(plugin)}
                     >
                       View Details
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -99,9 +103,9 @@ const FeaturedPlugins: React.FC<FeaturedPluginsProps> = ({
 
           {/* Remaining plugins - regular grid */}
           {featuredPlugins.length > 3 && (
-            <section className="more-featured">
-              <h3>More Featured Plugins</h3>
-              <div className="featured-grid">
+            <section className="mb-8">
+              <h3 className="mb-6 border-l-4 border-primary pl-4 text-xl font-semibold text-foreground">More Featured Plugins</h3>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
                 {featuredPlugins.slice(3).map(plugin => (
                   <PluginMarketCard
                     key={plugin.id}
@@ -115,7 +119,7 @@ const FeaturedPlugins: React.FC<FeaturedPluginsProps> = ({
 
           {/* Show less than 3 plugins in regular grid if that's all we have */}
           {featuredPlugins.length < 3 && (
-            <div className="featured-grid">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
               {featuredPlugins.map(plugin => (
                 <PluginMarketCard
                   key={plugin.id}

@@ -12,6 +12,8 @@ import {
   saveView,
   deleteView,
 } from './savedViews';
+import { Button, Input, Select, Label } from '@/ui';
+import { X } from 'lucide-react';
 import '@react-sigma/core/lib/react-sigma.min.css';
 
 interface Props {
@@ -22,7 +24,7 @@ interface Props {
 
 const CENTER_COLOR = '#ef4444';
 const NODE_COLOR = '#6366f1';
-const EDGE_COLOR = '#cbd5e1';
+const EDGE_COLOR = '#3f3f46';
 
 /** Builds a graphology graph from a neighborhood response, applying the link-type filter. */
 function buildGraph(data: Neighborhood, linkTypes: string[]): DirectedGraph {
@@ -124,22 +126,22 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
   const handleDeleteView = (id: string) => setViews(deleteView(id));
 
   return (
-    <div className="local-graph">
-      <div className="local-graph-controls">
-        <label className="local-graph-control">
+    <div>
+      <div className="mb-3 flex flex-wrap items-start gap-4">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           Depth
-          <select
+          <Select
             value={filters.depth}
             onChange={(e) => setFilters({ ...filters, depth: Number(e.target.value) })}
           >
             <option value={1}>1 hop</option>
             <option value={2}>2 hops</option>
             <option value={3}>3 hops</option>
-          </select>
+          </Select>
         </label>
 
         {availableLinkTypes.length > 0 && (
-          <label className="local-graph-control">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             Link types
             <select
               multiple
@@ -150,6 +152,7 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
                   linkTypes: Array.from(e.target.selectedOptions, (o) => o.value),
                 })
               }
+              className="rounded-md border border-border-strong bg-surface-2 px-2 py-1 text-[13px] text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {availableLinkTypes.map((t) => (
                 <option key={t} value={t}>
@@ -160,31 +163,39 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
           </label>
         )}
 
-        <div className="local-graph-control saved-views">
-          <div className="saved-views-save">
-            <input
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <Label className="text-xs font-normal text-muted-foreground">Saved views</Label>
+          <div className="flex gap-1.5">
+            <Input
               type="text"
               placeholder="Save view as…"
               value={viewName}
               onChange={(e) => setViewName(e.target.value)}
+              className="h-8 w-40"
             />
-            <button className="graph-link-btn" onClick={handleSaveView} disabled={!viewName.trim()}>
+            <Button variant="primary" size="sm" onClick={handleSaveView} disabled={!viewName.trim()}>
               Save
-            </button>
+            </Button>
           </div>
           {views.length > 0 && (
-            <div className="saved-views-list">
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               {views.map((v) => (
-                <span key={v.id} className="saved-view-chip">
-                  <button className="saved-view-apply" onClick={() => handleApplyView(v)}>
+                <span
+                  key={v.id}
+                  className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-2"
+                >
+                  <button
+                    className="px-2.5 py-1 text-xs text-subtle-foreground transition-colors hover:text-foreground"
+                    onClick={() => handleApplyView(v)}
+                  >
                     {v.name}
                   </button>
                   <button
-                    className="saved-view-delete"
+                    className="flex items-center px-2 py-1 text-muted-foreground transition-colors hover:text-destructive"
                     title="Delete view"
                     onClick={() => handleDeleteView(v.id)}
                   >
-                    ×
+                    <X className="size-3.5" />
                   </button>
                 </span>
               ))}
@@ -193,19 +204,22 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
         </div>
       </div>
 
-      {loading && <div className="graph-panel-state">Loading local graph…</div>}
+      {loading && <div className="p-3.5 text-[13px] text-muted-foreground">Loading local graph…</div>}
       {error && (
-        <div className="graph-panel-state graph-panel-error">
-          {error} <button className="graph-link-btn" onClick={() => load(filters.depth)}>Retry</button>
+        <div className="flex items-center gap-2 p-3.5 text-[13px] text-destructive">
+          {error}{' '}
+          <Button variant="outline" size="sm" onClick={() => load(filters.depth)}>
+            Retry
+          </Button>
         </div>
       )}
       {!loading && !error && graph.order <= 1 && (
-        <div className="graph-panel-state graph-panel-empty">
+        <div className="p-3.5 text-[13px] italic text-muted-foreground">
           This note has no links yet — link it to other notes to grow its local graph.
         </div>
       )}
       {!loading && !error && graph.order > 1 && (
-        <div className="local-graph-viewport">
+        <div className="overflow-hidden rounded-lg border border-border bg-surface">
           <SigmaContainer
             style={{ height: '360px', width: '100%' }}
             settings={{

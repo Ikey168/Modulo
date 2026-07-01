@@ -41,7 +41,7 @@ function App() {
   const workbenchPack = getFeatureRegistry().getAll().find((p) => p.id === NOTE_WORKBENCH_ID);
 
   return (
-    <ThemeProvider defaultTheme="light">
+    <ThemeProvider defaultTheme="dark">
       <Provider store={store}>
         <Router>
           <Routes>

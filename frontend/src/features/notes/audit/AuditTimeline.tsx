@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Clock } from 'lucide-react';
+import { Button, Select, Input, Label } from '@/ui';
 import { auditApi, AuditEventRecord, AuditFilter } from './auditApi';
 
 interface Props {
@@ -18,11 +20,11 @@ const EVENT_ICONS: Record<string, string> = {
 };
 
 const OUTCOME_COLORS: Record<string, string> = {
-  ALLOW:   '#16a34a',
-  SUCCESS: '#16a34a',
+  ALLOW:   '#22c55e',
+  SUCCESS: '#22c55e',
   DENY:    '#ef4444',
   FAILURE: '#ef4444',
-  ERROR:   '#f97316',
+  ERROR:   '#f59e0b',
 };
 
 const EVENT_TYPES = ['NOTE_READ', 'NOTE_CREATE', 'NOTE_UPDATE', 'NOTE_DELETE', 'SHARE_CREATED', 'SHARE_VIEWED', 'SHARE_REVOKED'];
@@ -60,123 +62,112 @@ const AuditTimeline: React.FC<Props> = ({ noteId, userId, isAdmin = false }) => 
   useEffect(() => { if (open) load(); }, [open, load]);
 
   return (
-    <div style={{ marginTop: '16px' }}>
-      <button
+    <div className="mt-4">
+      <Button
+        variant={open ? 'secondary' : 'outline'}
+        size="sm"
         onClick={() => setOpen(v => !v)}
-        style={{
-          padding: '5px 12px',
-          fontSize: '12px',
-          background: open ? 'var(--color-primary-subtle, #eff6ff)' : 'var(--color-surface-raised, #f3f4f6)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '6px',
-          cursor: 'pointer',
-        }}
       >
-        🕒 Access history
-      </button>
+        <Clock className="size-3.5" />
+        Access history
+      </Button>
 
       {open && (
-        <div style={{ marginTop: '8px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '8px', padding: '16px', background: 'var(--color-surface, #fff)' }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px', alignItems: 'flex-end' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '3px' }}>Event type</label>
-              <select
+        <div className="mt-2 animate-fade-in rounded-lg border border-border bg-surface p-4">
+          <div className="mb-3 flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-semibold text-subtle-foreground">Event type</Label>
+              <Select
                 value={filter.eventType ?? ''}
                 onChange={e => setFilter(p => ({ ...p, eventType: e.target.value || undefined, page: 0 }))}
-                style={{ padding: '5px 8px', fontSize: '12px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px' }}
+                className="h-8 text-xs"
               >
                 <option value="">All events</option>
                 {EVENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-              </select>
+              </Select>
             </div>
             {isAdmin && (
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '3px' }}>User ID</label>
-                <input
+              <div className="flex flex-col gap-1">
+                <Label className="text-[11px] font-semibold text-subtle-foreground">User ID</Label>
+                <Input
                   value={filter.userId ?? ''}
                   onChange={e => setFilter(p => ({ ...p, userId: e.target.value || undefined, page: 0 }))}
                   placeholder="Any user"
-                  style={{ padding: '5px 8px', fontSize: '12px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', width: '120px' }}
+                  className="h-8 w-[120px] text-xs"
                 />
               </div>
             )}
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '3px' }}>From</label>
-              <input
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-semibold text-subtle-foreground">From</Label>
+              <Input
                 type="datetime-local"
                 value={filter.from?.slice(0, 16) ?? ''}
                 onChange={e => setFilter(p => ({ ...p, from: e.target.value ? new Date(e.target.value).toISOString() : undefined, page: 0 }))}
-                style={{ padding: '5px 8px', fontSize: '12px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px' }}
+                className="h-8 text-xs [color-scheme:dark]"
               />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '3px' }}>To</label>
-              <input
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-semibold text-subtle-foreground">To</Label>
+              <Input
                 type="datetime-local"
                 value={filter.to?.slice(0, 16) ?? ''}
                 onChange={e => setFilter(p => ({ ...p, to: e.target.value ? new Date(e.target.value).toISOString() : undefined, page: 0 }))}
-                style={{ padding: '5px 8px', fontSize: '12px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px' }}
+                className="h-8 text-xs [color-scheme:dark]"
               />
             </div>
-            <button
-              onClick={load}
-              style={{ padding: '6px 12px', fontSize: '12px', background: 'var(--color-primary, #3b82f6)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
+            <Button size="sm" onClick={load}>
               Refresh
-            </button>
+            </Button>
           </div>
 
-          {error && <p style={{ color: '#ef4444', fontSize: '12px' }}>{error}</p>}
-          {loading && <p style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)' }}>Loading…</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
 
           {!loading && events.length === 0 && (
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary, #6b7280)', textAlign: 'center', padding: '24px 0' }}>
+            <p className="py-6 text-center text-[13px] text-muted-foreground">
               No audit events found.
             </p>
           )}
 
           {!loading && events.length > 0 && (
             <>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', margin: '0 0 8px' }}>
+              <p className="mb-2 mt-0 text-[11px] text-muted-foreground">
                 Showing {events.length} of {total} events
               </p>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
                 {events.map(e => (
-                  <li key={e.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: 'var(--color-surface-raised, #f9fafb)',
-                    fontSize: '13px',
-                  }}>
-                    <span style={{ fontSize: '16px', width: '22px', textAlign: 'center', flexShrink: 0 }}>
+                  <li
+                    key={e.id}
+                    className="flex items-center gap-2.5 rounded-md bg-surface-2 px-2.5 py-2 text-[13px]"
+                  >
+                    <span className="w-[22px] shrink-0 text-center text-base">
                       {EVENT_ICONS[e.eventType] ?? '📋'}
                     </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontWeight: 500 }}>{e.eventType.replace(/_/g, ' ')}</span>
-                      {e.userId && <span style={{ color: 'var(--color-text-secondary, #6b7280)', marginLeft: '6px' }}>by {e.userName ?? e.userId}</span>}
-                      {e.ipAddress && <span style={{ color: 'var(--color-text-secondary, #6b7280)', marginLeft: '6px', fontSize: '11px' }}>from {e.ipAddress}</span>}
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-foreground">{e.eventType.replace(/_/g, ' ')}</span>
+                      {e.userId && <span className="ml-1.5 text-muted-foreground">by {e.userName ?? e.userId}</span>}
+                      {e.ipAddress && <span className="ml-1.5 text-[11px] text-muted-foreground">from {e.ipAddress}</span>}
                     </div>
                     {e.outcome && (
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: OUTCOME_COLORS[e.outcome] ?? '#6b7280', flexShrink: 0 }}>
+                      <span className="shrink-0 text-[11px] font-semibold" style={{ color: OUTCOME_COLORS[e.outcome] ?? '#71717a' }}>
                         {e.outcome}
                       </span>
                     )}
-                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
                       {new Date(e.createdAt).toLocaleString()}
                     </span>
                   </li>
                 ))}
               </ul>
               {total > events.length && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
                   onClick={() => setFilter(p => ({ ...p, page: (p.page ?? 0) + 1 }))}
-                  style={{ marginTop: '8px', padding: '5px 12px', fontSize: '12px', background: 'var(--color-surface-raised, #f3f4f6)', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Load more
-                </button>
+                </Button>
               )}
             </>
           )}

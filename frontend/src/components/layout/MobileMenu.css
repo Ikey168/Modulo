@@ -1,10 +1,11 @@
+/* Older mobile menu + shared hamburger — dark "workspace" aesthetic. */
 .mobile-menu-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   z-index: 1000;
@@ -24,9 +25,9 @@
   right: 0;
   width: 280px;
   height: 100vh;
-  background: var(--color-bg-card);
-  border-left: 1px solid var(--color-border-primary);
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  background: #111114;
+  border-left: 1px solid #1e1e24;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.6);
   transform: translateX(100%);
   transition: transform 0.3s ease;
   display: flex;
@@ -43,22 +44,22 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid var(--color-border-primary);
-  background: var(--color-bg-secondary);
+  border-bottom: 1px solid #1e1e24;
+  background: #16161a;
 }
 
 .mobile-menu-header h2 {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #f4f4f5;
 }
 
 .mobile-menu-close {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: var(--color-text-secondary);
+  color: #a1a1aa;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
@@ -71,8 +72,8 @@
 }
 
 .mobile-menu-close:hover {
-  background: var(--color-interactive-hover);
-  color: var(--color-text-primary);
+  background: #1c1c22;
+  color: #f4f4f5;
 }
 
 .mobile-menu-nav {
@@ -97,7 +98,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  color: var(--color-text-primary);
+  color: #a1a1aa;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 500;
@@ -112,26 +113,26 @@
 
 .mobile-menu-link:hover,
 .mobile-menu-link:focus {
-  background: var(--color-interactive-hover);
-  color: var(--color-brand-primary);
+  background: #16161a;
+  color: #f4f4f5;
 }
 
 .mobile-menu-link:active {
-  background: var(--color-interactive-active);
+  background: #1c1c22;
 }
 
 .mobile-menu-logout {
-  color: var(--color-status-error);
+  color: #ef4444;
 }
 
 .mobile-menu-logout:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--color-status-error);
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
 }
 
 .login-link {
-  background: var(--color-brand-primary);
-  color: var(--color-text-inverse) !important;
+  background: #4f46e5;
+  color: #ffffff !important;
   margin: 1rem 1.5rem;
   border-radius: 8px;
   text-align: center;
@@ -140,13 +141,13 @@
 }
 
 .login-link:hover {
-  background: var(--color-brand-secondary) !important;
-  color: var(--color-text-inverse) !important;
+  background: #6366f1 !important;
+  color: #ffffff !important;
 }
 
 .menu-divider {
   height: 1px;
-  background: var(--color-border-primary);
+  background: #1e1e24;
   margin: 0.5rem 1.5rem;
 }
 
@@ -162,7 +163,7 @@
 }
 
 .hamburger-button:hover {
-  background: var(--color-interactive-hover);
+  background: #16161a;
 }
 
 .hamburger-icon {
@@ -177,7 +178,7 @@
 .hamburger-line {
   width: 100%;
   height: 2px;
-  background: var(--color-text-primary);
+  background: #f4f4f5;
   border-radius: 1px;
   transition: all 0.3s ease;
 }
@@ -207,20 +208,6 @@
   }
 }
 
-/* Dark theme adjustments */
-[data-theme="dark"] .mobile-menu {
-  background: var(--color-bg-card);
-  border-left-color: var(--color-border-secondary);
-}
-
-[data-theme="dark"] .mobile-menu-header {
-  background: var(--color-bg-tertiary);
-}
-
-[data-theme="dark"] .mobile-menu-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
   .mobile-menu-overlay,
@@ -231,13 +218,13 @@
 }
 
 /* Focus styles for keyboard navigation */
-.mobile-menu-link:focus {
-  outline: 2px solid var(--color-border-focus);
+.mobile-menu-link:focus-visible {
+  outline: 2px solid #6366f1;
   outline-offset: -2px;
 }
 
-.mobile-menu-close:focus {
-  outline: 2px solid var(--color-border-focus);
+.mobile-menu-close:focus-visible {
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link2, Lock, Check } from 'lucide-react';
+import { Button, Input, Label, Badge, cn } from '@/ui';
 import { shareApi, ShareTokenInfo, CreateShareRequest } from './shareApi';
 
 interface Props {
@@ -52,119 +54,106 @@ const ShareLinkManager: React.FC<Props> = ({ noteId, userId }) => {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const activeCount = tokens.filter(t => t.active).length;
+
   return (
-    <div style={{ marginTop: '16px' }}>
-      <button
+    <div className="mt-4">
+      <Button
         onClick={() => setOpen(v => !v)}
-        style={{
-          padding: '5px 12px',
-          fontSize: '12px',
-          background: open ? 'var(--color-primary-subtle, #eff6ff)' : 'var(--color-surface-raised, #f3f4f6)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '6px',
-          cursor: 'pointer',
-        }}
+        variant={open ? 'outline' : 'secondary'}
+        size="sm"
+        className={cn(open && 'border-primary text-primary')}
       >
-        🔗 Share links {tokens.filter(t => t.active).length > 0 && `(${tokens.filter(t => t.active).length} active)`}
-      </button>
+        <Link2 />
+        Share links {activeCount > 0 && `(${activeCount} active)`}
+      </Button>
 
       {open && (
-        <div style={{
-          marginTop: '8px',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '8px',
-          padding: '16px',
-          background: 'var(--color-surface, #fff)',
-        }}>
+        <div className="mt-2 animate-fade-in rounded-lg border border-border bg-surface p-4">
           {/* Create form */}
-          <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600 }}>Create public share link</h4>
+          <h4 className="m-0 mb-3 text-sm font-semibold text-foreground">Create public share link</h4>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <div className="mb-3 flex flex-wrap items-end gap-2">
             <div>
-              <label style={{ display: 'block', fontSize: '11px', marginBottom: '4px', fontWeight: 600 }}>Expires in (hours)</label>
-              <input
+              <Label className="mb-1 block text-[11px]">Expires in (hours)</Label>
+              <Input
                 type="number"
                 min={1}
                 placeholder="Never"
                 value={form.expiresInHours ?? ''}
                 onChange={e => setForm(p => ({ ...p, expiresInHours: e.target.value ? Number(e.target.value) : undefined }))}
-                style={{ width: '100px', padding: '6px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', fontSize: '13px' }}
+                className="w-[100px]"
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', marginBottom: '4px', fontWeight: 600 }}>Password (optional)</label>
-              <input
+              <Label className="mb-1 block text-[11px]">Password (optional)</Label>
+              <Input
                 type="password"
                 placeholder="No password"
                 value={form.password ?? ''}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                style={{ width: '140px', padding: '6px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', fontSize: '13px' }}
+                className="w-[140px]"
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button
-                onClick={handleCreate}
-                disabled={creating}
-                style={{
-                  padding: '7px 14px',
-                  fontSize: '13px',
-                  background: 'var(--color-primary, #3b82f6)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  opacity: creating ? 0.5 : 1,
-                }}
-              >
-                {creating ? 'Creating…' : 'Create link'}
-              </button>
-            </div>
+            <Button onClick={handleCreate} disabled={creating} loading={creating}>
+              {creating ? 'Creating…' : 'Create link'}
+            </Button>
           </div>
 
-          {error && <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 8px' }}>{error}</p>}
+          {error && <p className="m-0 mb-2 text-xs text-destructive">{error}</p>}
 
           {/* Token list */}
           {loading ? (
-            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)' }}>Loading…</p>
+            <p className="text-xs text-muted-foreground">Loading…</p>
           ) : tokens.length === 0 ? (
-            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)' }}>No share links yet.</p>
+            <p className="text-xs text-muted-foreground">No share links yet.</p>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {tokens.map(t => (
-                <li key={t.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  background: t.active ? 'var(--color-surface-raised, #f9fafb)' : '#f3f4f6',
-                  borderRadius: '6px',
-                  opacity: t.active ? 1 : 0.5,
-                  fontSize: '13px',
-                }}>
-                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <li
+                  key={t.id}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md border border-border px-3 py-2 text-[13px]',
+                    t.active ? 'bg-surface-2' : 'bg-surface-3 opacity-50',
+                  )}
+                >
+                  <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px] text-subtle-foreground">
                     {shareApi.publicUrl(t.token)}
                   </span>
-                  {t.hasPassword && <span title="Password protected" style={{ fontSize: '14px' }}>🔒</span>}
+                  {t.hasPassword && (
+                    <span title="Password protected" className="text-muted-foreground">
+                      <Lock className="size-3.5" />
+                    </span>
+                  )}
                   {t.expiresAt && (
-                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', whiteSpace: 'nowrap' }}>
+                    <span className="whitespace-nowrap text-[11px] text-muted-foreground">
                       exp. {new Date(t.expiresAt).toLocaleDateString()}
                     </span>
                   )}
-                  {t.revoked && <span style={{ fontSize: '11px', color: '#ef4444' }}>Revoked</span>}
+                  {t.revoked && <Badge variant="destructive">Revoked</Badge>}
                   {!t.revoked && t.active && (
                     <>
-                      <button
+                      <Button
                         onClick={() => copyLink(t)}
-                        style={{ padding: '3px 8px', fontSize: '11px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '4px', cursor: 'pointer', background: 'var(--color-surface, #fff)', whiteSpace: 'nowrap' }}
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[11px]"
                       >
-                        {copied === t.id ? '✓ Copied' : 'Copy'}
-                      </button>
-                      <button
+                        {copied === t.id ? (
+                          <>
+                            <Check className="size-3" />
+                            Copied
+                          </>
+                        ) : 'Copy'}
+                      </Button>
+                      <Button
                         onClick={() => handleRevoke(t.id)}
-                        style={{ padding: '3px 8px', fontSize: '11px', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer', background: '#fef2f2', color: '#ef4444', whiteSpace: 'nowrap' }}
+                        size="sm"
+                        variant="outline"
+                        className="h-6 border-destructive/40 px-2 text-[11px] text-destructive hover:bg-destructive/15"
                       >
                         Revoke
-                      </button>
+                      </Button>
                     </>
                   )}
                 </li>

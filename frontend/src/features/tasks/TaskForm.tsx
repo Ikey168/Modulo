@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import './TaskForm.css';
+import { CalendarDays } from 'lucide-react';
+import { Button, Input, Label, Modal, Select, Textarea } from '@/ui';
 
 interface Task {
   id?: number;
@@ -90,15 +91,15 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-              type === 'number' ? parseInt(value) || 0 : 
+      [name]: type === 'checkbox' ? checked :
+              type === 'number' ? parseInt(value) || 0 :
               value
     }));
   };
 
   const handleNoteSelection = (noteId: number, selected: boolean) => {
-    setSelectedNoteIds(prev => 
-      selected 
+    setSelectedNoteIds(prev =>
+      selected
         ? [...prev, noteId]
         : prev.filter(id => id !== noteId)
     );
@@ -125,7 +126,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -196,249 +197,231 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const durationMinutes = suggestedDuration % 60;
 
   return (
-    <div className="task-form-container">
-      <form onSubmit={handleSubmit} className="task-form">
-        <div className="form-header">
-          <h2>{isEditing ? 'Edit Task' : 'Create New Task'}</h2>
-          <button type="button" onClick={onCancel} className="close-button">
-            ✕
-          </button>
-        </div>
-
+    <Modal
+      open
+      onClose={onCancel}
+      title={isEditing ? 'Edit Task' : 'Create New Task'}
+      className="max-w-2xl"
+    >
+      <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto">
         {error && (
-          <div className="error-message">
+          <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-[13px] text-destructive">
             {error}
           </div>
         )}
 
-        <div className="form-section">
-          <div className="form-group">
-            <label htmlFor="title" className="form-label">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="title">
               Title *
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="title"
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="form-input"
               placeholder="Enter task title"
               required
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="description" className="form-label">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="description">
               Description
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              className="form-textarea"
               placeholder="Enter task description (optional)"
               rows={3}
             />
           </div>
         </div>
 
-        <div className="form-section">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="status" className="form-label">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="form-select"
-              >
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="BLOCKED">Blocked</option>
-                <option value="ON_HOLD">On Hold</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="priority" className="form-label">
-                Priority
-              </label>
-              <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
-                onChange={handleInputChange}
-                className="form-select"
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="startDate" className="form-label">
-                Start Date
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="dueDate" className="form-label">
-                Due Date
-              </label>
-              <input
-                type="date"
-                id="dueDate"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="estimatedDurationMinutes" className="form-label">
-                Estimated Duration
-              </label>
-              <input
-                type="number"
-                id="estimatedDurationMinutes"
-                name="estimatedDurationMinutes"
-                value={formData.estimatedDurationMinutes}
-                onChange={handleInputChange}
-                className="form-input"
-                min="15"
-                step="15"
-                placeholder="Minutes"
-              />
-              <small className="form-hint">
-                {durationHours > 0 ? `${durationHours}h ` : ''}{durationMinutes}m
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="progressPercentage" className="form-label">
-                Progress ({formData.progressPercentage}%)
-              </label>
-              <input
-                type="range"
-                id="progressPercentage"
-                name="progressPercentage"
-                value={formData.progressPercentage}
-                onChange={handleInputChange}
-                className="form-range"
-                min="0"
-                max="100"
-                step="5"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <div className="form-group">
-            <label htmlFor="tags" className="form-label">
-              Tags
-            </label>
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="status">
+              Status
+            </Label>
+            <Select
+              id="status"
+              name="status"
+              value={formData.status}
               onChange={handleInputChange}
-              className="form-input"
-              placeholder="Enter tags (comma separated)"
-            />
-            <small className="form-hint">
-              Separate tags with commas, e.g., "work, urgent, project-alpha"
-            </small>
+            >
+              <option value="TODO">To Do</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="BLOCKED">Blocked</option>
+              <option value="ON_HOLD">On Hold</option>
+              <option value="CANCELLED">Cancelled</option>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="priority">
+              Priority
+            </Label>
+            <Select
+              id="priority"
+              name="priority"
+              value={formData.priority}
+              onChange={handleInputChange}
+            >
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </Select>
           </div>
         </div>
 
-        <div className="form-section">
-          <div className="form-group">
-            <label className="form-checkbox-label">
-              <input
-                type="checkbox"
-                name="syncWithGoogleCalendar"
-                checked={formData.syncWithGoogleCalendar}
-                onChange={handleInputChange}
-                className="form-checkbox"
-              />
-              <span className="checkbox-text">
-                📅 Sync with Google Calendar
-              </span>
-            </label>
-            <small className="form-hint">
-              Create a corresponding event in your Google Calendar
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="startDate">
+              Start Date
+            </Label>
+            <Input
+              type="date"
+              id="startDate"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleInputChange}
+              className="[color-scheme:dark]"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dueDate">
+              Due Date
+            </Label>
+            <Input
+              type="date"
+              id="dueDate"
+              name="dueDate"
+              value={formData.dueDate}
+              onChange={handleInputChange}
+              className="[color-scheme:dark]"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="estimatedDurationMinutes">
+              Estimated Duration
+            </Label>
+            <Input
+              type="number"
+              id="estimatedDurationMinutes"
+              name="estimatedDurationMinutes"
+              value={formData.estimatedDurationMinutes}
+              onChange={handleInputChange}
+              min="15"
+              step="15"
+              placeholder="Minutes"
+            />
+            <small className="text-xs leading-snug text-muted-foreground">
+              {durationHours > 0 ? `${durationHours}h ` : ''}{durationMinutes}m
             </small>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="progressPercentage">
+              Progress ({formData.progressPercentage}%)
+            </Label>
+            <input
+              type="range"
+              id="progressPercentage"
+              name="progressPercentage"
+              value={formData.progressPercentage}
+              onChange={handleInputChange}
+              className="h-9 w-full cursor-pointer accent-primary"
+              min="0"
+              max="100"
+              step="5"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="tags">
+            Tags
+          </Label>
+          <Input
+            type="text"
+            id="tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleInputChange}
+            placeholder="Enter tags (comma separated)"
+          />
+          <small className="text-xs leading-snug text-muted-foreground">
+            Separate tags with commas, e.g., "work, urgent, project-alpha"
+          </small>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
+            <input
+              type="checkbox"
+              name="syncWithGoogleCalendar"
+              checked={formData.syncWithGoogleCalendar}
+              onChange={handleInputChange}
+              className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
+            />
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-4" /> Sync with Google Calendar
+            </span>
+          </label>
+          <small className="text-xs leading-snug text-muted-foreground">
+            Create a corresponding event in your Google Calendar
+          </small>
         </div>
 
         {availableNotes.length > 0 && (
-          <div className="form-section">
-            <label className="form-label">
+          <div className="flex flex-col gap-1.5">
+            <Label>
               Link to Notes
-            </label>
-            <div className="notes-selection">
+            </Label>
+            <div className="max-h-[150px] overflow-y-auto rounded-md border border-border bg-surface-2 p-2">
               {availableNotes.map(note => (
-                <label key={note.id} className="note-checkbox-label">
+                <label key={note.id} className="flex cursor-pointer items-center gap-2 rounded-md p-2 transition-colors hover:bg-surface-3">
                   <input
                     type="checkbox"
                     checked={selectedNoteIds.includes(note.id)}
                     onChange={(e) => handleNoteSelection(note.id, e.target.checked)}
-                    className="form-checkbox"
+                    className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
                   />
-                  <span className="note-title">{note.title}</span>
+                  <span className="flex-1 text-[13px] text-subtle-foreground">{note.title}</span>
                 </label>
               ))}
             </div>
           </div>
         )}
 
-        <div className="form-actions">
-          <button
+        <div className="-mx-5 -mb-4 mt-1 flex justify-end gap-2 border-t border-border px-5 py-4">
+          <Button
             type="button"
+            variant="secondary"
             onClick={onCancel}
-            className="cancel-button"
             disabled={loading}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="submit-button"
+            loading={loading}
             disabled={loading}
           >
             {loading ? 'Saving...' : (isEditing ? 'Update Task' : 'Create Task')}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 };
 

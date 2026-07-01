@@ -1,45 +1,74 @@
 import React from 'react';
+import { Plus, FileCode } from 'lucide-react';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, EmptyState } from '@/ui';
 
 const Contracts: React.FC = () => {
   return (
-    <div className="contracts-container">
-      <header className="contracts-header">
-        <h1>Smart Contracts</h1>
-        <div className="contract-actions">
-          <button className="deploy-btn">Deploy New Contract</button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-6xl animate-fade-in space-y-8">
+        <header className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Smart Contracts</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="primary" size="md">
+              <Plus />
+              Deploy New Contract
+            </Button>
+          </div>
+        </header>
 
-      <section className="contracts-list">
-        <h2>Your Contracts</h2>
-        <div className="contracts-grid">
-          <div className="contract-card empty">
-            <p>No contracts deployed yet</p>
-            <button className="create-btn">Create Contract</button>
-          </div>
-        </div>
-      </section>
+        <section className="space-y-4">
+          <h2 className="text-[15px] font-semibold tracking-tight text-subtle-foreground">Your Contracts</h2>
+          <Card>
+            <EmptyState
+              icon={<FileCode />}
+              title="No contracts deployed yet"
+              action={
+                <Button variant="secondary" size="sm">
+                  Create Contract
+                </Button>
+              }
+            />
+          </Card>
+        </section>
 
-      <section className="contract-templates">
-        <h2>Templates</h2>
-        <div className="templates-grid">
-          <div className="template-card">
-            <h3>ERC20 Token</h3>
-            <p>Standard token contract</p>
-            <button>Use Template</button>
+        <section className="space-y-4">
+          <h2 className="text-[15px] font-semibold tracking-tight text-subtle-foreground">Templates</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card className="transition-colors hover:bg-surface-2">
+              <CardHeader>
+                <CardTitle>ERC20 Token</CardTitle>
+                <CardDescription>Standard token contract</CardDescription>
+              </CardHeader>
+              <CardContent />
+              <CardFooter>
+                <Button variant="outline" size="sm">Use Template</Button>
+              </CardFooter>
+            </Card>
+
+            <Card className="transition-colors hover:bg-surface-2">
+              <CardHeader>
+                <CardTitle>ERC721 NFT</CardTitle>
+                <CardDescription>Non-fungible token contract</CardDescription>
+              </CardHeader>
+              <CardContent />
+              <CardFooter>
+                <Button variant="outline" size="sm">Use Template</Button>
+              </CardFooter>
+            </Card>
+
+            <Card className="transition-colors hover:bg-surface-2">
+              <CardHeader>
+                <CardTitle>Custom Contract</CardTitle>
+                <CardDescription>Start from scratch</CardDescription>
+              </CardHeader>
+              <CardContent />
+              <CardFooter>
+                <Button variant="outline" size="sm">Create Custom</Button>
+              </CardFooter>
+            </Card>
           </div>
-          <div className="template-card">
-            <h3>ERC721 NFT</h3>
-            <p>Non-fungible token contract</p>
-            <button>Use Template</button>
-          </div>
-          <div className="template-card">
-            <h3>Custom Contract</h3>
-            <p>Start from scratch</p>
-            <button>Create Custom</button>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 };

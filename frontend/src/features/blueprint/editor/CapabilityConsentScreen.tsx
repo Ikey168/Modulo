@@ -4,6 +4,7 @@
 // overlay when permissions need review.
 
 import { useEffect, useState } from 'react';
+import { Button } from '@/ui';
 import { capabilityDescription, capabilityLabel } from '../capabilities';
 import {
   BlueprintPermission,
@@ -51,55 +52,73 @@ export function CapabilityConsentScreen({ blueprintName, onClose }: CapabilityCo
   const allGranted = permissions.length > 0 && permissions.every((p) => p.granted);
 
   return (
-    <div className="bp-consent-overlay" role="dialog" aria-modal="true" aria-label="Blueprint permissions">
-      <div className="bp-consent-panel">
-        <header className="bp-consent-header">
-          <h2>Blueprint Permissions</h2>
-          <p className="bp-consent-sub">
-            <strong>{blueprintName}</strong> requires the following capabilities. Grant each one to
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Blueprint permissions"
+    >
+      <div className="max-h-[80vh] w-[90vw] max-w-[520px] overflow-y-auto rounded-xl border border-border-strong bg-surface px-7 py-6 text-foreground shadow-lg animate-scale-in">
+        <header>
+          <h2 className="mb-1.5 text-[17px] font-bold tracking-tight text-foreground">Blueprint Permissions</h2>
+          <p className="mb-5 text-[13px] text-subtle-foreground">
+            <strong className="font-semibold text-foreground">{blueprintName}</strong> requires the following capabilities. Grant each one to
             allow the blueprint to run actions that use it.
           </p>
         </header>
 
-        {loading && <div className="bp-consent-loading">Loading permissions…</div>}
+        {loading && <div className="py-3 text-[13px] text-muted-foreground">Loading permissions…</div>}
 
         {!loading && permissions.length === 0 && (
-          <div className="bp-consent-empty">This blueprint requires no special capabilities.</div>
+          <div className="py-3 text-[13px] text-muted-foreground">This blueprint requires no special capabilities.</div>
         )}
 
         {!loading && permissions.length > 0 && (
-          <ul className="bp-consent-list">
+          <ul className="mb-4 flex list-none flex-col gap-2.5 p-0">
             {permissions.map((p) => (
-              <li key={p.capability} className={`bp-consent-item ${p.granted ? 'bp-consent-item--granted' : ''}`}>
-                <div className="bp-consent-item__info">
-                  <span className="bp-consent-item__label">{capabilityLabel(p.capability)}</span>
-                  <span className="bp-consent-item__desc">{capabilityDescription(p.capability)}</span>
-                  <code className="bp-consent-item__code">{p.capability}</code>
+              <li
+                key={p.capability}
+                className={
+                  'flex items-start justify-between gap-3.5 rounded-lg border px-3.5 py-3 ' +
+                  (p.granted
+                    ? 'border-success/40 bg-success/[0.06]'
+                    : 'border-border-strong bg-surface-2')
+                }
+              >
+                <div className="flex flex-1 flex-col gap-0.5">
+                  <span className="text-[13px] font-semibold text-foreground">{capabilityLabel(p.capability)}</span>
+                  <span className="text-xs text-subtle-foreground">{capabilityDescription(p.capability)}</span>
+                  <code className="font-mono text-[11px] text-muted-foreground">{p.capability}</code>
                 </div>
-                <button
+                <Button
                   type="button"
-                  className={`bp-consent-toggle ${p.granted ? 'bp-consent-toggle--revoke' : 'bp-consent-toggle--grant'}`}
+                  size="sm"
+                  variant={p.granted ? 'destructive' : 'secondary'}
                   disabled={saving === p.capability}
                   onClick={() => toggle(p.capability, p.granted)}
                   aria-label={p.granted ? `Revoke ${p.capability}` : `Grant ${p.capability}`}
                 >
                   {saving === p.capability ? '…' : p.granted ? 'Revoke' : 'Grant'}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
 
-        {error && <div className="bp-consent-error">{error}</div>}
+        {error && (
+          <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {error}
+          </div>
+        )}
 
-        <footer className="bp-consent-footer">
+        <footer className="flex items-center justify-between gap-3 pt-1">
           {allGranted && (
-            <span className="bp-consent-all-granted">All capabilities granted — blueprint will execute fully.</span>
+            <span className="text-[12.5px] text-success">All capabilities granted — blueprint will execute fully.</span>
           )}
           {!allGranted && permissions.length > 0 && (
-            <span className="bp-consent-warn">Ungranted capabilities will be skipped at runtime.</span>
+            <span className="text-[12.5px] text-warning">Ungranted capabilities will be skipped at runtime.</span>
           )}
-          <button type="button" className="bp-btn-primary" onClick={onClose}>Done</button>
+          <Button type="button" variant="primary" size="sm" className="ml-auto" onClick={onClose}>Done</Button>
         </footer>
       </div>
     </div>

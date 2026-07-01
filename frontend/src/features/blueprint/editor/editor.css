@@ -1,162 +1,14 @@
-/* Blueprint React Flow editor (#274). Dark theme matching the workspace UI. */
-
-.bp-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #0a0a0b;
-  color: #f4f4f5;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 13px;
-}
-
-.bp-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: #111114;
-  border-bottom: 1px solid #1e1e24;
-  flex-wrap: wrap;
-}
-
-.bp-toolbar__group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bp-toolbar button,
-.bp-load-select {
-  background: #1b1b21;
-  color: #e4e4e7;
-  border: 1px solid #2a2a32;
-  border-radius: 6px;
-  padding: 6px 11px;
-  font-size: 12.5px;
-  cursor: pointer;
-}
-
-.bp-toolbar button:hover,
-.bp-load-select:hover {
-  background: #23232b;
-}
-
-.bp-toolbar .bp-btn-primary {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: #fff;
-}
-
-.bp-toolbar .bp-btn-primary:hover {
-  background: #4338ca;
-}
-
-.bp-name-input,
-.bp-desc-input {
-  background: #1b1b21;
-  color: #f4f4f5;
-  border: 1px solid #2a2a32;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-.bp-name-input { width: 200px; font-weight: 600; }
-.bp-desc-input { width: 220px; }
-
-.bp-status {
-  padding: 7px 14px;
-  font-size: 12.5px;
-  border-bottom: 1px solid #1e1e24;
-}
-.bp-status--info { background: rgba(79, 70, 229, 0.12); color: #c7d2fe; }
-.bp-status--error { background: rgba(239, 68, 68, 0.12); color: #fca5a5; }
-.bp-status--success { background: rgba(22, 163, 74, 0.14); color: #86efac; }
-
-.bp-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* --- Palette --- */
-.bp-palette {
-  width: 230px;
-  flex-shrink: 0;
-  background: #111114;
-  border-right: 1px solid #1e1e24;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.bp-palette__search {
-  padding: 10px;
-  border-bottom: 1px solid #1e1e24;
-}
-
-.bp-palette__search input {
-  width: 100%;
-  box-sizing: border-box;
-  background: #1b1b21;
-  color: #f4f4f5;
-  border: 1px solid #2a2a32;
-  border-radius: 6px;
-  padding: 7px 10px;
-  font-size: 12.5px;
-}
-
-.bp-palette__list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.bp-palette__empty {
-  color: #71717a;
-  font-size: 12px;
-  padding: 8px;
-}
-
-.bp-palette__group-title {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #71717a;
-  margin: 10px 4px 6px;
-}
-
-.bp-palette__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  background: #17171c;
-  border: 1px solid #23232b;
-  border-left: 3px solid #6b7280;
-  border-radius: 6px;
-  padding: 7px 9px;
-  margin-bottom: 6px;
-  cursor: grab;
-}
-.bp-palette__item:hover { background: #1f1f26; }
-.bp-palette__item--trigger { border-left-color: #16a34a; }
-.bp-palette__item--action { border-left-color: #4f46e5; }
-.bp-palette__item--logic { border-left-color: #d97706; }
-
-.bp-palette__item-title { font-size: 12.5px; font-weight: 600; color: #f4f4f5; }
-.bp-palette__item-type { font-size: 10.5px; color: #71717a; font-family: ui-monospace, monospace; }
+/* Blueprint React Flow editor (#274). Dark theme matching the workspace UI.
+ *
+ * Only structural / React-Flow-scoped styling lives here — the toolbar, status
+ * bar, palette, and consent screen are styled with Tailwind utilities on the
+ * JSX. What remains targets elements React Flow renders (custom nodes, handles,
+ * edges, canvas, minimap) that can't be reached with utility classes alone.
+ * Every colour uses the dark palette (canvas #0a0a0b, panel #111114,
+ * border #1e1e24 / #2a2a30, indigo #6366f1). */
 
 /* --- Canvas --- */
-.bp-canvas {
-  flex: 1;
-  position: relative;
-}
-
-.bp-canvas .react-flow {
+.react-flow {
   background: #0a0a0b;
 }
 
@@ -164,11 +16,36 @@
   background: #111114 !important;
 }
 
+/* React Flow controls — recolour the default light buttons to the dark palette. */
+.react-flow__controls {
+  box-shadow: none;
+}
+.react-flow__controls-button {
+  background: #16161a;
+  border-bottom: 1px solid #1e1e24;
+  color: #a1a1aa;
+  fill: #a1a1aa;
+}
+.react-flow__controls-button:hover {
+  background: #1c1c22;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* MiniMap mask + node colours on the dark canvas. */
+.react-flow__minimap-mask {
+  fill: rgba(10, 10, 11, 0.7);
+}
+.react-flow__minimap-node {
+  fill: #2a2a30;
+}
+
 /* --- Custom node --- */
 .bp-node {
   min-width: 168px;
-  background: #16161b;
-  border: 1px solid #2a2a32;
+  background: #111114;
+  border: 1px solid #2a2a30;
   border-radius: 8px;
   overflow: hidden;
   font-size: 12px;
@@ -179,7 +56,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  color: #fff;
+  color: #f4f4f5;
 }
 .bp-node__title { font-weight: 600; font-size: 12.5px; }
 .bp-node__category { font-size: 9.5px; text-transform: uppercase; opacity: 0.85; letter-spacing: 0.05em; }
@@ -188,7 +65,7 @@
   display: flex;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid #23232b;
+  border-bottom: 1px solid #1e1e24;
 }
 .bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; }
 
@@ -209,7 +86,7 @@
   position: relative;
 }
 .bp-pin-row--out { justify-content: flex-end; }
-.bp-pin-label { color: #c4c4cc; font-size: 11px; white-space: nowrap; }
+.bp-pin-label { color: #a1a1aa; font-size: 11px; white-space: nowrap; }
 
 /* React Flow handles */
 .bp-handle {
@@ -227,183 +104,29 @@
 }
 
 /* Edges */
-.bp-edge-exec .react-flow__edge-path { stroke: #e4e4e7; stroke-width: 2; }
+.bp-edge-exec .react-flow__edge-path { stroke: #f4f4f5; stroke-width: 2; }
 .bp-edge-data .react-flow__edge-path { stroke: #6366f1; stroke-width: 1.6; }
 
 /* Highlighted (run/debug) nodes */
 .bp-node-highlight .bp-node {
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.6);
-}
-
-/* --- Capability Consent Screen (#275) --- */
-.bp-consent-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.bp-consent-panel {
-  background: #16161b;
-  border: 1px solid #2a2a32;
-  border-radius: 12px;
-  padding: 24px 28px;
-  max-width: 520px;
-  width: 90vw;
-  max-height: 80vh;
-  overflow-y: auto;
-  color: #f4f4f5;
-}
-
-.bp-consent-header h2 {
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.bp-consent-sub {
-  font-size: 13px;
-  color: #a1a1aa;
-  margin: 0 0 20px;
-}
-
-.bp-consent-loading,
-.bp-consent-empty {
-  font-size: 13px;
-  color: #71717a;
-  padding: 12px 0;
-}
-
-.bp-consent-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.bp-consent-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 14px;
-  background: #1b1b21;
-  border: 1px solid #2a2a32;
-  border-radius: 8px;
-}
-
-.bp-consent-item--granted {
-  border-color: rgba(22, 163, 74, 0.4);
-  background: rgba(22, 163, 74, 0.06);
-}
-
-.bp-consent-item__info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.bp-consent-item__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f4f4f5;
-}
-
-.bp-consent-item__desc {
-  font-size: 12px;
-  color: #a1a1aa;
-}
-
-.bp-consent-item__code {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  color: #71717a;
-}
-
-.bp-consent-toggle {
-  flex-shrink: 0;
-  padding: 6px 13px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.bp-consent-toggle--grant {
-  background: rgba(79, 70, 229, 0.15);
-  border-color: rgba(79, 70, 229, 0.4);
-  color: #a5b4fc;
-}
-
-.bp-consent-toggle--grant:hover {
-  background: rgba(79, 70, 229, 0.25);
-}
-
-.bp-consent-toggle--revoke {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-}
-
-.bp-consent-toggle--revoke:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.bp-consent-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.bp-consent-error {
-  font-size: 12px;
-  color: #fca5a5;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-}
-
-.bp-consent-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 4px;
-}
-
-.bp-consent-all-granted {
-  font-size: 12.5px;
-  color: #86efac;
-}
-
-.bp-consent-warn {
-  font-size: 12.5px;
-  color: #fbbf24;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.6);
 }
 
 /* Custom code node inline editor (#279) */
 .bp-node__code {
   padding: 6px 8px;
-  border-top: 1px solid #2a2a32;
+  border-top: 1px solid #2a2a30;
 }
 
 .bp-code-textarea {
   width: 100%;
   box-sizing: border-box;
   background: #0a0a0b;
-  color: #a5f3fc;
-  border: 1px solid #2a2a32;
+  color: #818cf8;
+  border: 1px solid #2a2a30;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 11px;
   line-height: 1.5;
   padding: 4px 6px;
@@ -412,5 +135,5 @@
 }
 
 .bp-code-textarea:focus {
-  border-color: #4f46e5;
+  border-color: #6366f1;
 }

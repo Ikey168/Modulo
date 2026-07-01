@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { PluginService } from '../../services/pluginService';
+import { Upload, FileArchive, X, AlertCircle } from 'lucide-react';
+import { Button, Label, Modal, Textarea, cn } from '@/ui';
 
 interface PluginInstallerProps {
   onClose: () => void;
@@ -43,7 +45,7 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragOver(false);
-    
+
     const droppedFile = event.dataTransfer.files[0];
     if (droppedFile) {
       handleFileSelect(droppedFile);
@@ -66,7 +68,7 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
       };
 
       const response = await PluginService.installPlugin(request);
-      
+
       if (response.success) {
         onSuccess();
       } else {
@@ -81,7 +83,7 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
 
   const validateConfig = () => {
     if (!config.trim()) return true;
-    
+
     try {
       JSON.parse(config);
       return true;
@@ -93,106 +95,110 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
   const isConfigValid = validateConfig();
 
   return (
-    <div className="plugin-installer-overlay">
-      <div className="plugin-installer-modal">
-        <div className="installer-header">
-          <h2>Install Plugin</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-
-        <div className="installer-body">
-          {error && (
-            <div className="error-message">
-              <span>❌ {error}</span>
-            </div>
-          )}
-
-          <div className="file-upload-section">
-            <label>Plugin File (JAR)</label>
-            <div
-              className={`file-drop-zone ${dragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".jar"
-                onChange={handleFileInputChange}
-                style={{ display: 'none' }}
-              />
-              
-              {file ? (
-                <div className="file-selected">
-                  <div className="file-icon">📁</div>
-                  <div className="file-info">
-                    <div className="file-name">{file.name}</div>
-                    <div className="file-size">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </div>
-                  </div>
-                  <button
-                    className="remove-file-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <div className="file-upload-prompt">
-                  <div className="upload-icon">📤</div>
-                  <p>Click to select or drag & drop a JAR file</p>
-                  <small>Only .jar files are supported</small>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="config-section">
-            <label htmlFor="plugin-config">
-              Configuration (Optional)
-              {!isConfigValid && <span className="config-error"> - Invalid JSON</span>}
-            </label>
-            <textarea
-              id="plugin-config"
-              className={`config-textarea ${!isConfigValid ? 'invalid' : ''}`}
-              placeholder="Enter plugin configuration in JSON format..."
-              value={config}
-              onChange={(e) => setConfig(e.target.value)}
-              rows={6}
-            />
-            <small className="config-help">
-              Plugin-specific configuration in JSON format. Leave empty to use defaults.
-            </small>
-          </div>
-        </div>
-
-        <div className="installer-footer">
-          <button 
-            className="cancel-btn" 
+    <Modal
+      open
+      onClose={onClose}
+      title="Install Plugin"
+      footer={
+        <>
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={installing}
           >
             Cancel
-          </button>
-          <button
-            className="install-btn"
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleInstall}
             disabled={!file || installing || !isConfigValid}
+            loading={installing}
           >
             {installing ? 'Installing...' : 'Install Plugin'}
-          </button>
+          </Button>
+        </>
+      }
+    >
+      {error && (
+        <div className="mb-5 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/15 p-3 text-[13px] text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="mb-6">
+        <Label className="mb-2 block">Plugin File (JAR)</Label>
+        <div
+          className={cn(
+            'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all',
+            dragOver && 'scale-[1.02] border-primary bg-primary/10',
+            file && 'border-success bg-success/10',
+            !dragOver && !file && 'border-border-strong bg-surface-2 hover:border-primary hover:bg-primary/5',
+          )}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".jar"
+            onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
+
+          {file ? (
+            <div className="flex items-center gap-3 text-left">
+              <FileArchive className="size-8 shrink-0 text-success" />
+              <div className="flex-1">
+                <div className="font-medium text-foreground">{file.name}</div>
+                <div className="text-[13px] text-muted-foreground">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </div>
+              </div>
+              <button
+                className="flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground transition-colors hover:bg-destructive/90"
+                aria-label="Remove file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFile(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              <Upload className="mx-auto mb-3 size-8" />
+              <p className="text-foreground">Click to select or drag &amp; drop a JAR file</p>
+              <small className="text-muted-foreground">Only .jar files are supported</small>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+
+      <div>
+        <Label htmlFor="plugin-config" className="mb-2 block">
+          Configuration (Optional)
+          {!isConfigValid && <span className="font-normal text-destructive"> - Invalid JSON</span>}
+        </Label>
+        <Textarea
+          id="plugin-config"
+          className={cn('font-mono', !isConfigValid && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30')}
+          placeholder="Enter plugin configuration in JSON format..."
+          value={config}
+          onChange={(e) => setConfig(e.target.value)}
+          rows={6}
+        />
+        <small className="mt-1.5 block text-xxs text-muted-foreground">
+          Plugin-specific configuration in JSON format. Leave empty to use defaults.
+        </small>
+      </div>
+    </Modal>
   );
 };
 

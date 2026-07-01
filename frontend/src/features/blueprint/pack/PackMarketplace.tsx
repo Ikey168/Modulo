@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Button, Badge, cn } from '@/ui';
 import { listPublishedPacks, installPackFromCid, type PackEntry } from './packService';
 import { metaMaskService } from '../../../services/metamask';
-import './pack.css';
 
 /**
  * Marketplace panel that discovers IPFS-published packs and lets the user
@@ -51,64 +51,73 @@ export default function PackMarketplace() {
     }
   }
 
-  if (loading) return <div className="pm-loading">Loading packs…</div>;
-  if (error) return <div className="pm-error">{error}</div>;
+  if (loading) return <div className="py-3 text-[13px] text-muted-foreground">Loading packs…</div>;
+  if (error) return <div className="py-3 text-[13px] text-destructive">{error}</div>;
   if (packs.length === 0) return null;
 
   return (
-    <div className="pm-section">
-      <div className="pm-section-header">
-        <h2 className="pm-section-title">Packs</h2>
-        <p className="pm-section-subtitle">Community-published blueprint packs distributed via IPFS</p>
+    <div className="mt-8 border-t border-border pt-6">
+      <div className="mb-4">
+        <h2 className="m-0 mb-1 text-[1.1rem] font-semibold text-foreground">Packs</h2>
+        <p className="m-0 text-xs text-muted-foreground">Community-published blueprint packs distributed via IPFS</p>
       </div>
-      <div className="pm-grid">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
         {packs.map(pack => {
           const isInstalled = installed.has(pack.packId) || pack.source === 'IPFS';
           const isInstalling = installing === pack.packId;
           const err = installErrors[pack.packId];
           return (
-            <div key={pack.packId} className="pm-card">
-              <div className="pm-card-header">
-                <div className="pm-card-icon">{(pack.name ?? pack.packId).charAt(0).toUpperCase()}</div>
-                <div className="pm-card-meta">
-                  <div className="pm-card-name">{pack.name ?? pack.packId}</div>
-                  <div className="pm-card-author">{pack.manifest?.author ?? 'Unknown author'}</div>
+            <div
+              key={pack.packId}
+              className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-[34px] shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 text-sm font-semibold text-indigo-400">
+                  {(pack.name ?? pack.packId).charAt(0).toUpperCase()}
                 </div>
-                <button
-                  className={`pm-install-btn ${isInstalled ? 'pm-install-btn--installed' : ''}`}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-semibold text-foreground">{pack.name ?? pack.packId}</div>
+                  <div className="text-[11px] text-muted-foreground">{pack.manifest?.author ?? 'Unknown author'}</div>
+                </div>
+                <Button
+                  variant={isInstalled ? 'outline' : 'primary'}
+                  size="sm"
+                  className={cn('shrink-0', isInstalled && 'cursor-default text-muted-foreground')}
                   onClick={() => !isInstalled && handleInstall(pack)}
                   disabled={isInstalling || isInstalled}
                 >
                   {isInstalling ? '…' : isInstalled ? 'Installed' : pack.premium ? 'Buy & Install' : 'Install'}
-                </button>
+                </Button>
               </div>
-              <div className="pm-card-desc">{pack.description ?? 'No description provided.'}</div>
-              <div className="pm-card-footer">
-                <span className="pm-badge">v{pack.version}</span>
+              <div className="text-[12.5px] leading-relaxed text-subtle-foreground">{pack.description ?? 'No description provided.'}</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary" className="font-mono">v{pack.version}</Badge>
                 {pack.premium ? (
-                  <span className="pm-badge pm-badge--price" title={`${pack.accessPrice} MODO base units`}>
+                  <Badge variant="warning" className="font-mono" title={`${pack.accessPrice} MODO base units`}>
                     {pack.accessPrice} MODO
-                  </span>
+                  </Badge>
                 ) : (
-                  <span className="pm-badge pm-badge--free">Free</span>
+                  <Badge variant="secondary" className="font-mono">Free</Badge>
                 )}
                 {pack.anchorTx && (
-                  <span className="pm-badge pm-badge--chain" title={`tx: ${pack.anchorTx}\nauthor: ${pack.authorAddress ?? ''}`}>
+                  <Badge variant="success" className="font-mono" title={`tx: ${pack.anchorTx}\nauthor: ${pack.authorAddress ?? ''}`}>
                     ⛓ verified author
-                  </span>
+                  </Badge>
                 )}
                 {pack.ipfsCid && (
-                  <span className="pm-badge pm-badge--ipfs" title={pack.ipfsCid}>
+                  <Badge variant="info" className="font-mono" title={pack.ipfsCid}>
                     IPFS {pack.ipfsCid.slice(0, 8)}…
-                  </span>
+                  </Badge>
                 )}
                 {pack.contentHash && (
-                  <span className="pm-badge pm-badge--hash" title={pack.contentHash}>
+                  <Badge variant="success" className="font-mono" title={pack.contentHash}>
                     ✓ sha256
-                  </span>
+                  </Badge>
                 )}
               </div>
-              {err && <div className="pm-card-error">{err}</div>}
+              {err && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/15 px-2 py-1 text-[11px] text-destructive">{err}</div>
+              )}
             </div>
           );
         })}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Badge } from '@/ui';
 import './RenderedNoteDisplay.css';
 
 interface RenderedNoteDisplayProps {
@@ -188,19 +189,24 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
   const metadataInfo = getMetadataInfo();
 
   return (
-    <div className="rendered-note-display">
-      <div className="rendered-content-header">
-        <div className="renderer-info">
-          <span className="renderer-label">Rendered with: {rendererId}</span>
+    <div className="my-4 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-2 px-4 py-3 max-md:flex-col max-md:items-start">
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] font-medium text-muted-foreground">Rendered with: {rendererId}</span>
           {isInteractive && (
-            <span className="interactive-badge">Interactive</span>
+            <Badge variant="success" className="uppercase tracking-wide">Interactive</Badge>
           )}
         </div>
-        
+
         {metadataInfo.length > 0 && (
-          <div className="content-metadata">
+          <div className="flex flex-wrap gap-3 max-md:w-full max-md:justify-start">
             {metadataInfo.map((info, index) => (
-              <span key={index} className="metadata-item">{info}</span>
+              <span
+                key={index}
+                className="rounded-md border border-border-strong bg-surface-3 px-2 py-1 text-xs text-muted-foreground"
+              >
+                {info}
+              </span>
             ))}
           </div>
         )}
@@ -214,17 +220,17 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
       </div>
 
       {metadata.error && (
-        <div className="rendering-error">
-          <strong>Rendering Error:</strong> {metadata.error}
+        <div className="mx-4 my-2 rounded-r-md border-l-4 border-destructive bg-destructive/15 px-4 py-3 text-[13px] text-destructive">
+          <strong className="mb-2 block font-semibold">Rendering Error:</strong> {metadata.error}
         </div>
       )}
 
       {metadata.warnings && Array.isArray(metadata.warnings) && metadata.warnings.length > 0 && (
-        <div className="rendering-warnings">
-          <strong>Warnings:</strong>
-          <ul>
+        <div className="mx-4 my-2 rounded-r-md border-l-4 border-warning bg-warning/15 px-4 py-3 text-[13px] text-warning">
+          <strong className="mb-2 block font-semibold">Warnings:</strong>
+          <ul className="m-0 list-disc pl-5">
             {metadata.warnings.map((warning: string, index: number) => (
-              <li key={index}>{warning}</li>
+              <li key={index} className="mb-1">{warning}</li>
             ))}
           </ul>
         </div>

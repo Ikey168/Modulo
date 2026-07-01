@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { offlineNoteService, SyncStatus, useNetworkStatus } from '../../services/offlineNotes';
-import './OfflineStatus.css';
 
 interface OfflineStatusProps {
   onSyncComplete?: () => void;
@@ -37,7 +36,7 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
       setLoading(true);
       setError(null);
       await offlineNoteService.forceSync();
-      
+
       // Wait a moment then refresh status
       setTimeout(async () => {
         await loadSyncStatus();
@@ -45,7 +44,7 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
           onSyncComplete();
         }
       }, 1000);
-      
+
     } catch (err) {
       console.error('Failed to force sync:', err);
       setError('Failed to sync with server');
@@ -57,10 +56,10 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
   // Load initial status and set up polling
   useEffect(() => {
     loadSyncStatus();
-    
+
     // Poll for status updates every 30 seconds
     const interval = setInterval(loadSyncStatus, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -73,45 +72,53 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
   const isFullySynced = totalPending === 0 && !syncStatus.syncInProgress;
 
   return (
-    <div className={`offline-status ${!isOnline ? 'offline' : ''}`}>
-      <div className="status-content">
+    <div
+      className={`offline-status flex animate-fade-in flex-col gap-2 rounded-lg border p-3 text-sm shadow-sm transition-colors ${
+        !isOnline ? 'offline border-warning/40 bg-warning/10' : 'border-border bg-surface'
+      }`}
+    >
+      <div className="status-content flex items-center justify-between gap-4">
         {/* Network Status */}
-        <div className={`network-indicator ${isOnline ? 'online' : 'offline'}`}>
-          <span className="network-icon">
+        <div
+          className={`network-indicator flex items-center gap-2 font-medium ${
+            isOnline ? 'online text-success' : 'offline text-destructive'
+          }`}
+        >
+          <span className="network-icon text-[1.1rem]">
             {isOnline ? '🌐' : '📱'}
           </span>
-          <span className="network-text">
+          <span className="network-text text-sm">
             {isOnline ? 'Online' : 'Offline'}
           </span>
         </div>
 
         {/* Sync Status */}
-        <div className="sync-status">
+        <div className="sync-status flex flex-1 items-center justify-center gap-2">
           {syncStatus.syncInProgress ? (
-            <div className="syncing">
-              <span className="sync-icon spinning">🔄</span>
+            <div className="syncing flex items-center gap-2 font-medium text-info">
+              <span className="sync-icon spinning inline-block animate-spin text-base">🔄</span>
               <span>Syncing...</span>
             </div>
           ) : isFullySynced ? (
-            <div className="synced">
-              <span className="sync-icon">✅</span>
+            <div className="synced flex items-center gap-2 font-medium text-success">
+              <span className="sync-icon text-base">✅</span>
               <span>All synced</span>
             </div>
           ) : (
-            <div className="pending">
-              <span className="sync-icon">⏳</span>
+            <div className="pending flex items-center gap-2 font-medium text-warning">
+              <span className="sync-icon text-base">⏳</span>
               <span>{totalPending} pending</span>
             </div>
           )}
         </div>
 
         {/* Sync Actions */}
-        <div className="sync-actions">
+        <div className="sync-actions flex items-center">
           {isOnline && totalPending > 0 && (
             <button
               onClick={handleForceSync}
               disabled={loading || syncStatus.syncInProgress}
-              className="sync-button"
+              className="sync-button flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
               title="Force sync with server"
             >
               {loading ? '⟳' : '🔄'} Sync
@@ -122,14 +129,14 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
 
       {/* Detailed Status */}
       {(syncStatus.pendingSyncCount > 0 || syncStatus.pendingDeleteCount > 0) && (
-        <div className="detailed-status">
+        <div className="detailed-status flex gap-4 border-t border-border pt-2 text-xs text-muted-foreground">
           {syncStatus.pendingSyncCount > 0 && (
-            <span className="pending-item">
+            <span className="pending-item flex items-center gap-1">
               📝 {syncStatus.pendingSyncCount} to sync
             </span>
           )}
           {syncStatus.pendingDeleteCount > 0 && (
-            <span className="pending-item">
+            <span className="pending-item flex items-center gap-1">
               🗑️ {syncStatus.pendingDeleteCount} to delete
             </span>
           )}
@@ -138,12 +145,12 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
 
       {/* Error Display */}
       {error && (
-        <div className="status-error">
-          <span className="error-icon">⚠️</span>
-          <span className="error-text">{error}</span>
+        <div className="status-error flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/15 p-2 text-xs text-destructive">
+          <span className="error-icon text-base">⚠️</span>
+          <span className="error-text flex-1">{error}</span>
           <button
             onClick={() => setError(null)}
-            className="error-dismiss"
+            className="error-dismiss rounded p-0.5 leading-none text-destructive transition-colors hover:bg-destructive/20"
             title="Dismiss error"
           >
             ✕
@@ -153,7 +160,7 @@ const OfflineStatus: React.FC<OfflineStatusProps> = ({ onSyncComplete }) => {
 
       {/* Last Updated */}
       {lastUpdated && !syncStatus.syncInProgress && (
-        <div className="last-updated">
+        <div className="last-updated mt-1 text-center text-[0.625rem] text-muted-foreground">
           Updated {lastUpdated.toLocaleTimeString()}
         </div>
       )}

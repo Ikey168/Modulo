@@ -34,9 +34,9 @@ button,
 .btn,
 .clickable {
   cursor: pointer;
-  /* Better touch feedback */
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-  tap-highlight-color: rgba(0, 0, 0, 0.1);
+  /* Better touch feedback — subtle light highlight reads on dark surfaces */
+  -webkit-tap-highlight-color: rgba(244, 244, 245, 0.08);
+  tap-highlight-color: rgba(244, 244, 245, 0.08);
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -122,7 +122,8 @@ textarea {
   .main-nav a {
     padding: 0.5rem 1rem;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-primary);
     text-align: center;
     min-width: 80px;
   }
@@ -627,7 +628,7 @@ textarea {
   .app-header {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background: rgba(17, 24, 39, 0.9);
+    background: rgba(17, 17, 20, 0.9); /* #111114 panel @ 90% */
   }
 
   .modal,

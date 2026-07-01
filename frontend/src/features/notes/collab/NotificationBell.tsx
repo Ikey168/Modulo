@@ -20,86 +20,37 @@ const NotificationBell: React.FC<Props> = ({ userId }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen(o => !o)}
-        style={{
-          position: 'relative',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '6px',
-          color: 'inherit',
-          fontSize: '20px',
-          lineHeight: 1,
-        }}
+        className="relative cursor-pointer rounded-md border-none bg-transparent p-1.5 text-xl leading-none text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
       >
         🔔
         {unreadCount > 0 && (
-          <span style={{
-            position: 'absolute',
-            top: '2px',
-            right: '2px',
-            background: '#ef4444',
-            color: '#fff',
-            borderRadius: '9999px',
-            fontSize: '10px',
-            minWidth: '16px',
-            height: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0 3px',
-            lineHeight: 1,
-          }}>
+          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-[3px] text-[10px] leading-none text-destructive-foreground">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute',
-          right: 0,
-          top: '100%',
-          width: '320px',
-          background: 'var(--color-surface, #fff)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,.12)',
-          zIndex: 1000,
-          maxHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--color-border, #e5e7eb)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span style={{ fontWeight: 600, fontSize: '14px' }}>Notifications</span>
+        <div className="absolute right-0 top-full z-[1000] flex max-h-[400px] w-80 animate-scale-in flex-col overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-semibold text-foreground">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--color-primary, #3b82f6)',
-                  fontSize: '12px',
-                }}
+                className="cursor-pointer border-none bg-transparent text-xs text-indigo-400 transition-colors hover:text-primary"
               >
                 Mark all read
               </button>
             )}
           </div>
 
-          <div style={{ overflowY: 'auto', flex: 1 }}>
+          <div className="flex-1 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary, #6b7280)', fontSize: '13px' }}>
+              <div className="p-6 text-center text-[13px] text-muted-foreground">
                 No notifications
               </div>
             ) : (
@@ -135,30 +86,25 @@ const NotificationItem: React.FC<ItemProps> = ({ notification: n, onRead, onRemo
 
   return (
     <div
-      style={{
-        padding: '10px 16px',
-        borderBottom: '1px solid var(--color-border, #e5e7eb)',
-        background: n.read ? 'transparent' : 'var(--color-primary-subtle, #eff6ff)',
-        display: 'flex',
-        gap: '10px',
-        alignItems: 'flex-start',
-      }}
+      className={`flex items-start gap-2.5 border-b border-border px-4 py-2.5 ${
+        n.read ? 'bg-transparent' : 'bg-primary/10'
+      }`}
     >
-      <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '2px' }}>
+      <span className="mt-0.5 text-base leading-none">
         {typeIcon[n.type] ?? '🔔'}
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', lineHeight: '1.4' }}>{n.message}</div>
-        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', marginTop: '2px' }}>
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] leading-snug text-foreground">{n.message}</div>
+        <div className="mt-0.5 text-[11px] text-muted-foreground">
           {new Date(n.createdAt).toLocaleString()}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+      <div className="flex shrink-0 gap-1">
         {!n.read && (
           <button
             onClick={onRead}
             title="Mark as read"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary, #3b82f6)', fontSize: '16px', lineHeight: 1 }}
+            className="cursor-pointer border-none bg-transparent text-base leading-none text-indigo-400 transition-colors hover:text-primary"
           >
             ✓
           </button>
@@ -166,7 +112,7 @@ const NotificationItem: React.FC<ItemProps> = ({ notification: n, onRead, onRemo
         <button
           onClick={onRemove}
           title="Dismiss"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary, #6b7280)', fontSize: '16px', lineHeight: 1 }}
+          className="cursor-pointer border-none bg-transparent text-base leading-none text-muted-foreground transition-colors hover:text-foreground"
         >
           ×
         </button>

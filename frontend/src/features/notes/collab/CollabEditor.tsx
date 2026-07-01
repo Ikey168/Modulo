@@ -50,17 +50,10 @@ const CollabEditor: React.FC<Props> = ({
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       {participants.length > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 8px',
-          borderBottom: '1px solid var(--color-border, #e5e7eb)',
-          background: 'var(--color-surface-raised, #f9fafb)',
-        }}>
-          <span style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)' }}>
+        <div className="flex items-center gap-2 border-b border-border bg-surface-2 px-2 py-1.5">
+          <span className="text-xs text-muted-foreground">
             Also editing:
           </span>
           <PresenceAvatars participants={participants} />
@@ -73,19 +66,7 @@ const CollabEditor: React.FC<Props> = ({
         onSelect={handleSelect}
         onKeyUp={handleSelect}
         readOnly={readOnly}
-        style={{
-          width: '100%',
-          minHeight: '300px',
-          padding: '12px',
-          border: 'none',
-          outline: 'none',
-          resize: 'vertical',
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-          background: 'transparent',
-          color: 'inherit',
-          boxSizing: 'border-box',
-        }}
+        className="box-border min-h-[300px] w-full resize-y border-none bg-transparent p-3 font-[inherit] text-[length:inherit] text-foreground caret-primary outline-none placeholder:text-muted-foreground"
       />
     </div>
   );

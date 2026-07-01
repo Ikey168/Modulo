@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Button, Input, Textarea, Badge, Switch, Tabs, Separator } from '@/ui';
 import {
   listPacks, installPack, uninstallPack, publishPackToIpfs, installPackFromCid,
   anchorPack, setPackPricing,
@@ -7,7 +8,6 @@ import {
 import type { PackManifest } from './packManifest';
 import { validateManifest } from './packManifest';
 import { NodeCatalog } from '../nodeCatalog';
-import './pack.css';
 
 type Tab = 'installed' | 'install';
 
@@ -195,229 +195,248 @@ export default function PackManager() {
   }
 
   return (
-    <div className="pack-manager">
-      <h2>Packs</h2>
+    <div className="mx-auto max-w-[900px] p-6 text-foreground">
+      <h2 className="mb-4 text-[1.4rem] font-semibold text-foreground">Packs</h2>
 
-      <div className="pack-tabs">
-        <button className={`pack-tab ${tab === 'installed' ? 'pack-tab--active' : ''}`} onClick={() => setTab('installed')}>
-          Installed ({packs.length})
-        </button>
-        <button className={`pack-tab ${tab === 'install' ? 'pack-tab--active' : ''}`} onClick={() => setTab('install')}>
-          Install
-        </button>
-      </div>
+      <Tabs
+        className="mb-5"
+        value={tab}
+        onChange={(v) => setTab(v as Tab)}
+        items={[
+          { value: 'installed', label: `Installed (${packs.length})` },
+          { value: 'install', label: 'Install' },
+        ]}
+      />
 
-      {error && <div className="pack-error">{error}</div>}
+      {error && (
+        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</div>
+      )}
 
       {tab === 'installed' && (
         loading ? (
-          <div className="pack-loading">Loading…</div>
+          <div className="mb-6 text-[0.9rem] text-muted-foreground">Loading…</div>
         ) : packs.length === 0 ? (
-          <div className="pack-empty">No packs installed.</div>
+          <div className="mb-6 text-[0.9rem] text-muted-foreground">No packs installed.</div>
         ) : (
-          <table className="pack-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Version</th>
-                <th>Source</th>
-                <th>IPFS</th>
-                <th>Chain</th>
-                <th>Price</th>
-                <th></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {packs.map(p => {
-                const pub = publishResults[p.packId];
-                const cid = pub?.cid ?? p.ipfsCid;
-                const hash = pub?.hash ?? p.contentHash;
-                const url = pub?.url ?? p.gatewayUrl;
-                const expanded = expandedId === p.packId;
-                return (
-                  <React.Fragment key={p.packId}>
-                  <tr>
-                    <td className="pack-id">{p.packId}</td>
-                    <td>{p.version}</td>
-                    <td>
-                      <span className={`pack-source pack-source--${(p.source ?? 'LOCAL').toLowerCase()}`}>
-                        {p.source ?? 'LOCAL'}
-                      </span>
-                    </td>
-                    <td className="pack-ipfs-cell">
-                      {cid ? (
-                        <div className="pack-cid-info">
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="pack-cid-link" title={cid}>
-                            {cid.slice(0, 14)}…
-                          </a>
-                          {hash && <span className="pack-hash" title={hash}>sha256: {hash.slice(0, 8)}…</span>}
-                        </div>
-                      ) : (
-                        <button
-                          className="pack-publish-btn"
-                          onClick={() => handlePublish(p.packId)}
-                          disabled={publishingId === p.packId}
+          <div className="overflow-hidden rounded-lg border border-border">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface">
+                  {['ID', 'Version', 'Source', 'IPFS', 'Chain', 'Price', '', ''].map((h, i) => (
+                    <th
+                      key={i}
+                      className="px-3 py-2 text-left text-[0.75rem] font-medium uppercase tracking-[0.05em] text-muted-foreground"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {packs.map(p => {
+                  const pub = publishResults[p.packId];
+                  const cid = pub?.cid ?? p.ipfsCid;
+                  const hash = pub?.hash ?? p.contentHash;
+                  const url = pub?.url ?? p.gatewayUrl;
+                  const expanded = expandedId === p.packId;
+                  return (
+                    <React.Fragment key={p.packId}>
+                    <tr className="border-b border-border">
+                      <td className="px-3 py-2 font-mono text-indigo-400">{p.packId}</td>
+                      <td className="px-3 py-2">{p.version}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant={(p.source ?? 'LOCAL') === 'IPFS' ? 'info' : 'secondary'}>
+                          {p.source ?? 'LOCAL'}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-[0.8rem]">
+                        {cid ? (
+                          <div className="flex flex-col gap-0.5">
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-indigo-400 no-underline hover:underline"
+                              title={cid}
+                            >
+                              {cid.slice(0, 14)}…
+                            </a>
+                            {hash && <span className="font-mono text-[0.75rem] text-muted-foreground" title={hash}>sha256: {hash.slice(0, 8)}…</span>}
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePublish(p.packId)}
+                            disabled={publishingId === p.packId}
+                          >
+                            {publishingId === p.packId ? 'Publishing…' : 'Publish to IPFS'}
+                          </Button>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-[0.8rem]">
+                        {p.anchorTx ? (
+                          <Badge variant="success" className="font-mono" title={`tx: ${p.anchorTx}\nauthor: ${p.authorAddress ?? ''}`}>
+                            ⛓ {p.anchorTx.slice(0, 10)}…
+                          </Badge>
+                        ) : (
+                          <span className="text-[0.75rem] text-muted-foreground">unanchored</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {p.premium ? (
+                          <Badge variant="warning" className="font-mono" title={`${p.accessPrice} MODO base units`}>
+                            {p.accessPrice} MODO
+                          </Badge>
+                        ) : (
+                          <span className="text-[0.75rem] text-muted-foreground">Free</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Button variant="secondary" size="sm" onClick={() => toggleManage(p)}>
+                          {expanded ? 'Close' : 'Manage'}
+                        </Button>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleUninstall(p.packId)}
+                          disabled={uninstallingId === p.packId}
                         >
-                          {publishingId === p.packId ? 'Publishing…' : 'Publish to IPFS'}
-                        </button>
-                      )}
-                    </td>
-                    <td className="pack-chain-cell">
-                      {p.anchorTx ? (
-                        <span className="pack-anchor-badge" title={`tx: ${p.anchorTx}\nauthor: ${p.authorAddress ?? ''}`}>
-                          ⛓ {p.anchorTx.slice(0, 10)}…
-                        </span>
-                      ) : (
-                        <span className="pack-anchor-none">unanchored</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.premium ? (
-                        <span className="pack-price-badge" title={`${p.accessPrice} MODO base units`}>
-                          {p.accessPrice} MODO
-                        </span>
-                      ) : (
-                        <span className="pack-free-badge">Free</span>
-                      )}
-                    </td>
-                    <td>
-                      <button className="pack-manage-btn" onClick={() => toggleManage(p)}>
-                        {expanded ? 'Close' : 'Manage'}
-                      </button>
-                    </td>
-                    <td>
-                      <button
-                        className="pack-uninstall-btn"
-                        onClick={() => handleUninstall(p.packId)}
-                        disabled={uninstallingId === p.packId}
-                      >
-                        {uninstallingId === p.packId ? 'Removing…' : 'Uninstall'}
-                      </button>
-                    </td>
-                  </tr>
-                  {expanded && (
-                    <tr className="pack-manage-row">
-                      <td colSpan={8}>
-                        <div className="pack-manage-panel">
-                          <div className="pack-manage-group">
-                            <h4>On-chain provenance</h4>
-                            {p.anchorTx ? (
-                              <div className="pack-manage-info">
-                                <div>tx: <code>{p.anchorTx}</code></div>
-                                <div>author: <code>{p.authorAddress ?? '—'}</code></div>
-                                {p.onchainId != null && <div>on-chain id: <code>{p.onchainId}</code></div>}
-                              </div>
-                            ) : (
-                              <p className="pack-install-hint">Anchor the pack hash on-chain for verifiable authorship.</p>
-                            )}
-                            <button
-                              className="pack-install-btn"
-                              onClick={() => handleAnchor(p.packId)}
-                              disabled={anchoringId === p.packId || !p.contentHash}
-                              title={!p.contentHash ? 'Publish to IPFS first' : ''}
-                            >
-                              {anchoringId === p.packId ? 'Anchoring…' : p.anchorTx ? 'Re-anchor' : 'Anchor on-chain'}
-                            </button>
-                          </div>
-
-                          <div className="pack-manage-group">
-                            <h4>Pricing</h4>
-                            <label className="pack-checkbox">
-                              <input
-                                type="checkbox"
-                                checked={priceDraft.premium}
-                                onChange={e => setPriceDraft(d => ({ ...d, premium: e.target.checked }))}
-                              />
-                              Premium (paid pack)
-                            </label>
-                            {priceDraft.premium && (
-                              <>
-                                <input
-                                  className="pack-cid-input"
-                                  value={priceDraft.price}
-                                  onChange={e => setPriceDraft(d => ({ ...d, price: e.target.value }))}
-                                  placeholder="Access price (MODO base units, 18 decimals)"
-                                />
-                                <input
-                                  className="pack-cid-input"
-                                  value={priceDraft.royalty}
-                                  onChange={e => setPriceDraft(d => ({ ...d, royalty: e.target.value }))}
-                                  placeholder="Author royalty (basis points, e.g. 250 = 2.5%)"
-                                  style={{ marginTop: 6 }}
-                                />
-                              </>
-                            )}
-                            <button
-                              className="pack-install-btn"
-                              onClick={() => handleSavePricing(p.packId)}
-                              disabled={savingPricing}
-                            >
-                              {savingPricing ? 'Saving…' : 'Save pricing'}
-                            </button>
-                          </div>
-                        </div>
+                          {uninstallingId === p.packId ? 'Removing…' : 'Uninstall'}
+                        </Button>
                       </td>
                     </tr>
-                  )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                    {expanded && (
+                      <tr className="border-b border-border bg-surface-2">
+                        <td colSpan={8} className="p-0">
+                          <div className="flex flex-wrap gap-8 px-4 py-[18px]">
+                            <div className="flex min-w-[260px] flex-1 flex-col gap-2">
+                              <h4 className="m-0 mb-1 text-[0.85rem] uppercase tracking-[0.05em] text-subtle-foreground">On-chain provenance</h4>
+                              {p.anchorTx ? (
+                                <div className="mb-1 flex flex-col gap-0.5 break-all text-[0.78rem] text-subtle-foreground">
+                                  <div>tx: <code className="font-mono text-[0.75rem] text-indigo-400">{p.anchorTx}</code></div>
+                                  <div>author: <code className="font-mono text-[0.75rem] text-indigo-400">{p.authorAddress ?? '—'}</code></div>
+                                  {p.onchainId != null && <div>on-chain id: <code className="font-mono text-[0.75rem] text-indigo-400">{p.onchainId}</code></div>}
+                                </div>
+                              ) : (
+                                <p className="mb-2 text-sm text-muted-foreground">Anchor the pack hash on-chain for verifiable authorship.</p>
+                              )}
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                className="self-start"
+                                onClick={() => handleAnchor(p.packId)}
+                                disabled={anchoringId === p.packId || !p.contentHash}
+                                title={!p.contentHash ? 'Publish to IPFS first' : ''}
+                              >
+                                {anchoringId === p.packId ? 'Anchoring…' : p.anchorTx ? 'Re-anchor' : 'Anchor on-chain'}
+                              </Button>
+                            </div>
+
+                            <div className="flex min-w-[260px] flex-1 flex-col gap-2">
+                              <h4 className="m-0 mb-1 text-[0.85rem] uppercase tracking-[0.05em] text-subtle-foreground">Pricing</h4>
+                              <label className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-subtle-foreground">
+                                <Switch
+                                  checked={priceDraft.premium}
+                                  onChange={checked => setPriceDraft(d => ({ ...d, premium: checked }))}
+                                  aria-label="Premium (paid pack)"
+                                />
+                                Premium (paid pack)
+                              </label>
+                              {priceDraft.premium && (
+                                <>
+                                  <Input
+                                    value={priceDraft.price}
+                                    onChange={e => setPriceDraft(d => ({ ...d, price: e.target.value }))}
+                                    placeholder="Access price (MODO base units, 18 decimals)"
+                                    className="font-mono"
+                                  />
+                                  <Input
+                                    value={priceDraft.royalty}
+                                    onChange={e => setPriceDraft(d => ({ ...d, royalty: e.target.value }))}
+                                    placeholder="Author royalty (basis points, e.g. 250 = 2.5%)"
+                                    className="font-mono"
+                                  />
+                                </>
+                              )}
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                className="self-start"
+                                onClick={() => handleSavePricing(p.packId)}
+                                disabled={savingPricing}
+                              >
+                                {savingPricing ? 'Saving…' : 'Save pricing'}
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )
       )}
 
       {tab === 'install' && (
-        <div className="pack-install-panel">
-          <div className="pack-install-section">
-            <h3>Install from IPFS CID</h3>
-            <p className="pack-install-hint">Paste the CID of a published pack. Provide the integrity hash for verification.</p>
-            <input
-              className="pack-cid-input"
+        <div className="pt-2">
+          <div className="mb-6 flex flex-col gap-2">
+            <h3 className="mb-1 text-[1.1rem] font-semibold text-subtle-foreground">Install from IPFS CID</h3>
+            <p className="mb-1 text-sm text-muted-foreground">Paste the CID of a published pack. Provide the integrity hash for verification.</p>
+            <Input
               value={cidInput}
               onChange={e => setCidInput(e.target.value)}
               placeholder="QmXxx… or bafy…"
               spellCheck={false}
+              className="font-mono"
             />
-            <input
-              className="pack-cid-input"
+            <Input
               value={hashInput}
               onChange={e => setHashInput(e.target.value)}
               placeholder="SHA-256 hash (optional)"
               spellCheck={false}
-              style={{ marginTop: 6 }}
+              className="font-mono"
             />
-            {cidError && <div className="pack-error">{cidError}</div>}
-            <button
-              className="pack-install-btn"
+            {cidError && <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">{cidError}</div>}
+            <Button
+              variant="primary"
+              className="self-start"
               onClick={handleInstallFromCid}
               disabled={cidInstalling || !cidInput.trim()}
             >
               {cidInstalling ? 'Installing…' : 'Install from CID'}
-            </button>
+            </Button>
           </div>
 
-          <div className="pack-install-section" style={{ borderTop: '1px solid #333', paddingTop: 24 }}>
-            <h3>Install from Manifest JSON</h3>
-            <p className="pack-install-hint">Paste a pack manifest JSON directly:</p>
-            <textarea
+          <Separator className="my-6" />
+
+          <div className="flex flex-col gap-2">
+            <h3 className="mb-1 text-[1.1rem] font-semibold text-subtle-foreground">Install from Manifest JSON</h3>
+            <p className="mb-1 text-sm text-muted-foreground">Paste a pack manifest JSON directly:</p>
+            <Textarea
               ref={textareaRef}
-              className="pack-manifest-input"
               value={installText}
               onChange={e => setInstallText(e.target.value)}
               rows={10}
               placeholder='{"id": "my-pack", "version": "1.0.0", "name": "My Pack", ...}'
               spellCheck={false}
+              className="font-mono text-[0.8rem]"
             />
-            {installError && <div className="pack-error">{installError}</div>}
-            <button
-              className="pack-install-btn"
+            {installError && <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">{installError}</div>}
+            <Button
+              variant="primary"
+              className="self-start"
               onClick={handleInstall}
               disabled={installing || !installText.trim()}
             >
               {installing ? 'Installing…' : 'Install from JSON'}
-            </button>
+            </Button>
           </div>
         </div>
       )}

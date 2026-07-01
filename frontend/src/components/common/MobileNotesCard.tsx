@@ -122,7 +122,7 @@ export const MobileNotesCard: React.FC<MobileNotesCardProps> = ({
     <div
       ref={cardRef}
       className={`mobile-notes-card ${className} ${isExpanded ? 'expanded' : ''} ${showActions ? 'show-actions' : ''} ${isPinned ? 'pinned' : ''}`}
-      style={{ '--note-color': note.color || '#ffffff' } as React.CSSProperties}
+      style={{ '--note-color': note.color || '#111114' } as React.CSSProperties}
       onClick={handleCardTap}
       {...swipeHandlers}
       role="button"

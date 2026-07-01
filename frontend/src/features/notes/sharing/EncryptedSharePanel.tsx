@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Lock, Check } from 'lucide-react';
+import { Button, Input, cn } from '@/ui';
 import { useEncryptedSharing, Recipient } from './useEncryptedSharing';
 
 interface Props {
@@ -35,79 +37,74 @@ const EncryptedSharePanel: React.FC<Props> = ({ noteId, content }) => {
   const busy = ['encrypting', 'sharing', 'revoking', 'deriving-key'].includes(status);
 
   return (
-    <div style={{ marginTop: '8px' }}>
-      <button
+    <div className="mt-2">
+      <Button
         onClick={() => setOpen(v => !v)}
-        style={{
-          padding: '5px 12px',
-          fontSize: '12px',
-          background: open ? 'var(--color-primary-subtle, #eff6ff)' : 'var(--color-surface-raised, #f3f4f6)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '6px',
-          cursor: 'pointer',
-        }}
+        variant={open ? 'outline' : 'secondary'}
+        size="sm"
+        className={cn(open && 'border-primary text-primary')}
       >
-        🔐 E2E encrypted share
-      </button>
+        <Lock />
+        E2E encrypted share
+      </Button>
 
       {open && (
-        <div style={{ marginTop: '8px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '8px', padding: '16px', background: 'var(--color-surface, #fff)' }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600 }}>End-to-end encrypted sharing</h4>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)', margin: '0 0 12px' }}>
+        <div className="mt-2 animate-fade-in rounded-lg border border-border bg-surface p-4">
+          <h4 className="m-0 mb-2 text-sm font-semibold text-foreground">End-to-end encrypted sharing</h4>
+          <p className="mb-3 mt-0 text-xs text-muted-foreground">
             Encrypts the note locally. Only recipients with matching wallet keys can decrypt it.
             The server never sees the plaintext.
           </p>
 
           {!keyPair ? (
-            <button
-              onClick={deriveKey}
-              disabled={busy}
-              style={{ padding: '7px 14px', fontSize: '13px', background: 'var(--color-primary, #3b82f6)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', opacity: busy ? 0.5 : 1 }}
-            >
+            <Button onClick={deriveKey} disabled={busy} loading={status === 'deriving-key'}>
               {status === 'deriving-key' ? 'Signing…' : 'Connect wallet & derive key'}
-            </button>
+            </Button>
           ) : (
             <>
-              <p style={{ fontSize: '12px', color: '#16a34a', margin: '0 0 12px' }}>
-                ✓ Encryption key ready (public key: {keyPair.publicKey.slice(0, 12)}…)
+              <p className="mb-3 mt-0 flex items-center gap-1.5 text-xs text-success">
+                <Check className="size-3.5" />
+                Encryption key ready (public key: {keyPair.publicKey.slice(0, 12)}…)
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                <input
+              <div className="mb-3 flex flex-col gap-2">
+                <Input
                   value={recipientAddr}
                   onChange={e => setRecipientAddr(e.target.value)}
                   placeholder="Recipient wallet address (0x…)"
-                  style={{ padding: '7px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '6px', fontSize: '13px' }}
                 />
-                <input
+                <Input
                   value={recipientPubKey}
                   onChange={e => setRecipientPubKey(e.target.value)}
                   placeholder="Recipient X25519 public key (base64)"
-                  style={{ padding: '7px', border: '1px solid var(--color-border, #e5e7eb)', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace' }}
+                  className="font-mono text-[11px]"
                 />
-                <button
+                <Button
                   onClick={handleShare}
                   disabled={busy || !recipientAddr.trim() || !recipientPubKey.trim()}
-                  style={{ padding: '7px 14px', fontSize: '13px', background: 'var(--color-primary, #3b82f6)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', opacity: busy ? 0.5 : 1, alignSelf: 'flex-start' }}
+                  loading={status === 'encrypting' || status === 'sharing'}
+                  className="self-start"
                 >
                   {status === 'encrypting' ? 'Encrypting…' : status === 'sharing' ? 'Sharing on-chain…' : 'Encrypt & share'}
-                </button>
+                </Button>
               </div>
 
               {sharedWith.length > 0 && (
                 <div>
-                  <p style={{ fontSize: '12px', fontWeight: 600, margin: '0 0 6px' }}>Shared with:</p>
-                  <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <p className="m-0 mb-1.5 text-xs font-semibold text-foreground">Shared with:</p>
+                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
                     {sharedWith.map(r => (
-                      <li key={r.address} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontFamily: 'monospace' }}>
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</span>
-                        <button
+                      <li key={r.address} className="flex items-center gap-2 font-mono text-xs text-subtle-foreground">
+                        <span className="flex-1 overflow-hidden text-ellipsis">{r.address}</span>
+                        <Button
                           onClick={() => handleRevoke(r.address)}
                           disabled={busy}
-                          style={{ padding: '2px 8px', fontSize: '11px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', fontFamily: 'sans-serif' }}
+                          size="sm"
+                          variant="outline"
+                          className="h-6 border-destructive/40 px-2 font-sans text-[11px] text-destructive hover:bg-destructive/15"
                         >
                           {status === 'revoking' ? 'Revoking…' : 'Revoke'}
-                        </button>
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -116,7 +113,7 @@ const EncryptedSharePanel: React.FC<Props> = ({ noteId, content }) => {
             </>
           )}
 
-          {error && <p style={{ color: '#ef4444', fontSize: '12px', margin: '8px 0 0' }}>{error}</p>}
+          {error && <p className="m-0 mt-2 text-xs text-destructive">{error}</p>}
         </div>
       )}
     </div>

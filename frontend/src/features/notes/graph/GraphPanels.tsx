@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Tabs } from '@/ui';
 import BacklinksPanel from './BacklinksPanel';
 import UnlinkedMentionsPanel from './UnlinkedMentionsPanel';
 import RelatedNotesPanel from './RelatedNotesPanel';
@@ -32,22 +33,15 @@ const GraphPanels: React.FC<Props> = ({ noteId, onOpenNote }) => {
   const handleLinked = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
-    <div className="graph-panels">
-      <div className="graph-panels-tabs" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            role="tab"
-            aria-selected={active === tab.key}
-            className={`graph-tab ${active === tab.key ? 'active' : ''}`}
-            onClick={() => setActive(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="mt-6 border-t border-border pt-4">
+      <Tabs
+        className="mb-3 flex-wrap"
+        items={TABS.map((tab) => ({ value: tab.key, label: tab.label }))}
+        value={active}
+        onChange={(v) => setActive(v as Tab)}
+      />
 
-      <div className="graph-panels-body">
+      <div className="min-h-[80px]">
         {active === 'backlinks' && (
           <BacklinksPanel noteId={noteId} onOpenNote={onOpenNote} refreshKey={refreshKey} />
         )}

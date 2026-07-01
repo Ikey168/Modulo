@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Bot, Sparkles, Info, AlertTriangle, RotateCw, ChevronRight, ChevronDown } from 'lucide-react';
 import { Note } from '../../types/Note';
-import './QuickSummary.css';
+import { Badge, Button, Spinner, cn } from '@/ui';
 
 interface QuickSummaryProps {
   note: Note;
@@ -26,10 +27,10 @@ export const QuickSummary: React.FC<QuickSummaryProps> = ({
   const generateSummary = async () => {
     if (result?.isLoading) return;
 
-    setResult(prev => ({ 
-      ...prev, 
-      isLoading: true, 
-      error: null 
+    setResult(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null
     } as SummaryResult));
 
     try {
@@ -75,47 +76,57 @@ export const QuickSummary: React.FC<QuickSummaryProps> = ({
   const canSummarize = hasContent && note.content.trim().length > 100; // Minimum content for summarization
 
   return (
-    <div className={`quick-summary ${className}`}>
-      <div className="quick-summary-header">
-        <div className="summary-title">
-          <span className="ai-icon">🤖</span>
+    <div
+      className={cn(
+        'my-4 overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition-shadow hover:shadow-md',
+        className,
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-3">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+          <Bot className="size-4 text-indigo-400" aria-hidden="true" />
           AI Summary
           {result?.isMock && (
-            <span className="mock-indicator" title="Mock response - OpenAI not configured">
+            <Badge variant="warning" title="Mock response - OpenAI not configured">
               Demo
-            </span>
+            </Badge>
           )}
         </div>
-        
+
         {canSummarize && (
-          <div className="summary-actions">
+          <div className="flex items-center gap-2">
             {!result && (
-              <button
+              <Button
                 onClick={generateSummary}
-                className="generate-summary-btn"
+                variant="secondary"
+                size="sm"
                 title="Generate AI summary"
               >
-                ✨ Summarize
-              </button>
+                <Sparkles className="size-3.5" aria-hidden="true" />
+                Summarize
+              </Button>
             )}
-            
+
             {result && (
-              <button
+              <Button
                 onClick={toggleExpanded}
-                className={`expand-btn ${isExpanded ? 'expanded' : ''}`}
+                variant="ghost"
+                size="icon-sm"
                 title={isExpanded ? 'Collapse summary' : 'Expand summary'}
               >
-                {isExpanded ? '▼' : '▶'}
-              </button>
+                {isExpanded
+                  ? <ChevronDown className="size-4" aria-hidden="true" />
+                  : <ChevronRight className="size-4" aria-hidden="true" />}
+              </Button>
             )}
           </div>
         )}
       </div>
 
       {!canSummarize && (
-        <div className="summary-unavailable">
-          <span className="info-icon">ℹ️</span>
-          {!hasContent 
+        <div className="flex items-center gap-2 border-t border-border px-4 py-4 text-[13px] text-muted-foreground">
+          <Info className="size-4 shrink-0 text-info" aria-hidden="true" />
+          {!hasContent
             ? 'Add content to generate a summary'
             : 'Note too short for summarization (minimum 100 characters)'
           }
@@ -123,50 +134,59 @@ export const QuickSummary: React.FC<QuickSummaryProps> = ({
       )}
 
       {result?.isLoading && (
-        <div className="summary-loading">
-          <div className="loading-spinner"></div>
+        <div className="flex items-center gap-3 border-t border-border px-4 py-4 text-[13px] text-subtle-foreground">
+          <Spinner className="size-4 text-indigo-400" />
           <span>Generating summary...</span>
         </div>
       )}
 
       {result?.error && (
-        <div className="summary-error">
-          <span className="error-icon">⚠️</span>
+        <div className="flex items-center gap-3 border-t border-border bg-destructive/10 px-4 py-4 text-[13px] text-destructive">
+          <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
           <span>{result.error}</span>
-          <button 
+          <Button
             onClick={generateSummary}
-            className="retry-btn"
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto text-destructive hover:bg-destructive/15 hover:text-destructive"
             title="Retry"
           >
-            🔄
-          </button>
+            <RotateCw className="size-4" aria-hidden="true" />
+          </Button>
         </div>
       )}
 
       {result?.summary && !result.isLoading && (
-        <div className={`summary-result ${isExpanded ? 'expanded' : 'collapsed'}`}>
-          <div className="summary-content">
+        <div
+          className={cn(
+            'border-t border-border transition-all',
+            isExpanded ? 'max-h-none' : 'max-h-[120px] overflow-hidden',
+          )}
+        >
+          <div className="px-4 py-4 text-[13px] leading-relaxed text-subtle-foreground">
             {result.summary}
           </div>
-          
+
           {isExpanded && (
-            <div className="summary-meta">
-              <div className="meta-stats">
-                <span className="stat">
-                  <strong>{result.wordCount}</strong> words
+            <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-2 px-4 py-3 text-xs">
+              <div className="flex gap-4 text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <strong className="text-foreground">{result.wordCount}</strong> words
                 </span>
-                <span className="stat">
-                  <strong>{Math.round(result.compressionRatio * 100)}%</strong> compression
+                <span className="flex items-center gap-1">
+                  <strong className="text-foreground">{Math.round(result.compressionRatio * 100)}%</strong> compression
                 </span>
               </div>
-              
-              <button
+
+              <Button
                 onClick={generateSummary}
-                className="regenerate-btn"
+                variant="outline"
+                size="sm"
                 disabled={result.isLoading}
               >
-                🔄 Regenerate
-              </button>
+                <RotateCw className="size-3.5" aria-hidden="true" />
+                Regenerate
+              </Button>
             </div>
           )}
         </div>

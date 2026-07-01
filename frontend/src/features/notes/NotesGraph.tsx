@@ -15,6 +15,7 @@ import {
   searchNodes,
   LINK_TYPE_COLORS
 } from './graphUtils';
+import { Button, Input, Label, Spinner } from '@/ui';
 import './NotesGraph.css';
 
 // Import Sigma.js CSS
@@ -205,9 +206,9 @@ const NotesGraph: React.FC = () => {
   if (loading) {
     return (
       <div className="notes-graph-container">
-        <div className="notes-graph-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading notes graph...</p>
+        <div className="flex h-[400px] flex-col items-center justify-center gap-3 rounded-lg border border-border bg-surface">
+          <Spinner className="size-10 text-primary" />
+          <p className="m-0 text-[13px] text-muted-foreground">Loading notes graph...</p>
         </div>
       </div>
     );
@@ -216,11 +217,11 @@ const NotesGraph: React.FC = () => {
   if (error) {
     return (
       <div className="notes-graph-container">
-        <div className="notes-graph-error">
-          <p>Error: {error}</p>
-          <button onClick={loadData} className="btn btn-primary">
+        <div className="flex h-[400px] flex-col items-center justify-center gap-3 rounded-lg border border-border bg-surface">
+          <p className="m-0 text-[13px] text-destructive">Error: {error}</p>
+          <Button onClick={loadData} variant="primary" size="sm">
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -228,42 +229,41 @@ const NotesGraph: React.FC = () => {
 
   return (
     <div className="notes-graph-container">
-      <div className="notes-graph-header">
-        <h1>Notes Graph</h1>
+      <div className="mb-6 flex items-center justify-between gap-4 border-b border-border pb-4 max-md:flex-col max-md:items-stretch">
+        <h1 className="m-0 text-2xl font-bold text-foreground">Notes Graph</h1>
         {graphStats && (
-          <div className="graph-stats">
-            <span className="stat">
-              <strong>{graphStats.nodeCount}</strong> notes
+          <div className="flex gap-8 max-md:justify-center">
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.nodeCount}</strong> notes
             </span>
-            <span className="stat">
-              <strong>{graphStats.edgeCount}</strong> connections
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.edgeCount}</strong> connections
             </span>
-            <span className="stat">
-              <strong>{graphStats.communityCount}</strong> communities
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.communityCount}</strong> communities
             </span>
           </div>
         )}
-        <div className="graph-controls">
-          <button onClick={loadData} className="btn btn-secondary btn-small">
+        <div className="flex gap-2">
+          <Button onClick={loadData} variant="secondary" size="sm">
             Refresh
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="graph-search-controls">
-        <div className="search-section">
-          <input
+      <div className="mb-4 flex gap-4 rounded-lg border border-border bg-surface p-4 max-md:flex-col max-md:gap-3">
+        <div className="flex-1">
+          <Input
             type="text"
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="search-input"
           />
         </div>
 
         {availableTags.length > 0 && (
-          <div className="filter-section">
-            <label>Filter by tags:</label>
+          <div className="flex min-w-[200px] flex-col gap-2 max-md:min-w-0">
+            <Label>Filter by tags:</Label>
             <select
               multiple
               value={selectedTags}
@@ -271,7 +271,7 @@ const NotesGraph: React.FC = () => {
                 const tags = Array.from(e.target.selectedOptions, option => option.value);
                 handleTagFilter(tags);
               }}
-              className="tag-filter"
+              className="max-h-[100px] w-full overflow-y-auto rounded-md border border-border-strong bg-surface-2 p-2 text-[13px] text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {availableTags.map(tag => (
                 <option key={tag} value={tag}>{tag}</option>
@@ -281,13 +281,13 @@ const NotesGraph: React.FC = () => {
         )}
       </div>
 
-      <div className="notes-graph-legend">
-        <h3>Link Types</h3>
-        <div className="legend-items">
+      <div className="mb-4 rounded-lg border border-border bg-surface p-4">
+        <h3 className="m-0 mb-3 text-sm font-semibold text-foreground">Link Types</h3>
+        <div className="flex flex-wrap gap-4 max-md:justify-center">
           {Object.entries(LINK_TYPE_COLORS).map(([type, color]) => (
-            <div key={type} className="legend-item">
+            <div key={type} className="flex items-center gap-2 text-[13px] text-muted-foreground">
               <div
-                className="legend-color"
+                className="size-3 rounded-sm"
                 style={{ backgroundColor: color }}
               ></div>
               <span>{type.replace('_', ' ')}</span>
@@ -296,12 +296,13 @@ const NotesGraph: React.FC = () => {
         </div>
       </div>
 
-      <div className="notes-graph-viewport">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
         <SigmaContainer
-          style={{ height: '600px', width: '100%' }}
+          style={{ height: '600px', width: '100%', backgroundColor: '#111114' }}
           settings={{
             defaultNodeColor: '#6366f1',
-            defaultEdgeColor: '#e5e7eb',
+            defaultEdgeColor: '#2a2a30',
+            labelColor: { color: '#a1a1aa' },
             labelFont: 'Arial',
             labelSize: 12,
             labelWeight: 'normal',
@@ -314,30 +315,39 @@ const NotesGraph: React.FC = () => {
       </div>
 
       {selectedNote && (
-        <div className="note-modal-overlay" onClick={handleCloseModal}>
-          <div className="note-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="note-modal-header">
-              <h2>{selectedNote.title}</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in"
+          onClick={handleCloseModal}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-border-strong bg-popover shadow-lg animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+              <h2 className="m-0 text-lg font-semibold text-foreground">{selectedNote.title}</h2>
               <button
-                className="note-modal-close"
+                className="flex size-8 items-center justify-center rounded-md text-xl leading-none text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                 onClick={handleCloseModal}
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-            <div className="note-modal-content">
+            <div className="flex-1 overflow-y-auto p-6">
               {selectedNote.tags && selectedNote.tags.length > 0 && (
-                <div className="note-tags">
+                <div className="mb-4 flex flex-wrap gap-1">
                   {selectedNote.tags.map((tag, index) => (
-                    <span key={index} className="note-tag">
+                    <span
+                      key={index}
+                      className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                    >
                       {tag.name}
                     </span>
                   ))}
                 </div>
               )}
-              <div className="note-content">
-                <pre>{selectedNote.content}</pre>
+              <div className="text-subtle-foreground">
+                <pre className="m-0 whitespace-pre-wrap break-words font-mono leading-relaxed">{selectedNote.content}</pre>
               </div>
             </div>
           </div>
