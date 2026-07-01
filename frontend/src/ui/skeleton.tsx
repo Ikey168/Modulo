@@ -1,5 +1,5 @@
 import { type HTMLAttributes } from 'react';
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 /** Shimmering placeholder used while content loads. */
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

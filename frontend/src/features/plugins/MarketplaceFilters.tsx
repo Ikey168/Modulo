@@ -1,6 +1,20 @@
 import React from 'react';
 import { PluginSearchFilters } from '../../types/marketplace';
-import { Button, Label, Select } from '@/ui';
+import {
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
+
+/**
+ * Radix SelectItem forbids value=""; sentinel for the "All …" options.
+ * Underscored so it cannot collide with a real (dynamic) category name.
+ */
+const ALL = '__all__';
 
 interface MarketplaceFiltersProps {
   filters: PluginSearchFilters;
@@ -24,16 +38,20 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
             Category
           </Label>
           <Select
-            id="category-select"
-            value={filters.category || ''}
-            onChange={(e) => onChange({ category: e.target.value || null })}
+            value={filters.category || ALL}
+            onValueChange={(val) => onChange({ category: val === ALL ? null : val })}
           >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
+            <SelectTrigger id="category-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All Categories</SelectItem>
+              {categories.map(category => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 
@@ -43,16 +61,20 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
             Minimum Rating
           </Label>
           <Select
-            id="rating-select"
-            value={filters.minRating}
-            onChange={(e) => onChange({ minRating: parseFloat(e.target.value) })}
+            value={String(filters.minRating)}
+            onValueChange={(val) => onChange({ minRating: parseFloat(val) })}
           >
-            <option value="0">Any Rating</option>
-            <option value="1">⭐ 1+ Stars</option>
-            <option value="2">⭐ 2+ Stars</option>
-            <option value="3">⭐ 3+ Stars</option>
-            <option value="4">⭐ 4+ Stars</option>
-            <option value="4.5">⭐ 4.5+ Stars</option>
+            <SelectTrigger id="rating-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Any Rating</SelectItem>
+              <SelectItem value="1">⭐ 1+ Stars</SelectItem>
+              <SelectItem value="2">⭐ 2+ Stars</SelectItem>
+              <SelectItem value="3">⭐ 3+ Stars</SelectItem>
+              <SelectItem value="4">⭐ 4+ Stars</SelectItem>
+              <SelectItem value="4.5">⭐ 4.5+ Stars</SelectItem>
+            </SelectContent>
           </Select>
         </div>
 
@@ -62,18 +84,21 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
             Verification Status
           </Label>
           <Select
-            id="verified-select"
-            value={filters.verified === null ? '' : filters.verified.toString()}
-            onChange={(e) => {
-              const value = e.target.value;
+            value={filters.verified === null ? ALL : filters.verified.toString()}
+            onValueChange={(val) => {
               onChange({
-                verified: value === '' ? null : value === 'true'
+                verified: val === ALL ? null : val === 'true'
               });
             }}
           >
-            <option value="">All Plugins</option>
-            <option value="true">✅ Verified Only</option>
-            <option value="false">Unverified Only</option>
+            <SelectTrigger id="verified-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All Plugins</SelectItem>
+              <SelectItem value="true">✅ Verified Only</SelectItem>
+              <SelectItem value="false">Unverified Only</SelectItem>
+            </SelectContent>
           </Select>
         </div>
 
@@ -83,15 +108,19 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
             Sort By
           </Label>
           <Select
-            id="sort-select"
             value={filters.sortBy}
-            onChange={(e) => onChange({ sortBy: e.target.value as any })}
+            onValueChange={(val) => onChange({ sortBy: val as any })}
           >
-            <option value="relevance">Relevance</option>
-            <option value="rating">Rating</option>
-            <option value="downloads">Downloads</option>
-            <option value="updated">Recently Updated</option>
-            <option value="name">Name</option>
+            <SelectTrigger id="sort-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">Relevance</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="downloads">Downloads</SelectItem>
+              <SelectItem value="updated">Recently Updated</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+            </SelectContent>
           </Select>
         </div>
 
@@ -101,12 +130,16 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
             Order
           </Label>
           <Select
-            id="order-select"
             value={filters.sortOrder}
-            onChange={(e) => onChange({ sortOrder: e.target.value as 'asc' | 'desc' })}
+            onValueChange={(val) => onChange({ sortOrder: val as 'asc' | 'desc' })}
           >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
+            <SelectTrigger id="order-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="asc">Ascending</SelectItem>
+            </SelectContent>
           </Select>
         </div>
       </div>

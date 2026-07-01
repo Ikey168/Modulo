@@ -4,6 +4,7 @@ import { Suspense, useEffect } from 'react';
 import { store } from './store/store';
 import { networkStatusService } from './services/networkStatus';
 import { ThemeProvider } from './themes/ThemeContext';
+import { Toaster, TooltipProvider } from '@/ui';
 import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
 import Dashboard from './features/dashboard/Dashboard';
@@ -43,6 +44,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark">
       <Provider store={store}>
+        <TooltipProvider delayDuration={300}>
         <Router>
           <Routes>
             {/* Login is the main entry page */}
@@ -73,7 +75,7 @@ function App() {
               const Component = route.component;
               const element = route.requiresAuth ? (
                 <RequireAuth>
-                  <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#0a0a0b', color: '#52525b' }}>Loading…</div>}>
+                  <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
                     <Component />
                   </Suspense>
                 </RequireAuth>
@@ -135,6 +137,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
+        <Toaster />
+        </TooltipProvider>
       </Provider>
     </ThemeProvider>
   );

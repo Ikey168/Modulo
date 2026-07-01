@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Button, Input, Textarea, Badge, Switch, Tabs, Separator } from '@/ui';
+import { Button, Input, Textarea, Badge, Switch, Tabs, TabsList, TabsTrigger, Separator } from '@/ui';
 import {
   listPacks, installPack, uninstallPack, publishPackToIpfs, installPackFromCid,
   anchorPack, setPackPricing,
@@ -198,15 +198,12 @@ export default function PackManager() {
     <div className="mx-auto max-w-[900px] p-6 text-foreground">
       <h2 className="mb-4 text-[1.4rem] font-semibold text-foreground">Packs</h2>
 
-      <Tabs
-        className="mb-5"
-        value={tab}
-        onChange={(v) => setTab(v as Tab)}
-        items={[
-          { value: 'installed', label: `Installed (${packs.length})` },
-          { value: 'install', label: 'Install' },
-        ]}
-      />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <TabsList variant="underline" className="mb-5">
+          <TabsTrigger value="installed">Installed ({packs.length})</TabsTrigger>
+          <TabsTrigger value="install">Install</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {error && (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</div>
@@ -340,7 +337,7 @@ export default function PackManager() {
                               <label className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-subtle-foreground">
                                 <Switch
                                   checked={priceDraft.premium}
-                                  onChange={checked => setPriceDraft(d => ({ ...d, premium: checked }))}
+                                  onCheckedChange={checked => setPriceDraft(d => ({ ...d, premium: checked }))}
                                   aria-label="Premium (paid pack)"
                                 />
                                 Premium (paid pack)

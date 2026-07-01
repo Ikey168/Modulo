@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { Button, Input, Label, Modal, Select, Textarea } from '@/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from '@/ui';
 
 interface Task {
   id?: number;
@@ -13,7 +27,8 @@ interface Task {
   estimatedDurationMinutes?: number;
   progressPercentage: number;
   tags?: string;
-  syncWithGoogleCalendar: boolean;
+  googleCalendarEventId?: string;
+  syncWithGoogleCalendar?: boolean;
 }
 
 interface Note {
@@ -84,7 +99,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
@@ -197,13 +212,12 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const durationMinutes = suggestedDuration % 60;
 
   return (
-    <Modal
-      open
-      onClose={onCancel}
-      title={isEditing ? 'Edit Task' : 'Create New Task'}
-      className="max-w-2xl"
-    >
-      <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto">
+    <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto">
         {error && (
           <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-[13px] text-destructive">
             {error}
@@ -247,17 +261,20 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Status
             </Label>
             <Select
-              id="status"
-              name="status"
               value={formData.status}
-              onChange={handleInputChange}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Task['status'] }))}
             >
-              <option value="TODO">To Do</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="BLOCKED">Blocked</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="CANCELLED">Cancelled</option>
+              <SelectTrigger id="status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODO">To Do</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+                <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
             </Select>
           </div>
 
@@ -266,15 +283,18 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Priority
             </Label>
             <Select
-              id="priority"
-              name="priority"
               value={formData.priority}
-              onChange={handleInputChange}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as Task['priority'] }))}
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
+              <SelectTrigger id="priority">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </div>
@@ -403,7 +423,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
           </div>
         )}
 
-        <div className="-mx-5 -mb-4 mt-1 flex justify-end gap-2 border-t border-border px-5 py-4">
+        <div className="-mx-6 -mb-6 mt-1 flex justify-end gap-2 border-t border-border px-6 py-4">
           <Button
             type="button"
             variant="secondary"
@@ -420,8 +440,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
             {loading ? 'Saving...' : (isEditing ? 'Update Task' : 'Create Task')}
           </Button>
         </div>
-      </form>
-    </Modal>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

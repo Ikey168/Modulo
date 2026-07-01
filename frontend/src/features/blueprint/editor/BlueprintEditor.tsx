@@ -20,7 +20,16 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './editor.css';
-import { Button, Input, Select, cn } from '@/ui';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  cn,
+} from '@/ui';
 
 import { BlueprintIR } from '../blueprintIR';
 import { createCoreCatalog } from '../nodeCatalog';
@@ -307,16 +316,16 @@ function EditorInner() {
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={handleNew}>New</Button>
-          <Select
-            className="h-8 w-[130px] text-xs"
-            value=""
-            onChange={(e) => e.target.value && handleLoad(e.target.value)}
-            aria-label="Load blueprint"
-          >
-            <option value="">Load…</option>
-            {saved.map((b) => (
-              <option key={b.id} value={b.name}>{b.name}</option>
-            ))}
+          {/* Action select: value stays "" so the trigger always reads "Load…". */}
+          <Select value="" onValueChange={(val) => { if (val) handleLoad(val); }}>
+            <SelectTrigger className="h-8 w-[130px] text-xs" aria-label="Load blueprint">
+              <SelectValue placeholder="Load…" />
+            </SelectTrigger>
+            <SelectContent>
+              {saved.map((b) => (
+                <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <Button type="button" variant="primary" size="sm" onClick={handleSave}>Save</Button>
           <Button type="button" variant="secondary" size="sm" onClick={handleTestRun}>Test Run</Button>

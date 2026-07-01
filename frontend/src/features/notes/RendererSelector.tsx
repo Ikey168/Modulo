@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Palette } from 'lucide-react';
-import { Button, Input, Label, Select } from '@/ui';
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
 
 interface RendererOption {
   name: string;
@@ -178,14 +187,19 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       case 'SELECT':
         return (
           <Select
-            value={value || ''}
-            onChange={(e) => handleOptionChange(option.name, e.target.value)}
+            value={value ? String(value) : ''}
+            onValueChange={(val) => handleOptionChange(option.name, val)}
           >
-            {option.allowedValues?.map(allowedValue => (
-              <option key={allowedValue} value={allowedValue}>
-                {allowedValue}
-              </option>
-            ))}
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {option.allowedValues?.map(allowedValue => (
+                <SelectItem key={allowedValue} value={String(allowedValue)}>
+                  {allowedValue}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         );
 
@@ -260,17 +274,17 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
       <div className="mb-3 flex flex-wrap items-center gap-4 max-md:flex-col max-md:items-stretch max-md:gap-3">
         <div className="flex flex-1 items-center gap-2 max-md:flex-col max-md:items-start">
           <Label htmlFor="renderer-select" className="whitespace-nowrap">Visualization:</Label>
-          <Select
-            id="renderer-select"
-            value={selectedRenderer}
-            onChange={(e) => handleRendererChange(e.target.value)}
-            className="min-w-[200px] max-md:w-full max-md:min-w-0"
-          >
-            {availableRenderers.map(renderer => (
-              <option key={renderer.id} value={renderer.id}>
-                {renderer.name}
-              </option>
-            ))}
+          <Select value={selectedRenderer} onValueChange={handleRendererChange}>
+            <SelectTrigger id="renderer-select" className="min-w-[200px] max-md:w-full max-md:min-w-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableRenderers.map(renderer => (
+                <SelectItem key={renderer.id} value={renderer.id}>
+                  {renderer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 

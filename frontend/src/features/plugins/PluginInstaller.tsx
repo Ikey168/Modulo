@@ -1,7 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { PluginService } from '../../services/pluginService';
 import { Upload, FileArchive, X, AlertCircle } from 'lucide-react';
-import { Button, Label, Modal, Textarea, cn } from '@/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Label,
+  Textarea,
+  cn,
+} from '@/ui';
 
 interface PluginInstallerProps {
   onClose: () => void;
@@ -95,12 +105,91 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
   const isConfigValid = validateConfig();
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Install Plugin"
-      footer={
-        <>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Install Plugin</DialogTitle>
+        </DialogHeader>
+        {error && (
+          <div className="mb-5 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/15 p-3 text-[13px] text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="mb-6">
+          <Label className="mb-2 block">Plugin File (JAR)</Label>
+          <div
+            className={cn(
+              'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all',
+              dragOver && 'scale-[1.02] border-primary bg-primary/10',
+              file && 'border-success bg-success/10',
+              !dragOver && !file && 'border-border-strong bg-surface-2 hover:border-primary hover:bg-primary/5',
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jar"
+              onChange={handleFileInputChange}
+              style={{ display: 'none' }}
+            />
+
+            {file ? (
+              <div className="flex items-center gap-3 text-left">
+                <FileArchive className="size-8 shrink-0 text-success" />
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">{file.name}</div>
+                  <div className="text-[13px] text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </div>
+                </div>
+                <button
+                  className="flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground transition-colors hover:bg-destructive/90"
+                  aria-label="Remove file"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFile(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="text-muted-foreground">
+                <Upload className="mx-auto mb-3 size-8" />
+                <p className="text-foreground">Click to select or drag &amp; drop a JAR file</p>
+                <small className="text-muted-foreground">Only .jar files are supported</small>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="plugin-config" className="mb-2 block">
+            Configuration (Optional)
+            {!isConfigValid && <span className="font-normal text-destructive"> - Invalid JSON</span>}
+          </Label>
+          <Textarea
+            id="plugin-config"
+            className={cn('font-mono', !isConfigValid && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30')}
+            placeholder="Enter plugin configuration in JSON format..."
+            value={config}
+            onChange={(e) => setConfig(e.target.value)}
+            rows={6}
+          />
+          <small className="mt-1.5 block text-xxs text-muted-foreground">
+            Plugin-specific configuration in JSON format. Leave empty to use defaults.
+          </small>
+        </div>
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={onClose}
@@ -116,89 +205,9 @@ const PluginInstaller: React.FC<PluginInstallerProps> = ({ onClose, onSuccess })
           >
             {installing ? 'Installing...' : 'Install Plugin'}
           </Button>
-        </>
-      }
-    >
-      {error && (
-        <div className="mb-5 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/15 p-3 text-[13px] text-destructive">
-          <AlertCircle className="size-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="mb-6">
-        <Label className="mb-2 block">Plugin File (JAR)</Label>
-        <div
-          className={cn(
-            'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all',
-            dragOver && 'scale-[1.02] border-primary bg-primary/10',
-            file && 'border-success bg-success/10',
-            !dragOver && !file && 'border-border-strong bg-surface-2 hover:border-primary hover:bg-primary/5',
-          )}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".jar"
-            onChange={handleFileInputChange}
-            style={{ display: 'none' }}
-          />
-
-          {file ? (
-            <div className="flex items-center gap-3 text-left">
-              <FileArchive className="size-8 shrink-0 text-success" />
-              <div className="flex-1">
-                <div className="font-medium text-foreground">{file.name}</div>
-                <div className="text-[13px] text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </div>
-              </div>
-              <button
-                className="flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground transition-colors hover:bg-destructive/90"
-                aria-label="Remove file"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFile(null);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="text-muted-foreground">
-              <Upload className="mx-auto mb-3 size-8" />
-              <p className="text-foreground">Click to select or drag &amp; drop a JAR file</p>
-              <small className="text-muted-foreground">Only .jar files are supported</small>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="plugin-config" className="mb-2 block">
-          Configuration (Optional)
-          {!isConfigValid && <span className="font-normal text-destructive"> - Invalid JSON</span>}
-        </Label>
-        <Textarea
-          id="plugin-config"
-          className={cn('font-mono', !isConfigValid && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30')}
-          placeholder="Enter plugin configuration in JSON format..."
-          value={config}
-          onChange={(e) => setConfig(e.target.value)}
-          rows={6}
-        />
-        <small className="mt-1.5 block text-xxs text-muted-foreground">
-          Plugin-specific configuration in JSON format. Leave empty to use defaults.
-        </small>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

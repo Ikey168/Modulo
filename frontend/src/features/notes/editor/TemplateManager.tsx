@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Modal, Button, Input, Textarea, Label, EmptyState } from '@/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Input,
+  Label,
+  Textarea,
+} from '@/ui';
 import { NoteTemplate, templateApi, CreateTemplateRequest } from './templateApi';
 
 interface Props {
@@ -83,132 +94,126 @@ const TemplateManager: React.FC<Props> = ({ userId, onApply, onClose }) => {
   // --- Variable-fill dialog ---
   if (applying) {
     return (
-      <Modal
-        open
-        onClose={onClose}
-        title={`Apply "${applying.name}"`}
-        className="max-w-[520px]"
-        footer={
-          <>
+      <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>{`Apply "${applying.name}"`}</DialogTitle>
+          </DialogHeader>
+          {applying.variables.length > 0 && (
+            <>
+              <p className="mb-3 mt-0 text-[13px] text-muted-foreground">
+                Fill in the template variables:
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {applying.variables.map(v => (
+                  <div key={v}>
+                    <Label className="mb-1 block">{v}</Label>
+                    <Input
+                      value={varValues[v] ?? ''}
+                      onChange={e => setVarValues(p => ({ ...p, [v]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          <DialogFooter>
             <Button onClick={() => setApplying(null)} variant="secondary">Back</Button>
             <Button onClick={confirmApply}>Insert template</Button>
-          </>
-        }
-      >
-        {applying.variables.length > 0 && (
-          <>
-            <p className="mb-3 mt-0 text-[13px] text-muted-foreground">
-              Fill in the template variables:
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {applying.variables.map(v => (
-                <div key={v}>
-                  <Label className="mb-1 block">{v}</Label>
-                  <Input
-                    value={varValues[v] ?? ''}
-                    onChange={e => setVarValues(p => ({ ...p, [v]: e.target.value }))}
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   // --- List view ---
   if (mode === 'list') {
     return (
-      <Modal
-        open
-        onClose={onClose}
-        title="Templates"
-        className="max-w-[520px]"
-        footer={
-          <>
+      <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Templates</DialogTitle>
+          </DialogHeader>
+          {templates.length === 0 ? (
+            <EmptyState
+              title="No templates yet"
+              description="Create one to get started."
+            />
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {templates.map(t => (
+                <li
+                  key={t.id}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-foreground">{t.name}</div>
+                    {t.description && <div className="text-xs text-muted-foreground">{t.description}</div>}
+                    {t.variables.length > 0 && (
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        Variables: {t.variables.map(v => `{{${v}}}`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={() => startApply(t)} size="sm">Use</Button>
+                  <Button onClick={() => openEdit(t)} size="sm" variant="secondary">Edit</Button>
+                  <Button
+                    onClick={() => handleDelete(t)}
+                    size="icon-sm"
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Delete template"
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <DialogFooter>
             <Button onClick={openCreate}>
               <Plus />
               New
             </Button>
             <Button onClick={onClose} variant="secondary">Close</Button>
-          </>
-        }
-      >
-        {templates.length === 0 ? (
-          <EmptyState
-            title="No templates yet"
-            description="Create one to get started."
-          />
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {templates.map(t => (
-              <li
-                key={t.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                  {t.description && <div className="text-xs text-muted-foreground">{t.description}</div>}
-                  {t.variables.length > 0 && (
-                    <div className="mt-1 text-[11px] text-muted-foreground">
-                      Variables: {t.variables.map(v => `{{${v}}}`).join(', ')}
-                    </div>
-                  )}
-                </div>
-                <Button onClick={() => startApply(t)} size="sm">Use</Button>
-                <Button onClick={() => openEdit(t)} size="sm" variant="secondary">Edit</Button>
-                <Button
-                  onClick={() => handleDelete(t)}
-                  size="icon-sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-destructive"
-                  title="Delete template"
-                >
-                  <Trash2 />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   // --- Create / edit view ---
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={mode === 'edit' ? 'Edit template' : 'New template'}
-      className="max-w-[520px]"
-      footer={
-        <>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>{mode === 'edit' ? 'Edit template' : 'New template'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <Field label="Name *">
+            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Meeting Notes" />
+          </Field>
+          <Field label="Description">
+            <Input value={form.description ?? ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Optional" />
+          </Field>
+          <Field label="Content — use {{variable}} for substitution">
+            <Textarea
+              value={form.content}
+              onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
+              rows={8}
+              className="font-mono text-xs"
+              placeholder="# {{title}}&#10;&#10;Date: {{date}}&#10;&#10;## Notes"
+            />
+          </Field>
+        </div>
+        <DialogFooter>
           <Button onClick={() => setMode('list')} variant="secondary">Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.name.trim()} loading={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        <Field label="Name *">
-          <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Meeting Notes" />
-        </Field>
-        <Field label="Description">
-          <Input value={form.description ?? ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Optional" />
-        </Field>
-        <Field label="Content — use {{variable}} for substitution">
-          <Textarea
-            value={form.content}
-            onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
-            rows={8}
-            className="font-mono text-xs"
-            placeholder="# {{title}}&#10;&#10;Date: {{date}}&#10;&#10;## Notes"
-          />
-        </Field>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

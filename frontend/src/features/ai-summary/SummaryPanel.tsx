@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { Bot, Settings, X, AlertTriangle, FileText, KeyRound, Lightbulb, Search } from 'lucide-react';
-import { Badge, Button, Label, Select, Spinner, Tabs, cn } from '@/ui';
+import {
+  Badge,
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Spinner,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  cn,
+} from '@/ui';
 
 interface SummaryResult {
   noteId: number;
@@ -60,7 +74,6 @@ interface SummaryPanelProps {
 const SummaryPanel: React.FC<SummaryPanelProps> = ({
   noteId,
   noteTitle,
-  noteContent,
   isVisible,
   onClose
 }) => {
@@ -258,14 +271,19 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
                 <Label>Summary Length:</Label>
                 <Select
                   value={summaryOptions.length}
-                  onChange={(e) => setSummaryOptions({
+                  onValueChange={(value) => setSummaryOptions({
                     ...summaryOptions,
-                    length: e.target.value as any
+                    length: value as any
                   })}
                 >
-                  <option value="SHORT">Short</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="LONG">Long</option>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SHORT">Short</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="LONG">Long</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -273,15 +291,20 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
                 <Label>Writing Style:</Label>
                 <Select
                   value={summaryOptions.style}
-                  onChange={(e) => setSummaryOptions({
+                  onValueChange={(value) => setSummaryOptions({
                     ...summaryOptions,
-                    style: e.target.value as any
+                    style: value as any
                   })}
                 >
-                  <option value="CASUAL">Casual</option>
-                  <option value="FORMAL">Formal</option>
-                  <option value="TECHNICAL">Technical</option>
-                  <option value="ACADEMIC">Academic</option>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASUAL">Casual</SelectItem>
+                    <SelectItem value="FORMAL">Formal</SelectItem>
+                    <SelectItem value="TECHNICAL">Technical</SelectItem>
+                    <SelectItem value="ACADEMIC">Academic</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -303,15 +326,15 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
         <div className="border-b border-border bg-surface px-6">
           <Tabs
             value={activeTab}
-            onChange={(v) => setActiveTab(v as 'summary' | 'keypoints' | 'insights' | 'analysis')}
-            items={[
-              { value: 'summary', label: 'Summary', icon: <FileText aria-hidden="true" /> },
-              { value: 'keypoints', label: 'Key Points', icon: <KeyRound aria-hidden="true" /> },
-              { value: 'insights', label: 'Insights', icon: <Lightbulb aria-hidden="true" /> },
-              { value: 'analysis', label: 'Full Analysis', icon: <Search aria-hidden="true" /> },
-            ]}
-            className="border-b-0"
-          />
+            onValueChange={(v) => setActiveTab(v as 'summary' | 'keypoints' | 'insights' | 'analysis')}
+          >
+            <TabsList variant="underline" className="border-b-0">
+              <TabsTrigger value="summary"><FileText aria-hidden="true" />Summary</TabsTrigger>
+              <TabsTrigger value="keypoints"><KeyRound aria-hidden="true" />Key Points</TabsTrigger>
+              <TabsTrigger value="insights"><Lightbulb aria-hidden="true" />Insights</TabsTrigger>
+              <TabsTrigger value="analysis"><Search aria-hidden="true" />Full Analysis</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="min-h-[400px] flex-1 overflow-y-auto p-6">

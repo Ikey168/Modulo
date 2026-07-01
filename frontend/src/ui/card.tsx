@@ -1,5 +1,5 @@
 import { forwardRef, type HTMLAttributes } from 'react';
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 /** Surface container with a subtle border and elevated background. */
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(

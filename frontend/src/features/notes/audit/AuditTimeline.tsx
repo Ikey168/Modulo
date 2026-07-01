@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock } from 'lucide-react';
-import { Button, Select, Input, Label } from '@/ui';
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
 import { auditApi, AuditEventRecord, AuditFilter } from './auditApi';
 
 interface Props {
@@ -28,6 +37,9 @@ const OUTCOME_COLORS: Record<string, string> = {
 };
 
 const EVENT_TYPES = ['NOTE_READ', 'NOTE_CREATE', 'NOTE_UPDATE', 'NOTE_DELETE', 'SHARE_CREATED', 'SHARE_VIEWED', 'SHARE_REVOKED'];
+
+/** Radix SelectItem forbids value=""; sentinel maps to undefined (= no event-type filter). */
+const ALL_EVENTS = 'all';
 
 const AuditTimeline: React.FC<Props> = ({ noteId, userId, isAdmin = false }) => {
   const [events, setEvents] = useState<AuditEventRecord[]>([]);
@@ -78,12 +90,16 @@ const AuditTimeline: React.FC<Props> = ({ noteId, userId, isAdmin = false }) => 
             <div className="flex flex-col gap-1">
               <Label className="text-[11px] font-semibold text-subtle-foreground">Event type</Label>
               <Select
-                value={filter.eventType ?? ''}
-                onChange={e => setFilter(p => ({ ...p, eventType: e.target.value || undefined, page: 0 }))}
-                className="h-8 text-xs"
+                value={filter.eventType ?? ALL_EVENTS}
+                onValueChange={val => setFilter(p => ({ ...p, eventType: val === ALL_EVENTS ? undefined : val, page: 0 }))}
               >
-                <option value="">All events</option>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_EVENTS}>All events</SelectItem>
+                  {EVENT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace('_', ' ')}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             {isAdmin && (

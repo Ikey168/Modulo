@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays, LayoutDashboard, ListTodo, Plus, RefreshCw } from 'lucide-react';
-import { Button, Select, Tabs } from '@/ui';
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/ui';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import CalendarView from './CalendarView';
@@ -37,6 +47,9 @@ interface TaskManagerProps {
   noteId?: number;
   initialView?: 'list' | 'calendar';
 }
+
+/** Radix SelectItem forbids value=""; sentinel mapped back to '' (= no filter) in state. */
+const ALL_FILTER = 'all';
 
 const TaskManager: React.FC<TaskManagerProps> = ({
   userId,
@@ -178,42 +191,50 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
       <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-3 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
-          variant="pills"
           value={currentView}
-          onChange={(v) => setCurrentView(v as 'list' | 'calendar' | 'dashboard')}
-          items={[
-            { value: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
-            { value: 'list', label: 'Task List', icon: <ListTodo /> },
-            { value: 'calendar', label: 'Calendar', icon: <CalendarDays /> },
-          ]}
-        />
+          onValueChange={(v) => setCurrentView(v as 'list' | 'calendar' | 'dashboard')}
+        >
+          <TabsList>
+            <TabsTrigger value="dashboard"><LayoutDashboard />Dashboard</TabsTrigger>
+            <TabsTrigger value="list"><ListTodo />Task List</TabsTrigger>
+            <TabsTrigger value="calendar"><CalendarDays />Calendar</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {currentView === 'list' && (
           <div className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-center">
             <Select
-              value={taskFilters.status}
-              onChange={(e) => handleFilterChange({ ...taskFilters, status: e.target.value })}
-              className="sm:w-40"
+              value={taskFilters.status || ALL_FILTER}
+              onValueChange={(val) => handleFilterChange({ ...taskFilters, status: val === ALL_FILTER ? '' : val })}
             >
-              <option value="">All Statuses</option>
-              <option value="TODO">To Do</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="BLOCKED">Blocked</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="CANCELLED">Cancelled</option>
+              <SelectTrigger className="sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All Statuses</SelectItem>
+                <SelectItem value="TODO">To Do</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+                <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
             </Select>
 
             <Select
-              value={taskFilters.priority}
-              onChange={(e) => handleFilterChange({ ...taskFilters, priority: e.target.value })}
-              className="sm:w-40"
+              value={taskFilters.priority || ALL_FILTER}
+              onValueChange={(val) => handleFilterChange({ ...taskFilters, priority: val === ALL_FILTER ? '' : val })}
             >
-              <option value="">All Priorities</option>
-              <option value="URGENT">Urgent</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
+              <SelectTrigger className="sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All Priorities</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
+              </SelectContent>
             </Select>
 
             <label className="flex cursor-pointer items-center gap-2 text-[13px] text-subtle-foreground">

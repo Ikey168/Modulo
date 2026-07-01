@@ -1,4 +1,4 @@
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 /** Indeterminate loading spinner. Inherits color via `currentColor`. */
 export function Spinner({ className }: { className?: string }) {

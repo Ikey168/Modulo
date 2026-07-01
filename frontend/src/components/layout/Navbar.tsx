@@ -2,7 +2,20 @@ import { NavLink, Link } from 'react-router-dom';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '../../features/auth/useAuth';
 import NotificationBell from '../../features/notes/collab/NotificationBell';
-import { Avatar, Button, cn } from '@/ui';
+import { Avatar, AvatarFallback, AvatarImage, Button, cn } from '@/ui';
+
+/** First letters of up to two name words, uppercase; '?' when no name. */
+const initialsOf = (name?: string | null): string => {
+  if (!name) return '?';
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0] ?? '')
+    .join('')
+    .toUpperCase();
+  return letters || '?';
+};
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -58,7 +71,10 @@ const Navbar = () => {
               <>
                 <NotificationBell userId={user?.id ?? 'current-user'} />
                 <div className="flex items-center gap-2">
-                  <Avatar src={user?.picture} name={user?.name} size={26} />
+                  <Avatar className="size-[26px]">
+                    <AvatarImage src={user?.picture ?? undefined} alt={user?.name ?? 'User avatar'} />
+                    <AvatarFallback className="text-[10px]">{initialsOf(user?.name)}</AvatarFallback>
+                  </Avatar>
                   <span className="text-[13px] font-medium text-foreground max-sm:hidden">{user?.name}</span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={logout}>

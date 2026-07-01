@@ -134,7 +134,7 @@ const Settings: React.FC = () => {
                 </div>
                 <Switch
                   checked={followSystem}
-                  onChange={handleFollowSystemChange}
+                  onCheckedChange={handleFollowSystemChange}
                   aria-label="Follow system theme automatically"
                 />
               </div>
@@ -153,7 +153,7 @@ const Settings: React.FC = () => {
                 <div className="text-sm font-medium text-foreground">High contrast mode</div>
                 <p className="mt-1 text-sm text-muted-foreground">Increases contrast for better visibility.</p>
               </div>
-              <Switch checked={false} onChange={() => {}} aria-label="High contrast mode" />
+              <Switch checked={false} onCheckedChange={() => {}} aria-label="High contrast mode" />
             </div>
 
             <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-2 p-4">
@@ -161,7 +161,7 @@ const Settings: React.FC = () => {
                 <div className="text-sm font-medium text-foreground">Reduce animations</div>
                 <p className="mt-1 text-sm text-muted-foreground">Minimizes motion effects throughout the interface.</p>
               </div>
-              <Switch checked={false} onChange={() => {}} aria-label="Reduce animations" />
+              <Switch checked={false} onCheckedChange={() => {}} aria-label="Reduce animations" />
             </div>
           </CardContent>
         </Card>

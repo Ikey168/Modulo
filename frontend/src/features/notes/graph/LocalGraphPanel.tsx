@@ -12,7 +12,16 @@ import {
   saveView,
   deleteView,
 } from './savedViews';
-import { Button, Input, Select, Label } from '@/ui';
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
 import { X } from 'lucide-react';
 import '@react-sigma/core/lib/react-sigma.min.css';
 
@@ -131,12 +140,17 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           Depth
           <Select
-            value={filters.depth}
-            onChange={(e) => setFilters({ ...filters, depth: Number(e.target.value) })}
+            value={String(filters.depth)}
+            onValueChange={(val) => setFilters({ ...filters, depth: Number(val) })}
           >
-            <option value={1}>1 hop</option>
-            <option value={2}>2 hops</option>
-            <option value={3}>3 hops</option>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 hop</SelectItem>
+              <SelectItem value="2">2 hops</SelectItem>
+              <SelectItem value="3">3 hops</SelectItem>
+            </SelectContent>
           </Select>
         </label>
 

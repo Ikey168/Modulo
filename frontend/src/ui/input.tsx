@@ -1,5 +1,5 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 const base =
   'flex h-9 w-full rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-[13px] text-foreground ' +
