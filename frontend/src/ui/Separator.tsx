@@ -1,21 +1,22 @@
+import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
+import * as SeparatorPrimitive from '@radix-ui/react-separator';
 import { cn } from './cn';
 
-/** Thin divider line. */
-export function Separator({
-  orientation = 'horizontal',
-  className,
-}: {
-  orientation?: 'horizontal' | 'vertical';
-  className?: string;
-}) {
-  return (
-    <div
-      role="separator"
-      className={cn(
-        'shrink-0 bg-border',
-        orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
-        className,
-      )}
-    />
-  );
-}
+/** shadcn/ui Separator (Radix). */
+export const Separator = forwardRef<
+  ElementRef<typeof SeparatorPrimitive.Root>,
+  ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
+>(({ className, orientation = 'horizontal', decorative = true, ...props }, ref) => (
+  <SeparatorPrimitive.Root
+    ref={ref}
+    decorative={decorative}
+    orientation={orientation}
+    className={cn(
+      'shrink-0 bg-border',
+      orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
+      className,
+    )}
+    {...props}
+  />
+));
+Separator.displayName = SeparatorPrimitive.Root.displayName;

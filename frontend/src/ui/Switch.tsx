@@ -1,3 +1,4 @@
+import * as SwitchPrimitive from '@radix-ui/react-switch';
 import { cn } from './cn';
 
 export interface SwitchProps {
@@ -9,31 +10,29 @@ export interface SwitchProps {
   className?: string;
 }
 
-/** Accessible on/off toggle switch. */
+/** shadcn/ui Switch (Radix), with the project's `onChange(checked)` signature. */
 export function Switch({ checked, onChange, disabled, id, className, ...aria }: SwitchProps) {
   return (
-    <button
+    <SwitchPrimitive.Root
       id={id}
-      type="button"
-      role="switch"
-      aria-checked={checked}
+      checked={checked}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onCheckedChange={onChange}
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ' +
+        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors ' +
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ' +
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-primary' : 'bg-surface-3 border border-border-strong',
+          'disabled:cursor-not-allowed disabled:opacity-50 ' +
+          'data-[state=checked]:bg-primary data-[state=unchecked]:border-border-strong data-[state=unchecked]:bg-surface-3',
         className,
       )}
       {...aria}
     >
-      <span
+      <SwitchPrimitive.Thumb
         className={cn(
-          'inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform',
-          checked ? 'translate-x-4' : 'translate-x-0.5',
+          'pointer-events-none block size-3.5 rounded-full bg-white shadow-sm ring-0 transition-transform ' +
+            'data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5',
         )}
       />
-    </button>
+    </SwitchPrimitive.Root>
   );
 }
