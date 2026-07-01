@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { PluginInfo, PluginStatus } from '../../types/plugin';
 import { PluginService } from '../../services/pluginService';
+import { Plug, X, RefreshCw, Plus } from 'lucide-react';
+import { Button, EmptyState, Spinner, cn } from '@/ui';
 import PluginCard from './PluginCard';
 import PluginInstaller from './PluginInstaller';
-import './PluginManager.css';
 
 const PluginManager: React.FC = () => {
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
@@ -63,9 +64,9 @@ const PluginManager: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="plugin-manager">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
+      <div className="mx-auto max-w-[1400px] p-6">
+        <div className="flex flex-col items-center justify-center gap-4 p-16 text-muted-foreground">
+          <Spinner className="size-10 text-primary" />
           <p>Loading plugins...</p>
         </div>
       </div>
@@ -73,72 +74,84 @@ const PluginManager: React.FC = () => {
   }
 
   return (
-    <div className="plugin-manager">
-      <header className="plugin-manager-header">
-        <h1>Plugin Manager</h1>
-        <div className="plugin-manager-actions">
-          <button 
-            className="install-btn"
+    <div className="mx-auto max-w-[1400px] p-6">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border-strong pb-4">
+        <h1 className="text-3xl font-semibold text-foreground">Plugin Manager</h1>
+        <div className="flex gap-3">
+          <Button
+            variant="primary"
             onClick={() => setShowInstaller(true)}
           >
+            <Plus className="size-4" />
             Install Plugin
-          </button>
-          <button 
-            className="refresh-btn"
+          </Button>
+          <Button
+            variant="outline"
             onClick={loadPlugins}
           >
+            <RefreshCw className="size-4" />
             Refresh
-          </button>
+          </Button>
         </div>
       </header>
 
       {error && (
-        <div className="error-banner">
+        <div className="mb-6 flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/15 px-4 py-3 text-destructive">
           <span>❌ {error}</span>
-          <button onClick={() => setError(null)}>×</button>
+          <button
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            className="rounded p-1 text-destructive transition-colors hover:bg-destructive/20"
+          >
+            <X className="size-4" />
+          </button>
         </div>
       )}
 
-      <div className="plugin-filters">
-        <button 
-          className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All ({plugins.length})
-        </button>
-        <button 
-          className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
-          onClick={() => setFilter('active')}
-        >
-          Active ({plugins.filter(p => p.status === PluginStatus.ACTIVE).length})
-        </button>
-        <button 
-          className={`filter-btn ${filter === 'inactive' ? 'active' : ''}`}
-          onClick={() => setFilter('inactive')}
-        >
-          Inactive ({plugins.filter(p => p.status !== PluginStatus.ACTIVE).length})
-        </button>
+      <div className="mb-6 flex flex-wrap gap-2">
+        {([
+          ['all', `All (${plugins.length})`],
+          ['active', `Active (${plugins.filter(p => p.status === PluginStatus.ACTIVE).length})`],
+          ['inactive', `Inactive (${plugins.filter(p => p.status !== PluginStatus.ACTIVE).length})`],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            className={cn(
+              'rounded-md border px-4 py-2 text-[13px] font-medium transition-colors',
+              filter === key
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border-strong bg-surface text-subtle-foreground hover:bg-surface-2 hover:text-foreground',
+            )}
+            onClick={() => setFilter(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="plugin-grid">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(380px,1fr))] gap-6">
         {filteredPlugins.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🔌</div>
-            <h3>No plugins found</h3>
-            <p>
-              {filter === 'all' 
-                ? 'Get started by installing your first plugin.' 
-                : `No ${filter} plugins found.`
+          <div className="col-span-full">
+            <EmptyState
+              icon={<Plug />}
+              title="No plugins found"
+              description={
+                filter === 'all'
+                  ? 'Get started by installing your first plugin.'
+                  : `No ${filter} plugins found.`
               }
-            </p>
-            {filter === 'all' && (
-              <button 
-                className="install-btn"
-                onClick={() => setShowInstaller(true)}
-              >
-                Install Plugin
-              </button>
-            )}
+              action={
+                filter === 'all' ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => setShowInstaller(true)}
+                  >
+                    <Plus className="size-4" />
+                    Install Plugin
+                  </Button>
+                ) : undefined
+              }
+            />
           </div>
         ) : (
           filteredPlugins.map(plugin => (

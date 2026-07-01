@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import './SummaryPanel.css';
+import { Bot, Settings, X, AlertTriangle, FileText, KeyRound, Lightbulb, Search } from 'lucide-react';
+import { Badge, Button, Label, Select, Spinner, Tabs, cn } from '@/ui';
 
 interface SummaryResult {
   noteId: number;
@@ -69,20 +70,20 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
   const [insightsResult, setInsightsResult] = useState<InsightsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Summary options
   const [summaryOptions, setSummaryOptions] = useState<SummaryOptions>({
     length: 'MEDIUM',
     style: 'CASUAL'
   });
-  
+
   const [maxKeyPoints, setMaxKeyPoints] = useState(5);
   const [showOptions, setShowOptions] = useState(false);
 
   const generateSummary = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/plugin/ai-notes-summarization/notes/${noteId}/summarize`, {
         method: 'POST',
@@ -91,7 +92,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
         },
         body: JSON.stringify(summaryOptions)
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         setSummaryResult(result);
@@ -110,13 +111,13 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
   const extractKeyPoints = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(
         `/api/plugin/ai-notes-summarization/notes/${noteId}/key-points?maxPoints=${maxKeyPoints}`,
         { method: 'POST' }
       );
-      
+
       if (response.ok) {
         const result = await response.json();
         setKeyPointsResult(result);
@@ -135,12 +136,12 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
   const generateInsights = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/plugin/ai-notes-summarization/notes/${noteId}/insights`, {
         method: 'POST'
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         setInsightsResult(result);
@@ -159,7 +160,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
   const generateComprehensiveAnalysis = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/plugin/ai-notes-summarization/notes/${noteId}/analyze`, {
         method: 'POST',
@@ -171,7 +172,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
           maxKeyPoints: maxKeyPoints
         })
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         setSummaryResult(result.summary);
@@ -199,35 +200,63 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
 
   if (!isVisible) return null;
 
+  const resultContentClass = 'text-[13px] leading-relaxed text-subtle-foreground [&_p]:m-0';
+
+  const keyPointsList = (points: string[]) => (
+    <ul className="m-0 list-none p-0">
+      {points.map((point, index) => (
+        <li
+          key={index}
+          className="flex items-start gap-3 border-b border-border py-3 last:border-b-0"
+        >
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            {index + 1}
+          </span>
+          <span className="flex-1 leading-relaxed text-subtle-foreground">{point}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
-    <div className="summary-panel-overlay">
-      <div className="summary-panel">
-        <div className="summary-panel-header">
-          <div className="panel-title">
-            <h3>🤖 AI Analysis</h3>
-            <span className="note-title">{noteTitle}</span>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-xl border border-border-strong bg-popover text-popover-foreground shadow-lg animate-scale-in">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="m-0 flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
+              <Bot className="size-5 text-indigo-400" aria-hidden="true" />
+              AI Analysis
+            </h3>
+            <span className="text-[13px] text-muted-foreground">{noteTitle}</span>
           </div>
-          
-          <div className="header-actions">
-            <button
+
+          <div className="flex items-center gap-2">
+            <Button
               onClick={() => setShowOptions(!showOptions)}
-              className="options-toggle"
+              variant="ghost"
+              size="icon-sm"
               title="Customize options"
+              aria-label="Customize options"
             >
-              ⚙️
-            </button>
-            <button onClick={onClose} className="close-button">
-              ✕
-            </button>
+              <Settings className="size-4" aria-hidden="true" />
+            </Button>
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </Button>
           </div>
         </div>
 
         {showOptions && (
-          <div className="options-panel">
-            <div className="options-grid">
-              <div className="option-group">
-                <label>Summary Length:</label>
-                <select
+          <div className="border-b border-border bg-surface px-6 py-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Summary Length:</Label>
+                <Select
                   value={summaryOptions.length}
                   onChange={(e) => setSummaryOptions({
                     ...summaryOptions,
@@ -237,12 +266,12 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
                   <option value="SHORT">Short</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="LONG">Long</option>
-                </select>
+                </Select>
               </div>
-              
-              <div className="option-group">
-                <label>Writing Style:</label>
-                <select
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Writing Style:</Label>
+                <Select
                   value={summaryOptions.style}
                   onChange={(e) => setSummaryOptions({
                     ...summaryOptions,
@@ -253,110 +282,99 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
                   <option value="FORMAL">Formal</option>
                   <option value="TECHNICAL">Technical</option>
                   <option value="ACADEMIC">Academic</option>
-                </select>
+                </Select>
               </div>
-              
-              <div className="option-group">
-                <label>Key Points Count:</label>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Key Points Count:</Label>
                 <input
                   type="number"
                   min="3"
                   max="10"
                   value={maxKeyPoints}
                   onChange={(e) => setMaxKeyPoints(parseInt(e.target.value))}
+                  className="flex h-9 w-full rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-[13px] text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
           </div>
         )}
 
-        <div className="summary-panel-nav">
-          <button
-            onClick={() => setActiveTab('summary')}
-            className={`nav-tab ${activeTab === 'summary' ? 'active' : ''}`}
-          >
-            📄 Summary
-          </button>
-          <button
-            onClick={() => setActiveTab('keypoints')}
-            className={`nav-tab ${activeTab === 'keypoints' ? 'active' : ''}`}
-          >
-            🔑 Key Points
-          </button>
-          <button
-            onClick={() => setActiveTab('insights')}
-            className={`nav-tab ${activeTab === 'insights' ? 'active' : ''}`}
-          >
-            💡 Insights
-          </button>
-          <button
-            onClick={() => setActiveTab('analysis')}
-            className={`nav-tab ${activeTab === 'analysis' ? 'active' : ''}`}
-          >
-            🔍 Full Analysis
-          </button>
+        <div className="border-b border-border bg-surface px-6">
+          <Tabs
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as 'summary' | 'keypoints' | 'insights' | 'analysis')}
+            items={[
+              { value: 'summary', label: 'Summary', icon: <FileText aria-hidden="true" /> },
+              { value: 'keypoints', label: 'Key Points', icon: <KeyRound aria-hidden="true" /> },
+              { value: 'insights', label: 'Insights', icon: <Lightbulb aria-hidden="true" /> },
+              { value: 'analysis', label: 'Full Analysis', icon: <Search aria-hidden="true" /> },
+            ]}
+            className="border-b-0"
+          />
         </div>
 
-        <div className="summary-panel-content">
+        <div className="min-h-[400px] flex-1 overflow-y-auto p-6">
           {loading && (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Generating AI analysis...</p>
+            <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
+              <Spinner className="size-12 text-indigo-400" />
+              <p className="m-0 text-[13px] text-muted-foreground">Generating AI analysis...</p>
             </div>
           )}
 
           {error && (
-            <div className="error-state">
-              <div className="error-icon">⚠️</div>
-              <p>{error}</p>
-              <button
+            <div className="flex flex-col items-center gap-4 p-8 text-center">
+              <AlertTriangle className="size-12 text-destructive" aria-hidden="true" />
+              <p className="m-0 text-[13px] text-destructive">{error}</p>
+              <Button
                 onClick={() => setError(null)}
-                className="retry-button"
+                variant="destructive"
+                size="sm"
               >
                 Dismiss
-              </button>
+              </Button>
             </div>
           )}
 
           {activeTab === 'summary' && (
-            <div className="tab-content">
-              <div className="tab-actions">
-                <button
+            <div className="flex h-full flex-col">
+              <div className="mb-6 flex items-center gap-3">
+                <Button
                   onClick={generateSummary}
                   disabled={loading}
-                  className="generate-button primary"
+                  variant="primary"
                 >
                   Generate Summary
-                </button>
+                </Button>
               </div>
-              
+
               {summaryResult && (
-                <div className="result-container">
-                  <div className="result-header">
-                    <div className="result-meta">
-                      <span className="model-info">
+                <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+                  <div className="border-b border-border bg-surface-2 p-4">
+                    <div className="flex flex-col flex-wrap items-start gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
+                      <span className="flex items-center gap-2 font-medium">
                         Model: {summaryResult.model}
-                        {summaryResult.mock && <span className="mock-badge">DEMO</span>}
+                        {summaryResult.mock && <Badge variant="warning">DEMO</Badge>}
                       </span>
-                      <span className="compression-info">
+                      <span className="font-medium text-success">
                         {getCompressionPercentage(summaryResult.compressionRatio)}% shorter
                       </span>
-                      <span className="timestamp">{formatDate(summaryResult.generatedAt)}</span>
+                      <span>{formatDate(summaryResult.generatedAt)}</span>
                     </div>
                   </div>
-                  
-                  <div className="result-content">
+
+                  <div className={cn('p-6', resultContentClass)}>
                     <p>{summaryResult.summary}</p>
                   </div>
-                  
-                  <div className="result-stats">
-                    <div className="stat">
-                      <span className="stat-label">Original:</span>
-                      <span className="stat-value">{summaryResult.originalLength} chars</span>
+
+                  <div className="flex flex-col justify-around gap-4 border-t border-border bg-surface-2 p-4 sm:flex-row sm:gap-0">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs font-medium uppercase text-muted-foreground">Original:</span>
+                      <span className="text-base font-semibold text-foreground">{summaryResult.originalLength} chars</span>
                     </div>
-                    <div className="stat">
-                      <span className="stat-label">Summary:</span>
-                      <span className="stat-value">{summaryResult.summaryLength} chars</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs font-medium uppercase text-muted-foreground">Summary:</span>
+                      <span className="text-base font-semibold text-foreground">{summaryResult.summaryLength} chars</span>
                     </div>
                   </div>
                 </div>
@@ -365,38 +383,31 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
           )}
 
           {activeTab === 'keypoints' && (
-            <div className="tab-content">
-              <div className="tab-actions">
-                <button
+            <div className="flex h-full flex-col">
+              <div className="mb-6 flex items-center gap-3">
+                <Button
                   onClick={extractKeyPoints}
                   disabled={loading}
-                  className="generate-button primary"
+                  variant="primary"
                 >
                   Extract Key Points
-                </button>
+                </Button>
               </div>
-              
+
               {keyPointsResult && (
-                <div className="result-container">
-                  <div className="result-header">
-                    <div className="result-meta">
-                      <span className="model-info">
+                <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+                  <div className="border-b border-border bg-surface-2 p-4">
+                    <div className="flex flex-col flex-wrap items-start gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
+                      <span className="flex items-center gap-2 font-medium">
                         Model: {keyPointsResult.model}
-                        {keyPointsResult.mock && <span className="mock-badge">DEMO</span>}
+                        {keyPointsResult.mock && <Badge variant="warning">DEMO</Badge>}
                       </span>
-                      <span className="timestamp">{formatDate(keyPointsResult.generatedAt)}</span>
+                      <span>{formatDate(keyPointsResult.generatedAt)}</span>
                     </div>
                   </div>
-                  
-                  <div className="result-content">
-                    <ul className="key-points-list">
-                      {keyPointsResult.keyPoints.map((point, index) => (
-                        <li key={index} className="key-point">
-                          <span className="point-number">{index + 1}</span>
-                          <span className="point-text">{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+
+                  <div className="p-6">
+                    {keyPointsList(keyPointsResult.keyPoints)}
                   </div>
                 </div>
               )}
@@ -404,30 +415,30 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
           )}
 
           {activeTab === 'insights' && (
-            <div className="tab-content">
-              <div className="tab-actions">
-                <button
+            <div className="flex h-full flex-col">
+              <div className="mb-6 flex items-center gap-3">
+                <Button
                   onClick={generateInsights}
                   disabled={loading}
-                  className="generate-button primary"
+                  variant="primary"
                 >
                   Generate Insights
-                </button>
+                </Button>
               </div>
-              
+
               {insightsResult && (
-                <div className="result-container">
-                  <div className="result-header">
-                    <div className="result-meta">
-                      <span className="model-info">
+                <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+                  <div className="border-b border-border bg-surface-2 p-4">
+                    <div className="flex flex-col flex-wrap items-start gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
+                      <span className="flex items-center gap-2 font-medium">
                         Model: {insightsResult.model}
-                        {insightsResult.mock && <span className="mock-badge">DEMO</span>}
+                        {insightsResult.mock && <Badge variant="warning">DEMO</Badge>}
                       </span>
-                      <span className="timestamp">{formatDate(insightsResult.generatedAt)}</span>
+                      <span>{formatDate(insightsResult.generatedAt)}</span>
                     </div>
                   </div>
-                  
-                  <div className="result-content">
+
+                  <div className={cn('p-6', resultContentClass)}>
                     <p>{insightsResult.insights}</p>
                   </div>
                 </div>
@@ -436,48 +447,50 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({
           )}
 
           {activeTab === 'analysis' && (
-            <div className="tab-content">
-              <div className="tab-actions">
-                <button
+            <div className="flex h-full flex-col">
+              <div className="mb-6 flex items-center gap-3">
+                <Button
                   onClick={generateComprehensiveAnalysis}
                   disabled={loading}
-                  className="generate-button primary"
+                  variant="primary"
                 >
                   Generate Full Analysis
-                </button>
+                </Button>
               </div>
-              
+
               {(summaryResult || keyPointsResult || insightsResult) && (
-                <div className="comprehensive-results">
+                <div className="flex flex-col gap-8">
                   {summaryResult && (
-                    <div className="analysis-section">
-                      <h4>📄 Summary</h4>
-                      <div className="result-content">
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <h4 className="m-0 flex items-center gap-2 border-b border-border bg-surface-2 p-4 text-[15px] font-semibold text-foreground">
+                        <FileText className="size-4 text-indigo-400" aria-hidden="true" />
+                        Summary
+                      </h4>
+                      <div className={cn('p-6', resultContentClass)}>
                         <p>{summaryResult.summary}</p>
                       </div>
                     </div>
                   )}
-                  
+
                   {keyPointsResult && (
-                    <div className="analysis-section">
-                      <h4>🔑 Key Points</h4>
-                      <div className="result-content">
-                        <ul className="key-points-list">
-                          {keyPointsResult.keyPoints.map((point, index) => (
-                            <li key={index} className="key-point">
-                              <span className="point-number">{index + 1}</span>
-                              <span className="point-text">{point}</span>
-                            </li>
-                          ))}
-                        </ul>
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <h4 className="m-0 flex items-center gap-2 border-b border-border bg-surface-2 p-4 text-[15px] font-semibold text-foreground">
+                        <KeyRound className="size-4 text-indigo-400" aria-hidden="true" />
+                        Key Points
+                      </h4>
+                      <div className="p-6">
+                        {keyPointsList(keyPointsResult.keyPoints)}
                       </div>
                     </div>
                   )}
-                  
+
                   {insightsResult && (
-                    <div className="analysis-section">
-                      <h4>💡 Insights</h4>
-                      <div className="result-content">
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <h4 className="m-0 flex items-center gap-2 border-b border-border bg-surface-2 p-4 text-[15px] font-semibold text-foreground">
+                        <Lightbulb className="size-4 text-indigo-400" aria-hidden="true" />
+                        Insights
+                      </h4>
+                      <div className={cn('p-6', resultContentClass)}>
                         <p>{insightsResult.insights}</p>
                       </div>
                     </div>

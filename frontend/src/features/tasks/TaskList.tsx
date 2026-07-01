@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import './TaskList.css';
+import { CalendarDays, Check, Link2, Rocket, Trash2 } from 'lucide-react';
+import { Badge, Button, EmptyState, Spinner, cn, type BadgeProps } from '@/ui';
 
 interface Task {
   id: number;
@@ -94,7 +95,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
       if (response.ok) {
         const updatedTask = await response.json();
-        setTasks(prev => prev.map(task => 
+        setTasks(prev => prev.map(task =>
           task.id === taskId ? updatedTask : task
         ));
         onTaskUpdate?.(updatedTask);
@@ -114,7 +115,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
       if (response.ok) {
         const updatedTask = await response.json();
-        setTasks(prev => prev.map(task => 
+        setTasks(prev => prev.map(task =>
           task.id === taskId ? updatedTask : task
         ));
         onTaskUpdate?.(updatedTask);
@@ -158,24 +159,24 @@ const TaskList: React.FC<TaskListProps> = ({
     });
   };
 
-  const getTaskStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string): BadgeProps['variant'] => {
     switch (status) {
-      case 'COMPLETED': return 'var(--success-color, #4CAF50)';
-      case 'IN_PROGRESS': return 'var(--warning-color, #FF9800)';
-      case 'BLOCKED': return 'var(--error-color, #F44336)';
-      case 'ON_HOLD': return 'var(--info-color, #2196F3)';
-      case 'CANCELLED': return 'var(--disabled-color, #9E9E9E)';
-      default: return 'var(--secondary-color, #6c757d)';
+      case 'COMPLETED': return 'success';
+      case 'IN_PROGRESS': return 'warning';
+      case 'BLOCKED': return 'destructive';
+      case 'ON_HOLD': return 'info';
+      case 'CANCELLED': return 'secondary';
+      default: return 'outline';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityBadgeVariant = (priority: string): BadgeProps['variant'] => {
     switch (priority) {
-      case 'URGENT': return '#F44336';
-      case 'HIGH': return '#FF9800';
-      case 'MEDIUM': return '#2196F3';
-      case 'LOW': return '#4CAF50';
-      default: return '#9E9E9E';
+      case 'URGENT': return 'destructive';
+      case 'HIGH': return 'warning';
+      case 'MEDIUM': return 'info';
+      case 'LOW': return 'success';
+      default: return 'secondary';
     }
   };
 
@@ -187,10 +188,10 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (loading) {
     return (
-      <div className="task-list-container">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading tasks...</p>
+      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
+          <Spinner className="size-10 text-primary" />
+          <p className="text-[13px] text-muted-foreground">Loading tasks...</p>
         </div>
       </div>
     );
@@ -198,39 +199,48 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (error) {
     return (
-      <div className="task-list-container">
-        <div className="error-state">
-          <p className="error-message">{error}</p>
-          <button onClick={loadTasks} className="retry-button">
+      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={loadTasks}>
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="task-list-container">
+    <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
       {tasks.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">📋</div>
-          <h3>No tasks found</h3>
-          <p>
-            {noteId 
-              ? "No tasks are linked to this note yet."
-              : "Create your first task to get started!"}
-          </p>
-        </div>
+        <EmptyState
+          icon={<span className="text-3xl">📋</span>}
+          title="No tasks found"
+          description={
+            noteId
+              ? 'No tasks are linked to this note yet.'
+              : 'Create your first task to get started!'
+          }
+        />
       ) : (
-        <div className="task-list">
-          {tasks.map(task => (
-            <div 
-              key={task.id} 
-              className={`task-item ${task.status.toLowerCase()} ${selectedTasks.has(task.id) ? 'selected' : ''}`}
+        <div className="flex flex-col gap-3">
+          {tasks.map(task => {
+            const isCompleted = task.status === 'COMPLETED';
+            return (
+            <div
+              key={task.id}
+              className={cn(
+                'cursor-pointer rounded-lg border border-border bg-surface p-4 shadow-sm transition-all',
+                'hover:border-border-strong hover:bg-surface-2 hover:shadow-md',
+                selectedTasks.has(task.id) && 'border-primary ring-2 ring-primary/30',
+                isCompleted && 'opacity-70',
+                task.status === 'BLOCKED' && 'border-l-4 border-l-destructive',
+                task.status === 'ON_HOLD' && 'border-l-4 border-l-warning'
+              )}
               onClick={() => onTaskSelect?.(task)}
             >
-              <div className="task-header">
-                <div className="task-checkbox">
+              <div className="mb-3 flex items-start gap-3">
+                <div className="pt-0.5">
                   <input
                     type="checkbox"
                     checked={selectedTasks.has(task.id)}
@@ -238,76 +248,77 @@ const TaskList: React.FC<TaskListProps> = ({
                       e.stopPropagation();
                       toggleTaskSelection(task.id);
                     }}
+                    className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
                   />
                 </div>
-                
-                <div className="task-title-section">
-                  <h4 className="task-title">{task.title}</h4>
+
+                <div className="min-w-0 flex-1">
+                  <h4 className="mb-1 text-[17px] font-semibold leading-tight text-foreground">{task.title}</h4>
                   {task.description && (
-                    <p className="task-description">{task.description}</p>
+                    <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{task.description}</p>
                   )}
                 </div>
 
-                <div className="task-badges">
-                  <span 
-                    className="priority-badge"
-                    style={{ backgroundColor: getPriorityColor(task.priority) }}
-                  >
+                <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row">
+                  <Badge variant={getPriorityBadgeVariant(task.priority)} className="uppercase tracking-wide">
                     {task.priority}
-                  </span>
-                  <span 
-                    className="status-badge"
-                    style={{ backgroundColor: getTaskStatusColor(task.status) }}
-                  >
+                  </Badge>
+                  <Badge variant={getStatusBadgeVariant(task.status)} className="uppercase tracking-wide">
                     {task.status.replace('_', ' ')}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
-              <div className="task-details">
-                <div className="task-dates">
+              <div className="mb-3">
+                <div className="mb-2 flex flex-wrap gap-4">
                   {task.dueDate && (
-                    <span className={`due-date ${task.isOverdue ? 'overdue' : ''} ${task.isDueToday ? 'due-today' : ''}`}>
-                      📅 Due: {formatDate(task.dueDate)}
+                    <span
+                      className={cn(
+                        'flex items-center gap-1.5 text-[13px] text-muted-foreground',
+                        task.isOverdue && 'font-semibold text-destructive',
+                        task.isDueToday && 'font-semibold text-warning'
+                      )}
+                    >
+                      <CalendarDays className="size-3.5" /> Due: {formatDate(task.dueDate)}
                     </span>
                   )}
                   {task.startDate && (
-                    <span className="start-date">
-                      🚀 Start: {formatDate(task.startDate)}
+                    <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <Rocket className="size-3.5" /> Start: {formatDate(task.startDate)}
                     </span>
                   )}
                 </div>
 
                 {task.progressPercentage > 0 && (
-                  <div className="progress-section">
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
+                  <div className="my-2 flex items-center gap-3">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-300"
                         style={{ width: `${task.progressPercentage}%` }}
                       ></div>
                     </div>
-                    <span className="progress-text">{task.progressPercentage}%</span>
+                    <span className="min-w-[40px] text-right text-xs font-semibold text-muted-foreground">{task.progressPercentage}%</span>
                   </div>
                 )}
 
                 {task.linkedNotes && task.linkedNotes.length > 0 && (
-                  <div className="linked-notes">
-                    <span className="linked-notes-icon">🔗</span>
-                    <span className="linked-notes-count">
+                  <div className="my-2 flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Link2 className="size-4" />
+                    <span>
                       {task.linkedNotes.length} linked note{task.linkedNotes.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                 )}
 
                 {task.googleCalendarEventId && (
-                  <div className="calendar-sync">
-                    <span className="calendar-icon">📅</span>
+                  <div className="my-2 flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <CalendarDays className="size-4" />
                     <span>Synced with Google Calendar</span>
                   </div>
                 )}
               </div>
 
-              <div className="task-actions">
+              <div className="flex items-center justify-end gap-3">
                 {task.status !== 'COMPLETED' && (
                   <>
                     <input
@@ -319,36 +330,41 @@ const TaskList: React.FC<TaskListProps> = ({
                         e.stopPropagation();
                         updateTaskProgress(task.id, parseInt(e.target.value));
                       }}
-                      className="progress-slider"
+                      className="max-w-[150px] flex-1 cursor-pointer accent-primary"
                       title="Update progress"
                     />
-                    
-                    <button
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         completeTask(task.id);
                       }}
-                      className="complete-button"
+                      className="text-success hover:bg-success/15 hover:text-success"
                       title="Mark as complete"
                     >
-                      ✅
-                    </button>
+                      <Check />
+                    </Button>
                   </>
                 )}
 
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteTask(task.id);
                   }}
-                  className="delete-button"
+                  className="text-destructive hover:bg-destructive/15 hover:text-destructive"
                   title="Delete task"
                 >
-                  🗑️
-                </button>
+                  <Trash2 />
+                </Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

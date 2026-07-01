@@ -14,25 +14,25 @@ import {
 } from './reactFlowAdapter';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  trigger: '#16a34a',
+  trigger: '#22c55e',
   action: '#4f46e5',
-  logic: '#d97706',
+  logic: '#f59e0b',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  string: '#38bdf8',
+  string: '#3b82f6',
   number: '#a3e635',
   boolean: '#f472b6',
-  note: '#fbbf24',
+  note: '#f59e0b',
   noteList: '#fb923c',
   tag: '#c084fc',
   link: '#2dd4bf',
   user: '#f87171',
-  any: '#9ca3af',
+  any: '#71717a',
 };
 
 function typeColor(type: DataType): string {
-  return TYPE_COLORS[type] ?? '#9ca3af';
+  return TYPE_COLORS[type] ?? '#71717a';
 }
 
 const CODE_EXECUTE_DEFAULT = `function(note) {
@@ -42,7 +42,7 @@ const CODE_EXECUTE_DEFAULT = `function(note) {
 
 function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
   const { descriptor } = data;
-  const accent = CATEGORY_COLORS[descriptor.category] ?? '#6b7280';
+  const accent = CATEGORY_COLORS[descriptor.category] ?? '#71717a';
   const { updateNodeData } = useReactFlow();
 
   const onCodeChange = useCallback(
@@ -55,7 +55,7 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
   return (
     <div
       className="bp-node"
-      style={{ borderColor: selected ? accent : '#2a2a32', boxShadow: selected ? `0 0 0 1px ${accent}` : undefined }}
+      style={{ borderColor: selected ? '#6366f1' : '#2a2a30', boxShadow: selected ? '0 0 0 2px #6366f1' : undefined }}
     >
       <div className="bp-node__header" style={{ background: accent }}>
         <span className="bp-node__title">{descriptor.title}</span>

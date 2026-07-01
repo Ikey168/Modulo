@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { CalendarDays, LayoutDashboard, ListTodo, Plus, RefreshCw } from 'lucide-react';
+import { Button, Select, Tabs } from '@/ui';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import CalendarView from './CalendarView';
-import './TaskManager.css';
 
 interface Task {
   id: number;
@@ -125,7 +126,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
       if (response.ok) {
         const data = await response.json();
         window.open(data.authUrl, '_blank', 'width=600,height=700');
-        
+
         // Check connection status after a delay
         setTimeout(() => {
           checkGoogleCalendarConnection();
@@ -148,67 +149,51 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   };
 
   return (
-    <div className="task-manager">
-      <div className="task-manager-header">
-        <div className="header-title">
-          <h1>Task Manager</h1>
-          {noteId && <span className="note-context">Linked to Note #{noteId}</span>}
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Task Manager</h1>
+          {noteId && <span className="text-sm font-normal text-muted-foreground">Linked to Note #{noteId}</span>}
         </div>
-        
-        <div className="header-actions">
-          <button
-            onClick={handleCreateTask}
-            className="create-task-button primary-button"
-          >
-            ➕ New Task
-          </button>
-          
+
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          <Button onClick={handleCreateTask}>
+            <Plus />
+            New Task
+          </Button>
+
           {!isConnectedToGoogle ? (
-            <button
-              onClick={connectToGoogleCalendar}
-              className="google-connect-button"
-            >
-              📅 Connect Google Calendar
-            </button>
+            <Button variant="outline" onClick={connectToGoogleCalendar}>
+              <CalendarDays />
+              Connect Google Calendar
+            </Button>
           ) : (
-            <button
-              onClick={syncAllTasks}
-              className="sync-button"
-            >
-              🔄 Sync Calendar
-            </button>
+            <Button variant="secondary" onClick={syncAllTasks}>
+              <RefreshCw />
+              Sync Calendar
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="task-manager-nav">
-        <div className="view-tabs">
-          <button
-            onClick={() => setCurrentView('dashboard')}
-            className={`tab-button ${currentView === 'dashboard' ? 'active' : ''}`}
-          >
-            📊 Dashboard
-          </button>
-          <button
-            onClick={() => setCurrentView('list')}
-            className={`tab-button ${currentView === 'list' ? 'active' : ''}`}
-          >
-            📋 Task List
-          </button>
-          <button
-            onClick={() => setCurrentView('calendar')}
-            className={`tab-button ${currentView === 'calendar' ? 'active' : ''}`}
-          >
-            📅 Calendar
-          </button>
-        </div>
+      <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <Tabs
+          variant="pills"
+          value={currentView}
+          onChange={(v) => setCurrentView(v as 'list' | 'calendar' | 'dashboard')}
+          items={[
+            { value: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
+            { value: 'list', label: 'Task List', icon: <ListTodo /> },
+            { value: 'calendar', label: 'Calendar', icon: <CalendarDays /> },
+          ]}
+        />
 
         {currentView === 'list' && (
-          <div className="task-filters">
-            <select
+          <div className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-center">
+            <Select
               value={taskFilters.status}
               onChange={(e) => handleFilterChange({ ...taskFilters, status: e.target.value })}
-              className="filter-select"
+              className="sm:w-40"
             >
               <option value="">All Statuses</option>
               <option value="TODO">To Do</option>
@@ -217,34 +202,36 @@ const TaskManager: React.FC<TaskManagerProps> = ({
               <option value="BLOCKED">Blocked</option>
               <option value="ON_HOLD">On Hold</option>
               <option value="CANCELLED">Cancelled</option>
-            </select>
+            </Select>
 
-            <select
+            <Select
               value={taskFilters.priority}
               onChange={(e) => handleFilterChange({ ...taskFilters, priority: e.target.value })}
-              className="filter-select"
+              className="sm:w-40"
             >
               <option value="">All Priorities</option>
               <option value="URGENT">Urgent</option>
               <option value="HIGH">High</option>
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
-            </select>
+            </Select>
 
-            <label className="filter-checkbox">
+            <label className="flex cursor-pointer items-center gap-2 text-[13px] text-subtle-foreground">
               <input
                 type="checkbox"
                 checked={taskFilters.showOverdue}
                 onChange={(e) => handleFilterChange({ ...taskFilters, showOverdue: e.target.checked })}
+                className="size-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
               />
               Overdue Only
             </label>
 
-            <label className="filter-checkbox">
+            <label className="flex cursor-pointer items-center gap-2 text-[13px] text-subtle-foreground">
               <input
                 type="checkbox"
                 checked={taskFilters.showDueToday}
                 onChange={(e) => handleFilterChange({ ...taskFilters, showDueToday: e.target.checked })}
+                className="size-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
               />
               Due Today Only
             </label>
@@ -252,78 +239,82 @@ const TaskManager: React.FC<TaskManagerProps> = ({
         )}
       </div>
 
-      <div className="task-manager-content">
+      <div className="flex-1 overflow-auto">
         {currentView === 'dashboard' && (
-          <div className="dashboard">
-            <div className="stats-grid">
-              <div className="stat-card total">
-                <div className="stat-number">{stats.totalTasks}</div>
-                <div className="stat-label">Total Tasks</div>
+          <div className="mx-auto max-w-[1200px] p-8 animate-fade-in">
+            <div className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-border border-l-4 border-l-primary bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-2 text-4xl font-bold text-foreground">{stats.totalTasks}</div>
+                <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Total Tasks</div>
               </div>
-              
-              <div className="stat-card completed">
-                <div className="stat-number">{stats.completedTasks}</div>
-                <div className="stat-label">Completed</div>
+
+              <div className="rounded-lg border border-border border-l-4 border-l-success bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-2 text-4xl font-bold text-foreground">{stats.completedTasks}</div>
+                <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Completed</div>
               </div>
-              
-              <div className="stat-card overdue">
-                <div className="stat-number">{stats.overdueTasks}</div>
-                <div className="stat-label">Overdue</div>
+
+              <div className="rounded-lg border border-border border-l-4 border-l-destructive bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-2 text-4xl font-bold text-foreground">{stats.overdueTasks}</div>
+                <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Overdue</div>
               </div>
-              
-              <div className="stat-card due-today">
-                <div className="stat-number">{stats.dueTodayTasks}</div>
-                <div className="stat-label">Due Today</div>
+
+              <div className="rounded-lg border border-border border-l-4 border-l-warning bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-2 text-4xl font-bold text-foreground">{stats.dueTodayTasks}</div>
+                <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Due Today</div>
               </div>
             </div>
 
-            <div className="completion-rate">
-              <h3>Completion Rate</h3>
-              <div className="progress-circle">
-                <div 
-                  className="progress-fill" 
-                  style={{
-                    background: `conic-gradient(var(--success-color, #28a745) ${stats.completionRate * 3.6}deg, var(--light-gray, #e9ecef) 0deg)`
-                  }}
-                >
-                  <div className="progress-center">
-                    <span className="percentage">{Math.round(stats.completionRate)}%</span>
-                  </div>
+            <div className="mb-8 rounded-lg border border-border bg-surface p-8 text-center shadow-sm">
+              <h3 className="mb-6 text-xl font-semibold text-foreground">Completion Rate</h3>
+              <div
+                className="relative mx-auto size-[150px] rounded-full"
+                style={{
+                  background: `conic-gradient(hsl(var(--success)) ${stats.completionRate * 3.6}deg, hsl(var(--surface-3)) 0deg)`
+                }}
+              >
+                <div className="absolute left-1/2 top-1/2 flex size-[100px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-surface-2 shadow-md">
+                  <span className="text-2xl font-bold text-foreground">{Math.round(stats.completionRate)}%</span>
                 </div>
               </div>
             </div>
 
-            <div className="quick-actions">
-              <h3>Quick Actions</h3>
-              <div className="action-buttons">
-                <button
+            <div className="rounded-lg border border-border bg-surface p-8 shadow-sm">
+              <h3 className="mb-6 text-xl font-semibold text-foreground">Quick Actions</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Button
+                  variant="outline"
+                  size="lg"
                   onClick={() => {
                     setTaskFilters({ ...taskFilters, showOverdue: true });
                     setCurrentView('list');
                   }}
-                  className="action-button overdue"
                   disabled={stats.overdueTasks === 0}
+                  className="border-destructive/60 text-destructive hover:bg-destructive/15 hover:text-destructive"
                 >
                   View Overdue ({stats.overdueTasks})
-                </button>
-                
-                <button
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="lg"
                   onClick={() => {
                     setTaskFilters({ ...taskFilters, showDueToday: true });
                     setCurrentView('list');
                   }}
-                  className="action-button due-today"
                   disabled={stats.dueTodayTasks === 0}
+                  className="border-warning/60 text-warning hover:bg-warning/15 hover:text-warning"
                 >
                   View Due Today ({stats.dueTodayTasks})
-                </button>
-                
-                <button
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="lg"
                   onClick={() => setCurrentView('calendar')}
-                  className="action-button calendar"
+                  className="border-info/60 text-info hover:bg-info/15 hover:text-info"
                 >
                   View Calendar
-                </button>
+                </Button>
               </div>
             </div>
           </div>

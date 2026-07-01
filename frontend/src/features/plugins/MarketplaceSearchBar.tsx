@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import './MarketplaceSearchBar.css';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Button, Input, cn } from '@/ui';
 
 interface MarketplaceSearchBarProps {
   onSearch: (query: string) => void;
@@ -25,44 +26,52 @@ const MarketplaceSearchBar: React.FC<MarketplaceSearchBarProps> = ({
   };
 
   return (
-    <div className="marketplace-search-bar">
-      <form onSubmit={handleSubmit} className="search-form">
-        <div className="search-input-group">
-          <input
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <form onSubmit={handleSubmit} className="min-w-[300px] flex-1">
+        <div className="relative flex items-center">
+          <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
+          <Input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search plugins..."
-            className="search-input"
+            className="h-11 pl-10 pr-24 text-sm"
           />
           {query && (
             <button
               type="button"
               onClick={handleClear}
-              className="clear-button"
+              className="absolute right-14 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
               aria-label="Clear search"
             >
-              ×
+              <X className="size-4" />
             </button>
           )}
-          <button
+          <Button
             type="submit"
-            className="search-button"
+            size="icon"
+            className="absolute right-1.5 size-8"
             aria-label="Search"
           >
-            🔍
-          </button>
+            <Search className="size-4" />
+          </Button>
         </div>
       </form>
-      
-      <button
+
+      <Button
+        type="button"
         onClick={onToggleFilters}
-        className={`filters-toggle ${hasActiveFilters ? 'has-filters' : ''}`}
+        variant={hasActiveFilters ? 'primary' : 'outline'}
+        size="lg"
+        className={cn('relative', hasActiveFilters && 'pr-6')}
         aria-label="Toggle filters"
       >
-        🎛️ Filters
-        {hasActiveFilters && <span className="filter-indicator">•</span>}
-      </button>
+        <SlidersHorizontal className="size-4" />
+        Filters
+        {hasActiveFilters && (
+          <span className="absolute right-2 top-2 size-2 animate-pulse rounded-full bg-warning" />
+        )}
+      </Button>
     </div>
   );
 };

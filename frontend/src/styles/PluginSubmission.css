@@ -1,22 +1,23 @@
-/* Plugin Submission Styles */
+/* Plugin Submission Styles — dark design system */
 .plugin-submission {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  background: var(--background-color);
+  background: #0a0a0b;
   min-height: calc(100vh - 120px);
 }
 
 .submission-container {
-  background: var(--card-background);
+  background: #111114;
+  border: 1px solid #1e1e24;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 
 .submission-header {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #f4f4f5;
   padding: 3rem 2rem;
   text-align: center;
 }
@@ -38,19 +39,19 @@
 
 /* Error Banner */
 .error-banner {
-  background: #fee;
-  color: #c53030;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-left: 4px solid #f56565;
+  border-left: 4px solid #ef4444;
 }
 
 .error-icon {
   display: flex;
   align-items: center;
-  color: #f56565;
+  color: #ef4444;
 }
 
 .error-icon svg {
@@ -65,7 +66,7 @@
 }
 
 .success-icon {
-  background: #f0fff4;
+  background: rgba(34, 197, 94, 0.15);
   border-radius: 50%;
   width: 80px;
   height: 80px;
@@ -73,7 +74,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 2rem auto;
-  color: #38a169;
+  color: #22c55e;
 }
 
 .success-icon svg {
@@ -82,14 +83,15 @@
 }
 
 .submission-success h2 {
-  color: var(--text-primary);
+  color: #f4f4f5;
   margin: 0 0 2rem 0;
   font-size: 2rem;
   font-weight: 600;
 }
 
 .submission-details {
-  background: var(--background-color);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 8px;
   padding: 1.5rem;
   margin: 2rem 0;
@@ -99,16 +101,16 @@
 .submission-details p {
   margin: 0.75rem 0;
   font-size: 1rem;
-  color: var(--text-secondary);
+  color: #a1a1aa;
 }
 
 .submission-details strong {
-  color: var(--text-primary);
+  color: #f4f4f5;
 }
 
 .status-badge {
-  background: #e6fffa;
-  color: #234e52;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.875rem;
@@ -116,7 +118,8 @@
 }
 
 .next-steps {
-  background: #f7fafc;
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 8px;
   padding: 1.5rem;
   margin: 2rem 0;
@@ -125,14 +128,14 @@
 
 .next-steps h3 {
   margin: 0 0 1rem 0;
-  color: var(--text-primary);
+  color: #f4f4f5;
   font-size: 1.25rem;
 }
 
 .next-steps ol {
   margin: 0;
   padding-left: 1.5rem;
-  color: var(--text-secondary);
+  color: #a1a1aa;
   line-height: 1.6;
 }
 
@@ -156,7 +159,7 @@
 .form-section {
   margin-bottom: 3rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #1e1e24;
 }
 
 .form-section:last-child {
@@ -166,7 +169,7 @@
 
 .form-section h3 {
   margin: 0 0 1.5rem 0;
-  color: var(--text-primary);
+  color: #f4f4f5;
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -186,7 +189,7 @@
 
 .form-group label {
   font-weight: 500;
-  color: var(--text-primary);
+  color: #f4f4f5;
   font-size: 0.875rem;
 }
 
@@ -194,26 +197,31 @@
 .form-group textarea,
 .form-group select {
   padding: 0.75rem;
-  border: 2px solid var(--border-color);
+  border: 1px solid #2a2a30;
   border-radius: 6px;
   font-size: 0.875rem;
-  transition: border-color 0.2s ease;
-  background: var(--background-color);
-  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #16161a;
+  color: #f4f4f5;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #71717a;
 }
 
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
 }
 
 .form-group input.error,
 .form-group textarea.error,
 .form-group select.error {
-  border-color: #f56565;
+  border-color: #ef4444;
 }
 
 .form-group textarea {
@@ -222,12 +230,12 @@
 }
 
 .form-group small {
-  color: var(--text-muted);
+  color: #71717a;
   font-size: 0.75rem;
 }
 
 .error-text {
-  color: #f56565;
+  color: #ef4444;
   font-size: 0.75rem;
   margin-top: 0.25rem;
 }
@@ -238,33 +246,33 @@
 }
 
 .file-upload-area {
-  border: 2px dashed var(--border-color);
+  border: 2px dashed #2a2a30;
   border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--background-color);
+  background: #16161a;
 }
 
 .file-upload-area:hover {
-  border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.02);
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .file-upload-area.drag-active {
-  border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.05);
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
   transform: scale(1.02);
 }
 
 .file-upload-area.error {
-  border-color: #f56565;
-  background: rgba(245, 101, 101, 0.02);
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .upload-icon {
-  color: var(--text-muted);
+  color: #71717a;
   margin-bottom: 1rem;
   display: flex;
   justify-content: center;
@@ -276,7 +284,7 @@
 }
 
 .file-info {
-  color: var(--text-primary);
+  color: #f4f4f5;
 }
 
 .file-name {
@@ -286,29 +294,30 @@
 }
 
 .file-size {
-  color: var(--text-muted);
+  color: #71717a;
   margin: 0;
   font-size: 0.875rem;
 }
 
 .upload-text p {
   margin: 0.5rem 0;
-  color: var(--text-secondary);
+  color: #a1a1aa;
 }
 
 .upload-text p:first-child {
-  color: var(--text-primary);
+  color: #f4f4f5;
   font-size: 1rem;
 }
 
 .upload-text p:last-child {
-  color: var(--text-muted);
+  color: #71717a;
   font-size: 0.875rem;
 }
 
 /* File Requirements */
 .file-requirements {
-  background: #f8fafc;
+  background: #1c1c22;
+  border: 1px solid #1e1e24;
   border-radius: 8px;
   padding: 1.5rem;
   margin-top: 1rem;
@@ -318,7 +327,7 @@
 }
 
 .requirements-icon {
-  color: var(--primary-color);
+  color: #818cf8;
   flex-shrink: 0;
   margin-top: 0.25rem;
 }
@@ -330,14 +339,14 @@
 
 .file-requirements h4 {
   margin: 0 0 0.75rem 0;
-  color: var(--text-primary);
+  color: #f4f4f5;
   font-size: 1rem;
 }
 
 .file-requirements ul {
   margin: 0;
   padding-left: 1.25rem;
-  color: var(--text-secondary);
+  color: #a1a1aa;
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -352,7 +361,7 @@
   gap: 1rem;
   justify-content: flex-end;
   padding-top: 2rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #1e1e24;
 }
 
 .btn {
@@ -377,42 +386,43 @@
 }
 
 .btn-primary {
-  background: var(--primary-color);
-  color: white;
+  background: #4f46e5;
+  color: #f4f4f5;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
+  background: #6366f1;
   transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: var(--secondary-color);
-  color: white;
+  background: #16161a;
+  color: #f4f4f5;
+  border: 1px solid #2a2a30;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--secondary-hover);
+  background: #1c1c22;
   transform: translateY(-1px);
 }
 
 .btn-outline {
   background: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
+  color: #818cf8;
+  border: 1px solid #4f46e5;
 }
 
 .btn-outline:hover {
-  background: var(--primary-color);
-  color: white;
+  background: #4f46e5;
+  color: #f4f4f5;
 }
 
 /* Loading Spinner */
 .loading-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+  border: 2px solid rgba(244, 244, 245, 0.3);
+  border-top: 2px solid #f4f4f5;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -427,43 +437,43 @@
   .plugin-submission {
     padding: 1rem;
   }
-  
+
   .submission-header {
     padding: 2rem 1rem;
   }
-  
+
   .submission-header h1 {
     font-size: 2rem;
   }
-  
+
   .submission-form {
     padding: 1.5rem;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .form-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .file-upload-area {
     padding: 2rem 1rem;
   }
-  
+
   .file-requirements {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .requirements-icon {
     margin-top: 0;
   }
@@ -473,15 +483,15 @@
   .submission-header h1 {
     font-size: 1.75rem;
   }
-  
+
   .submission-header p {
     font-size: 1rem;
   }
-  
+
   .submission-form {
     padding: 1rem;
   }
-  
+
   .form-section h3 {
     font-size: 1.25rem;
   }
