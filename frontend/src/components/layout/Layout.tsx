@@ -12,10 +12,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isMobile, isTablet } = useResponsive();
 
   return (
-    <div className={`app-layout ${isMobile ? 'mobile' : ''} ${isTablet ? 'tablet' : ''}`}>
+    <div className={`flex min-h-screen flex-col bg-background text-foreground ${isMobile ? 'mobile' : ''} ${isTablet ? 'tablet' : ''}`}>
       <Header />
       {!isMobile && <Navbar />}
-      <main className={`main-content ${isMobile ? 'mobile-main' : ''}`}>
+      <main className={`mx-auto w-full max-w-7xl flex-1 px-6 py-8 ${isMobile ? 'mobile-main px-4 py-5' : ''}`}>
         {children}
       </main>
       <Footer />
