@@ -88,10 +88,11 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
-        xs: '0 1px 2px rgba(0, 0, 0, 0.4)',
-        sm: '0 1px 3px rgba(0, 0, 0, 0.5)',
-        md: '0 4px 12px rgba(0, 0, 0, 0.5)',
-        lg: '0 12px 32px rgba(0, 0, 0, 0.6)',
+        // Var-backed so elevation softens on the light themes (see index.css).
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
         glow: '0 0 0 1px hsl(var(--primary) / 0.4), 0 8px 24px hsl(var(--primary) / 0.15)',
       },
       keyframes: {
