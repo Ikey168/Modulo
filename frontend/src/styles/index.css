@@ -65,6 +65,12 @@
 
     --radius: 0.5rem;
 
+    /* Elevation (referenced by tailwind boxShadow; re-declared per theme) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+
     /* ---- Legacy variables (used by not-yet-migrated .css files) ----
        Re-pointed to the dark palette so older screens degrade to dark
        instead of flashing white. New code should use the tokens above. */
@@ -105,6 +111,115 @@
     --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.5);
     --shadow-large: 0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Theme overrides. Dark is the canonical default (:root above); the
+   * ThemeProvider sets data-theme on <html>, and these blocks re-declare
+   * the semantic tokens so the Tailwind-driven UI follows the selection.
+   * (Legacy --color-* vars are set from themes.ts by ThemeProvider JS.)
+   * ------------------------------------------------------------------ */
+  [data-theme='light'],
+  [data-theme='blue'],
+  [data-theme='green'],
+  [data-theme='purple'] {
+    color-scheme: light;
+
+    --foreground: 240 10% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+    --primary-foreground: 0 0% 100%;
+    --secondary-foreground: 240 6% 10%;
+    --muted-foreground: 240 4% 46%;
+    --subtle-foreground: 240 5% 26%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 51%;
+    --success: 142 76% 36%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+    --info: 221 83% 53%;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  [data-theme='light'] {
+    --background: 0 0% 100%;
+    --surface: 0 0% 98%;
+    --surface-2: 240 5% 96%;
+    --surface-3: 240 6% 90%;
+    --border: 240 6% 90%;
+    --border-strong: 240 5% 84%;
+    --input: 240 6% 90%;
+    --ring: 243 75% 59%;
+    --secondary: 240 5% 96%;
+    --muted: 240 5% 96%;
+    --accent: 240 5% 96%;
+    --primary: 243 75% 59%;
+    --primary-hover: 245 58% 51%;
+  }
+
+  [data-theme='blue'] {
+    --background: 210 36% 96%;
+    --surface: 0 0% 100%;
+    --surface-2: 214 32% 91%;
+    --surface-3: 213 27% 84%;
+    --border: 214 32% 91%;
+    --border-strong: 213 27% 84%;
+    --input: 214 32% 91%;
+    --ring: 207 62% 50%;
+    --secondary: 214 32% 91%;
+    --muted: 214 32% 91%;
+    --accent: 214 32% 91%;
+    --primary: 207 62% 50%;
+    --primary-hover: 208 61% 43%;
+    --foreground: 220 26% 14%;
+    --card-foreground: 220 26% 14%;
+    --popover-foreground: 220 26% 14%;
+    --subtle-foreground: 218 23% 23%;
+    --muted-foreground: 218 17% 35%;
+  }
+
+  [data-theme='green'] {
+    --background: 137 100% 97%;
+    --surface: 0 0% 100%;
+    --surface-2: 139 71% 92%;
+    --surface-3: 139 71% 87%;
+    --border: 139 47% 87%;
+    --border-strong: 141 33% 78%;
+    --input: 139 47% 87%;
+    --ring: 146 49% 43%;
+    --secondary: 139 71% 92%;
+    --muted: 139 71% 92%;
+    --accent: 139 71% 92%;
+    --primary: 146 49% 43%;
+    --primary-hover: 150 48% 35%;
+    --foreground: 220 26% 14%;
+    --card-foreground: 220 26% 14%;
+    --popover-foreground: 220 26% 14%;
+  }
+
+  [data-theme='purple'] {
+    --background: 270 100% 98%;
+    --surface: 0 0% 100%;
+    --surface-2: 269 100% 95%;
+    --surface-3: 269 100% 92%;
+    --border: 269 60% 92%;
+    --border-strong: 269 45% 85%;
+    --input: 269 60% 92%;
+    --ring: 259 58% 59%;
+    --secondary: 269 100% 95%;
+    --muted: 269 100% 95%;
+    --accent: 269 100% 95%;
+    --primary: 259 58% 59%;
+    --primary-hover: 258 50% 52%;
+    --foreground: 220 26% 14%;
+    --card-foreground: 220 26% 14%;
+    --popover-foreground: 220 26% 14%;
   }
 
   * {

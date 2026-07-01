@@ -50,49 +50,50 @@ export interface Theme {
   };
 }
 
+// Light Mode mirrors the light token block in styles/index.css (zinc + indigo).
 export const lightTheme: Theme = {
   name: 'light',
   displayName: 'Light Mode',
   colors: {
     background: {
       primary: '#ffffff',
-      secondary: '#f8f9fa',
-      tertiary: '#f1f3f4',
+      secondary: '#fafafa',
+      tertiary: '#f4f4f5',
       card: '#ffffff',
       overlay: 'rgba(0, 0, 0, 0.5)',
     },
     text: {
-      primary: '#333333',
-      secondary: '#666666',
-      tertiary: '#999999',
+      primary: '#09090b',
+      secondary: '#3f3f46',
+      tertiary: '#71717a',
       inverse: '#ffffff',
     },
     border: {
-      primary: '#e9ecef',
-      secondary: '#dee2e6',
-      focus: '#007bff',
+      primary: '#e4e4e7',
+      secondary: '#d4d4d8',
+      focus: '#4f46e5',
     },
     brand: {
-      primary: '#007bff',
-      secondary: '#6c757d',
-      accent: '#28a745',
+      primary: '#4f46e5',
+      secondary: '#6366f1',
+      accent: '#16a34a',
     },
     status: {
-      success: '#28a745',
-      warning: '#ffc107',
-      error: '#dc3545',
-      info: '#17a2b8',
+      success: '#16a34a',
+      warning: '#d97706',
+      error: '#dc2626',
+      info: '#2563eb',
     },
     interactive: {
-      hover: '#f8f9fa',
-      active: '#e9ecef',
-      disabled: '#6c757d',
+      hover: '#f4f4f5',
+      active: '#e4e4e7',
+      disabled: '#a1a1aa',
     },
   },
   shadows: {
     small: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    medium: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    large: '0 10px 15px rgba(0, 0, 0, 0.1)',
+    medium: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    large: '0 12px 32px rgba(0, 0, 0, 0.12)',
   },
 };
 
