@@ -1,3 +1,4 @@
+import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import { cn } from './cn';
 
 export interface AvatarProps {
@@ -13,22 +14,20 @@ function initials(name?: string): string {
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
-/** Circular user avatar; falls back to initials on a tinted surface. */
+/** shadcn/ui Avatar (Radix), wrapped with the project's src/name/size API. */
 export function Avatar({ src, name, size = 28, className }: AvatarProps) {
   return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ' +
-          'bg-primary/15 text-primary font-medium uppercase',
-        className,
-      )}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    <AvatarPrimitive.Root
+      className={cn('relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full', className)}
+      style={{ width: size, height: size }}
     >
-      {src ? (
-        <img src={src} alt={name ?? 'avatar'} className="h-full w-full object-cover" />
-      ) : (
-        initials(name)
-      )}
-    </span>
+      {src && <AvatarPrimitive.Image src={src} alt={name ?? 'avatar'} className="h-full w-full object-cover" />}
+      <AvatarPrimitive.Fallback
+        className="flex h-full w-full items-center justify-center bg-primary/15 font-medium uppercase text-primary"
+        style={{ fontSize: size * 0.4 }}
+      >
+        {initials(name)}
+      </AvatarPrimitive.Fallback>
+    </AvatarPrimitive.Root>
   );
 }
