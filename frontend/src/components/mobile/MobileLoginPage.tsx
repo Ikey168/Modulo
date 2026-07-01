@@ -91,8 +91,8 @@ const MobileLoginPage: React.FC = () => {
         disabled={state !== 'active'}
         className={`auth-button auth-button-${button.provider}`}
         style={{
-          backgroundColor: state === 'active' ? button.color : '#f0f0f0',
-          color: state === 'active' ? 'white' : '#666'
+          backgroundColor: state === 'active' ? button.color : '#1c1c22',
+          color: state === 'active' ? 'white' : '#71717a'
         }}
         ariaLabel={button.label}
       >

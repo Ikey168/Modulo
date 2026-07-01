@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/ui';
 import { useBlockchain, useBlockchainNotes } from './BlockchainContext';
 
 interface BlockchainVerificationProps {
@@ -12,7 +13,7 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 }) => {
   const { isConnected, account, error } = useBlockchain();
   const { verifyNote, generateNoteHash } = useBlockchainNotes();
-  
+
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
@@ -43,10 +44,10 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 
   if (!isConnected) {
     return (
-      <div className="blockchain-verification bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="w-5 h-5 text-yellow-600">⚠️</div>
-          <span className="ml-2 text-yellow-800">
+      <div className="blockchain-verification rounded-lg border border-warning/25 bg-warning/15 p-4">
+        <div className="flex items-center gap-2">
+          <div className="text-warning">⚠️</div>
+          <span className="text-warning">
             Connect your wallet to verify note integrity on blockchain
           </span>
         </div>
@@ -56,10 +57,10 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 
   if (error) {
     return (
-      <div className="blockchain-verification bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="w-5 h-5 text-red-600">❌</div>
-          <span className="ml-2 text-red-800">
+      <div className="blockchain-verification rounded-lg border border-destructive/25 bg-destructive/15 p-4">
+        <div className="flex items-center gap-2">
+          <div className="text-destructive">❌</div>
+          <span className="text-destructive">
             Blockchain Error: {error}
           </span>
         </div>
@@ -69,10 +70,10 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 
   if (isVerifying) {
     return (
-      <div className="blockchain-verification bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="w-5 h-5 text-blue-600 animate-spin">⟳</div>
-          <span className="ml-2 text-blue-800">
+      <div className="blockchain-verification rounded-lg border border-info/25 bg-info/15 p-4">
+        <div className="flex items-center gap-2">
+          <div className="animate-spin text-info">⟳</div>
+          <span className="text-info">
             Verifying note on blockchain...
           </span>
         </div>
@@ -82,19 +83,21 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 
   if (verificationError) {
     return (
-      <div className="blockchain-verification bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="w-5 h-5 text-red-600">❌</div>
-          <span className="ml-2 text-red-800">
+      <div className="blockchain-verification rounded-lg border border-destructive/25 bg-destructive/15 p-4">
+        <div className="flex items-center gap-2">
+          <div className="text-destructive">❌</div>
+          <span className="text-destructive">
             Verification failed: {verificationError}
           </span>
         </div>
-        <button
+        <Button
+          variant="link"
+          size="sm"
           onClick={handleVerification}
-          className="mt-2 text-blue-600 hover:text-blue-800 underline text-sm"
+          className="mt-2 text-indigo-400"
         >
           Retry verification
-        </button>
+        </Button>
       </div>
     );
   }
@@ -105,15 +108,15 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
 
     if (exists && isActive) {
       return (
-        <div className="blockchain-verification bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <div className="w-5 h-5 text-green-600">✅</div>
-            <span className="ml-2 text-green-800 font-medium">
+        <div className="blockchain-verification rounded-lg border border-success/25 bg-success/15 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="text-success">✅</div>
+            <span className="font-medium text-success">
               Note verified on blockchain
             </span>
           </div>
-          <div className="text-sm text-gray-600 space-y-1">
-            <div>Hash: <span className="font-mono text-xs break-all">{noteHash}</span></div>
+          <div className="space-y-1 text-sm text-subtle-foreground">
+            <div>Hash: <span className="break-all font-mono text-xs">{noteHash}</span></div>
             <div>Owner: {isOwner ? 'You' : 'Another user'}</div>
             <div>Status: Active</div>
             <div>Account: <span className="font-mono text-xs">{account}</span></div>
@@ -122,15 +125,15 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
       );
     } else if (exists && !isActive) {
       return (
-        <div className="blockchain-verification bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <div className="w-5 h-5 text-orange-600">⚠️</div>
-            <span className="ml-2 text-orange-800 font-medium">
+        <div className="blockchain-verification rounded-lg border border-warning/25 bg-warning/15 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="text-warning">⚠️</div>
+            <span className="font-medium text-warning">
               Note exists but is deactivated
             </span>
           </div>
-          <div className="text-sm text-gray-600 space-y-1">
-            <div>Hash: <span className="font-mono text-xs break-all">{noteHash}</span></div>
+          <div className="space-y-1 text-sm text-subtle-foreground">
+            <div>Hash: <span className="break-all font-mono text-xs">{noteHash}</span></div>
             <div>Owner: {isOwner ? 'You' : 'Another user'}</div>
             <div>Status: Deactivated</div>
           </div>
@@ -138,15 +141,15 @@ export const BlockchainVerification: React.FC<BlockchainVerificationProps> = ({
       );
     } else {
       return (
-        <div className="blockchain-verification bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <div className="w-5 h-5 text-gray-600">ℹ️</div>
-            <span className="ml-2 text-gray-800 font-medium">
+        <div className="blockchain-verification rounded-lg border border-border bg-surface-2 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="text-muted-foreground">ℹ️</div>
+            <span className="font-medium text-foreground">
               Note not found on blockchain
             </span>
           </div>
-          <div className="text-sm text-gray-600 space-y-1">
-            <div>Hash: <span className="font-mono text-xs break-all">{noteHash}</span></div>
+          <div className="space-y-1 text-sm text-subtle-foreground">
+            <div>Hash: <span className="break-all font-mono text-xs">{noteHash}</span></div>
             <div>This note has not been registered on the blockchain</div>
           </div>
         </div>
@@ -168,9 +171,9 @@ export const BlockchainConnectButton: React.FC<BlockchainConnectButtonProps> = (
 
   if (isConnected && account) {
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
-        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-        <span className="text-sm text-gray-700">
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div className="h-3 w-3 rounded-full bg-success"></div>
+        <span className="text-sm text-subtle-foreground">
           Connected: {account.substring(0, 6)}...{account.substring(account.length - 4)}
         </span>
       </div>
@@ -178,17 +181,14 @@ export const BlockchainConnectButton: React.FC<BlockchainConnectButtonProps> = (
   }
 
   return (
-    <button
+    <Button
       onClick={initialize}
       disabled={isInitializing}
-      className={`
-        px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-        disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-        ${className}
-      `}
+      loading={isInitializing}
+      className={className}
     >
       {isInitializing ? 'Connecting...' : 'Connect Wallet'}
-    </button>
+    </Button>
   );
 };
 
@@ -205,7 +205,7 @@ export const BlockchainRegistration: React.FC<BlockchainRegistrationProps> = ({
 }) => {
   const { isConnected } = useBlockchain();
   const { registerNote, verifyNote } = useBlockchainNotes();
-  
+
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<any>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
@@ -246,8 +246,8 @@ export const BlockchainRegistration: React.FC<BlockchainRegistrationProps> = ({
 
   if (!isConnected) {
     return (
-      <div className="blockchain-registration bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="text-yellow-800">
+      <div className="blockchain-registration rounded-lg border border-warning/25 bg-warning/15 p-4">
+        <div className="text-warning">
           Connect your wallet to register this note on the blockchain
         </div>
       </div>
@@ -256,10 +256,10 @@ export const BlockchainRegistration: React.FC<BlockchainRegistrationProps> = ({
 
   if (alreadyExists) {
     return (
-      <div className="blockchain-registration bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="w-5 h-5 text-orange-600">⚠️</div>
-          <span className="ml-2 text-orange-800">
+      <div className="blockchain-registration rounded-lg border border-warning/25 bg-warning/15 p-4">
+        <div className="flex items-center gap-2">
+          <div className="text-warning">⚠️</div>
+          <span className="text-warning">
             This note is already registered on the blockchain
           </span>
         </div>
@@ -269,21 +269,21 @@ export const BlockchainRegistration: React.FC<BlockchainRegistrationProps> = ({
 
   if (registrationResult) {
     return (
-      <div className="blockchain-registration bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center mb-2">
-          <div className="w-5 h-5 text-green-600">✅</div>
-          <span className="ml-2 text-green-800 font-medium">
+      <div className="blockchain-registration rounded-lg border border-success/25 bg-success/15 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <div className="text-success">✅</div>
+          <span className="font-medium text-success">
             Note registered successfully!
           </span>
         </div>
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="space-y-1 text-sm text-subtle-foreground">
           <div>Note ID: {registrationResult.noteId}</div>
-          <div>Transaction: 
-            <a 
+          <div>Transaction:
+            <a
               href={`https://etherscan.io/tx/${registrationResult.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 text-blue-600 hover:text-blue-800 underline font-mono text-xs"
+              className="ml-1 font-mono text-xs text-indigo-400 underline hover:text-primary"
             >
               {registrationResult.txHash.substring(0, 10)}...
             </a>
@@ -295,43 +295,42 @@ export const BlockchainRegistration: React.FC<BlockchainRegistrationProps> = ({
 
   if (registrationError) {
     return (
-      <div className="blockchain-registration bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center mb-2">
-          <div className="w-5 h-5 text-red-600">❌</div>
-          <span className="ml-2 text-red-800 font-medium">
+      <div className="blockchain-registration rounded-lg border border-destructive/25 bg-destructive/15 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <div className="text-destructive">❌</div>
+          <span className="font-medium text-destructive">
             Registration failed
           </span>
         </div>
-        <div className="text-sm text-gray-600 mb-3">{registrationError}</div>
-        <button
+        <div className="mb-3 text-sm text-subtle-foreground">{registrationError}</div>
+        <Button
+          variant="link"
+          size="sm"
           onClick={handleRegistration}
-          className="text-blue-600 hover:text-blue-800 underline text-sm"
+          className="text-indigo-400"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="blockchain-registration bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div className="flex items-center justify-between">
+    <div className="blockchain-registration rounded-lg border border-info/25 bg-info/15 p-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-blue-800 font-medium">Register on Blockchain</div>
-          <div className="text-sm text-blue-600">
+          <div className="font-medium text-foreground">Register on Blockchain</div>
+          <div className="text-sm text-subtle-foreground">
             Secure this note with immutable blockchain verification
           </div>
         </div>
-        <button
+        <Button
           onClick={handleRegistration}
           disabled={isRegistering}
-          className="
-            px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-            disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-          "
+          loading={isRegistering}
         >
           {isRegistering ? 'Registering...' : 'Register Note'}
-        </button>
+        </Button>
       </div>
     </div>
   );

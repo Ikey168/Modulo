@@ -1,21 +1,34 @@
+/* Mobile login page — dark "workspace" aesthetic. */
 .mobile-login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0a0a0b;
   padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .login-container {
   width: 100%;
   max-width: 480px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: #111114;
+  border: 1px solid #1e1e24;
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  animation: mobileLoginFadeUp 0.25s ease;
+}
+
+@keyframes mobileLoginFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Header */
@@ -40,29 +53,28 @@
   margin: 0;
   font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: -0.5px;
+  color: #f4f4f5;
 }
 
 .login-header h2 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 1.5rem;
   font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .login-subtitle {
   margin: 0;
-  color: #666;
+  color: #a1a1aa;
   font-size: 1rem;
 }
 
 /* Device Info */
 .device-info {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -75,7 +87,7 @@
   justify-content: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: #667eea;
+  color: #818cf8;
   margin-bottom: 0.5rem;
 }
 
@@ -88,7 +100,7 @@
   justify-content: center;
   gap: 1rem;
   font-size: 0.9rem;
-  color: #666;
+  color: #a1a1aa;
 }
 
 /* Error Alert */
@@ -105,7 +117,7 @@
 
 .auth-section h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 1.1rem;
   font-weight: 600;
   text-align: center;
@@ -122,14 +134,14 @@
   min-height: 56px;
   border-radius: 12px;
   border: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
 }
 
 .auth-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
 .auth-button:active:not(:disabled) {
@@ -137,7 +149,7 @@
 }
 
 .auth-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -181,22 +193,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Specific button styles */
-.auth-button-google:not(:disabled) {
-  background: #4285F4;
-  color: white;
-}
-
-.auth-button-microsoft:not(:disabled) {
-  background: #0078D4;
-  color: white;
-}
-
-.auth-button-metamask:not(:disabled) {
-  background: #F6851B;
-  color: white;
-}
-
 /* Divider */
 .divider {
   text-align: center;
@@ -211,13 +207,14 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: #e0e0e0;
+  background: #1e1e24;
 }
 
 .divider span {
-  background: rgba(255, 255, 255, 0.95);
+  position: relative;
+  background: #111114;
   padding: 0 1rem;
-  color: #666;
+  color: #71717a;
   font-size: 0.9rem;
 }
 
@@ -225,28 +222,28 @@
 .blockchain-note {
   text-align: center;
   font-size: 0.85rem;
-  color: #666;
+  color: #71717a;
   margin-top: 0.75rem;
   line-height: 1.4;
 }
 
 /* Advanced Section */
 .advanced-section {
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #1e1e24;
   padding-top: 1.5rem;
 }
 
 .advanced-toggle {
   width: 100%;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: #16161a;
+  color: #818cf8;
+  border: 1px solid #1e1e24;
   font-size: 0.9rem;
   padding: 0.75rem;
 }
 
 .advanced-toggle:hover {
-  background: rgba(102, 126, 234, 0.15);
+  background: #1c1c22;
 }
 
 .advanced-options {
@@ -257,7 +254,8 @@
 }
 
 .option-item {
-  background: rgba(0, 0, 0, 0.02);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
@@ -265,28 +263,37 @@
 
 .option-item h4 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 0.95rem;
   font-weight: 600;
 }
 
 .option-item p {
   margin: 0 0 0.75rem 0;
-  color: #666;
+  color: #a1a1aa;
   font-size: 0.85rem;
   line-height: 1.4;
 }
 
 .enterprise-login {
-  background: #6c757d;
-  color: white;
+  background: #1c1c22;
+  color: #f4f4f5;
+  border: 1px solid #2a2a30;
   font-size: 0.9rem;
 }
 
+.enterprise-login:hover {
+  background: #2a2a30;
+}
+
 .guest-login {
-  background: #28a745;
-  color: white;
+  background: #22c55e;
+  color: #0a0a0b;
   font-size: 0.9rem;
+}
+
+.guest-login:hover {
+  filter: brightness(1.05);
 }
 
 /* Features Overview */
@@ -297,7 +304,7 @@
 
 .features-overview h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -314,7 +321,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(102, 126, 234, 0.05);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 8px;
 }
 
@@ -324,7 +332,7 @@
 
 .feature-text {
   font-size: 0.85rem;
-  color: #667eea;
+  color: #818cf8;
   font-weight: 600;
 }
 
@@ -332,15 +340,15 @@
 .auth-status {
   margin-top: 1.5rem;
   padding: 0.75rem;
-  background: rgba(40, 167, 69, 0.1);
-  border: 1px solid rgba(40, 167, 69, 0.2);
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 8px;
   text-align: center;
 }
 
 .auth-status p {
   margin: 0;
-  color: #28a745;
+  color: #22c55e;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -358,7 +366,7 @@
 .security-info p {
   margin: 0;
   font-size: 0.8rem;
-  color: #666;
+  color: #71717a;
 }
 
 .legal-links {
@@ -370,7 +378,7 @@
 }
 
 .legal-link {
-  color: #667eea;
+  color: #818cf8;
   text-decoration: none;
 }
 
@@ -379,7 +387,7 @@
 }
 
 .separator {
-  color: #ccc;
+  color: #52525b;
 }
 
 /* Mobile Responsiveness */
@@ -387,111 +395,46 @@
   .mobile-login-page {
     padding: 0.5rem;
   }
-  
+
   .login-container {
     padding: 1.5rem;
-    border-radius: 16px;
+    border-radius: 14px;
   }
-  
+
   .logo h1 {
     font-size: 1.8rem;
   }
-  
+
   .login-header h2 {
     font-size: 1.3rem;
   }
-  
+
   .auth-button {
     min-height: 52px;
   }
-  
+
   .auth-button-text {
     font-size: 0.95rem;
   }
-  
+
   .features-grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
-  
+
   .legal-links {
     flex-direction: column;
     gap: 0.25rem;
   }
-  
+
   .separator {
     display: none;
   }
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .mobile-login-page {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  }
-  
-  .login-container {
-    background: rgba(45, 45, 45, 0.95);
-    color: #e0e0e0;
-  }
-  
-  .logo h1 {
-    color: #e0e0e0;
-  }
-  
-  .login-header h2 {
-    color: #e0e0e0;
-  }
-  
-  .login-subtitle {
-    color: #b0b0b0;
-  }
-  
-  .device-info {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .device-details {
-    color: #b0b0b0;
-  }
-  
-  .auth-section h3 {
-    color: #e0e0e0;
-  }
-  
-  .blockchain-note {
-    color: #b0b0b0;
-  }
-  
-  .option-item {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .option-item h4 {
-    color: #e0e0e0;
-  }
-  
-  .option-item p {
-    color: #b0b0b0;
-  }
-  
-  .features-overview h3 {
-    color: #e0e0e0;
-  }
-  
-  .feature-item {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .security-info p {
-    color: #b0b0b0;
-  }
-}
-
 /* Accessibility */
-.auth-button:focus {
-  outline: 2px solid #667eea;
+.auth-button:focus-visible {
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 
@@ -499,12 +442,16 @@
   .auth-button {
     transition: none;
   }
-  
+
   .auth-button:hover {
     transform: none;
   }
-  
+
   .spinner {
+    animation: none;
+  }
+
+  .login-container {
     animation: none;
   }
 }
@@ -512,17 +459,16 @@
 /* High contrast mode */
 @media (prefers-contrast: high) {
   .login-container {
-    background: #fff;
-    border: 2px solid #000;
+    border: 2px solid #f4f4f5;
   }
-  
+
   .auth-button {
-    border: 2px solid #000;
+    border: 2px solid #f4f4f5;
   }
-  
+
   .device-info,
   .auth-status,
   .feature-item {
-    border: 1px solid #000;
+    border: 1px solid #f4f4f5;
   }
 }
