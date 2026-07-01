@@ -19,6 +19,8 @@ public class Tag {
     @Column(name = "name", unique = true, nullable = false)
     private String name;
 
+    // Inverse side of Note.tags. Excluded from JSON so serializing a Note's
+    // tags doesn't recurse back into notes (Note -> tags -> Tag -> notes ...).
     // Excluded from JSON: serializing this lazy back-reference both triggers a
     // LazyInitializationException (session closed when open-in-view=false) and
     // creates an infinite Note -> tags -> Tag -> notes recursion.

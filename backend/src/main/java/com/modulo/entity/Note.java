@@ -113,6 +113,15 @@ public class Note {
     )
     private Set<Tag> tags = new HashSet<>();
 
+    // These relationships are bidirectional, so serializing a Note as JSON
+    // would recurse (Note -> NoteLink -> sourceNote -> Note ...; likewise
+    // attachments/tasks) and overflow the response -- which the API returned
+    // as 500s / ERR_INCOMPLETE_CHUNKED_ENCODING (open-in-view loads them
+    // lazily during serialization). The UI doesn't consume these inline (links
+    // come from /api/note-links), so exclude them from JSON. Persistence is
+    // unaffected; @JsonIgnore also means the lazy fields aren't touched during
+    // serialization, so no lazy load is triggered.
+
         // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     @JsonIgnore
     @OneToMany(mappedBy = "sourceNote", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
