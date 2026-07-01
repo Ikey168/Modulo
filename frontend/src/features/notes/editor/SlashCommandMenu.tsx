@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { cn } from '@/ui';
 import { NoteTemplate } from './templateApi';
 
 export interface SlashCommand {
@@ -76,22 +77,11 @@ const SlashCommandMenu: React.FC<Props> = ({ query, position, templates, onSelec
   return (
     <div
       ref={containerRef}
-      style={{
-        position: 'fixed',
-        top: position.top,
-        left: position.left,
-        zIndex: 2000,
-        background: 'var(--color-surface, #fff)',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        borderRadius: '8px',
-        boxShadow: '0 8px 24px rgba(0,0,0,.15)',
-        width: '260px',
-        maxHeight: '320px',
-        overflowY: 'auto',
-      }}
+      style={{ top: position.top, left: position.left }}
+      className="fixed z-[2000] max-h-80 w-[260px] animate-scale-in overflow-y-auto rounded-lg border border-border-strong bg-popover text-popover-foreground shadow-lg"
     >
       {query === '' && (
-        <div style={{ padding: '6px 12px', fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', borderBottom: '1px solid var(--color-border, #e5e7eb)' }}>
+        <div className="border-b border-border px-3 py-1.5 text-[11px] font-medium tracking-wide text-muted-foreground">
           COMMANDS
         </div>
       )}
@@ -99,23 +89,20 @@ const SlashCommandMenu: React.FC<Props> = ({ query, position, templates, onSelec
         <div
           key={cmd.id}
           onClick={() => execCommand(cmd)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '8px 12px',
-            cursor: 'pointer',
-            background: i === activeIdx ? 'var(--color-primary-subtle, #eff6ff)' : 'transparent',
-            borderLeft: i === activeIdx ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
-          }}
+          className={cn(
+            'flex cursor-pointer items-center gap-2.5 border-l-[3px] px-3 py-2 transition-colors',
+            i === activeIdx
+              ? 'border-primary bg-surface-2'
+              : 'border-transparent',
+          )}
           onMouseEnter={() => setActiveIdx(i)}
         >
-          <span style={{ width: '28px', textAlign: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--color-text-secondary, #6b7280)', flexShrink: 0 }}>
+          <span className="w-7 shrink-0 text-center text-[13px] font-bold text-muted-foreground">
             {cmd.icon}
           </span>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 500 }}>{cmd.label}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)' }}>{cmd.description}</div>
+            <div className="text-[13px] font-medium text-foreground">{cmd.label}</div>
+            <div className="text-[11px] text-muted-foreground">{cmd.description}</div>
           </div>
         </div>
       ))}

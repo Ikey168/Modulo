@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Download, FileText, Printer, FileArchive } from 'lucide-react';
+import { Button } from '@/ui';
 import { exportApi } from './exportApi';
 
 interface Props {
@@ -20,56 +22,28 @@ const ExportButton: React.FC<Props> = ({ noteId, noteTitle: _noteTitle }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          padding: '5px 12px',
-          fontSize: '12px',
-          background: 'var(--color-surface-raised, #f3f4f6)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '6px',
-          cursor: 'pointer',
-        }}
-      >
-        ↓ Export
-      </button>
+    <div ref={ref} className="relative inline-block">
+      <Button onClick={() => setOpen(o => !o)} variant="secondary" size="sm">
+        <Download />
+        Export
+      </Button>
 
       {open && (
-        <div style={{
-          position: 'absolute',
-          right: 0,
-          top: '100%',
-          marginTop: '4px',
-          background: 'var(--color-surface, #fff)',
-          border: '1px solid var(--color-border, #e5e7eb)',
-          borderRadius: '8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,.12)',
-          minWidth: '200px',
-          zIndex: 1000,
-          padding: '8px 0',
-        }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 14px',
-            fontSize: '12px',
-            color: 'var(--color-text-secondary, #6b7280)',
-            cursor: 'pointer',
-          }}>
+        <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] animate-fade-up rounded-lg border border-border-strong bg-popover py-2 text-popover-foreground shadow-lg">
+          <label className="flex cursor-pointer items-center gap-2 px-3.5 py-1.5 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={resolveLinks}
               onChange={e => setResolveLinks(e.target.checked)}
+              className="size-3.5 accent-primary"
             />
             Resolve [[links]]
           </label>
 
-          <div style={{ borderTop: '1px solid var(--color-border, #e5e7eb)', margin: '4px 0' }} />
+          <div className="my-1 border-t border-border" />
 
           <MenuItem
-            icon="📝"
+            icon={<FileText />}
             label="Markdown (.md)"
             onClick={() => {
               exportApi.downloadMarkdown(noteId, resolveLinks);
@@ -77,7 +51,7 @@ const ExportButton: React.FC<Props> = ({ noteId, noteTitle: _noteTitle }) => {
             }}
           />
           <MenuItem
-            icon="🖨️"
+            icon={<Printer />}
             label="Print / PDF"
             description="Opens in browser for printing"
             onClick={() => {
@@ -86,7 +60,7 @@ const ExportButton: React.FC<Props> = ({ noteId, noteTitle: _noteTitle }) => {
             }}
           />
           <MenuItem
-            icon="🗜️"
+            icon={<FileArchive />}
             label="This note as ZIP"
             onClick={() => {
               exportApi.downloadZip([noteId], resolveLinks);
@@ -99,30 +73,17 @@ const ExportButton: React.FC<Props> = ({ noteId, noteTitle: _noteTitle }) => {
   );
 };
 
-const MenuItem: React.FC<{ icon: string; label: string; description?: string; onClick: () => void }> = ({
+const MenuItem: React.FC<{ icon: React.ReactNode; label: string; description?: string; onClick: () => void }> = ({
   icon, label, description, onClick,
 }) => (
   <button
     onClick={onClick}
-    style={{
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '10px',
-      width: '100%',
-      padding: '8px 14px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      textAlign: 'left',
-      fontSize: '13px',
-    }}
-    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-raised, #f3f4f6)')}
-    onMouseLeave={e => (e.currentTarget.style.background = '')}
+    className="flex w-full items-start gap-2.5 px-3.5 py-2 text-left text-[13px] text-foreground transition-colors hover:bg-surface-2"
   >
-    <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '1px' }}>{icon}</span>
+    <span className="mt-px text-muted-foreground [&_svg]:size-4">{icon}</span>
     <div>
       <div>{label}</div>
-      {description && <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)' }}>{description}</div>}
+      {description && <div className="text-[11px] text-muted-foreground">{description}</div>}
     </div>
   </button>
 );

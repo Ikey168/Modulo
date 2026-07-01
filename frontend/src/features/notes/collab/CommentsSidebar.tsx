@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { X } from 'lucide-react';
+import { Button, Textarea } from '@/ui';
 import { NoteComment, commentsApi } from './commentsApi';
 
 interface Props {
@@ -110,8 +112,8 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
-      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Comments</h3>
+    <div className="flex flex-col gap-3 p-3">
+      <h3 className="m-0 text-[15px] font-semibold text-foreground">Comments</h3>
 
       {roots.map(c => (
         <CommentThread
@@ -127,8 +129,8 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
       ))}
 
       {resolved.length > 0 && (
-        <details style={{ fontSize: '12px', color: 'var(--color-text-secondary, #6b7280)' }}>
-          <summary style={{ cursor: 'pointer' }}>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">
             {resolved.length} resolved comment{resolved.length > 1 ? 's' : ''}
           </summary>
           {resolved.map(c => (
@@ -146,92 +148,49 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
         </details>
       )}
 
-      <form onSubmit={submitComment} style={{ position: 'relative' }}>
+      <form onSubmit={submitComment} className="relative">
         {replyTo !== null && (
-          <div style={{
-            fontSize: '11px',
-            color: 'var(--color-text-secondary, #6b7280)',
-            marginBottom: '4px',
-            display: 'flex',
-            gap: '6px',
-            alignItems: 'center',
-          }}>
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             Replying to comment
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
+              className="flex cursor-pointer items-center border-none bg-transparent p-0 text-current transition-colors hover:text-foreground"
             >
-              ×
+              <X className="size-3.5" />
             </button>
           </div>
         )}
-        <textarea
+        <Textarea
           ref={textareaRef}
           value={newContent}
           onChange={handleInput}
           placeholder="Add a comment… (@mention to notify)"
           rows={3}
-          style={{
-            width: '100%',
-            resize: 'none',
-            padding: '8px',
-            border: '1px solid var(--color-border, #e5e7eb)',
-            borderRadius: '6px',
-            fontFamily: 'inherit',
-            fontSize: '13px',
-            boxSizing: 'border-box',
-          }}
+          className="min-h-0 resize-none"
         />
         {filteredUsers.length > 0 && (
-          <ul style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            right: 0,
-            background: 'var(--color-surface, #fff)',
-            border: '1px solid var(--color-border, #e5e7eb)',
-            borderRadius: '6px',
-            margin: 0,
-            padding: '4px 0',
-            listStyle: 'none',
-            zIndex: 100,
-            boxShadow: '0 2px 8px rgba(0,0,0,.1)',
-          }}>
+          <ul className="absolute inset-x-0 bottom-full z-[100] m-0 list-none rounded-md border border-border bg-popover py-1 shadow-md">
             {filteredUsers.map(u => (
               <li
                 key={u.id}
                 onClick={() => insertMention(u.name)}
-                style={{
-                  padding: '6px 12px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-raised, #f3f4f6)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
+                className="cursor-pointer px-3 py-1.5 text-[13px] text-foreground transition-colors hover:bg-surface-2"
               >
                 @{u.name}
               </li>
             ))}
           </ul>
         )}
-        <button
+        <Button
           type="submit"
+          size="sm"
+          className="mt-1.5"
           disabled={loading || !newContent.trim()}
-          style={{
-            marginTop: '6px',
-            padding: '6px 14px',
-            background: 'var(--color-primary, #3b82f6)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            opacity: loading || !newContent.trim() ? 0.5 : 1,
-          }}
+          loading={loading}
         >
           {loading ? 'Sending…' : 'Comment'}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -250,51 +209,36 @@ interface ThreadProps {
 const CommentThread: React.FC<ThreadProps> = ({
   comment, replies, userId, onReply, onResolve, onDelete, isReplyTarget,
 }) => (
-  <div style={{
-    borderLeft: `3px solid ${comment.resolved ? '#e5e7eb' : 'var(--color-primary, #3b82f6)'}`,
-    paddingLeft: '10px',
-    opacity: comment.resolved ? 0.6 : 1,
-  }}>
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-      <div style={{
-        width: '24px',
-        height: '24px',
-        borderRadius: '50%',
-        background: 'var(--color-primary, #3b82f6)',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '10px',
-        fontWeight: 700,
-        flexShrink: 0,
-      }}>
+  <div
+    className={`border-l-[3px] pl-2.5 ${comment.resolved ? 'border-border-strong opacity-60' : 'border-primary'}`}
+  >
+    <div className="flex items-start gap-2">
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
         {(comment.authorName || '?').slice(0, 2).toUpperCase()}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>{comment.authorName}</span>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs font-semibold text-foreground">{comment.authorName}</span>
+          <span className="text-[11px] text-muted-foreground">
             {new Date(comment.createdAt).toLocaleString()}
           </span>
         </div>
-        <p style={{ margin: '4px 0', fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        <p className="my-1 whitespace-pre-wrap break-words text-[13px] text-subtle-foreground">
           {comment.content}
         </p>
-        <div style={{ display: 'flex', gap: '8px', fontSize: '11px' }}>
+        <div className="flex gap-2 text-[11px]">
           <button
             onClick={onReply}
-            style={{
-              background: isReplyTarget ? 'var(--color-primary-subtle, #eff6ff)' : 'none',
-              border: 'none', cursor: 'pointer', color: 'var(--color-primary, #3b82f6)', padding: 0,
-            }}
+            className={`cursor-pointer rounded border-none p-0 text-indigo-400 transition-colors hover:text-primary ${
+              isReplyTarget ? 'font-semibold' : ''
+            }`}
           >
             Reply
           </button>
           {!comment.resolved && (
             <button
               onClick={onResolve}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#22c55e', padding: 0 }}
+              className="cursor-pointer border-none bg-transparent p-0 text-success transition-opacity hover:opacity-80"
             >
               Resolve
             </button>
@@ -302,7 +246,7 @@ const CommentThread: React.FC<ThreadProps> = ({
           {comment.resolved && (
             <button
               onClick={onResolve}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary, #6b7280)', padding: 0 }}
+              className="cursor-pointer border-none bg-transparent p-0 text-muted-foreground transition-colors hover:text-foreground"
             >
               Reopen
             </button>
@@ -310,7 +254,7 @@ const CommentThread: React.FC<ThreadProps> = ({
           {comment.authorId === userId && (
             <button
               onClick={onDelete}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 0 }}
+              className="cursor-pointer border-none bg-transparent p-0 text-destructive transition-opacity hover:opacity-80"
             >
               Delete
             </button>
@@ -319,7 +263,7 @@ const CommentThread: React.FC<ThreadProps> = ({
       </div>
     </div>
     {replies.length > 0 && (
-      <div style={{ marginLeft: '32px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="ml-8 mt-2 flex flex-col gap-2">
         {replies.map(r => (
           <CommentThread
             key={r.id}

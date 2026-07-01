@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Button } from '@/ui';
 import { graphApi, Backlink } from './graphApi';
 
 interface Props {
@@ -32,25 +33,31 @@ const BacklinksPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => 
   }, [load, refreshKey]);
 
   if (loading) {
-    return <div className="graph-panel-state">Loading backlinks…</div>;
+    return <div className="p-3.5 text-[13px] text-muted-foreground">Loading backlinks…</div>;
   }
   if (error) {
     return (
-      <div className="graph-panel-state graph-panel-error">
-        {error} <button className="graph-link-btn" onClick={load}>Retry</button>
+      <div className="flex items-center gap-2 p-3.5 text-[13px] text-destructive">
+        {error} <Button variant="outline" size="sm" onClick={load}>Retry</Button>
       </div>
     );
   }
   if (backlinks.length === 0) {
-    return <div className="graph-panel-state graph-panel-empty">No notes link here yet.</div>;
+    return <div className="p-3.5 text-[13px] italic text-muted-foreground">No notes link here yet.</div>;
   }
 
   return (
-    <ul className="graph-card-list">
+    <ul className="flex flex-col gap-2">
       {backlinks.map((b) => (
-        <li key={b.id} className="graph-card" onClick={() => onOpenNote(b.id)}>
-          <div className="graph-card-title">{b.title || `Note #${b.id}`}</div>
-          {b.snippet && <div className="graph-card-snippet">{b.snippet}</div>}
+        <li
+          key={b.id}
+          className="cursor-pointer rounded-lg border border-border bg-surface p-2.5 transition-colors hover:border-primary/60 hover:bg-surface-2"
+          onClick={() => onOpenNote(b.id)}
+        >
+          <div className="text-sm font-semibold text-foreground">{b.title || `Note #${b.id}`}</div>
+          {b.snippet && (
+            <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{b.snippet}</div>
+          )}
         </li>
       ))}
     </ul>

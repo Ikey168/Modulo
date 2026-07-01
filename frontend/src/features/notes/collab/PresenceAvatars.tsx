@@ -9,36 +9,19 @@ const PresenceAvatars: React.FC<Props> = ({ participants }) => {
   if (participants.length === 0) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+    <div className="flex items-center gap-1">
       {participants.slice(0, 5).map(p => (
         <div
           key={p.userId}
           title={p.userName}
-          style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            background: p.color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: '11px',
-            fontWeight: 700,
-            border: '2px solid var(--bg, #fff)',
-            cursor: 'default',
-            flexShrink: 0,
-          }}
+          className="flex size-7 shrink-0 cursor-default items-center justify-center rounded-full border-2 border-background text-[11px] font-bold uppercase text-white"
+          style={{ background: p.color }}
         >
           {p.userName.slice(0, 2).toUpperCase()}
         </div>
       ))}
       {participants.length > 5 && (
-        <div style={{
-          fontSize: '11px',
-          color: 'var(--color-text-secondary, #666)',
-          whiteSpace: 'nowrap',
-        }}>
+        <div className="whitespace-nowrap text-[11px] text-muted-foreground">
           +{participants.length - 5}
         </div>
       )}

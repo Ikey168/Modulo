@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Button, Badge } from '@/ui';
 import { graphApi, RelatedNote } from './graphApi';
 
 interface Props {
@@ -30,32 +31,38 @@ const RelatedNotesPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) 
   }, [load, refreshKey]);
 
   if (loading) {
-    return <div className="graph-panel-state">Finding related notes…</div>;
+    return <div className="p-3.5 text-[13px] text-muted-foreground">Finding related notes…</div>;
   }
   if (error) {
     return (
-      <div className="graph-panel-state graph-panel-error">
-        {error} <button className="graph-link-btn" onClick={load}>Retry</button>
+      <div className="flex items-center gap-2 p-3.5 text-[13px] text-destructive">
+        {error} <Button variant="outline" size="sm" onClick={load}>Retry</Button>
       </div>
     );
   }
   if (related.length === 0) {
     return (
-      <div className="graph-panel-state graph-panel-empty">
+      <div className="p-3.5 text-[13px] italic text-muted-foreground">
         No structurally-related notes yet. Link more notes to build connections.
       </div>
     );
   }
 
   return (
-    <ul className="graph-card-list">
+    <ul className="flex flex-col gap-2">
       {related.map((r) => (
-        <li key={r.id} className="graph-card" onClick={() => onOpenNote(r.id)}>
-          <div className="graph-card-title">
+        <li
+          key={r.id}
+          className="cursor-pointer rounded-lg border border-border bg-surface p-2.5 transition-colors hover:border-primary/60 hover:bg-surface-2"
+          onClick={() => onOpenNote(r.id)}
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             {r.title || `Note #${r.id}`}
-            <span className="graph-score" title="Shared connections">{r.score}</span>
+            <Badge variant="default" title="Shared connections">{r.score}</Badge>
           </div>
-          {r.snippet && <div className="graph-card-snippet">{r.snippet}</div>}
+          {r.snippet && (
+            <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{r.snippet}</div>
+          )}
         </li>
       ))}
     </ul>

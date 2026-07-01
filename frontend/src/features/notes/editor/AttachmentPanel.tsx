@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, DragEvent, ClipboardEvent } from 'react';
+import { FileText, CornerDownLeft, X, Paperclip } from 'lucide-react';
+import { Button, cn } from '@/ui';
 
 interface AttachmentInfo {
   id: number;
@@ -88,31 +90,24 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
   };
 
   return (
-    <div style={{ marginTop: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Attachments</h4>
-        <button
+    <div className="mt-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h4 className="m-0 text-sm font-semibold text-foreground">Attachments</h4>
+        <Button
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          style={{
-            padding: '4px 12px',
-            fontSize: '12px',
-            background: 'var(--color-primary, #3b82f6)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            opacity: uploading ? 0.5 : 1,
-          }}
+          size="sm"
+          loading={uploading}
         >
-          {uploading ? 'Uploading…' : '+ Attach'}
-        </button>
+          {!uploading && <Paperclip />}
+          {uploading ? 'Uploading…' : 'Attach'}
+        </Button>
         <input
           ref={inputRef}
           type="file"
           multiple
           accept={ACCEPT}
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={e => e.target.files && upload(e.target.files)}
         />
       </div>
@@ -122,62 +117,62 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
         onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
-        style={{
-          border: `2px dashed ${isDragOver ? 'var(--color-primary, #3b82f6)' : 'var(--color-border, #d1d5db)'}`,
-          borderRadius: '6px',
-          padding: '12px',
-          textAlign: 'center',
-          fontSize: '12px',
-          color: 'var(--color-text-secondary, #6b7280)',
-          marginBottom: '8px',
-          background: isDragOver ? 'var(--color-primary-subtle, #eff6ff)' : 'transparent',
-          transition: 'all .15s',
-        }}
+        className={cn(
+          'mb-2 rounded-lg border-2 border-dashed p-3 text-center text-xs transition-colors',
+          isDragOver
+            ? 'border-primary bg-primary/10 text-foreground'
+            : 'border-border-strong text-muted-foreground',
+        )}
       >
         {isDragOver ? 'Drop to attach' : 'Drag & drop files here, or paste images'}
       </div>
 
       {/* Attachment list */}
       {attachments.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {attachments.map(a => (
-            <li key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+            <li key={a.id} className="flex items-center gap-2 text-[13px]">
               {a.isImage ? (
                 <img
                   src={a.url}
                   alt={a.originalFilename}
-                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+                  className="size-10 shrink-0 rounded-md border border-border object-cover"
                 />
               ) : (
-                <span style={{ fontSize: '20px', flexShrink: 0 }}>📄</span>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted-foreground">
+                  <FileText className="size-5" />
+                </span>
               )}
               <a
                 href={a.url}
                 target="_blank"
                 rel="noreferrer"
-                style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-primary, #3b82f6)' }}
+                className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-indigo-400 hover:underline"
               >
                 {a.originalFilename}
               </a>
-              <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', flexShrink: 0 }}>
+              <span className="shrink-0 text-[11px] text-muted-foreground">
                 {formatSize(a.fileSize)}
               </span>
               {onInsertMarkdown && a.isImage && (
-                <button
+                <Button
                   onClick={() => onInsertMarkdown(`![${a.originalFilename}](${a.url})\n`)}
                   title="Insert into note"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}
+                  variant="ghost"
+                  size="icon-sm"
                 >
-                  ↩
-                </button>
+                  <CornerDownLeft />
+                </Button>
               )}
-              <button
+              <Button
                 onClick={() => deleteAttachment(a.id)}
                 title="Remove"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '16px', flexShrink: 0 }}
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
               >
-                ×
-              </button>
+                <X />
+              </Button>
             </li>
           ))}
         </ul>
