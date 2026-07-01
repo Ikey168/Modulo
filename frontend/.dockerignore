@@ -1,0 +1,13 @@
+# Keep the Docker build context lean and deterministic.
+# Without this, COPY . . in the builder stage overlays the host's (possibly
+# stale) node_modules over the freshly-installed deps stage and ships old
+# build output into the context.
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+*.log
