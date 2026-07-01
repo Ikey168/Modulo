@@ -1,22 +1,24 @@
+/* OAuth callback / loading screen — dark "workspace" aesthetic. */
 .oauth-callback-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0a0a0b;
   padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .callback-container {
   width: 100%;
   max-width: 480px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: #111114;
+  border: 1px solid #1e1e24;
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
   text-align: center;
+  animation: fade-in 0.25s ease-out;
 }
 
 .callback-header {
@@ -34,14 +36,15 @@
 
 .callback-header h2 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 1.5rem;
   font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .callback-header p {
   margin: 0;
-  color: #666;
+  color: #a1a1aa;
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -56,14 +59,14 @@
 
 .loading-text {
   margin: 0;
-  color: #667eea;
+  color: #818cf8;
   font-weight: 600;
   font-size: 1rem;
 }
 
 .security-note {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 12px;
   padding: 1rem;
   margin-top: 1.5rem;
@@ -71,7 +74,7 @@
 
 .security-note p {
   margin: 0;
-  color: #667eea;
+  color: #818cf8;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -96,34 +99,37 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .retry-button {
-  background: #667eea;
-  color: white;
+  background: #4f46e5;
+  color: #ffffff;
 }
 
 .retry-button:hover {
-  background: #5a67d8;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+  background: #6366f1;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
 }
 
 .cancel-button {
-  background: #e2e8f0;
-  color: #64748b;
+  background: #1c1c22;
+  color: #a1a1aa;
+  border: 1px solid #2a2a30;
 }
 
 .cancel-button:hover {
-  background: #cbd5e0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #2a2a30;
+  color: #f4f4f5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .help-section {
   text-align: left;
-  background: rgba(0, 0, 0, 0.02);
+  background: #16161a;
+  border: 1px solid #1e1e24;
   border-radius: 12px;
   padding: 1.5rem;
   margin-top: 1.5rem;
@@ -131,7 +137,7 @@
 
 .help-section h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: #f4f4f5;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -142,7 +148,7 @@
 }
 
 .help-section li {
-  color: #666;
+  color: #a1a1aa;
   font-size: 0.9rem;
   line-height: 1.5;
   margin-bottom: 0.5rem;
@@ -157,73 +163,32 @@
   .oauth-callback-page {
     padding: 0.5rem;
   }
-  
+
   .callback-container {
     padding: 1.5rem;
-    border-radius: 16px;
+    border-radius: 14px;
   }
-  
+
   .provider-logo {
     font-size: 2.5rem;
   }
-  
+
   .callback-header h2 {
     font-size: 1.3rem;
   }
-  
+
   .action-buttons {
     gap: 0.75rem;
   }
-  
+
   .retry-button,
   .cancel-button {
     min-height: 44px;
     font-size: 0.95rem;
   }
-  
+
   .help-section {
     padding: 1rem;
-  }
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .oauth-callback-page {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  }
-  
-  .callback-container {
-    background: rgba(45, 45, 45, 0.95);
-    color: #e0e0e0;
-  }
-  
-  .callback-header h2 {
-    color: #e0e0e0;
-  }
-  
-  .callback-header p {
-    color: #b0b0b0;
-  }
-  
-  .help-section {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .help-section h3 {
-    color: #e0e0e0;
-  }
-  
-  .help-section li {
-    color: #b0b0b0;
-  }
-  
-  .cancel-button {
-    background: rgba(255, 255, 255, 0.1);
-    color: #b0b0b0;
-  }
-  
-  .cancel-button:hover {
-    background: rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -239,14 +204,10 @@
   }
 }
 
-.callback-container {
-  animation: fade-in 0.5s ease-out;
-}
-
 /* Accessibility */
-.retry-button:focus,
-.cancel-button:focus {
-  outline: 2px solid #667eea;
+.retry-button:focus-visible,
+.cancel-button:focus-visible {
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 
@@ -255,12 +216,12 @@
   .cancel-button {
     transition: none;
   }
-  
+
   .retry-button:hover,
   .cancel-button:hover {
     transform: none;
   }
-  
+
   .callback-container {
     animation: none;
   }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Select, Label } from '@/ui';
 
 interface NoteLink {
   id: string;
@@ -29,7 +30,7 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ currentNoteId, onLink
   const [availableNotes, setAvailableNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // New link form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedTargetNoteId, setSelectedTargetNoteId] = useState<number | null>(null);
@@ -158,36 +159,37 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ currentNoteId, onLink
   };
 
   if (loading) {
-    return <div className="note-links-loading">Loading links...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">Loading links...</div>;
   }
 
   return (
-    <div className="note-links-manager">
-      <div className="note-links-header">
-        <h3>Note Links</h3>
-        <button
+    <div className="rounded-lg border border-border bg-surface p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">Note Links</h3>
+        <Button
+          variant={showAddForm ? 'outline' : 'primary'}
+          size="sm"
           onClick={() => setShowAddForm(!showAddForm)}
-          className="btn btn-small btn-primary"
         >
           {showAddForm ? 'Cancel' : 'Add Link'}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="error-message">
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/15 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {showAddForm && (
-        <div className="add-link-form">
-          <h4>Create New Link</h4>
-          <div className="form-group">
-            <label>Target Note:</label>
-            <select
+        <div className="mb-5 rounded-lg border border-border bg-surface-2 p-4 animate-fade-in">
+          <h4 className="mb-3 text-sm font-semibold text-foreground">Create New Link</h4>
+          <div className="mb-3 flex flex-col gap-1.5">
+            <Label htmlFor="target-note-select">Target Note:</Label>
+            <Select
+              id="target-note-select"
               value={selectedTargetNoteId || ''}
               onChange={(e) => setSelectedTargetNoteId(Number(e.target.value))}
-              className="form-select"
             >
               <option value="">Select a note...</option>
               {availableNotes.map(note => (
@@ -195,54 +197,60 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ currentNoteId, onLink
                   {note.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
-          <div className="form-group">
-            <label>Link Type:</label>
-            <select
+          <div className="mb-4 flex flex-col gap-1.5">
+            <Label htmlFor="link-type-select">Link Type:</Label>
+            <Select
+              id="link-type-select"
               value={linkType}
               onChange={(e) => setLinkType(e.target.value)}
-              className="form-select"
             >
               {LINK_TYPES.map(type => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
-          <div className="form-actions">
-            <button
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleCreateLink}
-              className="btn btn-primary"
+              loading={creating}
               disabled={creating || !selectedTargetNoteId}
             >
               {creating ? 'Creating...' : 'Create Link'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      <div className="links-sections">
+      <div className="flex flex-col gap-5">
         {/* Outgoing Links */}
-        <div className="links-section">
-          <h4>Links to Other Notes ({outgoingLinks.length})</h4>
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-subtle-foreground">Links to Other Notes ({outgoingLinks.length})</h4>
           {outgoingLinks.length === 0 ? (
-            <p className="no-links">No outgoing links</p>
+            <p className="text-sm text-muted-foreground">No outgoing links</p>
           ) : (
-            <div className="links-list">
+            <div className="flex flex-col gap-2">
               {outgoingLinks.map(link => (
-                <div key={link.id} className="link-item">
-                  <div className="link-info">
-                    <span className="link-type">{getLinkTypeLabel(link.linkType)}</span>
-                    <span className="link-target">{link.targetNote.title}</span>
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-2 px-3 py-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xxs font-medium text-primary">{getLinkTypeLabel(link.linkType)}</span>
+                    <span className="truncate text-sm text-foreground">{link.targetNote.title}</span>
                   </div>
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleDeleteLink(link.id)}
-                    className="btn btn-small btn-danger"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -250,24 +258,28 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ currentNoteId, onLink
         </div>
 
         {/* Incoming Links */}
-        <div className="links-section">
-          <h4>Links from Other Notes ({incomingLinks.length})</h4>
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-subtle-foreground">Links from Other Notes ({incomingLinks.length})</h4>
           {incomingLinks.length === 0 ? (
-            <p className="no-links">No incoming links</p>
+            <p className="text-sm text-muted-foreground">No incoming links</p>
           ) : (
-            <div className="links-list">
+            <div className="flex flex-col gap-2">
               {incomingLinks.map(link => (
-                <div key={link.id} className="link-item">
-                  <div className="link-info">
-                    <span className="link-source">{link.sourceNote.title}</span>
-                    <span className="link-type">{getLinkTypeLabel(link.linkType)}</span>
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-2 px-3 py-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm text-foreground">{link.sourceNote.title}</span>
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xxs font-medium text-primary">{getLinkTypeLabel(link.linkType)}</span>
                   </div>
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleDeleteLink(link.id)}
-                    className="btn btn-small btn-danger"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

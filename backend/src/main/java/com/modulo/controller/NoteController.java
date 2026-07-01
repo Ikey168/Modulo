@@ -107,7 +107,7 @@ public class NoteController {
     @GetMapping("/{id}")
     public ResponseEntity<Note> getNoteById(@PathVariable Long id) {
         try {
-            Optional<Note> note = noteRepository.findById(id);
+            Optional<Note> note = noteRepository.findByIdWithTags(id);
             return note.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {

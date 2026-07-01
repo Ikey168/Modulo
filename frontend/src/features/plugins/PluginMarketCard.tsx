@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { RemotePluginEntry } from '../../types/marketplace';
 import { MarketplaceService } from '../../services/marketplaceService';
-import './PluginMarketCard.css';
+import {
+  BadgeCheck,
+  AlertTriangle,
+  Download,
+  Star,
+  Home,
+  BookOpen,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
+import { Badge, Button, buttonVariants, Card, cn } from '@/ui';
 
 interface PluginMarketCardProps {
   plugin: RemotePluginEntry;
@@ -23,14 +33,14 @@ const PluginMarketCard: React.FC<PluginMarketCardProps> = ({
     try {
       setInstalling(true);
       setError(null);
-      
+
       await MarketplaceService.installPlugin(plugin.id);
       setInstalled(true);
       onInstallSuccess();
-      
+
       // Show success state for 3 seconds
       setTimeout(() => setInstalled(false), 3000);
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Installation failed');
     } finally {
@@ -42,12 +52,12 @@ const PluginMarketCard: React.FC<PluginMarketCardProps> = ({
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = bytes;
     let unitIndex = 0;
-    
+
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
+
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
@@ -64,63 +74,75 @@ const PluginMarketCard: React.FC<PluginMarketCardProps> = ({
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
-    
+
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<span key={i} className="star full">⭐</span>);
+      stars.push(<Star key={i} className="size-3.5 fill-warning text-warning" />);
     }
-    
+
     if (hasHalfStar) {
-      stars.push(<span key="half" className="star half">⭐</span>);
+      stars.push(<Star key="half" className="size-3.5 fill-warning/60 text-warning/60" />);
     }
-    
+
     const remainingStars = 5 - Math.ceil(rating);
     for (let i = 0; i < remainingStars; i++) {
-      stars.push(<span key={`empty-${i}`} className="star empty">☆</span>);
+      stars.push(<Star key={`empty-${i}`} className="size-3.5 text-muted-foreground/40" />);
     }
-    
+
     return stars;
   };
 
-  const description = showFullDescription ? plugin.description : 
-    plugin.description.length > 120 ? 
-      `${plugin.description.substring(0, 120)}...` : 
+  const description = showFullDescription ? plugin.description :
+    plugin.description.length > 120 ?
+      `${plugin.description.substring(0, 120)}...` :
       plugin.description;
 
   return (
-    <div className={`plugin-market-card ${variant}`}>
+    <Card
+      className={cn(
+        'relative flex h-full flex-col p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md',
+        variant === 'featured' && 'border-warning shadow-glow',
+      )}
+    >
+      {variant === 'featured' && (
+        <span className="absolute -right-2 -top-2 flex size-7 items-center justify-center rounded-full bg-warning text-warning-foreground shadow-md">
+          <Star className="size-3.5 fill-current" />
+        </span>
+      )}
+
       {/* Plugin Header */}
-      <div className="plugin-header">
-        <div className="plugin-title-row">
-          <h3 className="plugin-name">
+      <div className="mb-4">
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <h3 className="flex flex-1 items-center gap-2 text-lg font-semibold leading-tight text-foreground">
             {plugin.name}
-            {plugin.verified && <span className="verified-badge" title="Verified Plugin">✅</span>}
-            {plugin.deprecated && <span className="deprecated-badge" title="Deprecated">⚠️</span>}
+            {plugin.verified && <BadgeCheck className="size-4 shrink-0 text-info" aria-label="Verified Plugin" />}
+            {plugin.deprecated && <AlertTriangle className="size-4 shrink-0 text-warning" aria-label="Deprecated" />}
           </h3>
-          <span className="plugin-version">v{plugin.version}</span>
+          <Badge variant="secondary" className="whitespace-nowrap">v{plugin.version}</Badge>
         </div>
-        
-        <p className="plugin-author">by {plugin.author}</p>
-        
+
+        <p className="mb-4 text-[13px] text-muted-foreground">by {plugin.author}</p>
+
         {/* Rating and Stats */}
-        <div className="plugin-stats">
-          <div className="rating">
-            {renderStars(plugin.rating)}
-            <span className="rating-text">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-0.5">{renderStars(plugin.rating)}</span>
+            <span className="text-[13px] text-subtle-foreground">
               {plugin.rating.toFixed(1)} ({plugin.reviewCount} reviews)
             </span>
           </div>
-          <div className="downloads">
-            📥 {formatDownloadCount(plugin.downloadCount)} downloads
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <Download className="size-3.5" />
+            {formatDownloadCount(plugin.downloadCount)} downloads
           </div>
         </div>
       </div>
 
       {/* Plugin Description */}
-      <div className="plugin-description">
-        <p>{description}</p>
+      <div className="mb-4 flex-1">
+        <p className="text-[13px] leading-relaxed text-subtle-foreground">{description}</p>
         {plugin.description.length > 120 && (
           <button
-            className="show-more-btn"
+            className="mt-2 text-[13px] text-indigo-400 transition-colors hover:text-primary hover:underline"
             onClick={() => setShowFullDescription(!showFullDescription)}
           >
             {showFullDescription ? 'Show less' : 'Show more'}
@@ -129,98 +151,101 @@ const PluginMarketCard: React.FC<PluginMarketCardProps> = ({
       </div>
 
       {/* Plugin Metadata */}
-      <div className="plugin-metadata">
+      <div className="mb-4">
         {plugin.category && (
-          <span className="category-tag">{plugin.category}</span>
+          <Badge variant="default" className="uppercase tracking-wide">{plugin.category}</Badge>
         )}
-        
+
         {plugin.tags.length > 0 && (
-          <div className="tags">
+          <div className="mt-2 flex flex-wrap gap-2">
             {plugin.tags.slice(0, 3).map(tag => (
-              <span key={tag} className="tag">{tag}</span>
+              <Badge key={tag} variant="outline">{tag}</Badge>
             ))}
             {plugin.tags.length > 3 && (
-              <span className="tag more">+{plugin.tags.length - 3} more</span>
+              <Badge variant="secondary" className="italic">+{plugin.tags.length - 3} more</Badge>
             )}
           </div>
         )}
       </div>
 
       {/* Plugin Details */}
-      <div className="plugin-details">
-        <div className="detail-row">
-          <span className="detail-label">Size:</span>
-          <span className="detail-value">{formatFileSize(plugin.fileSize)}</span>
+      <div className="mb-4 rounded-md bg-surface-2 p-3 text-[13px]">
+        <div className="flex justify-between">
+          <span className="font-medium text-muted-foreground">Size:</span>
+          <span className="text-foreground">{formatFileSize(plugin.fileSize)}</span>
         </div>
-        <div className="detail-row">
-          <span className="detail-label">Updated:</span>
-          <span className="detail-value">
+        <div className="mt-2 flex justify-between">
+          <span className="font-medium text-muted-foreground">Updated:</span>
+          <span className="text-foreground">
             {new Date(plugin.updatedAt).toLocaleDateString()}
           </span>
         </div>
         {plugin.licenseType && (
-          <div className="detail-row">
-            <span className="detail-label">License:</span>
-            <span className="detail-value">{plugin.licenseType}</span>
+          <div className="mt-2 flex justify-between">
+            <span className="font-medium text-muted-foreground">License:</span>
+            <span className="text-foreground">{plugin.licenseType}</span>
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="plugin-actions">
+      <div className="mt-auto">
         {error && (
-          <div className="error-message">
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/15 p-2 text-[13px] text-destructive">
             <p>{error}</p>
           </div>
         )}
-        
-        <div className="action-buttons">
+
+        <div className="flex flex-wrap gap-2">
           {plugin.homepageUrl && (
             <a
               href={plugin.homepageUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary btn-small"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-              🏠 Homepage
+              <Home className="size-3.5" />
+              Homepage
             </a>
           )}
-          
+
           {plugin.documentationUrl && (
             <a
               href={plugin.documentationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary btn-small"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-              📖 Docs
+              <BookOpen className="size-3.5" />
+              Docs
             </a>
           )}
-          
-          <button
+
+          <Button
             onClick={handleInstall}
             disabled={installing || installed}
-            className={`btn-primary ${installed ? 'btn-success' : ''}`}
+            variant="primary"
+            className={cn('min-w-[120px] flex-1', installed && 'bg-success text-success-foreground hover:bg-success/90')}
           >
-            {installing && '⏳ Installing...'}
-            {installed && '✅ Installed!'}
-            {!installing && !installed && '💾 Install'}
-          </button>
+            {installing && <><Loader2 className="size-4 animate-spin" /> Installing...</>}
+            {installed && <><CheckCircle2 className="size-4" /> Installed!</>}
+            {!installing && !installed && <><Download className="size-4" /> Install</>}
+          </Button>
         </div>
       </div>
 
       {/* Required Permissions */}
       {plugin.requiredPermissions.length > 0 && (
-        <div className="permissions">
-          <h4>Required Permissions:</h4>
-          <ul>
+        <div className="mt-4 border-t border-border pt-4">
+          <h4 className="mb-2 text-[13px] font-semibold text-foreground">Required Permissions:</h4>
+          <ul className="list-disc pl-5 text-xxs text-muted-foreground">
             {plugin.requiredPermissions.map(permission => (
-              <li key={permission}>{permission}</li>
+              <li key={permission} className="mb-1">{permission}</li>
             ))}
           </ul>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

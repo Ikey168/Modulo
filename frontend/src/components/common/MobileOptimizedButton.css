@@ -1,4 +1,4 @@
-/* Mobile-Optimized Button Component Styles */
+/* Mobile-Optimized Button Component Styles — dark design system */
 
 .mobile-button {
   position: relative;
@@ -7,7 +7,7 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 8px;
   font-family: inherit;
   font-size: 1rem;
@@ -17,22 +17,22 @@
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease-in-out;
-  background-color: var(--color-brand-primary);
-  color: var(--color-text-inverse);
-  
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+
   /* Ensure minimum touch target size */
   min-height: 44px;
   min-width: 44px;
-  
+
   /* Prevent text selection */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  
+
   /* Remove tap highlight */
   -webkit-tap-highlight-color: transparent;
   tap-highlight-color: transparent;
-  
+
   /* Prevent zoom on double tap */
   touch-action: manipulation;
 }
@@ -68,33 +68,33 @@
 
 /* Style variants */
 .mobile-button--primary {
-  background-color: var(--color-brand-primary);
-  color: var(--color-text-inverse);
-  border-color: var(--color-brand-primary);
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
 }
 
 .mobile-button--secondary {
-  background-color: var(--color-brand-secondary);
-  color: var(--color-text-inverse);
-  border-color: var(--color-brand-secondary);
+  background-color: hsl(var(--surface-2));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border-strong));
 }
 
 .mobile-button--outline {
   background-color: transparent;
-  color: var(--color-brand-primary);
-  border-color: var(--color-brand-primary);
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border-strong));
 }
 
 .mobile-button--ghost {
   background-color: transparent;
-  color: var(--color-brand-primary);
+  color: hsl(var(--muted-foreground));
   border-color: transparent;
 }
 
 .mobile-button--danger {
-  background-color: var(--color-status-error);
-  color: var(--color-text-inverse);
-  border-color: var(--color-status-error);
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  border-color: hsl(var(--destructive));
 }
 
 /* Mobile-specific optimizations */
@@ -102,7 +102,7 @@
   /* Slightly larger touch targets on mobile */
   min-height: 48px;
   padding: 0.875rem 1.5rem;
-  
+
   /* Better visual feedback */
   transform: scale(1);
   transition: transform 0.1s ease-out, background-color 0.2s ease;
@@ -120,37 +120,36 @@
 
 /* Interactive states */
 .mobile-button:hover:not(:disabled):not(.mobile-button--loading) {
-  opacity: 0.9;
   transform: translateY(-1px);
 }
 
 .mobile-button--primary:hover:not(:disabled) {
-  background-color: var(--color-brand-primary);
-  filter: brightness(1.1);
+  background-color: hsl(var(--primary-hover));
+  border-color: hsl(var(--primary-hover));
 }
 
 .mobile-button--secondary:hover:not(:disabled) {
-  background-color: var(--color-brand-secondary);
-  filter: brightness(1.1);
+  background-color: hsl(var(--surface-3));
 }
 
 .mobile-button--outline:hover:not(:disabled) {
-  background-color: var(--color-brand-primary);
-  color: var(--color-text-inverse);
+  background-color: hsl(var(--surface-2));
+  color: hsl(var(--foreground));
 }
 
 .mobile-button--ghost:hover:not(:disabled) {
-  background-color: var(--color-interactive-hover);
+  background-color: hsl(var(--surface-2));
+  color: hsl(var(--foreground));
 }
 
 .mobile-button--danger:hover:not(:disabled) {
-  background-color: var(--color-status-error);
-  filter: brightness(1.1);
+  background-color: hsl(var(--destructive) / 0.9);
+  border-color: hsl(var(--destructive) / 0.9);
 }
 
 /* Focus states for accessibility */
 .mobile-button:focus-visible {
-  outline: 2px solid var(--color-brand-primary);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
@@ -250,35 +249,10 @@
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .mobile-button {
-    border-width: 3px;
+    border-width: 2px;
   }
-  
+
   .mobile-button:focus-visible {
     outline-width: 3px;
-  }
-}
-
-/* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .mobile-button--outline {
-    border-color: var(--color-text-primary);
-    color: var(--color-text-primary);
-  }
-  
-  .mobile-button--ghost {
-    color: var(--color-text-primary);
-  }
-  
-  .mobile-button--ghost:hover:not(:disabled) {
-    background-color: var(--color-interactive-hover);
-  }
-}
-
-/* Print styles */
-@media print {
-  .mobile-button {
-    background: none !important;
-    color: black !important;
-    border: 1px solid black !important;
   }
 }

@@ -110,6 +110,14 @@
             <scope>runtime</scope>
         </dependency>
         
+        <!-- Neo4j Java Driver for the knowledge-graph projection (derived read model).
+             We use the raw driver (not Spring Data Neo4j) so the JPA Note entity is
+             untouched and Neo4j stays an optional, eventually-consistent read model. -->
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+        </dependency>
+
         <!-- SQLite Database for offline storage -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -391,6 +399,13 @@
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
+        <!-- Rhino: sandboxed JS execution for action.code.execute (#279) -->
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>1.7.15</version>
         </dependency>
     </dependencies>
 

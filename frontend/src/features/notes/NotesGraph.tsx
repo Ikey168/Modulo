@@ -1,80 +1,65 @@
 // @ts-nocheck
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents, useSigma } from '@react-sigma/core';
 import { DirectedGraph } from 'graphology';
-import { api } from '../../services/api';
+import { createCoreAPI } from '@modulo/core';
+import type { CoreNote, CoreLink } from '@modulo/core';
 import { useNotesSync } from '../../hooks/useWebSocket';
 import { NoteUpdateMessage } from '../../services/websocket';
-import { 
-  createGraphFromData, 
-  applyCommunityDetection, 
+import {
+  createGraphFromData,
+  applyCommunityDetection,
   applyForceAtlas2Layout,
   getGraphStatistics,
   filterGraphByTags,
   searchNodes,
-  LINK_TYPE_COLORS 
+  LINK_TYPE_COLORS
 } from './graphUtils';
+import { Button, Input, Label, Spinner } from '@/ui';
 import './NotesGraph.css';
-
-// Type definitions
-interface Tag {
-  id: string;
-  name: string;
-}
-
-interface Note {
-  id: number;
-  title: string;
-  content: string;
-  tags?: Tag[];
-  createdAt: string;
-  updatedAt?: string;
-}
-
-interface NoteLink {
-  id: string;
-  sourceNote: Note;
-  targetNote: Note;
-  linkType: string;
-}
 
 // Import Sigma.js CSS
 import '@react-sigma/core/lib/react-sigma.min.css';
+
+/** Convert CoreLink[] to the shape createGraphFromData expects. */
+function toGraphLinks(
+  coreLinks: CoreLink[],
+  noteById: Map<number, CoreNote>,
+) {
+  const result = [];
+  for (const l of coreLinks) {
+    const src = noteById.get(l.sourceNoteId);
+    const tgt = noteById.get(l.targetNoteId);
+    if (src && tgt) result.push({ id: l.id, sourceNote: src, targetNote: tgt, linkType: l.linkType });
+  }
+  return result;
+}
 
 const GraphLoader: React.FC<{ graph: DirectedGraph }> = ({ graph }) => {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
 
   useEffect(() => {
-    // Apply community detection and layout
     applyCommunityDetection(graph);
     applyForceAtlas2Layout(graph);
 
     loadGraph(graph);
 
-    // Enable hover effects
     sigma.on('enterNode', ({ node }) => {
       sigma.getGraph().setNodeAttribute(node, 'highlighted', true);
-      
-      // Highlight connected edges
       sigma.getGraph().forEachEdge(node, (edge) => {
         sigma.getGraph().setEdgeAttribute(edge, 'highlighted', true);
       });
-      
       sigma.refresh();
     });
 
     sigma.on('leaveNode', ({ node }) => {
       sigma.getGraph().setNodeAttribute(node, 'highlighted', false);
-      
-      // Remove edge highlights
       sigma.getGraph().forEachEdge(node, (edge) => {
         sigma.getGraph().setEdgeAttribute(edge, 'highlighted', false);
       });
-      
       sigma.refresh();
     });
-
   }, [loadGraph, sigma, graph]);
 
   return null;
@@ -95,10 +80,12 @@ const GraphEvents: React.FC<{ onNodeClick: (nodeId: string) => void }> = ({ onNo
 };
 
 const NotesGraph: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const api = useMemo(() => createCoreAPI(), []);
+
+  const [notes, setNotes] = useState<CoreNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNote, setSelectedNote] = useState<CoreNote | null>(null);
   const [graph, setGraph] = useState<DirectedGraph>(new DirectedGraph());
   const [filteredGraph, setFilteredGraph] = useState<DirectedGraph>(new DirectedGraph());
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,37 +98,20 @@ const NotesGraph: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Load notes
-      const notesResponse = await api.get('/notes');
-      const notesData = notesResponse || [];
-      setNotes(notesData);
+      // Two parallel requests instead of O(n) serial link fetches.
+      const [coreNotes, coreLinks] = await Promise.all([api.notes(), api.links()]);
+      setNotes(coreNotes);
 
-      // Extract available tags
       const allTags = new Set<string>();
-      notesData.forEach((note: Note) => {
+      for (const note of coreNotes) {
         note.tags?.forEach(tag => allTags.add(tag.name));
-      });
+      }
       setAvailableTags(Array.from(allTags));
 
-      // Load all note links
-      const allLinks: NoteLink[] = [];
-      for (const note of notesData) {
-        try {
-          const linksResponse = await api.get(`/note-links/note/${note.id}/all`);
-          const noteLinks = linksResponse || [];
-          allLinks.push(...noteLinks);
-        } catch (err) {
-          console.warn(`Failed to load links for note ${note.id}:`, err);
-        }
-      }
-      
-      // Remove duplicates (since we get both directions)
-      const uniqueLinks = allLinks.filter((link, index, arr) => 
-        index === arr.findIndex(l => l.id === link.id)
-      );
+      const noteById = new Map(coreNotes.map(n => [n.id, n]));
+      const graphLinks = toGraphLinks(coreLinks, noteById);
 
-      // Create and process graph
-      const newGraph = createGraphFromData(notesData, uniqueLinks);
+      const newGraph = createGraphFromData(coreNotes, graphLinks);
       setGraph(newGraph);
       setFilteredGraph(newGraph);
       setGraphStats(getGraphStatistics(newGraph));
@@ -154,20 +124,18 @@ const NotesGraph: React.FC = () => {
     }
   };
 
-  // WebSocket integration for real-time graph updates
   const handleGraphUpdate = useCallback((message: NoteUpdateMessage) => {
     console.log('Received real-time graph update:', message);
-    
+
     switch (message.eventType) {
       case 'NOTE_CREATED':
       case 'NOTE_UPDATED':
       case 'NOTE_DELETED':
       case 'NOTE_LINK_CREATED':
       case 'NOTE_LINK_DELETED':
-        // Reload graph data for any note or link changes
         loadData();
         break;
-        
+
       default:
         console.log('Unknown graph update message type:', message.eventType);
     }
@@ -177,11 +145,6 @@ const NotesGraph: React.FC = () => {
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    if (!query.trim()) {
-      applyFilters(selectedTags, '');
-      return;
-    }
-    
     applyFilters(selectedTags, query);
   }, [selectedTags]);
 
@@ -192,28 +155,23 @@ const NotesGraph: React.FC = () => {
 
   const applyFilters = useCallback((tags: string[], query: string) => {
     let filtered = graph;
-    
-    // Apply tag filter
+
     if (tags.length > 0) {
       filtered = filterGraphByTags(filtered, tags);
     }
-    
-    // Apply search filter
+
     if (query.trim()) {
       const matchingNodes = searchNodes(filtered, query);
       const searchGraph = new DirectedGraph();
-      
-      // Add matching nodes and their connections
+
       matchingNodes.forEach(nodeId => {
         if (filtered.hasNode(nodeId)) {
           searchGraph.addNode(nodeId, filtered.getNodeAttributes(nodeId));
-          
-          // Add connected nodes and edges
+
           filtered.forEachNeighbor(nodeId, (neighbor) => {
             if (!searchGraph.hasNode(neighbor)) {
               searchGraph.addNode(neighbor, filtered.getNodeAttributes(neighbor));
             }
-            
             filtered.forEachEdge(nodeId, neighbor, (_edge, attributes) => {
               if (!searchGraph.hasEdge(nodeId, neighbor)) {
                 searchGraph.addDirectedEdge(nodeId, neighbor, attributes);
@@ -222,24 +180,20 @@ const NotesGraph: React.FC = () => {
           });
         }
       });
-      
+
       filtered = searchGraph;
     }
-    
+
     setFilteredGraph(filtered);
     setGraphStats(getGraphStatistics(filtered));
   }, [graph]);
 
   const handleNodeClick = useCallback((nodeId: string) => {
     const note = notes.find(n => n.id.toString() === nodeId);
-    if (note) {
-      setSelectedNote(note);
-    }
+    if (note) setSelectedNote(note);
   }, [notes]);
 
-  const handleCloseModal = () => {
-    setSelectedNote(null);
-  };
+  const handleCloseModal = () => setSelectedNote(null);
 
   useEffect(() => {
     loadData();
@@ -252,9 +206,9 @@ const NotesGraph: React.FC = () => {
   if (loading) {
     return (
       <div className="notes-graph-container">
-        <div className="notes-graph-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading notes graph...</p>
+        <div className="flex h-[400px] flex-col items-center justify-center gap-3 rounded-lg border border-border bg-surface">
+          <Spinner className="size-10 text-primary" />
+          <p className="m-0 text-[13px] text-muted-foreground">Loading notes graph...</p>
         </div>
       </div>
     );
@@ -263,11 +217,11 @@ const NotesGraph: React.FC = () => {
   if (error) {
     return (
       <div className="notes-graph-container">
-        <div className="notes-graph-error">
-          <p>Error: {error}</p>
-          <button onClick={loadData} className="btn btn-primary">
+        <div className="flex h-[400px] flex-col items-center justify-center gap-3 rounded-lg border border-border bg-surface">
+          <p className="m-0 text-[13px] text-destructive">Error: {error}</p>
+          <Button onClick={loadData} variant="primary" size="sm">
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -275,42 +229,41 @@ const NotesGraph: React.FC = () => {
 
   return (
     <div className="notes-graph-container">
-      <div className="notes-graph-header">
-        <h1>Notes Graph</h1>
+      <div className="mb-6 flex items-center justify-between gap-4 border-b border-border pb-4 max-md:flex-col max-md:items-stretch">
+        <h1 className="m-0 text-2xl font-bold text-foreground">Notes Graph</h1>
         {graphStats && (
-          <div className="graph-stats">
-            <span className="stat">
-              <strong>{graphStats.nodeCount}</strong> notes
+          <div className="flex gap-8 max-md:justify-center">
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.nodeCount}</strong> notes
             </span>
-            <span className="stat">
-              <strong>{graphStats.edgeCount}</strong> connections
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.edgeCount}</strong> connections
             </span>
-            <span className="stat">
-              <strong>{graphStats.communityCount}</strong> communities
+            <span className="text-[13px] text-muted-foreground">
+              <strong className="text-lg text-foreground">{graphStats.communityCount}</strong> communities
             </span>
           </div>
         )}
-        <div className="graph-controls">
-          <button onClick={loadData} className="btn btn-secondary btn-small">
+        <div className="flex gap-2">
+          <Button onClick={loadData} variant="secondary" size="sm">
             Refresh
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="graph-search-controls">
-        <div className="search-section">
-          <input
+      <div className="mb-4 flex gap-4 rounded-lg border border-border bg-surface p-4 max-md:flex-col max-md:gap-3">
+        <div className="flex-1">
+          <Input
             type="text"
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="search-input"
           />
         </div>
-        
+
         {availableTags.length > 0 && (
-          <div className="filter-section">
-            <label>Filter by tags:</label>
+          <div className="flex min-w-[200px] flex-col gap-2 max-md:min-w-0">
+            <Label>Filter by tags:</Label>
             <select
               multiple
               value={selectedTags}
@@ -318,7 +271,7 @@ const NotesGraph: React.FC = () => {
                 const tags = Array.from(e.target.selectedOptions, option => option.value);
                 handleTagFilter(tags);
               }}
-              className="tag-filter"
+              className="max-h-[100px] w-full overflow-y-auto rounded-md border border-border-strong bg-surface-2 p-2 text-[13px] text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {availableTags.map(tag => (
                 <option key={tag} value={tag}>{tag}</option>
@@ -328,13 +281,13 @@ const NotesGraph: React.FC = () => {
         )}
       </div>
 
-      <div className="notes-graph-legend">
-        <h3>Link Types</h3>
-        <div className="legend-items">
+      <div className="mb-4 rounded-lg border border-border bg-surface p-4">
+        <h3 className="m-0 mb-3 text-sm font-semibold text-foreground">Link Types</h3>
+        <div className="flex flex-wrap gap-4 max-md:justify-center">
           {Object.entries(LINK_TYPE_COLORS).map(([type, color]) => (
-            <div key={type} className="legend-item">
-              <div 
-                className="legend-color" 
+            <div key={type} className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <div
+                className="size-3 rounded-sm"
                 style={{ backgroundColor: color }}
               ></div>
               <span>{type.replace('_', ' ')}</span>
@@ -343,12 +296,13 @@ const NotesGraph: React.FC = () => {
         </div>
       </div>
 
-      <div className="notes-graph-viewport">
-        <SigmaContainer 
-          style={{ height: '600px', width: '100%' }}
+      <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <SigmaContainer
+          style={{ height: '600px', width: '100%', backgroundColor: '#111114' }}
           settings={{
             defaultNodeColor: '#6366f1',
-            defaultEdgeColor: '#e5e7eb',
+            defaultEdgeColor: '#2a2a30',
+            labelColor: { color: '#a1a1aa' },
             labelFont: 'Arial',
             labelSize: 12,
             labelWeight: 'normal',
@@ -361,30 +315,39 @@ const NotesGraph: React.FC = () => {
       </div>
 
       {selectedNote && (
-        <div className="note-modal-overlay" onClick={handleCloseModal}>
-          <div className="note-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="note-modal-header">
-              <h2>{selectedNote.title}</h2>
-              <button 
-                className="note-modal-close" 
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in"
+          onClick={handleCloseModal}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-border-strong bg-popover shadow-lg animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+              <h2 className="m-0 text-lg font-semibold text-foreground">{selectedNote.title}</h2>
+              <button
+                className="flex size-8 items-center justify-center rounded-md text-xl leading-none text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                 onClick={handleCloseModal}
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-            <div className="note-modal-content">
+            <div className="flex-1 overflow-y-auto p-6">
               {selectedNote.tags && selectedNote.tags.length > 0 && (
-                <div className="note-tags">
+                <div className="mb-4 flex flex-wrap gap-1">
                   {selectedNote.tags.map((tag, index) => (
-                    <span key={index} className="note-tag">
+                    <span
+                      key={index}
+                      className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                    >
                       {tag.name}
                     </span>
                   ))}
                 </div>
               )}
-              <div className="note-content">
-                <pre>{selectedNote.content}</pre>
+              <div className="text-subtle-foreground">
+                <pre className="m-0 whitespace-pre-wrap break-words font-mono leading-relaxed">{selectedNote.content}</pre>
               </div>
             </div>
           </div>

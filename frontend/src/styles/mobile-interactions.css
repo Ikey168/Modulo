@@ -56,7 +56,7 @@
 
 .mobile-card:active {
   transform: scale(0.99);
-  box-shadow: var(--shadow-small);
+  box-shadow: var(--shadow-medium);
 }
 
 /* Swipe indicators */
@@ -122,11 +122,11 @@
   height: 56px;
   border-radius: 50%;
   background: var(--color-brand-primary);
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   font-size: 24px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
   z-index: 100;
   display: flex;
@@ -136,7 +136,8 @@
 
 .fab:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  background: var(--color-brand-secondary);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
 }
 
 .fab:active {
@@ -159,7 +160,7 @@
 .mobile-input:focus {
   outline: none;
   border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-brand-primary-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.35); /* indigo #4f46e5 focus ring */
 }
 
 .mobile-textarea {
@@ -169,7 +170,7 @@
 }
 
 .mobile-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
@@ -246,7 +247,7 @@
 
 .mobile-tab.active {
   background: var(--color-brand-primary);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .mobile-tab:not(.active):hover {
@@ -306,8 +307,9 @@
   left: 0;
   right: 0;
   background: var(--color-bg-card);
+  border-top: 1px solid var(--color-border-primary);
   border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
@@ -324,7 +326,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   z-index: 999;
   opacity: 0;
   visibility: hidden;

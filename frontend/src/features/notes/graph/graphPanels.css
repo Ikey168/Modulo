@@ -1,0 +1,12 @@
+/*
+ * Graph side-panels.
+ *
+ * All panel chrome (tabs, cards, states, controls, saved-view chips) now lives
+ * as Tailwind utility classes on the JSX. The only rule that must stay here is
+ * the react-sigma canvas surface, which the vendor stylesheet paints white —
+ * recolor it to the dark panel surface so the local-graph viewport blends in.
+ */
+.sigma-container,
+.sigma-container canvas {
+  background-color: hsl(var(--surface)) !important;
+}

@@ -5,6 +5,27 @@ import { store } from './store/store';   // Import store
 import App from './App';
 import './styles/index.css';
 import './styles/mobile-layout.css';
+import { registerFeature, mountFeature } from '@modulo/core';
+import { helloWorldPack } from './features/helloWorld/helloWorldPack';
+import { noteWorkbenchPack } from './features/noteWorkbench/noteWorkbenchPack';
+
+// Bootstrap built-in feature packs. Each pack declares its capabilities and
+// receives a ModuloCoreAPI instance via onMount. Errors are non-fatal — a pack
+// failure should never prevent the host app from rendering.
+registerFeature(helloWorldPack);
+mountFeature(helloWorldPack.id).catch((err) => {
+  console.error('[feature-registry] failed to mount', helloWorldPack.id, err);
+});
+
+// note-workbench: PKM experience pack (Notes editor, [[link]] parser, graph views).
+// Set VITE_NOTE_WORKBENCH_ENABLED=false to boot Core + Blueprint engine headlessly
+// without the workbench UI — useful for integration test runs and CI blueprints.
+if (import.meta.env.VITE_NOTE_WORKBENCH_ENABLED !== 'false') {
+  registerFeature(noteWorkbenchPack);
+  mountFeature(noteWorkbenchPack.id).catch((err) => {
+    console.error('[feature-registry] failed to mount', noteWorkbenchPack.id, err);
+  });
+}
 
 // Service Worker: register only in production. A precaching SW in dev serves a
 // stale, cached index.html (cache-first navigation) and breaks HMR, so in dev we

@@ -1,93 +1,75 @@
-import { Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '../../features/auth/useAuth';
+import NotificationBell from '../../features/notes/collab/NotificationBell';
+import { Avatar, Button, cn } from '@/ui';
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+    isActive ? 'bg-surface-3 text-foreground' : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+  );
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
 
   return (
-    <nav className="bg-gray-800 text-white">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="font-bold text-xl">
-              Modulo
+    <nav className="border-b border-border bg-surface">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex h-14 items-center justify-between gap-4">
+          <div className="flex items-center gap-1">
+            <Link to="/" className="mr-2 flex items-center gap-2 text-foreground">
+              <svg width={20} height={20} viewBox="0 0 22 22" fill="none" aria-hidden>
+                <rect x={1} y={1} width={9} height={9} rx={2} fill="#4f46e5" />
+                <rect x={12} y={1} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
+                <rect x={1} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
+                <rect x={12} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.7} />
+              </svg>
+              <span className="text-sm font-semibold tracking-tight">Modulo</span>
             </Link>
-            <Link to="/" className="hover:text-gray-300">
-              Home
-            </Link>
+
             {isAuthenticated && (
               <>
-                <Link to="/dashboard" className="hover:text-gray-300">
-                  Dashboard
-                </Link>
-                <Link to="/notes" className="hover:text-gray-300">
-                  Notes
-                </Link>
-                <Link to="/notes-graph" className="hover:text-gray-300">
-                  Graph
-                </Link>
-                <Link to="/contracts" className="hover:text-gray-300">
-                  Contracts
-                </Link>
-                <Link to="/plugins" className="hover:text-gray-300">
-                  Plugins
-                </Link>
-                <div className="relative group">
-                  <Link to="/plugins/marketplace" className="hover:text-gray-300 flex items-center">
-                    Marketplace
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </Link>
-                  <div className="absolute left-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <Link to="/plugins/marketplace" className="block px-4 py-2 text-sm hover:bg-gray-600 rounded-t-md">
-                      Browse Marketplace
-                    </Link>
-                    <Link to="/plugins/submit" className="block px-4 py-2 text-sm hover:bg-gray-600">
-                      Submit Plugin
-                    </Link>
-                    <Link to="/plugins/my-submissions" className="block px-4 py-2 text-sm hover:bg-gray-600 rounded-b-md">
-                      My Submissions
-                    </Link>
+                <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
+                <NavLink to="/notes" className={linkClass}>Notes</NavLink>
+                <NavLink to="/notes-graph" className={linkClass}>Graph</NavLink>
+                <NavLink to="/contracts" className={linkClass}>Contracts</NavLink>
+                <div className="group relative">
+                  <NavLink to="/plugins/marketplace" className={linkClass}>
+                    <span className="inline-flex items-center gap-1">
+                      Marketplace
+                      <ChevronDown className="size-3.5" />
+                    </span>
+                  </NavLink>
+                  <div className="invisible absolute left-0 z-50 mt-1 w-48 origin-top rounded-lg border border-border-strong bg-popover p-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
+                    <Link to="/plugins/marketplace" className="block rounded-md px-3 py-2 text-[13px] text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground">Browse Marketplace</Link>
+                    <Link to="/plugins/submit" className="block rounded-md px-3 py-2 text-[13px] text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground">Submit Plugin</Link>
+                    <Link to="/plugins/my-submissions" className="block rounded-md px-3 py-2 text-[13px] text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground">My Submissions</Link>
                   </div>
                 </div>
               </>
             )}
-            <Link to="/about" className="hover:text-gray-300">
-              About
-            </Link>
-            <Link to="/settings" className="hover:text-gray-300">
-              Settings
-            </Link>
+            <NavLink to="/about" className={linkClass}>About</NavLink>
+            <NavLink to="/settings" className={linkClass}>Settings</NavLink>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <div className="flex items-center space-x-2">
-                  {user?.picture && (
-                    <img
-                      src={user.picture}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <span>{user?.name}</span>
+                <NotificationBell userId={user?.id ?? 'current-user'} />
+                <div className="flex items-center gap-2">
+                  <Avatar src={user?.picture} name={user?.name} size={26} />
+                  <span className="text-[13px] font-medium text-foreground max-sm:hidden">{user?.name}</span>
                 </div>
-                <button
-                  onClick={logout}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-                >
-                  Logout
-                </button>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  <LogOut className="size-4" />
+                  <span className="max-sm:hidden">Logout</span>
+                </Button>
               </>
             ) : (
-              <button
-                onClick={() => window.location.href = '/login'}
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
-              >
+              <Button size="sm" onClick={() => { window.location.href = '/login'; }}>
                 Login
-              </button>
+              </Button>
             )}
           </div>
         </div>

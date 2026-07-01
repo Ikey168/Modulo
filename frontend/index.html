@@ -2,6 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- sockjs-client (STOMP/WebSocket transport) references the Node global
+         `global`, which Vite does not define in the browser. Define it before
+         any module loads so the WebSocket/collab clients work in dev + prod. -->
+    <script>window.global = window;</script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Modulo</title>
@@ -9,6 +13,7 @@
     <!-- PWA Meta Tags -->
     <meta name="description" content="Modulo is a knowledge-management app for notes that link together, with a knowledge graph, real-time sync, and on-chain anchoring." />
     <meta name="theme-color" content="#0a0a0b" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Modulo" />

@@ -1,4 +1,4 @@
-/* Mobile-Optimized Input Component Styles */
+/* Mobile-Optimized Input Component Styles — dark design system */
 
 .mobile-input-container {
   position: relative;
@@ -17,13 +17,13 @@
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: hsl(var(--foreground));
   line-height: 1.2;
   transition: color 0.2s ease;
 }
 
 .mobile-input-required {
-  color: var(--color-status-error);
+  color: hsl(var(--destructive));
   margin-left: 0.25rem;
 }
 
@@ -41,25 +41,25 @@
   font-size: 1rem;
   font-family: inherit;
   line-height: 1.5;
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-primary);
-  border: 2px solid var(--color-border-primary);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--surface-2));
+  border: 1px solid hsl(var(--border-strong));
   border-radius: 8px;
   transition: all 0.2s ease;
   outline: none;
-  
+
   /* Mobile optimizations */
   min-height: 44px;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  
+
   /* Prevent zoom on iOS */
   font-size: 16px;
-  
+
   /* Remove default styling */
   -webkit-tap-highlight-color: transparent;
-  
+
   /* Better touch interaction */
   touch-action: manipulation;
 }
@@ -102,19 +102,19 @@
 
 /* Variant styles */
 .mobile-input-container--outlined .mobile-input {
-  background-color: var(--color-bg-primary);
-  border: 2px solid var(--color-border-primary);
+  background-color: hsl(var(--surface-2));
+  border: 1px solid hsl(var(--border-strong));
 }
 
 .mobile-input-container--filled .mobile-input {
-  background-color: var(--color-bg-secondary);
-  border: 2px solid transparent;
+  background-color: hsl(var(--surface-3));
+  border: 1px solid transparent;
 }
 
 .mobile-input-container--standard .mobile-input {
   background-color: transparent;
   border: none;
-  border-bottom: 2px solid var(--color-border-primary);
+  border-bottom: 1px solid hsl(var(--border-strong));
   border-radius: 0;
   padding-left: 0;
   padding-right: 0;
@@ -123,67 +123,67 @@
 /* Focus states */
 .mobile-input:focus,
 .mobile-input-container--focused .mobile-input {
-  border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
 }
 
 .mobile-input-container--outlined.mobile-input-container--focused .mobile-input {
-  background-color: var(--color-bg-primary);
+  background-color: hsl(var(--surface-2));
 }
 
 .mobile-input-container--filled.mobile-input-container--focused .mobile-input {
-  background-color: var(--color-bg-primary);
-  border-color: var(--color-brand-primary);
+  background-color: hsl(var(--surface-2));
+  border-color: hsl(var(--primary));
 }
 
 .mobile-input-container--standard.mobile-input-container--focused .mobile-input {
-  border-bottom-color: var(--color-brand-primary);
-  box-shadow: 0 2px 0 0 var(--color-brand-primary);
+  border-bottom-color: hsl(var(--primary));
+  box-shadow: 0 2px 0 0 hsl(var(--primary));
 }
 
 .mobile-input-container--focused .mobile-input-label {
-  color: var(--color-brand-primary);
+  color: hsl(var(--primary));
 }
 
 /* Error states */
 .mobile-input-container--error .mobile-input {
-  border-color: var(--color-status-error);
-  background-color: var(--color-bg-primary);
+  border-color: hsl(var(--destructive));
+  background-color: hsl(var(--surface-2));
 }
 
 .mobile-input-container--error.mobile-input-container--focused .mobile-input {
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+  box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.3);
 }
 
 .mobile-input-container--error .mobile-input-label {
-  color: var(--color-status-error);
+  color: hsl(var(--destructive));
 }
 
 /* Success states */
 .mobile-input-container--success .mobile-input {
-  border-color: var(--color-status-success);
-  background-color: var(--color-bg-primary);
+  border-color: hsl(var(--success));
+  background-color: hsl(var(--surface-2));
 }
 
 .mobile-input-container--success.mobile-input-container--focused .mobile-input {
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+  box-shadow: 0 0 0 3px hsl(var(--success) / 0.3);
 }
 
 .mobile-input-container--success .mobile-input-label {
-  color: var(--color-status-success);
+  color: hsl(var(--success));
 }
 
 /* Disabled state */
 .mobile-input-container--disabled .mobile-input {
-  background-color: var(--color-bg-tertiary);
-  border-color: var(--color-border-secondary);
-  color: var(--color-text-tertiary);
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .mobile-input-container--disabled .mobile-input-label {
-  color: var(--color-text-tertiary);
+  color: hsl(var(--muted-foreground));
 }
 
 /* Icon positioning */
@@ -192,7 +192,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: hsl(var(--muted-foreground));
   pointer-events: none;
   z-index: 1;
 }
@@ -229,11 +229,11 @@
   background: none;
   border: none;
   border-radius: 50%;
-  color: var(--color-text-secondary);
+  color: hsl(var(--muted-foreground));
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 2;
-  
+
   /* Touch optimization */
   min-width: 32px;
   min-height: 32px;
@@ -241,12 +241,12 @@
 }
 
 .mobile-input-clear:hover {
-  background-color: var(--color-interactive-hover);
-  color: var(--color-text-primary);
+  background-color: hsl(var(--surface-3));
+  color: hsl(var(--foreground));
 }
 
 .mobile-input-clear:focus {
-  outline: 2px solid var(--color-brand-primary);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
@@ -275,44 +275,44 @@
 }
 
 .mobile-input-message--error {
-  color: var(--color-status-error);
+  color: hsl(var(--destructive));
 }
 
 .mobile-input-message--success {
-  color: var(--color-status-success);
+  color: hsl(var(--success));
 }
 
 .mobile-input-message--helper {
-  color: var(--color-text-secondary);
+  color: hsl(var(--muted-foreground));
 }
 
 /* Placeholder styling */
 .mobile-input::placeholder {
-  color: var(--color-text-tertiary);
+  color: hsl(var(--muted-foreground));
   opacity: 1;
 }
 
 .mobile-input::-webkit-input-placeholder {
-  color: var(--color-text-tertiary);
+  color: hsl(var(--muted-foreground));
 }
 
 .mobile-input::-moz-placeholder {
-  color: var(--color-text-tertiary);
+  color: hsl(var(--muted-foreground));
   opacity: 1;
 }
 
 .mobile-input:-ms-input-placeholder {
-  color: var(--color-text-tertiary);
+  color: hsl(var(--muted-foreground));
 }
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
   .mobile-input {
-    border-width: 3px;
+    border-width: 2px;
   }
-  
+
   .mobile-input:focus {
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.3);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.4);
   }
 }
 
@@ -322,17 +322,5 @@
   .mobile-input-label,
   .mobile-input-clear {
     transition: none;
-  }
-}
-
-/* Dark theme adjustments */
-@media (prefers-color-scheme: dark) {
-  .mobile-input {
-    background-color: var(--color-bg-secondary);
-    border-color: var(--color-border-secondary);
-  }
-  
-  .mobile-input-container--filled .mobile-input {
-    background-color: var(--color-bg-tertiary);
   }
 }

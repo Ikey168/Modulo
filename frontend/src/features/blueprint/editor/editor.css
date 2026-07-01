@@ -1,0 +1,139 @@
+/* Blueprint React Flow editor (#274). Dark theme matching the workspace UI.
+ *
+ * Only structural / React-Flow-scoped styling lives here — the toolbar, status
+ * bar, palette, and consent screen are styled with Tailwind utilities on the
+ * JSX. What remains targets elements React Flow renders (custom nodes, handles,
+ * edges, canvas, minimap) that can't be reached with utility classes alone.
+ * Every colour uses the dark palette (canvas #0a0a0b, panel #111114,
+ * border #1e1e24 / #2a2a30, indigo #6366f1). */
+
+/* --- Canvas --- */
+.react-flow {
+  background: #0a0a0b;
+}
+
+.bp-minimap {
+  background: #111114 !important;
+}
+
+/* React Flow controls — recolour the default light buttons to the dark palette. */
+.react-flow__controls {
+  box-shadow: none;
+}
+.react-flow__controls-button {
+  background: #16161a;
+  border-bottom: 1px solid #1e1e24;
+  color: #a1a1aa;
+  fill: #a1a1aa;
+}
+.react-flow__controls-button:hover {
+  background: #1c1c22;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* MiniMap mask + node colours on the dark canvas. */
+.react-flow__minimap-mask {
+  fill: rgba(10, 10, 11, 0.7);
+}
+.react-flow__minimap-node {
+  fill: #2a2a30;
+}
+
+/* --- Custom node --- */
+.bp-node {
+  min-width: 168px;
+  background: #111114;
+  border: 1px solid #2a2a30;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.bp-node__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  color: #f4f4f5;
+}
+.bp-node__title { font-weight: 600; font-size: 12.5px; }
+.bp-node__category { font-size: 9.5px; text-transform: uppercase; opacity: 0.85; letter-spacing: 0.05em; }
+
+.bp-node__exec {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #1e1e24;
+}
+.bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; }
+
+.bp-node__data {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0 8px;
+  gap: 10px;
+}
+.bp-node__data-col { display: flex; flex-direction: column; gap: 6px; min-width: 70px; }
+.bp-node__data-col--out { align-items: flex-end; }
+
+.bp-pin-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  position: relative;
+}
+.bp-pin-row--out { justify-content: flex-end; }
+.bp-pin-label { color: #a1a1aa; font-size: 11px; white-space: nowrap; }
+
+/* React Flow handles */
+.bp-handle {
+  width: 9px;
+  height: 9px;
+  border: 1px solid #0a0a0b;
+}
+.bp-handle--exec {
+  background: #f4f4f5;
+  border-radius: 2px;
+  transform: rotate(45deg) translateY(-50%);
+}
+.bp-handle--data {
+  border-radius: 50%;
+}
+
+/* Edges */
+.bp-edge-exec .react-flow__edge-path { stroke: #f4f4f5; stroke-width: 2; }
+.bp-edge-data .react-flow__edge-path { stroke: #6366f1; stroke-width: 1.6; }
+
+/* Highlighted (run/debug) nodes */
+.bp-node-highlight .bp-node {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.6);
+}
+
+/* Custom code node inline editor (#279) */
+.bp-node__code {
+  padding: 6px 8px;
+  border-top: 1px solid #2a2a30;
+}
+
+.bp-code-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0a0b;
+  color: #818cf8;
+  border: 1px solid #2a2a30;
+  border-radius: 4px;
+  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 4px 6px;
+  resize: vertical;
+  outline: none;
+}
+
+.bp-code-textarea:focus {
+  border-color: #6366f1;
+}

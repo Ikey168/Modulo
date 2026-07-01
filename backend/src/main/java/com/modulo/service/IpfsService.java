@@ -175,6 +175,87 @@ public class IpfsService {
     }
 
     /**
+     * Upload an already-encrypted, opaque payload to IPFS as-is.
+     *
+     * The backend never decrypts or interprets this content -- it is the
+     * client-side ciphertext envelope (see the frontend noteCrypto module).
+     * This keeps the relay zero-knowledge: IPFS only ever holds ciphertext and
+     * the server cannot read the note. Part of the encrypted-sharing epic.
+     *
+     * @param ciphertext opaque encrypted content produced on the client
+     * @return IPFS CID (Content Identifier)
+     * @throws IOException if upload fails
+     */
+    public String uploadEncryptedContent(String ciphertext) throws IOException {
+        if (!ipfsEnabled) {
+            throw new IllegalStateException("IPFS is not enabled or not available");
+        }
+        if (ciphertext == null || ciphertext.isEmpty()) {
+            throw new IllegalArgumentException("Ciphertext must not be empty");
+        }
+
+        HttpPost request = new HttpPost(ipfsNodeUrl + "/api/v0/add");
+        HttpEntity entity = MultipartEntityBuilder.create()
+                .addPart("file", new StringBody(ciphertext,
+                        org.apache.http.entity.ContentType.create("application/octet-stream")))
+                .build();
+        request.setEntity(entity);
+
+        try {
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new IOException("IPFS upload failed: " + responseBody);
+            }
+
+            JsonNode responseJson = objectMapper.readTree(responseBody);
+            String cid = responseJson.get("Hash").asText();
+
+            logger.info("Successfully uploaded encrypted content to IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
+            return cid;
+
+        } catch (Exception e) {
+            logger.error("Failed to upload encrypted content to IPFS: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
+            throw new IOException("Failed to upload to IPFS: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Retrieve raw content from IPFS by CID, without parsing it.
+     *
+     * Used for opaque ciphertext uploaded via {@link #uploadEncryptedContent};
+     * the bytes are returned verbatim for the client to decrypt.
+     *
+     * @param cid IPFS Content Identifier
+     * @return the raw stored content
+     * @throws IOException if retrieval fails
+     */
+    public String retrieveRawContent(String cid) throws IOException {
+        if (!ipfsEnabled) {
+            throw new IllegalStateException("IPFS is not enabled or not available");
+        }
+
+        HttpGet request = new HttpGet(ipfsNodeUrl + "/api/v0/cat?arg=" + cid);
+
+        try {
+            HttpResponse response = httpClient.execute(request);
+            String responseBody = EntityUtils.toString(response.getEntity());
+
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new IOException("IPFS retrieval failed: " + responseBody);
+            }
+
+            logger.info("Successfully retrieved raw content from IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
+            return responseBody;
+
+        } catch (Exception e) {
+            logger.error("Failed to retrieve raw content from IPFS with CID {}: {}", LogSanitizer.sanitizeCid(cid), LogSanitizer.sanitizeMessage(e.getMessage()));
+            throw new IOException("Failed to retrieve from IPFS: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Calculate SHA-256 hash of note content for blockchain storage
      * @param title Note title
      * @param content Note content

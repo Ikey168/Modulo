@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '../../store/store';
 import { setCredentials } from './authSlice';
 import { api } from '../../services/api';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { AuthScreen, ModuloMark, Spinner } from './AuthScreen';
 
 const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,17 +36,25 @@ const AuthCallbackPage: React.FC = () => {
   }, [navigate, location, dispatch]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded-lg shadow-md">
-        <h2 className="mb-4 text-2xl font-bold text-gray-800 text-center">
+    <AuthScreen>
+      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 text-center shadow-lg animate-fade-up">
+        <div className="mb-6 flex justify-center">
+          <ModuloMark size={30} />
+        </div>
+        <h2 className="mb-4 text-center text-2xl font-semibold text-foreground">
           Authenticating...
         </h2>
-        <LoadingSpinner size="large" message="Please wait while we process your login" />
-        <p className="mt-4 text-sm text-gray-600 text-center">
+        <div className="mb-4 flex justify-center">
+          <Spinner size={26} color="#818cf8" />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Please wait while we process your login
+        </p>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           You will be redirected automatically
         </p>
       </div>
-    </div>
+    </AuthScreen>
   );
 };
 

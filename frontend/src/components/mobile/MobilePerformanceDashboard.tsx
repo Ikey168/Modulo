@@ -256,9 +256,9 @@ export const MobilePerformanceDashboard: React.FC<Props> = ({
 
   // Get performance status color
   const getPerformanceColor = (value: number, thresholds: { good: number; warning: number }) => {
-    if (value >= thresholds.good) return '#4CAF50'; // Green
-    if (value >= thresholds.warning) return '#FF9800'; // Orange
-    return '#f44336'; // Red
+    if (value >= thresholds.good) return '#22c55e'; // Green
+    if (value >= thresholds.warning) return '#f59e0b'; // Amber
+    return '#ef4444'; // Red
   };
 
   const getFPSColor = (fps: number) => getPerformanceColor(fps, { good: 55, warning: 30 });

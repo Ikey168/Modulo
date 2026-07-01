@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import './RendererSelector.css';
+import { Settings, Palette } from 'lucide-react';
+import { Button, Input, Label, Select } from '@/ui';
 
 interface RendererOption {
   name: string;
@@ -163,11 +164,12 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
     switch (option.type) {
       case 'BOOLEAN':
         return (
-          <label className="option-checkbox">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
             <input
               type="checkbox"
               checked={value || false}
               onChange={(e) => handleOptionChange(option.name, e.target.checked)}
+              className="size-4 cursor-pointer accent-primary"
             />
             {option.displayName}
           </label>
@@ -175,17 +177,16 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
 
       case 'SELECT':
         return (
-          <select
+          <Select
             value={value || ''}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className="option-select"
           >
             {option.allowedValues?.map(allowedValue => (
               <option key={allowedValue} value={allowedValue}>
                 {allowedValue}
               </option>
             ))}
-          </select>
+          </Select>
         );
 
       case 'COLOR':
@@ -194,45 +195,42 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
             type="color"
             value={value || option.defaultValue}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className="option-color"
+            className="h-9 w-[60px] cursor-pointer rounded-md border border-border-strong bg-surface-2 p-0.5"
           />
         );
 
       case 'INTEGER':
       case 'FONT_SIZE':
         return (
-          <input
+          <Input
             type="number"
             value={value || ''}
             min={option.minValue}
             max={option.maxValue}
             onChange={(e) => handleOptionChange(option.name, parseInt(e.target.value))}
-            className="option-number"
           />
         );
 
       case 'DOUBLE':
       case 'PERCENTAGE':
         return (
-          <input
+          <Input
             type="number"
             step="0.1"
             value={value || ''}
             min={option.minValue}
             max={option.maxValue}
             onChange={(e) => handleOptionChange(option.name, parseFloat(e.target.value))}
-            className="option-number"
           />
         );
 
       case 'STRING':
       default:
         return (
-          <input
+          <Input
             type="text"
             value={value || ''}
             onChange={(e) => handleOptionChange(option.name, e.target.value)}
-            className="option-text"
           />
         );
     }
@@ -241,76 +239,85 @@ const RendererSelector: React.FC<RendererSelectorProps> = ({
   const selectedRendererObj = availableRenderers.find(r => r.id === selectedRenderer);
 
   if (loading) {
-    return <div className="renderer-selector loading">Loading renderers...</div>;
+    return (
+      <div className="my-4 rounded-lg border border-border bg-surface p-8 text-center text-[13px] text-muted-foreground">
+        Loading renderers...
+      </div>
+    );
   }
 
   if (availableRenderers.length === 0) {
     return (
-      <div className="renderer-selector no-renderers">
-        <p>No compatible renderers found for this note type: {noteType}</p>
-        <p>Standard text rendering will be used.</p>
+      <div className="my-4 rounded-lg border border-dashed border-border-strong bg-surface p-6 text-center text-[13px] text-muted-foreground">
+        <p className="m-0">No compatible renderers found for this note type: {noteType}</p>
+        <p className="m-0 mt-1">Standard text rendering will be used.</p>
       </div>
     );
   }
 
   return (
-    <div className="renderer-selector">
-      <div className="renderer-controls">
-        <div className="renderer-select-group">
-          <label htmlFor="renderer-select">Visualization:</label>
-          <select
+    <div className="my-4 rounded-lg border border-border bg-surface p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-4 max-md:flex-col max-md:items-stretch max-md:gap-3">
+        <div className="flex flex-1 items-center gap-2 max-md:flex-col max-md:items-start">
+          <Label htmlFor="renderer-select" className="whitespace-nowrap">Visualization:</Label>
+          <Select
             id="renderer-select"
             value={selectedRenderer}
             onChange={(e) => handleRendererChange(e.target.value)}
-            className="renderer-dropdown"
+            className="min-w-[200px] max-md:w-full max-md:min-w-0"
           >
             {availableRenderers.map(renderer => (
               <option key={renderer.id} value={renderer.id}>
                 {renderer.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {selectedRendererObj && selectedRendererObj.options.length > 0 && (
-          <button
+          <Button
             type="button"
-            className="options-toggle"
+            variant="secondary"
+            size="md"
+            className="max-md:w-full"
             onClick={() => setShowOptionsPanel(!showOptionsPanel)}
           >
-            ⚙️ Options
-          </button>
+            <Settings /> Options
+          </Button>
         )}
 
-        <button
+        <Button
           type="button"
-          className="render-button"
+          variant="primary"
+          size="md"
+          className="max-md:w-full"
           onClick={renderNote}
           disabled={rendering || !selectedRenderer}
+          loading={rendering}
         >
-          {rendering ? 'Rendering...' : '🎨 Render'}
-        </button>
+          {rendering ? 'Rendering...' : <><Palette /> Render</>}
+        </Button>
       </div>
 
       {selectedRendererObj && (
-        <div className="renderer-info">
+        <div className="mb-2 text-[13px] text-muted-foreground">
           <small>{selectedRendererObj.description}</small>
         </div>
       )}
 
       {showOptionsPanel && selectedRendererObj && selectedRendererObj.options.length > 0 && (
-        <div className="options-panel">
-          <h4>Rendering Options</h4>
-          <div className="options-grid">
+        <div className="mt-3 rounded-lg border border-border-strong bg-surface-2 p-4">
+          <h4 className="m-0 mb-4 text-sm font-semibold text-foreground">Rendering Options</h4>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 max-md:grid-cols-1">
             {selectedRendererObj.options.map(option => (
-              <div key={option.name} className="option-item">
-                <label className="option-label">
+              <div key={option.name} className="flex flex-col gap-1.5">
+                <Label className="text-[13px]">
                   {option.displayName}
-                  {option.required && <span className="required">*</span>}
-                </label>
+                  {option.required && <span className="ml-1 text-destructive">*</span>}
+                </Label>
                 {renderOptionInput(option)}
                 {option.description && (
-                  <small className="option-description">{option.description}</small>
+                  <small className="mt-0.5 text-xs leading-snug text-muted-foreground">{option.description}</small>
                 )}
               </div>
             ))}

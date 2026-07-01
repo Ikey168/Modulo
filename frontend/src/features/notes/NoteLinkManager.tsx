@@ -1,76 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
-
-export interface Note {
-  id?: number;
-  title: string;
-  content: string;
-  markdownContent?: string;
-  tags?: Array<{ id: string; name: string }>;
-}
-
-export interface NoteLink {
-  id: string;
-  sourceNote: Note;
-  targetNote: Note;
-  linkType: string;
-}
-
-export interface NoteLinkCreate {
-  sourceNoteId: number;
-  targetNoteId: number;
-  linkType: string;
-}
+import React, { useState, useEffect, useMemo } from 'react';
+import { createCoreAPI } from '@modulo/core';
+import type { CoreLink } from '@modulo/core';
+import { Button, Label, Select, Badge } from '@/ui';
 
 const LINK_TYPES = [
   'RELATED',
   'REFERENCES',
-  'DEPENDS_ON', 
+  'DEPENDS_ON',
   'PART_OF',
   'CONTRADICTS',
   'SUPPORTS',
   'EXTENDS',
-  'EXAMPLE_OF'
+  'EXAMPLE_OF',
 ];
 
 interface NoteLinkManagerProps {
   noteId: number;
-  allNotes: Note[];
+  /** Minimal note shape — only id and title are required for display. */
+  allNotes: Array<{ id: number; title: string }>;
   onLinksChanged?: () => void;
 }
 
-const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ 
-  noteId, 
-  allNotes, 
-  onLinksChanged 
+const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({
+  noteId,
+  allNotes,
+  onLinksChanged,
 }) => {
-  const [outgoingLinks, setOutgoingLinks] = useState<NoteLink[]>([]);
-  const [incomingLinks, setIncomingLinks] = useState<NoteLink[]>([]);
+  const api = useMemo(() => createCoreAPI(), []);
+
+  const [outgoingLinks, setOutgoingLinks] = useState<CoreLink[]>([]);
+  const [incomingLinks, setIncomingLinks] = useState<CoreLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  
+
   // Form state
   const [selectedTargetNoteId, setSelectedTargetNoteId] = useState<string>('');
   const [selectedLinkType, setSelectedLinkType] = useState<string>('RELATED');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadLinks();
+    void loadLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId]);
 
   const loadLinks = async () => {
     try {
       setLoading(true);
       setError(null);
-      
       const [outgoing, incoming] = await Promise.all([
-        api.get(`/note-links/note/${noteId}/outgoing`),
-        api.get(`/note-links/note/${noteId}/incoming`)
+        api.outgoingLinks(noteId),
+        api.incomingLinks(noteId),
       ]);
-      
-      setOutgoingLinks(outgoing || []);
-      setIncomingLinks(incoming || []);
+      setOutgoingLinks(outgoing);
+      setIncomingLinks(incoming);
     } catch (err) {
       setError('Failed to load note links');
       console.error('Error loading note links:', err);
@@ -80,34 +63,20 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({
   };
 
   const handleCreateLink = async () => {
-    if (!selectedTargetNoteId || selectedTargetNoteId === noteId.toString()) {
+    if (!selectedTargetNoteId || selectedTargetNoteId === String(noteId)) {
       setError('Please select a valid target note');
       return;
     }
-
     try {
       setSubmitting(true);
       setError(null);
-
-      const linkData: NoteLinkCreate = {
-        sourceNoteId: noteId,
-        targetNoteId: parseInt(selectedTargetNoteId),
-        linkType: selectedLinkType
-      };
-
-      await api.post('/note-links', linkData);
-      
-      // Reset form
+      // createLink emits link.created on the CoreEventBus automatically.
+      await api.createLink(noteId, parseInt(selectedTargetNoteId), selectedLinkType);
       setSelectedTargetNoteId('');
       setSelectedLinkType('RELATED');
       setShowAddForm(false);
-      
-      // Reload links
       await loadLinks();
-      
-      if (onLinksChanged) {
-        onLinksChanged();
-      }
+      onLinksChanged?.();
     } catch (err) {
       setError('Failed to create note link');
       console.error('Error creating note link:', err);
@@ -117,135 +86,145 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({
   };
 
   const handleDeleteLink = async (linkId: string) => {
-    if (!window.confirm('Are you sure you want to delete this link?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this link?')) return;
     try {
       setError(null);
-      await api.delete(`/note-links/${linkId}`);
-      
-      // Reload links
+      // removeLink emits link.removed on the CoreEventBus automatically.
+      await api.removeLink(linkId);
       await loadLinks();
-      
-      if (onLinksChanged) {
-        onLinksChanged();
-      }
+      onLinksChanged?.();
     } catch (err) {
       setError('Failed to delete note link');
       console.error('Error deleting note link:', err);
     }
   };
 
-  const availableTargetNotes = allNotes.filter(note => 
-    note.id && 
-    note.id !== noteId && 
-    !outgoingLinks.some(link => link.targetNote.id === note.id)
+  const noteTitle = (id: number) =>
+    allNotes.find((n) => n.id === id)?.title ?? '(unknown)';
+
+  const availableTargetNotes = allNotes.filter(
+    (n) =>
+      n.id !== noteId &&
+      !outgoingLinks.some((l) => l.targetNoteId === n.id),
   );
 
   if (loading) {
     return (
-      <div className="note-links-manager">
-        <div className="note-links-loading">Loading note links...</div>
+      <div className="mt-4 rounded-lg border border-border bg-surface p-4">
+        <div className="py-4 text-center text-[13px] text-muted-foreground">
+          Loading note links...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="note-links-manager">
-      <div className="note-links-header">
-        <h3>Note Links</h3>
-        <button
+    <div className="mt-4 rounded-lg border border-border bg-surface p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[15px] font-semibold text-foreground">Note Links</h3>
+        <Button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="btn btn-small btn-secondary"
+          variant="secondary"
+          size="sm"
           disabled={availableTargetNotes.length === 0}
         >
           {showAddForm ? 'Cancel' : 'Add Link'}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="error-message">
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/15 px-3 py-2.5 text-[13px] text-destructive">
           {error}
         </div>
       )}
 
       {showAddForm && (
-        <div className="add-link-form">
-          <h4>Create New Link</h4>
-          
-          <div className="form-group">
-            <label htmlFor="target-note">Target Note</label>
-            <select
+        <div className="mb-4 rounded-lg border border-border-strong bg-surface-2 p-4">
+          <h4 className="mb-4 text-sm font-semibold text-foreground">Create New Link</h4>
+
+          <div className="mb-4 flex flex-col gap-2">
+            <Label htmlFor="target-note">Target Note</Label>
+            <Select
               id="target-note"
               value={selectedTargetNoteId}
               onChange={(e) => setSelectedTargetNoteId(e.target.value)}
-              className="form-select"
             >
               <option value="">Select a note...</option>
-              {availableTargetNotes.map(note => (
+              {availableTargetNotes.map((note) => (
                 <option key={note.id} value={note.id}>
                   {note.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="link-type">Link Type</label>
-            <select
+          <div className="mb-4 flex flex-col gap-2">
+            <Label htmlFor="link-type">Link Type</Label>
+            <Select
               id="link-type"
               value={selectedLinkType}
               onChange={(e) => setSelectedLinkType(e.target.value)}
-              className="form-select"
             >
-              {LINK_TYPES.map(type => (
+              {LINK_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {type.replace('_', ' ')}
+                  {type.replace(/_/g, ' ')}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
-          <div className="form-actions">
-            <button
+          <div className="flex gap-2">
+            <Button
               onClick={handleCreateLink}
-              className="btn btn-small btn-primary"
+              variant="primary"
+              size="sm"
+              loading={submitting}
               disabled={submitting || !selectedTargetNoteId}
             >
               {submitting ? 'Creating...' : 'Create Link'}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowAddForm(false)}
-              className="btn btn-small btn-secondary"
+              variant="secondary"
+              size="sm"
               disabled={submitting}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      <div className="links-sections">
+      <div className="flex flex-col gap-6">
         {/* Outgoing Links */}
-        <div className="links-section">
-          <h4>Outgoing Links ({outgoingLinks.length})</h4>
+        <div>
+          <h4 className="mb-3 text-sm font-semibold text-foreground">
+            Outgoing Links ({outgoingLinks.length})
+          </h4>
           {outgoingLinks.length === 0 ? (
-            <p className="no-links">No outgoing links</p>
+            <p className="m-0 text-[13px] italic text-muted-foreground">No outgoing links</p>
           ) : (
-            <div className="links-list">
-              {outgoingLinks.map(link => (
-                <div key={link.id} className="link-item">
-                  <div className="link-info">
-                    <div className="link-type">{link.linkType.replace('_', ' ')}</div>
-                    <div className="link-target">{link.targetNote.title}</div>
+            <div className="flex flex-col gap-2">
+              {outgoingLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5"
+                >
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="secondary" className="w-fit uppercase">
+                      {link.linkType.replace(/_/g, ' ')}
+                    </Badge>
+                    <div className="text-[13px] font-medium text-foreground">
+                      {noteTitle(link.targetNoteId)}
+                    </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => handleDeleteLink(link.id)}
-                    className="btn btn-small btn-danger"
+                    variant="destructive"
+                    size="sm"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -253,24 +232,34 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({
         </div>
 
         {/* Incoming Links */}
-        <div className="links-section">
-          <h4>Incoming Links ({incomingLinks.length})</h4>
+        <div>
+          <h4 className="mb-3 text-sm font-semibold text-foreground">
+            Incoming Links ({incomingLinks.length})
+          </h4>
           {incomingLinks.length === 0 ? (
-            <p className="no-links">No incoming links</p>
+            <p className="m-0 text-[13px] italic text-muted-foreground">No incoming links</p>
           ) : (
-            <div className="links-list">
-              {incomingLinks.map(link => (
-                <div key={link.id} className="link-item">
-                  <div className="link-info">
-                    <div className="link-type">{link.linkType.replace('_', ' ')}</div>
-                    <div className="link-source">← {link.sourceNote.title}</div>
+            <div className="flex flex-col gap-2">
+              {incomingLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5"
+                >
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="secondary" className="w-fit uppercase">
+                      {link.linkType.replace(/_/g, ' ')}
+                    </Badge>
+                    <div className="text-[13px] font-medium text-success">
+                      ← {noteTitle(link.sourceNoteId)}
+                    </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => handleDeleteLink(link.id)}
-                    className="btn btn-small btn-danger"
+                    variant="destructive"
+                    size="sm"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

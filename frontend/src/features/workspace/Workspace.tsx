@@ -7,7 +7,8 @@ import { NotesView } from './NotesView';
 import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { useWorkspaceData } from './useWorkspaceData';
+import { useCoreWorkspace } from './useCoreWorkspace';
+import { mergeWithWikiLinks } from './deriveWikiLinks';
 
 const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
 type View = (typeof VIEWS)[number];
@@ -52,7 +53,7 @@ export default function Workspace() {
   const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'notes';
 
   const { user, logout } = useAuth();
-  const data = useWorkspaceData();
+  const data = useCoreWorkspace();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -65,6 +66,12 @@ export default function Workspace() {
       setSelectedId(data.notes[0].id);
     }
   }, [data.notes, selectedId]);
+
+  // [[wiki-links]] in note bodies become graph edges alongside explicit links.
+  const graphLinks = useMemo(
+    () => mergeWithWikiLinks(data.notes, data.links),
+    [data.notes, data.links],
+  );
 
   const goTo = (v: View) => navigate(`/app/${v}`);
 
@@ -121,6 +128,30 @@ export default function Workspace() {
           {VIEWS.map((v) => (
             <NavItem key={v} active={view === v} onClick={() => goTo(v)} icon={NAV_ICONS[v]} label={v.charAt(0).toUpperCase() + v.slice(1)} />
           ))}
+          <NavItem
+            active={false}
+            onClick={() => navigate('/blueprints')}
+            icon={
+              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
+                <rect x={1.5} y={5.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <rect x={9.5} y={1.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <rect x={9.5} y={9.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
+                <path d="M5.5 7.5h2.2M7.7 7.5V3.5h1.8M7.7 7.5v4h1.8" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" fill="none" />
+              </svg>
+            }
+            label="Blueprints"
+          />
+          <NavItem
+            active={false}
+            onClick={() => navigate('/packs')}
+            icon={
+              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
+                <rect x={1.5} y={1.5} width={12} height={12} rx={1.5} stroke="currentColor" strokeWidth={1.2} />
+                <path d="M5 7.5h5M7.5 5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
+              </svg>
+            }
+            label="Packs"
+          />
         </nav>
 
         <div style={{ padding: '10px 10px 14px', borderTop: '1px solid #1e1e24' }}>
@@ -143,7 +174,7 @@ export default function Workspace() {
           />
         )}
         {view === 'graph' && (
-          <GraphView notes={data.notes} links={data.links} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
+          <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
         )}
         {view === 'dashboard' && (
           <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />

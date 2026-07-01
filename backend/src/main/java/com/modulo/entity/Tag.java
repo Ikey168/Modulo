@@ -1,6 +1,7 @@
 package com.modulo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +21,9 @@ public class Tag {
 
     // Inverse side of Note.tags. Excluded from JSON so serializing a Note's
     // tags doesn't recurse back into notes (Note -> tags -> Tag -> notes ...).
+    // Excluded from JSON: serializing this lazy back-reference both triggers a
+    // LazyInitializationException (session closed when open-in-view=false) and
+    // creates an infinite Note -> tags -> Tag -> notes recursion.
     @JsonIgnore
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     private Set<Note> notes = new HashSet<>();

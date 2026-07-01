@@ -18,9 +18,9 @@ interface ThemeProviderProps {
 
 const THEME_STORAGE_KEY = 'modulo-theme';
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ 
-  children, 
-  defaultTheme = 'light' 
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({
+  children,
+  defaultTheme = 'dark'
 }) => {
   // Initialize theme from localStorage or default
   const [themeName, setThemeName] = useState<string>(() => {

@@ -6,6 +6,7 @@ package com.modulo.entity;
 // import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -56,6 +57,12 @@ public class Note {
     @Column(name = "last_viewed_at")
     private LocalDateTime lastViewedAt;
 
+    // Lazy collections below are not part of the note JSON payload — links,
+    // attachments and tasks are served by their own endpoints, and metadata is
+    // not consumed by the client. Serializing them would dereference a lazy
+    // proxy after the Hibernate session has closed (open-in-view=false),
+    // throwing LazyInitializationException and surfacing as an HTTP 500.
+    @JsonIgnore
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "note_metadata", schema = "application", joinColumns = @JoinColumn(name = "note_id"))
     @MapKeyColumn(name = "metadata_key")

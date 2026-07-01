@@ -22,5 +22,10 @@ public enum PluginRuntime {
     /**
      * Message queue-based plugins
      */
-    MESSAGE_QUEUE
+    MESSAGE_QUEUE,
+
+    /**
+     * Blueprint graph programs stored in plugin_registry and executed by the blueprint interpreter.
+     */
+    BLUEPRINT
 }

@@ -96,49 +96,51 @@ export const lightTheme: Theme = {
   },
 };
 
+// Dark Mode is the canonical Modulo look — the "workspace" aesthetic the whole
+// app unifies on. These values mirror the semantic tokens in styles/index.css.
 export const darkTheme: Theme = {
   name: 'dark',
   displayName: 'Dark Mode',
   colors: {
     background: {
-      primary: '#1a1a1a',
-      secondary: '#2d2d2d',
-      tertiary: '#404040',
-      card: '#2d2d2d',
-      overlay: 'rgba(0, 0, 0, 0.7)',
+      primary: '#0a0a0b',
+      secondary: '#111114',
+      tertiary: '#16161a',
+      card: '#111114',
+      overlay: 'rgba(0, 0, 0, 0.6)',
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#cccccc',
-      tertiary: '#999999',
-      inverse: '#333333',
+      primary: '#f4f4f5',
+      secondary: '#a1a1aa',
+      tertiary: '#71717a',
+      inverse: '#0a0a0b',
     },
     border: {
-      primary: '#404040',
-      secondary: '#555555',
-      focus: '#0d6efd',
+      primary: '#1e1e24',
+      secondary: '#2a2a30',
+      focus: '#6366f1',
     },
     brand: {
-      primary: '#0d6efd',
-      secondary: '#6c757d',
-      accent: '#198754',
+      primary: '#4f46e5',
+      secondary: '#6366f1',
+      accent: '#22c55e',
     },
     status: {
-      success: '#198754',
-      warning: '#ffc107',
-      error: '#dc3545',
-      info: '#0dcaf0',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      info: '#3b82f6',
     },
     interactive: {
-      hover: '#404040',
-      active: '#555555',
-      disabled: '#6c757d',
+      hover: '#16161a',
+      active: '#1c1c22',
+      disabled: '#52525b',
     },
   },
   shadows: {
-    small: '0 1px 3px rgba(0, 0, 0, 0.3)',
-    medium: '0 4px 6px rgba(0, 0, 0, 0.3)',
-    large: '0 10px 15px rgba(0, 0, 0, 0.3)',
+    small: '0 1px 3px rgba(0, 0, 0, 0.5)',
+    medium: '0 4px 12px rgba(0, 0, 0, 0.5)',
+    large: '0 12px 32px rgba(0, 0, 0, 0.6)',
   },
 };
 
@@ -281,13 +283,13 @@ export const purpleTheme: Theme = {
 };
 
 export const themes: Theme[] = [
-  lightTheme,
   darkTheme,
+  lightTheme,
   blueTheme,
   greenTheme,
   purpleTheme,
 ];
 
 export const getThemeByName = (name: string): Theme => {
-  return themes.find(theme => theme.name === name) || lightTheme;
+  return themes.find(theme => theme.name === name) || darkTheme;
 };

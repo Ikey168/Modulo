@@ -23,4 +23,36 @@ jobs:
 
     - name: Build and test
       run: mvn -B verify -Dmaven.test.failure.ignore=false
-      timeout-minutes: 10
+      # Full `verify` runs the 544-test suite (incl. Testcontainers integration
+      # tests) plus the JaCoCo coverage gate; 10 min was too tight once the suite
+      # runs to completion rather than fast-failing.
+      timeout-minutes: 25
+
+  # B9 (#302) — core/experience boundary guard.
+  # Blocks merges that re-introduce direct imports of workspace internals
+  # (workspaceApi, workspace/types, useWorkspaceData) from feature-pack code.
+  # Feature packs must import exclusively through @modulo/core.
+  # See: docs/architecture/B2-boundary-audit.md
+  boundary-lint:
+    name: Boundary lint (B9)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        # Workspaces monorepo: the lockfile lives at the repo root, not in frontend/.
+        cache-dependency-path: package-lock.json
+
+    - name: Install dependencies
+      # npm ci must run at the workspace root (root package-lock.json covers frontend).
+      run: npm ci
+
+    - name: Boundary lint — no workspace internals in feature-pack code
+      working-directory: frontend
+      run: npm run lint:boundary:ci

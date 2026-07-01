@@ -11,6 +11,7 @@ export default defineConfig({
       '@components': resolve(__dirname, './src/components'),
       '@features': resolve(__dirname, './src/features'),
       '@store': resolve(__dirname, './src/store'),
+      '@modulo/core': resolve(__dirname, './src/core/index.ts'),
     },
   },
   server: {
