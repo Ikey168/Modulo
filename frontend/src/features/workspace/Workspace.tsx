@@ -67,14 +67,13 @@ const NAV_LABELS: Record<NavTarget, string> = {
 // Plugins & blueprints are the product's center of gravity; notes follow.
 const NAV_ORDER: NavTarget[] = ['dashboard', 'marketplace', 'blueprints', 'notes', 'graph'];
 
-/** Modulo brand mark (icon only), tinted by the primary token. */
+/** Modulo percent-sign brand mark (icon only), tinted by the primary token. */
 function ModuloMark({ className }: { className?: string }) {
   return (
     <svg width={22} height={22} viewBox="0 0 22 22" fill="none" className={cn('shrink-0 text-primary', className)} aria-hidden="true">
-      <rect x={1} y={1} width={9} height={9} rx={2} fill="currentColor" />
-      <rect x={12} y={1} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={1} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={12} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.7} />
+      <line x1={5} y1={17.5} x2={17} y2={4.5} stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+      <circle cx={6.2} cy={6.2} r={3.4} fill="currentColor" />
+      <circle cx={15.8} cy={15.8} r={3.4} fill="currentColor" opacity={0.7} />
     </svg>
   );
 }
