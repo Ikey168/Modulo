@@ -1,29 +1,41 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { CoreNote } from '@modulo/core';
-import { Hover } from './atoms';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Badge,
+  Button,
+  buttonVariants,
+  cn,
+  EmptyState,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Skeleton,
+  Spinner,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/ui';
+import { SectionLabel } from './atoms';
 import { Markdown } from './Markdown';
+import { anchorRef, isAnchored, relativeTime } from './workspaceUtils';
 import type { WorkspaceData } from './useCoreWorkspace';
-
-function isAnchored(note: CoreNote): boolean {
-  return Boolean(note.isOnBlockchain || note.isDecentralized);
-}
-
-function anchorRef(note: CoreNote): string | null {
-  if (note.blockchainTxHash) return `tx: ${note.blockchainTxHash.slice(0, 8)}…`;
-  if (note.ipfsCid) return `cid: ${note.ipfsCid.slice(0, 8)}…`;
-  return null;
-}
-
-function relativeTime(iso?: string): string {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
 
 interface NotesViewProps {
   data: WorkspaceData;
@@ -47,6 +59,10 @@ export function NotesView({
   onNewNote,
 }: NotesViewProps) {
   const { notes, links, updateNote, deleteNote, anchorNote, addTag, removeTag, createLink } = data;
+  // <md: the list is primary; opening a note switches to the full-width editor.
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+
   const note = useMemo(
     () => notes.find((n) => n.id === selectedId) ?? notes[0] ?? null,
     [notes, selectedId],
@@ -79,58 +95,99 @@ export function NotesView({
       .filter((n): n is CoreNote => Boolean(n));
   }, [links, notes, note]);
 
-  if (!note) {
-    return (
-      <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
-        <NoteListColumn
-          notes={filtered}
-          selectedId={selectedId}
-          searchQuery={searchQuery}
-          onSearch={onSearch}
-          onNewNote={onNewNote}
-          onSelect={onSelect}
-        />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#52525b', fontSize: 13 }}>
-          {data.loading ? 'Loading notes…' : 'No notes yet — create one to get started.'}
-        </div>
-      </div>
-    );
-  }
+  const openNote = (id: number) => {
+    onSelect(id);
+    setMobileDetailOpen(true);
+  };
+
+  const showDetailOnMobile = mobileDetailOpen && note != null;
+
+  const infoPanelProps = note
+    ? {
+        note,
+        outgoing,
+        backlinks,
+        allNotes: notes,
+        onSelect: openNote,
+        onAnchor: () => anchorNote(note.id),
+        onAddTag: (name: string) => addTag(note.id, name),
+        onRemoveTag: (tagId: string) => removeTag(note.id, tagId),
+        onCreateLink: (targetId: number) => createLink(note.id, targetId),
+        onDelete: () => {
+          setInfoOpen(false);
+          setMobileDetailOpen(false);
+          void deleteNote(note.id);
+        },
+      }
+    : null;
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', animation: 'fadeIn .12s ease' }}>
+    <div className="flex h-full w-full animate-fade-in overflow-hidden">
       <NoteListColumn
+        className={cn('w-full md:w-64', showDetailOnMobile ? 'hidden md:flex' : 'flex')}
         notes={filtered}
-        selectedId={note.id}
+        selectedId={note?.id ?? selectedId}
+        loading={data.loading}
         searchQuery={searchQuery}
         onSearch={onSearch}
         onNewNote={onNewNote}
-        onSelect={onSelect}
+        onSelect={openNote}
       />
 
-      <Editor
-        key={note.id}
-        note={note}
-        editMode={editMode}
-        onToggleEdit={onToggleEdit}
-        onSave={(title, content) => updateNote(note.id, { title, content, markdownContent: content })}
-        onSelectNote={onSelect}
-        allNotes={notes}
-      />
+      <div className={cn('min-w-0 flex-1 flex-col overflow-hidden', showDetailOnMobile ? 'flex' : 'hidden md:flex')}>
+        {note ? (
+          <Editor
+            key={note.id}
+            note={note}
+            editMode={editMode}
+            onToggleEdit={onToggleEdit}
+            onSave={(title, content) => updateNote(note.id, { title, content, markdownContent: content })}
+            onSelectNote={openNote}
+            allNotes={notes}
+            onBack={() => setMobileDetailOpen(false)}
+            onOpenInfo={() => setInfoOpen(true)}
+          />
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            {data.loading ? (
+              <Spinner className="size-5 text-muted-foreground" />
+            ) : (
+              <EmptyState
+                icon={<NoteGlyph />}
+                title="No notes yet"
+                description="Create your first note to start building your knowledge base."
+                action={<Button size="sm" onClick={onNewNote}>New note</Button>}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
-      <InfoPanel
-        note={note}
-        outgoing={outgoing}
-        backlinks={backlinks}
-        allNotes={notes}
-        onSelect={onSelect}
-        onAnchor={() => anchorNote(note.id)}
-        onAddTag={(name) => addTag(note.id, name)}
-        onRemoveTag={(tagId) => removeTag(note.id, tagId)}
-        onCreateLink={(targetId) => createLink(note.id, targetId)}
-        onDelete={() => deleteNote(note.id)}
-      />
+      {/* ≥xl: info panel inline as the third column. */}
+      {infoPanelProps && <InfoPanel {...infoPanelProps} className="hidden xl:flex" />}
+
+      {/* <xl: same panel in a right-hand sheet, opened from the editor header. */}
+      {infoPanelProps && (
+        <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
+          <SheetContent side="right" className="w-80 gap-0 bg-surface p-0 sm:max-w-80">
+            <SheetHeader className="border-b border-border px-4 py-3.5 text-left">
+              <SheetTitle className="text-sm">Note details</SheetTitle>
+              <SheetDescription className="sr-only">Tags, links and on-chain status for the selected note</SheetDescription>
+            </SheetHeader>
+            <InfoPanel {...infoPanelProps} className="flex w-full border-l-0" />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
+  );
+}
+
+function NoteGlyph() {
+  return (
+    <svg viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <path d="M3 1.5h9a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1v-10a1 1 0 011-1z" stroke="currentColor" strokeWidth={1.2} fill="none" />
+      <path d="M4 5h7M4 7.5h7M4 10h4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -139,87 +196,90 @@ export function NotesView({
 interface NoteListColumnProps {
   notes: CoreNote[];
   selectedId: number | null;
+  loading: boolean;
   searchQuery: string;
   onSearch: (q: string) => void;
   onNewNote: () => void;
   onSelect: (id: number) => void;
+  className?: string;
 }
 
-function NoteListColumn({ notes, selectedId, searchQuery, onSearch, onNewNote, onSelect }: NoteListColumnProps) {
+function NoteListColumn({ notes, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, className }: NoteListColumnProps) {
   return (
-    <div
-      style={{
-        width: 252,
-        flexShrink: 0,
-        borderRight: '1px solid #1e1e24',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        background: '#0e0e12',
-      }}
-    >
-      <div style={{ padding: '14px 13px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#52525b' }}>Notes</span>
-        <Hover
-          onClick={onNewNote}
-          title="New note"
-          style={{ width: 22, height: 22, borderRadius: 5, background: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'background .1s' }}
-          hoverStyle={{ background: '#4338ca' }}
-        >
-          <svg width={10} height={10} viewBox="0 0 10 10" fill="none">
-            <path d="M5 1v8M1 5h8" stroke="white" strokeWidth={1.6} strokeLinecap="round" />
+    <div className={cn('shrink-0 flex-col overflow-hidden border-r border-border bg-surface', className)}>
+      <div className="flex shrink-0 items-center justify-between px-3 pb-2.5 pt-3.5">
+        <SectionLabel>Notes</SectionLabel>
+        <Button size="icon-sm" className="h-6 w-6 rounded-[5px] [&_svg]:size-2.5" onClick={onNewNote} aria-label="New note" title="New note">
+          <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
           </svg>
-        </Hover>
+        </Button>
       </div>
 
-      <div style={{ padding: '0 10px 8px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#16161a', border: '1px solid #2a2a30', borderRadius: 6, padding: '6px 9px' }}>
-          <svg width={12} height={12} viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-            <circle cx={5} cy={5} r={3.5} stroke="#52525b" strokeWidth={1.2} />
-            <path d="M8 8l2.5 2.5" stroke="#52525b" strokeWidth={1.2} strokeLinecap="round" />
+      <div className="shrink-0 px-2.5 pb-2">
+        <div className="relative">
+          <svg
+            width={12}
+            height={12}
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            <circle cx={5} cy={5} r={3.5} stroke="currentColor" strokeWidth={1.2} />
+            <path d="M8 8l2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
           </svg>
-          <input
+          <Input
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Filter notes…"
-            style={{ background: 'none', border: 'none', outline: 'none', color: '#a1a1aa', fontSize: 12.5, fontFamily: "'DM Sans',sans-serif", width: '100%' }}
+            aria-label="Filter notes"
+            className="h-8 pl-8 text-xs"
           />
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 8px' }}>
-        {notes.map((n) => (
-          <FlatNoteItem key={n.id} note={n} selected={n.id === selectedId} onSelect={onSelect} />
-        ))}
+      <div className="flex-1 overflow-y-auto px-2 pb-2">
+        {loading && notes.length === 0 ? (
+          <div className="flex flex-col gap-1.5 px-1 pt-1" aria-hidden="true">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : notes.length === 0 ? (
+          <p className="px-2 pt-2 text-xs text-muted-foreground">
+            {searchQuery ? 'No notes match your filter.' : 'No notes yet.'}
+          </p>
+        ) : (
+          notes.map((n) => <NoteRow key={n.id} note={n} selected={n.id === selectedId} onSelect={onSelect} />)
+        )}
       </div>
     </div>
   );
 }
 
-function FlatNoteItem({ note, selected, onSelect }: { note: CoreNote; selected: boolean; onSelect: (id: number) => void }) {
-  const [h, setH] = useState(false);
+function NoteRow({ note, selected, onSelect }: { note: CoreNote; selected: boolean; onSelect: (id: number) => void }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect(note.id)}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{
-        padding: '7px 9px',
-        borderRadius: 6,
-        cursor: 'pointer',
-        marginBottom: 2,
-        background: selected ? '#1c1c22' : h ? 'rgba(255,255,255,.02)' : 'transparent',
-        borderLeft: `2px solid ${selected ? '#4f46e5' : 'transparent'}`,
-      }}
+      aria-current={selected ? 'true' : undefined}
+      className={cn(
+        'mb-0.5 block w-full rounded-md border-l-2 px-2.5 py-1.5 text-left transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        selected ? 'border-primary bg-surface-3' : 'border-transparent hover:bg-surface-2',
+      )}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: selected ? 500 : 400, color: selected ? '#e4e4e7' : '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span className="flex items-center gap-1.5">
+        <span className={cn('min-w-0 flex-1 truncate text-[13px]', selected ? 'font-medium text-foreground' : 'text-subtle-foreground')}>
           {note.title}
         </span>
-        {isAnchored(note) && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />}
-      </div>
-      <div style={{ fontSize: 11, color: '#3f3f46', marginTop: 2, paddingLeft: 2 }}>{relativeTime(note.updatedAt)}</div>
-    </div>
+        {isAnchored(note) && (
+          <span className="size-[5px] shrink-0 rounded-full bg-success" role="img" aria-label="Anchored on-chain" />
+        )}
+      </span>
+      <span className="mt-0.5 block text-xxs text-muted-foreground">{relativeTime(note.updatedAt)}</span>
+    </button>
   );
 }
 
@@ -232,9 +292,11 @@ interface EditorProps {
   onSave: (title: string, content: string) => void;
   onSelectNote: (id: number) => void;
   allNotes: CoreNote[];
+  onBack: () => void;
+  onOpenInfo: () => void;
 }
 
-function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }: EditorProps) {
+function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo }: EditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
@@ -266,41 +328,51 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }
   }, [title, content]);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-      <div style={{ padding: '0 20px', height: 46, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1e1e24', flexShrink: 0, background: '#0e0e12', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#f4f4f5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {title || 'Untitled Note'}
-          </span>
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-3 md:px-5">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onBack} aria-label="Back to note list">
+            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M7.5 2L3.5 6l4 4" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Button>
+          <h2 className="truncate text-sm font-semibold text-foreground">{title || 'Untitled Note'}</h2>
           {isAnchored(note) && (
-            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.06em', color: '#22c55e', background: 'rgba(34,197,94,.1)', padding: '2px 8px', borderRadius: 10, border: '1px solid rgba(34,197,94,.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <Badge variant="success" className="shrink-0 tracking-wider">
               ON-CHAIN
-            </span>
+            </Badge>
           )}
         </div>
-        <div style={{ display: 'flex', background: '#16161a', border: '1px solid #2a2a30', borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
-          {(['Edit', 'Preview'] as const).map((lbl, i) => {
-            const active = (i === 0) === editMode;
-            return (
-              <div
-                key={lbl}
-                onClick={() => {
-                  const goingToPreview = lbl === 'Preview';
-                  if (goingToPreview) flush();
-                  onToggleEdit(lbl === 'Edit');
-                }}
-                style={{ padding: '4px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 500, background: active ? '#4f46e5' : 'transparent', color: active ? '#fff' : '#71717a', transition: 'background .1s' }}
-              >
-                {lbl}
-              </div>
-            );
-          })}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Tabs
+            value={editMode ? 'edit' : 'preview'}
+            onValueChange={(v) => {
+              if (v === 'preview') flush();
+              onToggleEdit(v === 'edit');
+            }}
+          >
+            <TabsList className="h-8 p-0.5">
+              <TabsTrigger value="edit" className="px-3 py-1 text-xs">
+                Edit
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="px-3 py-1 text-xs">
+                Preview
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button variant="ghost" size="icon-sm" className="xl:hidden" onClick={onOpenInfo} aria-label="Note details">
+            <svg viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <circle cx={7.5} cy={7.5} r={6} stroke="currentColor" strokeWidth={1.2} />
+              <path d="M7.5 7v3.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
+              <circle cx={7.5} cy={4.7} r={0.8} fill="currentColor" />
+            </svg>
+          </Button>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div className="relative flex-1 overflow-hidden">
         {editMode ? (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="flex h-full flex-col">
             <input
               value={title}
               onChange={(e) => {
@@ -309,7 +381,8 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }
               }}
               onBlur={flush}
               placeholder="Note title"
-              style={{ background: '#0a0a0b', color: '#f4f4f5', border: 'none', borderBottom: '1px solid #1e1e24', outline: 'none', padding: '18px 40px 14px', fontSize: 18, fontWeight: 600, fontFamily: "'DM Sans',sans-serif" }}
+              aria-label="Note title"
+              className="border-b border-border bg-transparent px-5 pb-3.5 pt-4 text-lg font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary md:px-10"
             />
             <textarea
               value={content}
@@ -318,11 +391,12 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes }
                 setContent(e.target.value);
               }}
               onBlur={flush}
-              style={{ flex: 1, width: '100%', boxSizing: 'border-box', background: '#0a0a0b', color: '#d4d4d8', border: 'none', outline: 'none', resize: 'none', padding: '20px 40px', fontSize: 14, lineHeight: 1.8, fontFamily: "'DM Mono',monospace", tabSize: 2 }}
+              aria-label="Note content (Markdown)"
+              className="w-full flex-1 resize-none bg-transparent px-5 py-5 font-mono text-sm leading-[1.8] text-foreground/90 outline-none [tab-size:2] placeholder:text-muted-foreground md:px-10"
             />
           </div>
         ) : (
-          <div style={{ padding: '32px 40px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
+          <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
             <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} />
           </div>
         )}
@@ -344,29 +418,48 @@ interface InfoPanelProps {
   onRemoveTag: (tagId: string) => void;
   onCreateLink: (targetId: number) => void;
   onDelete: () => void;
+  className?: string;
 }
 
-function InfoPanel({ note, outgoing, backlinks, allNotes, onSelect, onAnchor, onAddTag, onRemoveTag, onCreateLink, onDelete }: InfoPanelProps) {
+function InfoPanel({
+  note,
+  outgoing,
+  backlinks,
+  allNotes,
+  onSelect,
+  onAnchor,
+  onAddTag,
+  onRemoveTag,
+  onCreateLink,
+  onDelete,
+  className,
+}: InfoPanelProps) {
   const [tagDraft, setTagDraft] = useState('');
-  const linkableNotes = allNotes.filter(
-    (n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id),
-  );
+  // Remount the link Select after each pick so it snaps back to the placeholder.
+  const [selectKey, setSelectKey] = useState(0);
+  const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id));
 
   return (
-    <div style={{ width: 240, flexShrink: 0, borderLeft: '1px solid #1e1e24', overflowY: 'auto', background: '#0e0e12', display: 'flex', flexDirection: 'column' }}>
-      <InfoSection title="Tags" topPad={18}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+    <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border bg-surface', className)}>
+      <InfoSection title="Tags">
+        <div className="mb-2 flex flex-wrap gap-1.5">
           {(note.tags ?? []).map((tag) => (
-            <span key={tag.id} style={{ fontSize: 11.5, color: '#818cf8', background: 'rgba(79,70,229,.1)', padding: '2px 6px 2px 9px', borderRadius: 10, border: '1px solid rgba(79,70,229,.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Badge key={tag.id} className="gap-1 pr-1">
               {tag.name}
-              <span onClick={() => onRemoveTag(tag.id)} style={{ cursor: 'pointer', color: '#52525b', fontSize: 13, lineHeight: 1 }} title="Remove tag">
+              <button
+                type="button"
+                onClick={() => onRemoveTag(tag.id)}
+                aria-label={`Remove tag ${tag.name}`}
+                title="Remove tag"
+                className="rounded-full px-0.5 text-primary/60 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
                 ×
-              </span>
-            </span>
+              </button>
+            </Badge>
           ))}
-          {(note.tags ?? []).length === 0 && <span style={{ fontSize: 12, color: '#3f3f46' }}>—</span>}
+          {(note.tags ?? []).length === 0 && <span className="text-xs text-muted-foreground">—</span>}
         </div>
-        <input
+        <Input
           value={tagDraft}
           onChange={(e) => setTagDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -376,118 +469,140 @@ function InfoPanel({ note, outgoing, backlinks, allNotes, onSelect, onAnchor, on
             }
           }}
           placeholder="Add tag…"
-          style={{ width: '100%', boxSizing: 'border-box', background: '#16161a', border: '1px solid #2a2a30', borderRadius: 6, padding: '5px 9px', color: '#a1a1aa', fontSize: 12, outline: 'none', fontFamily: "'DM Sans',sans-serif" }}
+          aria-label="Add tag"
+          className="h-7 text-xs"
         />
       </InfoSection>
 
       <InfoSection title="Links to">
         {outgoing.length === 0 ? (
-          <span style={{ fontSize: 12, color: '#3f3f46', padding: '4px 2px' }}>—</span>
+          <span className="px-0.5 py-1 text-xs text-muted-foreground">—</span>
         ) : (
           outgoing.map((n) => <LinkItem key={n.id} note={n} dir="out" onSelect={onSelect} />)
         )}
         {linkableNotes.length > 0 && (
-          <select
-            value=""
-            onChange={(e) => {
-              const id = Number(e.target.value);
-              if (id) onCreateLink(id);
+          <Select
+            key={selectKey}
+            onValueChange={(v) => {
+              onCreateLink(Number(v));
+              setSelectKey((k) => k + 1);
             }}
-            style={{ marginTop: 6, width: '100%', boxSizing: 'border-box', background: '#16161a', border: '1px solid #2a2a30', borderRadius: 6, padding: '5px 9px', color: '#71717a', fontSize: 12, outline: 'none' }}
           >
-            <option value="">+ Link to note…</option>
-            {linkableNotes.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.title}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="mt-1.5 h-7 text-xs" aria-label="Link to note">
+              <SelectValue placeholder="+ Link to note…" />
+            </SelectTrigger>
+            <SelectContent>
+              {linkableNotes.map((n) => (
+                <SelectItem key={n.id} value={String(n.id)}>
+                  {n.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </InfoSection>
 
       <InfoSection title="Backlinks">
         {backlinks.length === 0 ? (
-          <span style={{ fontSize: 12, color: '#3f3f46', padding: '4px 2px' }}>—</span>
+          <span className="px-0.5 py-1 text-xs text-muted-foreground">—</span>
         ) : (
           backlinks.map((n) => <LinkItem key={n.id} note={n} dir="in" onSelect={onSelect} />)
         )}
       </InfoSection>
 
-      <div style={{ padding: '16px 16px 20px' }}>
-        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>On-Chain</div>
+      <div className="px-4 pb-5 pt-4">
+        <SectionLabel className="mb-2.5">On-Chain</SectionLabel>
         {isAnchored(note) ? (
-          <div style={{ padding: '11px 13px', background: 'rgba(34,197,94,.05)', border: '1px solid rgba(34,197,94,.15)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: '#22c55e', fontWeight: 600, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <svg width={11} height={11} viewBox="0 0 11 11" fill="none">
-                <path d="M2 5.5l2.5 2.5L9 3" stroke="#22c55e" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-2.5">
+            <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-success">
+              <svg width={11} height={11} viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                <path d="M2 5.5l2.5 2.5L9 3" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Anchored
             </div>
-            <div style={{ fontSize: 10.5, color: '#3f3f46', fontFamily: "'DM Mono',monospace", wordBreak: 'break-all', lineHeight: 1.6 }}>
+            <div className="break-all font-mono text-xxs leading-relaxed text-muted-foreground">
               {anchorRef(note) ?? 'recorded'}
             </div>
           </div>
         ) : (
-          <Hover
-            onClick={onAnchor}
-            style={{ padding: '9px 13px', background: '#16161a', border: '1px solid #2a2a30', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: '#71717a', display: 'flex', alignItems: 'center', gap: 7, transition: 'border-color .15s, color .15s' }}
-            hoverStyle={{ borderColor: '#52525b', color: '#a1a1aa' }}
-          >
-            <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+          <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={onAnchor}>
+            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path d="M6 1.5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
               <path d="M3.5 4L6 1.5 8.5 4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
               <path d="M1.5 8.5v1A1.5 1.5 0 003 11h6a1.5 1.5 0 001.5-1.5v-1" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
             </svg>
             Anchor to chain
-          </Hover>
+          </Button>
         )}
 
-        <Hover
-          onClick={() => {
-            if (window.confirm(`Delete "${note.title}"? This cannot be undone.`)) onDelete();
-          }}
-          style={{ marginTop: 18, fontSize: 12, color: '#52525b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          hoverStyle={{ color: '#ef4444' }}
-        >
-          <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-            <path d="M2.5 3h7M4.5 3V2a1 1 0 011-1h1a1 1 0 011 1v1M3.5 3l.5 7a1 1 0 001 1h2a1 1 0 001-1l.5-7" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Delete note
-        </Hover>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-4 w-full justify-start gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M2.5 3h7M4.5 3V2a1 1 0 011-1h1a1 1 0 011 1v1M3.5 3l.5 7a1 1 0 001 1h2a1 1 0 001-1l.5-7"
+                  stroke="currentColor"
+                  strokeWidth={1.1}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Delete note
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete “{note.title}”?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes the note and its links. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction className={buttonVariants({ variant: 'destructive' })} onClick={onDelete}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
 }
 
-function InfoSection({ title, children, topPad = 16 }: { title: string; children: ReactNode; topPad?: number }) {
+function InfoSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={{ padding: `${topPad}px 16px 14px`, borderBottom: '1px solid #1e1e24' }}>
-      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>{children}</div>
+    <div className="border-b border-border px-4 pb-3.5 pt-4">
+      <SectionLabel className="mb-2.5">{title}</SectionLabel>
+      <div className="flex flex-col gap-1">{children}</div>
     </div>
   );
 }
 
 function LinkItem({ note, dir, onSelect }: { note: CoreNote; dir: 'out' | 'in'; onSelect: (id: number) => void }) {
-  const [h, setH] = useState(false);
   const isOut = dir === 'out';
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect(note.id)}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{ fontSize: 12.5, color: isOut ? '#818cf8' : '#a1a1aa', cursor: 'pointer', padding: '5px 9px', borderRadius: 5, background: h ? '#1c1c22' : '#16161a', display: 'flex', alignItems: 'center', gap: 6 }}
-    >
-      {isOut ? (
-        <svg width={10} height={10} viewBox="0 0 10 10" fill="none">
-          <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="#818cf8" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ) : (
-        <svg width={10} height={10} viewBox="0 0 10 10" fill="none">
-          <path d="M8 5H2M4.5 2.5L2 5l2.5 2.5" stroke="#71717a" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      className={cn(
+        'flex w-full items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1.5 text-left text-xs transition-colors',
+        'hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        isOut ? 'text-primary-hover' : 'text-subtle-foreground',
       )}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note.title}</span>
-    </div>
+    >
+      <svg width={10} height={10} viewBox="0 0 10 10" fill="none" aria-hidden="true" className="shrink-0">
+        {isOut ? (
+          <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M8 5H2M4.5 2.5L2 5l2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+      <span className="truncate">{note.title}</span>
+    </button>
   );
 }
