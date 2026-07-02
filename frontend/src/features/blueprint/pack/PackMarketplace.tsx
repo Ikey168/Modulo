@@ -58,7 +58,7 @@ export default function PackMarketplace() {
   return (
     <div className="mt-8 border-t border-border pt-6">
       <div className="mb-4">
-        <h2 className="m-0 mb-1 text-[1.1rem] font-semibold text-foreground">Packs</h2>
+        <h2 className="m-0 mb-1 text-[1.1rem] font-semibold text-foreground">Browse packs</h2>
         <p className="m-0 text-xs text-muted-foreground">Community-published blueprint packs distributed via IPFS</p>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">

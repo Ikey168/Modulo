@@ -15,7 +15,6 @@ import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
 import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
-import PackManager from './features/blueprint/pack/PackManager';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 import SharedNotePage from './features/notes/sharing/SharedNotePage';
@@ -70,7 +69,7 @@ function App() {
             
             {/* note-workbench pack routes — only present when the pack is registered. */}
             {workbenchPack && (
-              <Route path="/app" element={<Navigate to="/app/notes" replace />} />
+              <Route path="/app" element={<Navigate to="/app/marketplace" replace />} />
             )}
             {workbenchPack?.routes?.map((route) => {
               const Component = route.component;
@@ -98,15 +97,8 @@ function App() {
               }
             />
 
-            {/* Pack manager (#276) */}
-            <Route
-              path="/packs"
-              element={
-                <RequireAuth>
-                  <PackManager />
-                </RequireAuth>
-              }
-            />
+            {/* Packs now live inside the marketplace (Packs tab) */}
+            <Route path="/packs" element={<Navigate to="/app/marketplace" replace />} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />

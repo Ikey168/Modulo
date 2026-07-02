@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Package,
   Store,
   Waypoints,
   Workflow,
@@ -44,7 +43,7 @@ import { mergeWithWikiLinks } from './deriveWikiLinks';
 
 const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
 type View = (typeof VIEWS)[number];
-type NavTarget = View | 'blueprints' | 'packs';
+type NavTarget = View | 'blueprints';
 
 const NAV_ICONS: Record<NavTarget, LucideIcon> = {
   notes: FileText,
@@ -52,7 +51,6 @@ const NAV_ICONS: Record<NavTarget, LucideIcon> = {
   dashboard: LayoutDashboard,
   marketplace: Store,
   blueprints: Workflow,
-  packs: Package,
 };
 
 const NAV_LABELS: Record<NavTarget, string> = {
@@ -61,10 +59,10 @@ const NAV_LABELS: Record<NavTarget, string> = {
   dashboard: 'Dashboard',
   marketplace: 'Marketplace',
   blueprints: 'Blueprints',
-  packs: 'Packs',
 };
 
-const NAV_ORDER: NavTarget[] = [...VIEWS, 'blueprints', 'packs'];
+// Plugins & blueprints are the product's center of gravity; notes follow.
+const NAV_ORDER: NavTarget[] = ['marketplace', 'blueprints', 'notes', 'graph', 'dashboard'];
 
 /** Modulo brand mark (icon only), tinted by the primary token. */
 function ModuloMark({ className }: { className?: string }) {
@@ -107,7 +105,7 @@ function RailItem({ active, label, icon: Icon, onClick }: { active: boolean; lab
 export default function Workspace() {
   const navigate = useNavigate();
   const { view: viewParam } = useParams<{ view: string }>();
-  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'notes';
+  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'marketplace';
 
   const { user, logout } = useAuth();
   const { toast } = useToast();

@@ -1,29 +1,50 @@
-import { Badge, Button, Card } from '@/ui';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Badge, Button, Card, Tabs, TabsList, TabsTrigger } from '@/ui';
 import { PLUGINS, type PluginInfo } from './plugins';
 import PackMarketplace from '../blueprint/pack/PackMarketplace';
+import PackManager from '../blueprint/pack/PackManager';
 
 interface MarketplaceViewProps {
   installedPlugins: Set<string>;
   onTogglePlugin: (id: string) => void;
 }
 
+type MarketplaceTab = 'plugins' | 'packs';
+
 export function MarketplaceView({ installedPlugins, onTogglePlugin }: MarketplaceViewProps) {
+  const [tab, setTab] = useState<MarketplaceTab>('plugins');
   const items = PLUGINS.map((p) => ({ ...p, installed: installedPlugins.has(p.id) }));
   return (
     <div className="flex-1 animate-fade-in overflow-y-auto p-5 md:px-10 md:py-9">
-      <header className="mb-7 flex items-end justify-between gap-4">
+      <header className="mb-5 flex items-end justify-between gap-4">
         <div>
           <h1 className="mb-1 text-[22px] font-semibold tracking-tight text-foreground">Marketplace</h1>
-          <p className="text-[13px] text-muted-foreground">Extend Modulo with community plugins</p>
+          <p className="text-[13px] text-muted-foreground">Extend Modulo with plugins and blueprint packs</p>
         </div>
-        <span className="pb-0.5 text-xs text-muted-foreground">{installedPlugins.size} installed</span>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/plugins/submit">Submit a plugin</Link>
+        </Button>
       </header>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-        {items.map((p) => (
-          <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
-        ))}
-      </div>
-      <PackMarketplace />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as MarketplaceTab)}>
+        <TabsList variant="underline" className="mb-6">
+          <TabsTrigger value="plugins">Plugins ({installedPlugins.size} installed)</TabsTrigger>
+          <TabsTrigger value="packs">Packs</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === 'plugins' && (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          {items.map((p) => (
+            <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
+          ))}
+        </div>
+      )}
+      {tab === 'packs' && (
+        <div className="flex flex-col gap-2">
+          <PackMarketplace />
+          <PackManager />
+        </div>
+      )}
     </div>
   );
 }

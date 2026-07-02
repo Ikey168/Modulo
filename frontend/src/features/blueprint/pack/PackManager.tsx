@@ -195,8 +195,8 @@ export default function PackManager() {
   }
 
   return (
-    <div className="mx-auto max-w-[900px] p-6 text-foreground">
-      <h2 className="mb-4 text-[1.4rem] font-semibold text-foreground">Packs</h2>
+    <div className="text-foreground">
+      <h2 className="mb-4 text-[15px] font-semibold text-foreground">Manage packs</h2>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList variant="underline" className="mb-5">

@@ -52,7 +52,7 @@ describe('Header', () => {
   it('renders a single header bar with brand and theme switcher', () => {
     render(<Header />);
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /modulo/i })).toHaveAttribute('href', '/app/notes');
+    expect(screen.getByRole('link', { name: /modulo/i })).toHaveAttribute('href', '/app/marketplace');
     expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
   });
 
@@ -67,10 +67,10 @@ describe('Header', () => {
   it('renders the primary nav, notification bell and account menu when authenticated', () => {
     signIn();
     render(<Header />);
+    expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/app/marketplace');
+    expect(screen.getByRole('link', { name: 'Blueprints' })).toHaveAttribute('href', '/blueprints');
     expect(screen.getByRole('link', { name: 'Notes' })).toHaveAttribute('href', '/app/notes');
     expect(screen.getByRole('link', { name: 'Graph' })).toHaveAttribute('href', '/app/graph');
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/app/dashboard');
-    expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/app/marketplace');
     expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
     expect(screen.getByTestId('notification-bell')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /account menu/i })).toBeInTheDocument();
@@ -85,8 +85,8 @@ describe('Header', () => {
     await user.click(screen.getByRole('button', { name: 'More' }));
 
     const menu = await screen.findByRole('menu');
-    expect(within(menu).getByRole('menuitem', { name: 'Blueprints' })).toHaveAttribute('href', '/blueprints');
-    expect(within(menu).getByRole('menuitem', { name: 'Packs' })).toHaveAttribute('href', '/packs');
+    expect(within(menu).getByRole('menuitem', { name: 'Dashboard' })).toHaveAttribute('href', '/app/dashboard');
+    expect(within(menu).getByRole('menuitem', { name: 'Contracts' })).toHaveAttribute('href', '/contracts');
     expect(within(menu).getByRole('menuitem', { name: 'Contracts' })).toHaveAttribute('href', '/contracts');
     expect(within(menu).getByRole('menuitem', { name: 'About' })).toHaveAttribute('href', '/about');
   });
