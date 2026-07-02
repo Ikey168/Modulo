@@ -50,7 +50,7 @@ export interface Theme {
   };
 }
 
-// Light Mode mirrors the light token block in styles/index.css (zinc + indigo).
+// Light Mode mirrors the light token block in styles/index.css (paper + emerald).
 export const lightTheme: Theme = {
   name: 'light',
   displayName: 'Light Mode',
@@ -71,11 +71,11 @@ export const lightTheme: Theme = {
     border: {
       primary: '#e4e4e7',
       secondary: '#d4d4d8',
-      focus: '#4f46e5',
+      focus: '#059669',
     },
     brand: {
-      primary: '#4f46e5',
-      secondary: '#6366f1',
+      primary: '#059669',
+      secondary: '#10b981',
       accent: '#16a34a',
     },
     status: {
@@ -104,26 +104,26 @@ export const darkTheme: Theme = {
   displayName: 'Dark Mode',
   colors: {
     background: {
-      primary: '#0a0a0b',
-      secondary: '#111114',
-      tertiary: '#16161a',
-      card: '#111114',
+      primary: '#090e0c',
+      secondary: '#0d1210',
+      tertiary: '#141a17',
+      card: '#0d1210',
       overlay: 'rgba(0, 0, 0, 0.6)',
     },
     text: {
       primary: '#f4f4f5',
       secondary: '#a1a1aa',
       tertiary: '#71717a',
-      inverse: '#0a0a0b',
+      inverse: '#090e0c',
     },
     border: {
-      primary: '#1e1e24',
-      secondary: '#2a2a30',
-      focus: '#6366f1',
+      primary: '#1b2320',
+      secondary: '#2a322e',
+      focus: '#34d399',
     },
     brand: {
-      primary: '#4f46e5',
-      secondary: '#6366f1',
+      primary: '#10b981',
+      secondary: '#34d399',
       accent: '#22c55e',
     },
     status: {
@@ -133,8 +133,8 @@ export const darkTheme: Theme = {
       info: '#3b82f6',
     },
     interactive: {
-      hover: '#16161a',
-      active: '#1c1c22',
+      hover: '#141a17',
+      active: '#1b221e',
       disabled: '#52525b',
     },
   },

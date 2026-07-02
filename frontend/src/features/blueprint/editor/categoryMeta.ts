@@ -22,7 +22,7 @@ export interface CategoryMeta {
 
 export const CATEGORY_ORDER: NodeCategory[] = ['trigger', 'action', 'logic'];
 
-/** trigger → success (green), action → primary (indigo), logic → warning (amber). */
+/** trigger → success (green), action → primary (emerald), logic → warning (amber). */
 export const CATEGORY_META: Record<NodeCategory, CategoryMeta> = {
   trigger: {
     tokenVar: '--success',

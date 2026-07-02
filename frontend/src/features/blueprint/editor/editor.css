@@ -107,7 +107,7 @@
 
 /* Non-colour affordance for a data pin's type (see pinTypeMeta). */
 .bp-pin-type {
-  font-family: 'DM Mono', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 9px;
   line-height: 1;
   color: hsl(var(--muted-foreground));
@@ -155,7 +155,7 @@
   color: hsl(var(--primary-hover));
   border: 1px solid hsl(var(--border-strong));
   border-radius: 4px;
-  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 11px;
   line-height: 1.5;
   padding: 4px 6px;

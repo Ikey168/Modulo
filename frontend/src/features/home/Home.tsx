@@ -68,7 +68,7 @@ const Home: React.FC = () => {
 
       {/* Hero */}
       <section className="relative mx-auto max-w-3xl px-7 pb-16 pt-16 text-center md:pt-20">
-        {/* Ambient indigo glow behind the hero */}
+        {/* Ambient emerald glow behind the hero */}
         <div className="pointer-events-none absolute -top-64 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
         <div className="relative z-10 animate-fade-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-xs text-subtle-foreground">

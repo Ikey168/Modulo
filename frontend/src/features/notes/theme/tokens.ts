@@ -46,7 +46,7 @@ export function rotatedTokenColor(token: string, degrees: number): string {
 
 /**
  * Named accent tokens used as the head of every categorical palette.
- * primary-hover is the lighter indigo, which reads better on dark canvases.
+ * primary-hover is the lighter emerald, which reads better on dark canvases.
  */
 const ACCENT_TOKENS = ['primary-hover', 'info', 'success', 'warning', 'destructive'] as const;
 

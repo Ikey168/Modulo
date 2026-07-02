@@ -102,7 +102,7 @@ const LoginPage: React.FC = () => {
     <div className="flex min-h-screen bg-background font-sans text-foreground">
       {/* Branded hero (hidden on narrow screens) */}
       <aside className="relative hidden flex-1 flex-col overflow-hidden border-r border-border bg-gradient-to-br from-surface to-background px-14 py-12 lg:flex">
-        {/* Ambient indigo glow */}
+        {/* Ambient emerald glow */}
         <div className="pointer-events-none absolute -left-32 -top-52 h-[560px] w-[680px] rounded-full bg-primary/20 blur-3xl" />
 
         <div className="relative flex items-center gap-3">
