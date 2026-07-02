@@ -17,7 +17,7 @@ interface Props {
   noteTitle?: string;
 }
 
-const ExportButton: React.FC<Props> = ({ noteId, noteTitle: _noteTitle }) => {
+const ExportButton: React.FC<Props> = ({ noteId }) => {
   const [resolveLinks, setResolveLinks] = useState(false);
 
   return (

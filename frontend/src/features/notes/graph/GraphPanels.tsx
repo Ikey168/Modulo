@@ -14,8 +14,8 @@ interface Props {
 type Tab = 'backlinks' | 'mentions' | 'related' | 'localGraph';
 
 /**
- * Knowledge-graph sidebar for the open note, combining backlinks (#251),
- * unlinked mentions (#252), related notes (#253) and the local subgraph (#254).
+ * Knowledge-graph sidebar for the open note, combining backlinks (issue 251),
+ * unlinked mentions (issue 252), related notes (issue 253) and the local subgraph (issue 254).
  */
 const GraphPanels: React.FC<Props> = ({ noteId, onOpenNote }) => {
   const [active, setActive] = useState<Tab>('backlinks');

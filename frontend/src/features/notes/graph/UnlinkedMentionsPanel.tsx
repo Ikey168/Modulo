@@ -11,7 +11,7 @@ interface Props {
 }
 
 /**
- * #252 — notes whose text mentions this note's title but don't yet link it.
+ * issue 252 — notes whose text mentions this note's title but don't yet link it.
  * The "Link" action creates the link and removes the row from the list.
  */
 const UnlinkedMentionsPanel: React.FC<Props> = ({ noteId, onOpenNote, onLinked, refreshKey }) => {
@@ -95,26 +95,27 @@ const UnlinkedMentionsPanel: React.FC<Props> = ({ noteId, onOpenNote, onLinked, 
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {mentions.map((m) => (
         <li
           key={m.id}
           className="flex items-start justify-between gap-3 rounded-lg border border-border bg-surface p-2.5 transition-colors hover:border-primary/60 hover:bg-surface-2"
         >
-          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onOpenNote(m.id)}>
+          <button
+            type="button"
+            onClick={() => onOpenNote(m.id)}
+            className="min-w-0 flex-1 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
             <div className="text-sm font-semibold text-foreground">{m.title || `Note #${m.id}`}</div>
             <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{renderSnippet(m)}</div>
-          </div>
+          </button>
           <Button
             variant="primary"
             size="sm"
             className="shrink-0"
             disabled={linking === m.id}
             loading={linking === m.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLink(m.id);
-            }}
+            onClick={() => handleLink(m.id)}
           >
             {linking === m.id ? 'Linking…' : 'Link'}
           </Button>

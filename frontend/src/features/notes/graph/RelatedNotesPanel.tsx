@@ -8,7 +8,7 @@ interface Props {
   refreshKey?: number;
 }
 
-/** #253 — structurally related notes (shared-neighbor scoring over the link graph). */
+/** issue 253 — structurally related notes (shared-neighbor scoring over the link graph). */
 const RelatedNotesPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => {
   const [related, setRelated] = useState<RelatedNote[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,18 +1,91 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Lock, Wallet } from 'lucide-react';
-import { Button } from '@/ui';
+import { AlertCircle, Lock, ShieldOff, Wallet } from 'lucide-react';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  Separator,
+  Skeleton,
+} from '@/ui';
 import { deriveEncryptionKeyPairFromWallet } from '../../workspace/crypto/recipientKeys';
 import { IpfsCiphertextStore } from '../../workspace/crypto/noteSharing';
 import { NoteSharingContract } from '../../workspace/crypto/sharingContract';
-import { SharedNoteView } from '../../workspace/crypto/SharedNoteView';
-import { useSharedNote } from '../../workspace/crypto/useSharedNote';
+import { useSharedNote, UseSharedNoteResult } from '../../workspace/crypto/useSharedNote';
+import type { SharedNoteErrorCode } from '../../workspace/crypto/receiveSharedNote';
+import { NoteMarkdown } from '../rendering/NoteMarkdown';
 
 type EthProvider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
 function getEth(): EthProvider | undefined { return (window as unknown as { ethereum?: EthProvider }).ethereum; }
 
 const CONTRACT_ADDRESS = (import.meta as unknown as { env: Record<string, string | undefined> }).env.VITE_NOTE_SHARING_CONTRACT ?? '';
 const IPFS_STORE = new IpfsCiphertextStore('/api/ipfs');
+
+const ERROR_MESSAGES: Record<SharedNoteErrorCode, string> = {
+  NO_ACCESS: 'You do not have access to this note, or it was revoked.',
+  IPFS_UNAVAILABLE: 'The encrypted note is currently unavailable. Please try again later.',
+  DECRYPT_FAILED: 'This note could not be decrypted on this account.',
+};
+
+/** Loading / error / content states for the decrypted note. */
+const SharedNoteContent: React.FC<{ state: UseSharedNoteResult }> = ({ state }) => {
+  const { status, plaintext, error, reload } = state;
+
+  if (status === 'idle') {
+    // Hook inputs (contract source / note id) aren't ready yet.
+    return (
+      <p className="m-0 text-[13px] text-muted-foreground">
+        Waiting for the sharing contract — make sure your wallet is connected to the right network.
+      </p>
+    );
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col gap-2.5" aria-busy="true" aria-label="Decrypting note">
+        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    const message = error ? ERROR_MESSAGES[error.code] ?? error.message : 'Something went wrong.';
+    // Revocation / no-access isn't retryable; transient failures are.
+    const retryable = error?.code !== 'NO_ACCESS';
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="size-4" />
+        <AlertTitle>Could not open this note</AlertTitle>
+        <AlertDescription className="flex flex-col items-start gap-3 text-[13px]">
+          {message}
+          {retryable && (
+            <Button variant="outline" size="sm" onClick={reload}>
+              Retry
+            </Button>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Decrypted plaintext renders through the sanitized markdown pipeline
+  // (react-markdown never injects raw HTML — see rendering/NoteMarkdown).
+  return (
+    <article aria-label="Shared note content">
+      <NoteMarkdown content={plaintext ?? ''} />
+    </article>
+  );
+};
 
 const SharedNotePage: React.FC = () => {
   const { noteId } = useParams<{ noteId: string }>();
@@ -56,7 +129,15 @@ const SharedNotePage: React.FC = () => {
   if (!CONTRACT_ADDRESS) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <p className="text-[13px] text-muted-foreground">Encrypted sharing is not configured in this deployment.</p>
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <EmptyState
+              icon={<ShieldOff />}
+              title="Encrypted sharing unavailable"
+              description="Encrypted sharing is not configured in this deployment."
+            />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -64,27 +145,38 @@ const SharedNotePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background px-4 py-16">
       <div className="mx-auto w-full max-w-[720px] animate-fade-up">
-        <header className="mb-8">
-          <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <Lock className="size-5" />
-          </div>
-          <h1 className="m-0 mb-2 text-2xl font-semibold tracking-tight text-foreground">Shared Note</h1>
-          <p className="m-0 text-[13px] leading-relaxed text-muted-foreground">
-            This note is end-to-end encrypted. Connect the wallet address that was granted access to read it.
-          </p>
-        </header>
-
-        {!secretKeyB64 ? (
-          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-            {walletError && <p className="mb-3 text-[13px] text-destructive">{walletError}</p>}
-            <Button onClick={handleConnect} disabled={deriving} loading={deriving} size="lg">
-              {!deriving && <Wallet />}
-              {deriving ? 'Signing with wallet…' : 'Connect wallet to decrypt'}
-            </Button>
-          </div>
-        ) : (
-          <SharedNoteView state={sharedNote} />
-        )}
+        <Card>
+          <CardHeader>
+            <div className="mb-2 flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Lock className="size-5" aria-hidden="true" />
+            </div>
+            <CardTitle className="text-2xl tracking-tight">Shared Note</CardTitle>
+            <CardDescription className="text-[13px] leading-relaxed">
+              This note is end-to-end encrypted. Connect the wallet address that was granted
+              access to read it.
+            </CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            {!secretKeyB64 ? (
+              <div className="flex flex-col items-start gap-4">
+                {walletError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle>Wallet connection failed</AlertTitle>
+                    <AlertDescription className="text-[13px]">{walletError}</AlertDescription>
+                  </Alert>
+                )}
+                <Button onClick={handleConnect} disabled={deriving} loading={deriving} size="lg">
+                  {!deriving && <Wallet />}
+                  {deriving ? 'Signing with wallet…' : 'Connect wallet to decrypt'}
+                </Button>
+              </div>
+            ) : (
+              <SharedNoteContent state={sharedNote} />
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

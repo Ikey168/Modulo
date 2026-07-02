@@ -10,7 +10,7 @@ interface Props {
   refreshKey?: number;
 }
 
-/** #251 — lists every note that links to the current note. */
+/** issue 251 — lists every note that links to the current note. */
 const BacklinksPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => {
   const [backlinks, setBacklinks] = useState<Backlink[]>([]);
   const [loading, setLoading] = useState(true);

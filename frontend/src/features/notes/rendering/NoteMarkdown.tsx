@@ -28,16 +28,17 @@ const SANITIZED_HTML_PLUGINS: PluggableList = [rehypeRaw, [rehypeSanitize, defau
 function styled<T extends keyof React.JSX.IntrinsicElements>(Tag: T, classes: string) {
   const Component = (props: React.JSX.IntrinsicElements[T] & ExtraProps) => {
     // react-markdown passes a `node` prop we must not forward to the DOM.
-    const { node: _node, className, ...rest } = props as ExtraProps & {
+    const { node, className, ...rest } = props as ExtraProps & {
       className?: string;
     } & Record<string, unknown>;
+    void node;
     return React.createElement(Tag, { ...rest, className: cn(classes, className) });
   };
   Component.displayName = `Markdown(${Tag})`;
   return Component;
 }
 
-export const markdownComponents: Components = {
+const markdownComponents: Components = {
   h1: styled('h1', 'mb-3 mt-6 border-b border-border pb-2 text-2xl font-semibold tracking-tight text-foreground first:mt-0'),
   h2: styled('h2', 'mb-2.5 mt-6 text-xl font-semibold tracking-tight text-foreground first:mt-0'),
   h3: styled('h3', 'mb-2 mt-5 text-lg font-semibold text-foreground first:mt-0'),

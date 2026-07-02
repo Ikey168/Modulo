@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link2, Lock, Check } from 'lucide-react';
-import { Button, Input, Label, Badge, cn } from '@/ui';
+import { Button, Input, Label, Badge, cn, useToast } from '@/ui';
 import { shareApi, ShareTokenInfo, CreateShareRequest } from './shareApi';
 
 interface Props {
@@ -16,6 +16,7 @@ const ShareLinkManager: React.FC<Props> = ({ noteId, userId }) => {
   const [form, setForm] = useState<CreateShareRequest>({ expiresInHours: undefined, password: '' });
   const [copied, setCopied] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,14 +45,22 @@ const ShareLinkManager: React.FC<Props> = ({ noteId, userId }) => {
   };
 
   const handleRevoke = async (tokenId: number) => {
-    await shareApi.revoke(tokenId, userId);
-    setTokens(prev => prev.map(t => t.id === tokenId ? { ...t, revoked: true, active: false } : t));
+    try {
+      await shareApi.revoke(tokenId, userId);
+      setTokens(prev => prev.map(t => t.id === tokenId ? { ...t, revoked: true, active: false } : t));
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to revoke share link', description: 'Please try again.' });
+    }
   };
 
-  const copyLink = (token: ShareTokenInfo) => {
-    navigator.clipboard.writeText(shareApi.publicUrl(token.token));
-    setCopied(token.id);
-    setTimeout(() => setCopied(null), 2000);
+  const copyLink = async (token: ShareTokenInfo) => {
+    try {
+      await navigator.clipboard.writeText(shareApi.publicUrl(token.token));
+      setCopied(token.id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast({ variant: 'destructive', title: 'Could not copy link to clipboard' });
+    }
   };
 
   const activeCount = tokens.filter(t => t.active).length;

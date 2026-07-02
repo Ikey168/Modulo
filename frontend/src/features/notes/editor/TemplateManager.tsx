@@ -11,6 +11,7 @@ import {
   Input,
   Label,
   Textarea,
+  useToast,
 } from '@/ui';
 import { NoteTemplate, templateApi, CreateTemplateRequest } from './templateApi';
 
@@ -28,12 +29,13 @@ const TemplateManager: React.FC<Props> = ({ userId, onApply, onClose }) => {
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState<NoteTemplate | null>(null);
   const [varValues, setVarValues] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   const load = async () => {
     try {
       setTemplates(await templateApi.list(userId));
     } catch {
-      // ignore
+      toast({ variant: 'destructive', title: 'Failed to load templates' });
     }
   };
 
@@ -62,6 +64,8 @@ const TemplateManager: React.FC<Props> = ({ userId, onApply, onClose }) => {
       }
       await load();
       setMode('list');
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to save template', description: 'Please try again.' });
     } finally {
       setSaving(false);
     }
@@ -69,8 +73,12 @@ const TemplateManager: React.FC<Props> = ({ userId, onApply, onClose }) => {
 
   const handleDelete = async (t: NoteTemplate) => {
     if (!confirm(`Delete template "${t.name}"?`)) return;
-    await templateApi.delete(t.id, userId);
-    setTemplates(prev => prev.filter(x => x.id !== t.id));
+    try {
+      await templateApi.delete(t.id, userId);
+      setTemplates(prev => prev.filter(x => x.id !== t.id));
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to delete template' });
+    }
   };
 
   const startApply = (t: NoteTemplate) => {
@@ -87,7 +95,7 @@ const TemplateManager: React.FC<Props> = ({ userId, onApply, onClose }) => {
       onApply(result.content);
       onClose();
     } catch {
-      // ignore
+      toast({ variant: 'destructive', title: 'Failed to apply template', description: 'Please try again.' });
     }
   };
 

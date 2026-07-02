@@ -14,7 +14,7 @@ const PresenceAvatars: React.FC<Props> = ({ participants }) => {
         <div
           key={p.userId}
           title={p.userName}
-          className="flex size-7 shrink-0 cursor-default items-center justify-center rounded-full border-2 border-background text-[11px] font-bold uppercase text-white"
+          className="flex size-7 shrink-0 cursor-default items-center justify-center rounded-full border-2 border-background text-[11px] font-bold uppercase text-primary-foreground"
           style={{ background: p.color }}
         >
           {p.userName.slice(0, 2).toUpperCase()}

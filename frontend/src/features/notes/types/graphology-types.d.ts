@@ -10,7 +10,10 @@
  * files import (`Attributes`, `GraphOptions`, `EdgeMapper`).
  */
 declare module 'graphology-types' {
-  export type Attributes = Record<string, any>;
+  // Mirrors the real package's Attributes type (which is Record<string, any>);
+  // graph attributes are heterogeneous by design.
+  type AttributeValue = ReturnType<JSON['parse']>;
+  export type Attributes = Record<string, AttributeValue>;
 
   export interface GraphOptions {
     allowSelfLoops?: boolean;

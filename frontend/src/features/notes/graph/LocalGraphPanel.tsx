@@ -87,7 +87,7 @@ const GraphLoader: React.FC<{ graph: DirectedGraph; onOpenNote: (id: number) => 
   return null;
 };
 
-/** #254 — focused local graph for the open note plus configurable filters / saved views. */
+/** issue 254 — focused local graph for the open note plus configurable filters / saved views. */
 const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => {
   const [data, setData] = useState<Neighborhood | null>(null);
   const [loading, setLoading] = useState(true);

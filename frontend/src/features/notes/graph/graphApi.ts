@@ -46,23 +46,23 @@ export interface GraphStatus {
 }
 
 export const graphApi = {
-  /** #251 — notes linking to this note. */
+  /** issue 251 — notes linking to this note. */
   getBacklinks: (noteId: number): Promise<Backlink[]> =>
     api.get(`/graph/notes/${noteId}/backlinks`),
 
-  /** #252 — notes mentioning this note's title without linking it. */
+  /** issue 252 — notes mentioning this note's title without linking it. */
   getUnlinkedMentions: (noteId: number): Promise<UnlinkedMention[]> =>
     api.get(`/graph/notes/${noteId}/unlinked-mentions`),
 
-  /** #253 — structurally related notes. */
+  /** issue 253 — structurally related notes. */
   getRelated: (noteId: number, limit = 10): Promise<RelatedNote[]> =>
     api.get(`/graph/notes/${noteId}/related?limit=${limit}`),
 
-  /** #254 — local subgraph around this note. */
+  /** issue 254 — local subgraph around this note. */
   getNeighborhood: (noteId: number, depth = 1): Promise<Neighborhood> =>
     api.get(`/graph/notes/${noteId}/neighborhood?depth=${depth}`),
 
-  /** #252 — create a link FROM sourceId TO noteId (the "Link" action). */
+  /** issue 252 — create a link FROM sourceId TO noteId (the "Link" action). */
   linkFrom: (noteId: number, sourceId: number, linkType = 'REFERENCE') =>
     api.post(`/graph/notes/${noteId}/link-from/${sourceId}?linkType=${linkType}`, {}),
 
