@@ -1,6 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Card, Tabs, TabsList, TabsTrigger } from '@/ui';
+import { Search, Check } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  cn,
+} from '@/ui';
 import { PLUGINS, type PluginInfo } from './plugins';
 import PackMarketplace from '../blueprint/pack/PackMarketplace';
 import PackManager from '../blueprint/pack/PackManager';
@@ -12,9 +27,36 @@ interface MarketplaceViewProps {
 
 type MarketplaceTab = 'plugins' | 'packs';
 
+/** '12.4k' -> 12400, for sorting. */
+function parseDownloads(d: string): number {
+  const n = parseFloat(d);
+  return d.endsWith('k') ? n * 1000 : n;
+}
+
 export function MarketplaceView({ installedPlugins, onTogglePlugin }: MarketplaceViewProps) {
   const [tab, setTab] = useState<MarketplaceTab>('plugins');
-  const items = PLUGINS.map((p) => ({ ...p, installed: installedPlugins.has(p.id) }));
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const [detail, setDetail] = useState<PluginInfo | null>(null);
+
+  const categories = useMemo(() => [...new Set(PLUGINS.map((p) => p.category))].sort(), []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return PLUGINS.filter(
+      (p) =>
+        (!category || p.category === category) &&
+        (!q || p.name.toLowerCase().includes(q) || p.author.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)),
+    ).sort((a, b) => parseDownloads(b.downloads) - parseDownloads(a.downloads));
+  }, [query, category]);
+
+  // Featured: the three most-installed plugins, Play-store style hero cards.
+  // Hidden while searching/filtering so results stay a single flat grid.
+  const featured = useMemo(() => (query || category ? [] : filtered.slice(0, 3)), [filtered, query, category]);
+  const rest = useMemo(() => (featured.length ? filtered.slice(3) : filtered), [filtered, featured]);
+
+  const isInstalled = (p: PluginInfo) => installedPlugins.has(p.id);
+
   return (
     <div className="flex-1 animate-fade-in overflow-y-auto p-5 md:px-10 md:py-9">
       <header className="mb-5 flex items-end justify-between gap-4">
@@ -26,19 +68,199 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
           <Link to="/plugins/submit">Submit a plugin</Link>
         </Button>
       </header>
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as MarketplaceTab)}>
-        <TabsList variant="underline" className="mb-6">
+        <TabsList variant="underline" className="mb-5">
           <TabsTrigger value="plugins">Plugins ({installedPlugins.size} installed)</TabsTrigger>
           <TabsTrigger value="packs">Packs</TabsTrigger>
         </TabsList>
       </Tabs>
+
       {tab === 'plugins' && (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-          {items.map((p) => (
-            <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
-          ))}
-        </div>
+        <>
+          {/* Search + category chips (Obsidian-style browser controls) */}
+          <div className="mb-6 flex flex-col gap-3">
+            <div className="relative max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search plugins…"
+                aria-label="Search plugins"
+                className="pl-9"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by category">
+              <button
+                type="button"
+                onClick={() => setCategory(null)}
+                aria-pressed={category === null}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  category === null
+                    ? 'border-primary/50 bg-primary/15 text-primary-hover'
+                    : 'border-border-strong text-muted-foreground hover:text-foreground',
+                )}
+              >
+                All
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategory(category === c ? null : c)}
+                  aria-pressed={category === c}
+                  className={cn(
+                    'rounded-full border px-3 py-1 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    category === c
+                      ? 'border-primary/50 bg-primary/15 text-primary-hover'
+                      : 'border-border-strong text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Featured row */}
+          {featured.length > 0 && (
+            <section className="mb-8" aria-label="Featured plugins">
+              <h2 className="mb-3 font-mono text-xxs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Featured
+              </h2>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {featured.map((p) => (
+                  <Card
+                    key={p.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setDetail(p)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setDetail(p);
+                      }
+                    }}
+                    className="group cursor-pointer bg-gradient-to-br from-surface-2 to-surface p-5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/15 font-mono text-xl text-primary" aria-hidden="true">
+                        {p.icon}
+                      </div>
+                      {isInstalled(p) && (
+                        <Badge variant="success" className="gap-1">
+                          <Check className="size-3" /> installed
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mb-1 text-sm font-semibold text-foreground">{p.name}</div>
+                    <p className="mb-3 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">{p.desc}</p>
+                    <div className="flex items-center text-xxs text-muted-foreground">
+                      <span className="ml-auto font-mono">{p.category}</span>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* All plugins: dense Obsidian-style rows */}
+          <section aria-label="All plugins">
+            {featured.length > 0 && (
+              <h2 className="mb-3 font-mono text-xxs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                All plugins
+              </h2>
+            )}
+            {filtered.length === 0 && (
+              <p className="py-10 text-center text-sm text-muted-foreground">No plugins match “{query}”.</p>
+            )}
+            <ul className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+              {rest.map((p) => (
+                <li key={p.id} className="border-b border-border">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setDetail(p)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setDetail(p);
+                      }
+                    }}
+                    className="group flex w-full cursor-pointer items-center gap-3.5 px-1 py-3.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-mono text-base text-primary-hover" aria-hidden="true">
+                      {p.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="truncate text-[13px] font-semibold text-foreground">{p.name}</span>
+                        <span className="shrink-0 text-xxs text-muted-foreground">{p.author}</span>
+                      </div>
+                      <div className="mt-0.5 truncate text-xxs text-muted-foreground">{p.desc}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isInstalled(p) ? 'outline' : 'primary'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePlugin(p.id);
+                      }}
+                      aria-pressed={isInstalled(p)}
+                      aria-label={`${isInstalled(p) ? 'Uninstall' : 'Install'} ${p.name}`}
+                      className="h-7 shrink-0 px-3 text-xxs"
+                    >
+                      {isInstalled(p) ? 'Installed' : 'Install'}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Play-style detail dialog */}
+          <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
+            <DialogContent className="max-w-md">
+              {detail && (
+                <>
+                  <DialogHeader>
+                    <div className="mb-2 flex items-center gap-4">
+                      <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-primary/15 font-mono text-3xl text-primary" aria-hidden="true">
+                        {detail.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <DialogTitle className="text-base">{detail.name}</DialogTitle>
+                        <DialogDescription className="mt-0.5">
+                          by {detail.author} · <span className="font-mono">{detail.category}</span>
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  <p className="text-[13px] leading-relaxed text-subtle-foreground">{detail.desc}</p>
+
+                  <Button
+                    className="w-full"
+                    variant={isInstalled(detail) ? 'outline' : 'primary'}
+                    onClick={() => onTogglePlugin(detail.id)}
+                    aria-pressed={isInstalled(detail)}
+                  >
+                    {isInstalled(detail) ? (
+                      <>
+                        <Check className="size-4" /> Installed — tap to remove
+                      </>
+                    ) : (
+                      'Install'
+                    )}
+                  </Button>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
       )}
+
       {tab === 'packs' && (
         <div className="flex flex-col gap-2">
           <PackMarketplace />
@@ -46,44 +268,5 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
         </div>
       )}
     </div>
-  );
-}
-
-function PluginCard({ plugin, onToggle }: { plugin: PluginInfo & { installed: boolean }; onToggle: () => void }) {
-  return (
-    <Card className="flex flex-col gap-3 p-5 transition-colors hover:border-border-strong">
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-mono text-[15px] text-primary-hover"
-            aria-hidden="true"
-          >
-            {plugin.icon}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-semibold text-foreground">{plugin.name}</div>
-            <div className="text-xxs text-muted-foreground">by {plugin.author}</div>
-          </div>
-        </div>
-        <Button
-          size="sm"
-          variant={plugin.installed ? 'outline' : 'primary'}
-          onClick={onToggle}
-          aria-pressed={plugin.installed}
-          aria-label={`${plugin.installed ? 'Uninstall' : 'Install'} ${plugin.name}`}
-          className="h-7 shrink-0 px-3 text-xxs"
-        >
-          {plugin.installed ? 'Installed' : 'Install'}
-        </Button>
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{plugin.desc}</p>
-      <div className="flex items-center gap-3 text-xxs text-muted-foreground">
-        <span>↓ {plugin.downloads}</span>
-        <span>★ {plugin.rating}</span>
-        <Badge variant="secondary" className="rounded font-mono text-[10.5px]">
-          {plugin.category}
-        </Badge>
-      </div>
-    </Card>
   );
 }

@@ -1,6 +1,7 @@
 /**
- * Shared Modulo branding — the four-square logo mark and the feature icon set
- * used by the landing page (Home) and the auth screens (LoginPage, AuthScreen).
+ * Shared Modulo branding — the percent-sign logo mark (a nod to the modulo
+ * operation) and the feature icon set used by the landing page (Home) and
+ * the auth screens (LoginPage, AuthScreen).
  *
  * Everything renders with `currentColor` so color comes from Tailwind token
  * classes at the call site (e.g. `text-primary`, `text-success`) and follows
@@ -12,14 +13,13 @@ export interface BrandIconProps {
   className?: string;
 }
 
-/** The Modulo four-square logo mark. Color it with `text-primary`. */
+/** The Modulo percent-sign logo mark (a % — modulo). Color it with `text-primary`. */
 export function ModuloMark({ size = 28, className }: BrandIconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 22 22" fill="none" className={className} aria-hidden="true">
-      <rect x={1} y={1} width={9} height={9} rx={2} fill="currentColor" />
-      <rect x={12} y={1} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={1} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={12} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.7} />
+      <line x1={5} y1={17.5} x2={17} y2={4.5} stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+      <circle cx={6.2} cy={6.2} r={3.4} fill="currentColor" />
+      <circle cx={15.8} cy={15.8} r={3.4} fill="currentColor" opacity={0.7} />
     </svg>
   );
 }

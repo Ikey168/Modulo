@@ -22,6 +22,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  EmptyState,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -38,6 +39,7 @@ import { NotesView } from './NotesView';
 import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
+import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
 import { useCoreWorkspace } from './useCoreWorkspace';
 
 // Heavy React Flow editor loads on demand when the Blueprints view is opened.
@@ -67,14 +69,13 @@ const NAV_LABELS: Record<NavTarget, string> = {
 // Plugins & blueprints are the product's center of gravity; notes follow.
 const NAV_ORDER: NavTarget[] = ['dashboard', 'marketplace', 'blueprints', 'notes', 'graph'];
 
-/** Modulo brand mark (icon only), tinted by the primary token. */
+/** Modulo percent-sign brand mark (icon only), tinted by the primary token. */
 function ModuloMark({ className }: { className?: string }) {
   return (
     <svg width={22} height={22} viewBox="0 0 22 22" fill="none" className={cn('shrink-0 text-primary', className)} aria-hidden="true">
-      <rect x={1} y={1} width={9} height={9} rx={2} fill="currentColor" />
-      <rect x={12} y={1} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={1} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
-      <rect x={12} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.7} />
+      <line x1={5} y1={17.5} x2={17} y2={4.5} stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+      <circle cx={6.2} cy={6.2} r={3.4} fill="currentColor" />
+      <circle cx={15.8} cy={15.8} r={3.4} fill="currentColor" opacity={0.7} />
     </svg>
   );
 }
@@ -117,7 +118,17 @@ export default function Workspace() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [installed, setInstalled] = useState<Set<string>>(new Set(['mermaid', 'github-sync']));
+  // Client-side install state, persisted so uninstalling a view plugin (e.g.
+  // the Knowledge Graph) survives reloads. Graph ships pre-installed.
+  const [installed, setInstalled] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('modulo-plugins');
+      if (stored) return new Set(JSON.parse(stored) as string[]);
+    } catch {
+      /* corrupted storage falls through to defaults */
+    }
+    return new Set(['mermaid', 'github-sync', GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID]);
+  });
   const [navOpen, setNavOpen] = useState(false);
 
   // Default the selection to the first note once data loads.
@@ -163,8 +174,21 @@ export default function Workspace() {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      try {
+        localStorage.setItem('modulo-plugins', JSON.stringify([...next]));
+      } catch {
+        /* storage full/unavailable: state still applies for this session */
+      }
       return next;
     });
+
+  // The Graph view is provided by an installable plugin; hide its nav entry
+  // (and gate the view below) while the plugin is not installed.
+  const graphInstalled = installed.has(GRAPH_PLUGIN_ID);
+  const notesInstalled = installed.has(NOTES_PLUGIN_ID);
+  const navItems = NAV_ORDER.filter(
+    (t) => (t !== 'graph' || graphInstalled) && (t !== 'notes' || notesInstalled),
+  );
 
   const userLabel = user?.name || user?.email || 'Account';
   const userSub = user?.name && user?.email ? user.email : undefined;
@@ -195,7 +219,7 @@ export default function Workspace() {
               <SheetDescription className="sr-only">Workspace navigation</SheetDescription>
             </SheetHeader>
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" aria-label="Workspace">
-              {NAV_ORDER.map((target) => {
+              {navItems.map((target) => {
                 const Icon = NAV_ICONS[target];
                 return (
                   <NavItem
@@ -224,7 +248,7 @@ export default function Workspace() {
           <ModuloMark />
         </div>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-2" aria-label="Workspace">
-          {NAV_ORDER.map((target) => (
+          {navItems.map((target) => (
             <RailItem
               key={target}
               active={target === view}
@@ -264,7 +288,7 @@ export default function Workspace() {
 
       {/* Main */}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {view === 'notes' && (
+        {view === 'notes' && notesInstalled && (
           <NotesView
             data={data}
             selectedId={selectedId}
@@ -276,8 +300,38 @@ export default function Workspace() {
             onNewNote={handleNewNote}
           />
         )}
-        {view === 'graph' && (
+        {view === 'notes' && !notesInstalled && (
+          <div className="flex flex-1 items-center justify-center p-8">
+            <EmptyState
+              icon={<FileText className="size-5" />}
+              title="Markdown Notes is not installed"
+              description="The notes editor is provided by the Markdown Notes plugin. Install it from the marketplace to write and link notes."
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => togglePlugin(NOTES_PLUGIN_ID)}>Install plugin</Button>
+                  <Button size="sm" variant="outline" onClick={() => goTo('marketplace')}>Open marketplace</Button>
+                </div>
+              }
+            />
+          </div>
+        )}
+        {view === 'graph' && graphInstalled && (
           <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
+        )}
+        {view === 'graph' && !graphInstalled && (
+          <div className="flex flex-1 items-center justify-center p-8">
+            <EmptyState
+              icon={<Waypoints className="size-5" />}
+              title="Knowledge Graph is not installed"
+              description="The graph view is provided by the Knowledge Graph plugin. Install it from the marketplace to explore your notes visually."
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => togglePlugin(GRAPH_PLUGIN_ID)}>Install plugin</Button>
+                  <Button size="sm" variant="outline" onClick={() => goTo('marketplace')}>Open marketplace</Button>
+                </div>
+              }
+            />
+          </div>
         )}
         {view === 'dashboard' && (
           <DashboardView notes={data.notes} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} onOpenBlueprints={() => goTo('blueprints')} onOpenMarketplace={() => goTo('marketplace')} />
