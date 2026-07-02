@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarDays } from 'lucide-react';
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -15,21 +16,7 @@ import {
   SelectValue,
   Textarea,
 } from '@/ui';
-
-interface Task {
-  id?: number;
-  title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'BLOCKED' | 'ON_HOLD';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  dueDate?: string;
-  startDate?: string;
-  estimatedDurationMinutes?: number;
-  progressPercentage: number;
-  tags?: string;
-  googleCalendarEventId?: string;
-  syncWithGoogleCalendar?: boolean;
-}
+import type { Task, TaskDraft, TaskPriority, TaskStatus } from './types';
 
 interface Note {
   id: number;
@@ -53,7 +40,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   onCancel,
   isEditing = false
 }) => {
-  const [formData, setFormData] = useState<Task>({
+  const [formData, setFormData] = useState<TaskDraft>({
     title: '',
     description: '',
     status: 'TODO',
@@ -102,13 +89,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
 
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked :
-              type === 'number' ? parseInt(value) || 0 :
-              value
+      [name]: type === 'number' || type === 'range' ? parseInt(value) || 0 : value
     }));
   };
 
@@ -262,7 +246,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             </Label>
             <Select
               value={formData.status}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Task['status'] }))}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as TaskStatus }))}
             >
               <SelectTrigger id="status">
                 <SelectValue />
@@ -284,7 +268,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             </Label>
             <Select
               value={formData.priority}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as Task['priority'] }))}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as TaskPriority }))}
             >
               <SelectTrigger id="priority">
                 <SelectValue />
@@ -310,7 +294,6 @@ const TaskForm: React.FC<TaskFormProps> = ({
               name="startDate"
               value={formData.startDate}
               onChange={handleInputChange}
-              className="[color-scheme:dark]"
             />
           </div>
 
@@ -324,7 +307,6 @@ const TaskForm: React.FC<TaskFormProps> = ({
               name="dueDate"
               value={formData.dueDate}
               onChange={handleInputChange}
-              className="[color-scheme:dark]"
             />
           </div>
         </div>
@@ -386,12 +368,12 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
         <div className="flex flex-col gap-1.5">
           <label className="flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               name="syncWithGoogleCalendar"
-              checked={formData.syncWithGoogleCalendar}
-              onChange={handleInputChange}
-              className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
+              checked={formData.syncWithGoogleCalendar ?? false}
+              onCheckedChange={(checked) =>
+                setFormData(prev => ({ ...prev, syncWithGoogleCalendar: checked === true }))
+              }
             />
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-4" /> Sync with Google Calendar
@@ -410,11 +392,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <div className="max-h-[150px] overflow-y-auto rounded-md border border-border bg-surface-2 p-2">
               {availableNotes.map(note => (
                 <label key={note.id} className="flex cursor-pointer items-center gap-2 rounded-md p-2 transition-colors hover:bg-surface-3">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedNoteIds.includes(note.id)}
-                    onChange={(e) => handleNoteSelection(note.id, e.target.checked)}
-                    className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
+                    onCheckedChange={(checked) => handleNoteSelection(note.id, checked === true)}
                   />
                   <span className="flex-1 text-[13px] text-subtle-foreground">{note.title}</span>
                 </label>

@@ -7,7 +7,6 @@ import { ThemeProvider } from './themes/ThemeContext';
 import { Toaster, TooltipProvider } from '@/ui';
 import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
-import Dashboard from './features/dashboard/Dashboard';
 import Contracts from './features/contracts/Contracts';
 import About from './features/about/About';
 import Settings from './features/settings/Settings';
@@ -112,16 +111,6 @@ function App() {
             <Route path="/notes" element={<Navigate to="/app/notes" replace />} />
             <Route path="/notes-graph" element={<Navigate to="/app/graph" replace />} />
             <Route path="/plugins/marketplace" element={<Navigate to="/app/marketplace" replace />} />
-            <Route
-              path="/legacy/dashboard"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
             <Route
               path="/contracts"
               element={

@@ -45,7 +45,7 @@ export const mobileOidcConfig: UserManagerSettings = {
   
   // Security settings optimized for mobile
   filterProtocolClaims: true,
-  clockSkew: 300, // 5 minutes tolerance for mobile time sync issues
+  clockSkewInSeconds: 300, // 5 minutes tolerance for mobile time sync issues
   
   // Use sessionStorage instead of localStorage for mobile security
   userStore: {
@@ -58,8 +58,9 @@ export const mobileOidcConfig: UserManagerSettings = {
       return Promise.resolve(item ? JSON.parse(item) : null);
     },
     remove: (key: string) => {
+      const item = sessionStorage.getItem(key);
       sessionStorage.removeItem(key);
-      return Promise.resolve();
+      return Promise.resolve(item);
     },
     getAllKeys: () => {
       const keys = [];

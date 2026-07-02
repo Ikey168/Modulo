@@ -1,24 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, Check, Link2, Rocket, Trash2 } from 'lucide-react';
-import { Badge, Button, EmptyState, Spinner, cn, type BadgeProps } from '@/ui';
-
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'BLOCKED' | 'ON_HOLD';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  dueDate?: string;
-  startDate?: string;
-  completionDate?: string;
-  estimatedDurationMinutes?: number;
-  progressPercentage: number;
-  isOverdue?: boolean;
-  isDueToday?: boolean;
-  linkedNotes?: any[];
-  tags?: string;
-  googleCalendarEventId?: string;
-}
+import { CalendarDays, Check, Link2, ListTodo, Rocket, Trash2 } from 'lucide-react';
+import { Badge, Button, Card, Checkbox, EmptyState, Progress, Spinner, cn } from '@/ui';
+import type { Task } from './types';
+import { getPriorityMeta, getStatusMeta } from './taskMeta';
 
 interface TaskListProps {
   userId: number;
@@ -32,6 +16,15 @@ interface TaskListProps {
   onTaskUpdate?: (task: Task) => void;
   onTaskSelect?: (task: Task) => void;
 }
+
+/** Enter/Space activation for role="button" containers; ignores bubbled events from nested controls. */
+const activateOnKey = (e: React.KeyboardEvent<HTMLElement>, action: () => void) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    action();
+  }
+};
 
 const TaskList: React.FC<TaskListProps> = ({
   userId,
@@ -159,27 +152,6 @@ const TaskList: React.FC<TaskListProps> = ({
     });
   };
 
-  const getStatusBadgeVariant = (status: string): BadgeProps['variant'] => {
-    switch (status) {
-      case 'COMPLETED': return 'success';
-      case 'IN_PROGRESS': return 'warning';
-      case 'BLOCKED': return 'destructive';
-      case 'ON_HOLD': return 'info';
-      case 'CANCELLED': return 'secondary';
-      default: return 'outline';
-    }
-  };
-
-  const getPriorityBadgeVariant = (priority: string): BadgeProps['variant'] => {
-    switch (priority) {
-      case 'URGENT': return 'destructive';
-      case 'HIGH': return 'warning';
-      case 'MEDIUM': return 'info';
-      case 'LOW': return 'success';
-      default: return 'secondary';
-    }
-  };
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -214,7 +186,7 @@ const TaskList: React.FC<TaskListProps> = ({
     <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
       {tasks.length === 0 ? (
         <EmptyState
-          icon={<span className="text-3xl">📋</span>}
+          icon={<ListTodo />}
           title="No tasks found"
           description={
             noteId
@@ -226,31 +198,34 @@ const TaskList: React.FC<TaskListProps> = ({
         <div className="flex flex-col gap-3">
           {tasks.map(task => {
             const isCompleted = task.status === 'COMPLETED';
+            const statusMeta = getStatusMeta(task.status);
+            const priorityMeta = getPriorityMeta(task.priority);
             return (
-            <div
+            <Card
               key={task.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Edit task ${task.title}`}
+              onClick={() => onTaskSelect?.(task)}
+              onKeyDown={(e) => activateOnKey(e, () => onTaskSelect?.(task))}
               className={cn(
-                'cursor-pointer rounded-lg border border-border bg-surface p-4 shadow-sm transition-all',
+                'cursor-pointer p-4 transition-all',
                 'hover:border-border-strong hover:bg-surface-2 hover:shadow-md',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selectedTasks.has(task.id) && 'border-primary ring-2 ring-primary/30',
                 isCompleted && 'opacity-70',
                 task.status === 'BLOCKED' && 'border-l-4 border-l-destructive',
                 task.status === 'ON_HOLD' && 'border-l-4 border-l-warning'
               )}
-              onClick={() => onTaskSelect?.(task)}
             >
               <div className="mb-3 flex items-start gap-3">
-                <div className="pt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={selectedTasks.has(task.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleTaskSelection(task.id);
-                    }}
-                    className="size-[18px] cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
-                  />
-                </div>
+                <Checkbox
+                  checked={selectedTasks.has(task.id)}
+                  onCheckedChange={() => toggleTaskSelection(task.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Select task ${task.title}`}
+                  className="mt-1"
+                />
 
                 <div className="min-w-0 flex-1">
                   <h4 className="mb-1 text-[17px] font-semibold leading-tight text-foreground">{task.title}</h4>
@@ -260,11 +235,11 @@ const TaskList: React.FC<TaskListProps> = ({
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row">
-                  <Badge variant={getPriorityBadgeVariant(task.priority)} className="uppercase tracking-wide">
-                    {task.priority}
+                  <Badge variant={priorityMeta.badgeVariant} className="uppercase tracking-wide">
+                    {priorityMeta.label}
                   </Badge>
-                  <Badge variant={getStatusBadgeVariant(task.status)} className="uppercase tracking-wide">
-                    {task.status.replace('_', ' ')}
+                  <Badge variant={statusMeta.badgeVariant} className="uppercase tracking-wide">
+                    {statusMeta.label}
                   </Badge>
                 </div>
               </div>
@@ -291,12 +266,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
                 {task.progressPercentage > 0 && (
                   <div className="my-2 flex items-center gap-3">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
-                      <div
-                        className="h-full rounded-full bg-primary transition-[width] duration-300"
-                        style={{ width: `${task.progressPercentage}%` }}
-                      ></div>
-                    </div>
+                    <Progress value={task.progressPercentage} className="h-2 flex-1 bg-surface-3" />
                     <span className="min-w-[40px] text-right text-xs font-semibold text-muted-foreground">{task.progressPercentage}%</span>
                   </div>
                 )}
@@ -326,12 +296,14 @@ const TaskList: React.FC<TaskListProps> = ({
                       min="0"
                       max="100"
                       value={task.progressPercentage}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => {
                         e.stopPropagation();
                         updateTaskProgress(task.id, parseInt(e.target.value));
                       }}
                       className="max-w-[150px] flex-1 cursor-pointer accent-primary"
                       title="Update progress"
+                      aria-label={`Update progress for ${task.title}`}
                     />
 
                     <Button
@@ -343,6 +315,7 @@ const TaskList: React.FC<TaskListProps> = ({
                       }}
                       className="text-success hover:bg-success/15 hover:text-success"
                       title="Mark as complete"
+                      aria-label={`Mark ${task.title} as complete`}
                     >
                       <Check />
                     </Button>
@@ -358,11 +331,12 @@ const TaskList: React.FC<TaskListProps> = ({
                   }}
                   className="text-destructive hover:bg-destructive/15 hover:text-destructive"
                   title="Delete task"
+                  aria-label={`Delete task ${task.title}`}
                 >
                   <Trash2 />
                 </Button>
               </div>
-            </div>
+            </Card>
             );
           })}
         </div>
