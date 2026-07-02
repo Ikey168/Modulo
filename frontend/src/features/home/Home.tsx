@@ -1,17 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import './home.css';
-
-function ModuloMark({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 22 22" fill="none">
-      <rect x={1} y={1} width={9} height={9} rx={2} fill="#4f46e5" />
-      <rect x={12} y={1} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
-      <rect x={1} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
-      <rect x={12} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.7} />
-    </svg>
-  );
-}
+import { Button, Card } from '@/ui';
+import { ModuloMark, LinkIcon, GraphIcon, SyncIcon, AnchorIcon, PluginIcon, ShieldIcon } from './brand';
 
 interface Feature {
   title: string;
@@ -23,150 +13,138 @@ const FEATURES: Feature[] = [
   {
     title: 'Linked notes',
     desc: 'Write in Markdown and connect ideas with wiki-style [[links]] that build automatically.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <path d="M7 11l4-4M6.5 4.5l1-1a3 3 0 014 4l-1 1M11.5 13.5l-1 1a3 3 0 01-4-4l1-1" stroke="#818cf8" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <LinkIcon size={18} className="text-primary-hover" />,
   },
   {
     title: 'Knowledge graph',
     desc: 'See your entire network of notes as an interactive force-directed graph.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <circle cx={9} cy={9} r={2.4} stroke="#818cf8" strokeWidth={1.4} />
-        <circle cx={3} cy={3} r={1.6} stroke="#818cf8" strokeWidth={1.3} />
-        <circle cx={15} cy={4} r={1.6} stroke="#818cf8" strokeWidth={1.3} />
-        <circle cx={14} cy={15} r={1.6} stroke="#818cf8" strokeWidth={1.3} />
-        <path d="M7.2 7.2L4.2 4.2M10.9 7.6L13.4 5.2M10.6 10.6L13 13.6" stroke="#818cf8" strokeWidth={1.2} strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <GraphIcon size={18} className="text-primary-hover" />,
   },
   {
     title: 'Real-time sync',
     desc: 'Changes propagate live across every device over WebSocket, with offline support.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <path d="M3 9a6 6 0 0110-4.5M15 9a6 6 0 01-10 4.5" stroke="#818cf8" strokeWidth={1.4} strokeLinecap="round" />
-        <path d="M13 2.5V5h-2.5M5 15.5V13h2.5" stroke="#818cf8" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <SyncIcon size={18} className="text-primary-hover" />,
   },
   {
     title: 'On-chain anchoring',
     desc: 'Timestamp and prove authorship of any note on Ethereum, with IPFS content addressing.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <path d="M9 3v9M6 5.5L9 3l3 2.5" stroke="#22c55e" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M3 12v1.5A1.5 1.5 0 004.5 15h9a1.5 1.5 0 001.5-1.5V12" stroke="#22c55e" strokeWidth={1.4} strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <AnchorIcon size={18} className="text-success" />,
   },
   {
     title: 'Plugins',
     desc: 'Extend Modulo with renderers, integrations, and tools from the marketplace.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <path d="M3 6h3V3.5A1.5 1.5 0 017.5 2h0A1.5 1.5 0 019 3.5V6h3v3h2.5A1.5 1.5 0 0116 10.5h0A1.5 1.5 0 0114.5 12H12v3H3V6z" stroke="#818cf8" strokeWidth={1.3} strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <PluginIcon size={18} className="text-primary-hover" />,
   },
   {
     title: 'Flexible auth',
     desc: 'Sign in with Keycloak (OIDC), Google, Azure AD, or a MetaMask wallet.',
-    icon: (
-      <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <path d="M9 2l5 2v4c0 3.2-2.1 6-5 7-2.9-1-5-3.8-5-7V4l5-2z" stroke="#818cf8" strokeWidth={1.3} strokeLinejoin="round" />
-        <path d="M6.8 9l1.6 1.6L11.4 7.5" stroke="#818cf8" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <ShieldIcon size={18} className="text-primary-hover" />,
   },
 ];
 
+const navLinkClass = 'text-sm text-subtle-foreground transition-colors hover:text-foreground';
+
 const Home: React.FC = () => {
   return (
-    <div className="landing">
+    <div className="min-h-screen overflow-x-hidden bg-background font-sans text-sm text-foreground antialiased">
       {/* Top navigation */}
-      <header style={{ position: 'relative', zIndex: 1, maxWidth: 1080, margin: '0 auto', padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <ModuloMark size={26} />
-          <span style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-.4px' }}>Modulo</span>
+      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-7 py-5">
+        <div className="flex items-center gap-2.5">
+          <ModuloMark size={26} className="text-primary" />
+          <span className="text-lg font-semibold tracking-tight">Modulo</span>
         </div>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-          <a className="land-nav-link" href="https://github.com/Ikey168/Modulo" target="_blank" rel="noreferrer">GitHub</a>
-          <a className="land-nav-link" href="/about">About</a>
-          <Link to="/login" className="land-btn-ghost" style={{ padding: '8px 16px' }}>Sign in</Link>
+        <nav className="flex items-center gap-5">
+          <a className={navLinkClass} href="https://github.com/Ikey168/Modulo" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+          <Link className={navLinkClass} to="/about">
+            About
+          </Link>
+          <Button asChild variant="outline" size="md">
+            <Link to="/login">Sign in</Link>
+          </Button>
         </nav>
       </header>
 
       {/* Hero */}
-      <section style={{ position: 'relative', maxWidth: 760, margin: '0 auto', padding: '72px 28px 64px', textAlign: 'center' }}>
-        <div className="landing-glow" />
-        <div style={{ position: 'relative', zIndex: 1, animation: 'landFadeUp .4s ease' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 13px', borderRadius: 20, border: '1px solid #2a2a30', background: '#111114', fontSize: 12, color: '#a1a1aa', marginBottom: 26 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+      <section className="relative mx-auto max-w-3xl px-7 pb-16 pt-16 text-center md:pt-20">
+        {/* Ambient emerald glow behind the hero */}
+        <div className="pointer-events-none absolute -top-64 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+        <div className="relative z-10 animate-fade-up">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-xs text-subtle-foreground">
+            <span className="size-1.5 rounded-full bg-success" />
             Local-first knowledge, verifiable on-chain
           </div>
-          <h1 style={{ margin: '0 0 18px', fontSize: 52, lineHeight: 1.05, fontWeight: 600, letterSpacing: '-1.5px' }}>
+          <h1 className="mb-5 text-5xl font-semibold leading-[1.05] tracking-tight md:text-[52px]">
             Own your knowledge.
             <br />
-            <span style={{ color: '#818cf8' }}>Connect every idea.</span>
+            <span className="text-primary-hover">Connect every idea.</span>
           </h1>
-          <p style={{ margin: '0 auto 32px', maxWidth: 540, fontSize: 16, lineHeight: 1.65, color: '#a1a1aa' }}>
+          <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-subtle-foreground">
             Modulo is a decentralized knowledge-management workspace. Write linked Markdown notes,
             explore them as a graph, sync in real time, and anchor authorship on-chain.
           </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/app/notes" className="land-btn-primary">
-              Open Modulo
-              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-                <path d="M3 7.5h8M7 4l3.5 3.5L7 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-            <Link to="/login" className="land-btn-ghost">Sign in with Keycloak</Link>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg">
+              <Link to="/app/notes">
+                Open Modulo
+                <svg width={15} height={15} viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <path d="M3 7.5h8M7 4l3.5 3.5L7 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link to="/login">Sign in with Keycloak</Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '8px 28px 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+      <section className="mx-auto max-w-5xl px-7 pb-10 pt-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
           {FEATURES.map((f) => (
-            <div key={f.title} className="land-card">
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: '#16161a', border: '1px solid #2a2a30', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>
+            <Card key={f.title} className="bg-surface p-6 transition-all hover:-translate-y-0.5 hover:border-border-strong">
+              <div className="mb-4 flex size-10 items-center justify-center rounded-lg border border-border-strong bg-surface-2">
                 {f.icon}
               </div>
-              <h3 style={{ margin: '0 0 7px', fontSize: 15, fontWeight: 600, color: '#f4f4f5' }}>{f.title}</h3>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: '#71717a' }}>{f.desc}</p>
-            </div>
+              <h3 className="mb-1.5 text-base font-semibold text-foreground">{f.title}</h3>
+              <p className="m-0 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+            </Card>
           ))}
         </div>
       </section>
 
       {/* Closing CTA */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 28px 64px' }}>
-        <div style={{ background: 'linear-gradient(180deg, #131318, #0e0e12)', border: '1px solid #1e1e24', borderRadius: 16, padding: '48px 32px', textAlign: 'center' }}>
-          <h2 style={{ margin: '0 0 10px', fontSize: 28, fontWeight: 600, letterSpacing: '-.6px' }}>Start building your knowledge base</h2>
-          <p style={{ margin: '0 auto 26px', maxWidth: 460, fontSize: 15, lineHeight: 1.6, color: '#a1a1aa' }}>
+      <section className="mx-auto max-w-5xl px-7 pb-16 pt-10">
+        <div className="rounded-2xl border border-border bg-gradient-to-b from-surface-2 to-surface p-12 text-center">
+          <h2 className="mb-2.5 text-2xl font-semibold tracking-tight md:text-3xl">Start building your knowledge base</h2>
+          <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-subtle-foreground">
             Free your notes from silos. Create, link, and verify your ideas in one workspace.
           </p>
-          <Link to="/app/notes" className="land-btn-primary" style={{ padding: '12px 24px', fontSize: 15 }}>
-            Get started
-          </Link>
+          <Button asChild size="lg">
+            <Link to="/app/notes">Get started</Link>
+          </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid #1e1e24' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: '#52525b', fontSize: 13 }}>
-            <ModuloMark size={18} />
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-7 py-5">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ModuloMark size={18} className="text-primary" />
             <span>Modulo</span>
           </div>
-          <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
-            <a className="land-nav-link" href="/about">About</a>
-            <a className="land-nav-link" href="https://github.com/Ikey168/Modulo" target="_blank" rel="noreferrer">GitHub</a>
-            <a className="land-nav-link" href="/settings">Settings</a>
+          <div className="flex gap-5">
+            <Link className={navLinkClass} to="/about">
+              About
+            </Link>
+            <a className={navLinkClass} href="https://github.com/Ikey168/Modulo" target="_blank" rel="noreferrer">
+              GitHub
+            </a>
+            <Link className={navLinkClass} to="/settings">
+              Settings
+            </Link>
           </div>
         </div>
       </footer>

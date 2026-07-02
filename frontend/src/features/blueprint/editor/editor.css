@@ -1,51 +1,68 @@
-/* Blueprint React Flow editor (#274). Dark theme matching the workspace UI.
+/* Blueprint React Flow editor (#274).
  *
  * Only structural / React-Flow-scoped styling lives here — the toolbar, status
- * bar, palette, and consent screen are styled with Tailwind utilities on the
- * JSX. What remains targets elements React Flow renders (custom nodes, handles,
- * edges, canvas, minimap) that can't be reached with utility classes alone.
- * Every colour uses the dark palette (canvas #0a0a0b, panel #111114,
- * border #1e1e24 / #2a2a30, indigo #6366f1). */
+ * bar, palette, and consent dialog are styled with Tailwind utilities on the
+ * JSX. What remains targets elements React Flow renders (canvas, minimap,
+ * controls, edges, handles) that can't be reached with utility classes alone.
+ *
+ * Every colour is derived from the design-system tokens in src/styles/index.css
+ * via hsl(var(--token)), so the canvas follows the [data-theme] switches
+ * (dark default, light/blue/green/purple). React Flow 12 built-ins are themed
+ * through its --xy-* CSS variables, set from the same tokens below. */
 
-/* --- Canvas --- */
 .react-flow {
-  background: #0a0a0b;
+  /* --- React Flow built-ins → design tokens --- */
+  --xy-background-color: hsl(var(--background));
+  --xy-background-pattern-color: hsl(var(--border));
+  --xy-edge-stroke: hsl(var(--border-strong));
+  --xy-edge-stroke-selected: hsl(var(--primary-hover));
+  --xy-connectionline-stroke: hsl(var(--primary-hover));
+  --xy-selection-background-color: hsl(var(--primary) / 0.08);
+  --xy-selection-border: 1px dotted hsl(var(--primary) / 0.8);
+  --xy-handle-background-color: hsl(var(--muted-foreground));
+  --xy-handle-border-color: hsl(var(--background));
+  --xy-minimap-background-color: hsl(var(--surface));
+  --xy-minimap-mask-background-color: hsl(var(--background) / 0.7);
+  --xy-minimap-node-background-color: hsl(var(--border-strong));
+  --xy-controls-box-shadow: none;
+  --xy-controls-button-background-color: hsl(var(--surface-2));
+  --xy-controls-button-background-color-hover: hsl(var(--surface-3));
+  --xy-controls-button-color: hsl(var(--subtle-foreground));
+  --xy-controls-button-color-hover: hsl(var(--foreground));
+  --xy-controls-button-border-color: hsl(var(--border));
+  --xy-attribution-background-color: hsl(var(--surface) / 0.6);
+
+  /* --- Data-pin palette (consumed via pinTypeMeta() in categoryMeta.ts) ---
+     Types with a 1:1 semantic token use it directly; the rest start from the
+     nearest token here and get a distinct token-derived hue in the @supports
+     block below. */
+  --bp-pin-string: hsl(var(--info));
+  --bp-pin-number: hsl(var(--success));
+  --bp-pin-boolean: hsl(var(--destructive));
+  --bp-pin-note: hsl(var(--warning));
+  --bp-pin-note-list: hsl(var(--warning));
+  --bp-pin-tag: hsl(var(--primary));
+  --bp-pin-link: hsl(var(--info));
+  --bp-pin-user: hsl(var(--destructive));
+  --bp-pin-any: hsl(var(--muted-foreground));
 }
 
-.bp-minimap {
-  background: #111114 !important;
+/* Distinct hues for pin types without their own token, rotated from the tokens
+   so they still track the active theme (relative colour syntax; the block
+   above is the fallback — the visible type chip disambiguates regardless). */
+@supports (color: hsl(from red h s l)) {
+  .react-flow {
+    --bp-pin-number: hsl(from hsl(var(--success)) calc(h - 60) s l); /* lime */
+    --bp-pin-boolean: hsl(from hsl(var(--destructive)) calc(h - 30) s l); /* pink */
+    --bp-pin-note-list: hsl(from hsl(var(--warning)) calc(h - 12) s l); /* orange */
+    --bp-pin-tag: hsl(from hsl(var(--primary)) calc(h + 28) s l); /* violet */
+    --bp-pin-link: hsl(from hsl(var(--info)) calc(h - 45) s l); /* teal */
+  }
 }
 
-/* React Flow controls — recolour the default light buttons to the dark palette. */
-.react-flow__controls {
-  box-shadow: none;
-}
-.react-flow__controls-button {
-  background: #16161a;
-  border-bottom: 1px solid #1e1e24;
-  color: #a1a1aa;
-  fill: #a1a1aa;
-}
-.react-flow__controls-button:hover {
-  background: #1c1c22;
-}
-.react-flow__controls-button svg {
-  fill: currentColor;
-}
-
-/* MiniMap mask + node colours on the dark canvas. */
-.react-flow__minimap-mask {
-  fill: rgba(10, 10, 11, 0.7);
-}
-.react-flow__minimap-node {
-  fill: #2a2a30;
-}
-
-/* --- Custom node --- */
+/* --- Custom node (colours come from Tailwind classes in BlueprintNodeView) --- */
 .bp-node {
   min-width: 168px;
-  background: #111114;
-  border: 1px solid #2a2a30;
   border-radius: 8px;
   overflow: hidden;
   font-size: 12px;
@@ -55,8 +72,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 6px 10px;
-  color: #f4f4f5;
 }
 .bp-node__title { font-weight: 600; font-size: 12.5px; }
 .bp-node__category { font-size: 9.5px; text-transform: uppercase; opacity: 0.85; letter-spacing: 0.05em; }
@@ -65,9 +82,14 @@
   display: flex;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid #1e1e24;
+  border-bottom: 1px solid hsl(var(--border));
 }
-.bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; }
+/* position: relative anchors the exec-in handle to its row — without it the
+   React Flow handle (absolute, top 50%) centers on the whole node and droops
+   below the "in" label on nodes with several data pins. */
+.bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; position: relative; }
+/* Clear the exec-in handle diamond, which straddles the node's left border. */
+.bp-node__exec-in .bp-pin-label { padding-left: 14px; }
 
 .bp-node__data {
   display: flex;
@@ -86,47 +108,72 @@
   position: relative;
 }
 .bp-pin-row--out { justify-content: flex-end; }
-.bp-pin-label { color: #a1a1aa; font-size: 11px; white-space: nowrap; }
+.bp-pin-label { color: hsl(var(--subtle-foreground)); font-size: 11px; white-space: nowrap; }
+
+/* Non-colour affordance for a data pin's type (see pinTypeMeta). */
+.bp-pin-type {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 3px;
+  padding: 1px 3px;
+  white-space: nowrap;
+}
 
 /* React Flow handles */
 .bp-handle {
   width: 9px;
   height: 9px;
-  border: 1px solid #0a0a0b;
+  border: 1px solid hsl(var(--background));
 }
 .bp-handle--exec {
-  background: #f4f4f5;
+  background: hsl(var(--foreground));
   border-radius: 2px;
-  transform: rotate(45deg) translateY(-50%);
+}
+/* Center the exec diamonds on the node border. translate() runs before
+   rotate() so the offset is in page axes (the old rotate-first order pushed
+   the diamond diagonally into the label). */
+.bp-node__exec-in .bp-handle--exec {
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.bp-pin-row--out .bp-handle--exec {
+  left: auto;
+  right: 0;
+  top: 50%;
+  transform: translate(50%, -50%) rotate(45deg);
 }
 .bp-handle--data {
   border-radius: 50%;
 }
 
 /* Edges */
-.bp-edge-exec .react-flow__edge-path { stroke: #f4f4f5; stroke-width: 2; }
-.bp-edge-data .react-flow__edge-path { stroke: #6366f1; stroke-width: 1.6; }
+.bp-edge-exec .react-flow__edge-path { stroke: hsl(var(--foreground)); stroke-width: 2; }
+.bp-edge-data .react-flow__edge-path { stroke: hsl(var(--primary-hover)); stroke-width: 1.6; }
 
 /* Highlighted (run/debug) nodes */
 .bp-node-highlight .bp-node {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.6);
+  border-color: hsl(var(--primary-hover));
+  box-shadow: 0 0 0 2px hsl(var(--primary-hover) / 0.6);
 }
 
 /* Custom code node inline editor (#279) */
 .bp-node__code {
   padding: 6px 8px;
-  border-top: 1px solid #2a2a30;
+  border-top: 1px solid hsl(var(--border-strong));
 }
 
 .bp-code-textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #0a0a0b;
-  color: #818cf8;
-  border: 1px solid #2a2a30;
+  background: hsl(var(--background));
+  color: hsl(var(--primary-hover));
+  border: 1px solid hsl(var(--border-strong));
   border-radius: 4px;
-  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 11px;
   line-height: 1.5;
   padding: 4px 6px;
@@ -135,5 +182,5 @@
 }
 
 .bp-code-textarea:focus {
-  border-color: #6366f1;
+  border-color: hsl(var(--ring));
 }

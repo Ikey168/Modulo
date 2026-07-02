@@ -1,8 +1,8 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents } from '@react-sigma/core';
 import { DirectedGraph } from 'graphology';
 import { applyForceAtlas2Layout } from '../graphUtils';
+import { tokenColor } from '../theme/tokens';
 import { graphApi, Neighborhood } from './graphApi';
 import {
   GraphFilters,
@@ -12,9 +12,19 @@ import {
   saveView,
   deleteView,
 } from './savedViews';
-import { Button, Input, Select, Label } from '@/ui';
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+} from '@/ui';
 import { X } from 'lucide-react';
-import '@react-sigma/core/lib/react-sigma.min.css';
+import '@react-sigma/core/lib/style.css';
 
 interface Props {
   noteId: number;
@@ -22,19 +32,23 @@ interface Props {
   refreshKey?: number;
 }
 
-const CENTER_COLOR = '#ef4444';
-const NODE_COLOR = '#6366f1';
-const EDGE_COLOR = '#3f3f46';
+/** Node/edge palette resolved from design tokens at render time. */
+interface GraphPalette {
+  center: string;
+  node: string;
+  edge: string;
+  label: string;
+}
 
 /** Builds a graphology graph from a neighborhood response, applying the link-type filter. */
-function buildGraph(data: Neighborhood, linkTypes: string[]): DirectedGraph {
+function buildGraph(data: Neighborhood, linkTypes: string[], palette: GraphPalette): DirectedGraph {
   const graph = new DirectedGraph();
   data.nodes.forEach((n) => {
     const isCenter = n.id === data.center;
     graph.addNode(String(n.id), {
       label: n.title || `Note #${n.id}`,
       size: isCenter ? 16 : 11,
-      color: isCenter ? CENTER_COLOR : NODE_COLOR,
+      color: isCenter ? palette.center : palette.node,
       x: Math.random() * 100,
       y: Math.random() * 100,
     });
@@ -46,7 +60,7 @@ function buildGraph(data: Neighborhood, linkTypes: string[]): DirectedGraph {
     const s = String(e.source);
     const t = String(e.target);
     if (graph.hasNode(s) && graph.hasNode(t) && !graph.hasEdge(s, t)) {
-      graph.addDirectedEdge(s, t, { size: 1.5, color: EDGE_COLOR, type: e.type });
+      graph.addDirectedEdge(s, t, { size: 1.5, color: palette.edge, type: e.type });
     }
   });
   return graph;
@@ -73,7 +87,7 @@ const GraphLoader: React.FC<{ graph: DirectedGraph; onOpenNote: (id: number) => 
   return null;
 };
 
-/** #254 — focused local graph for the open note plus configurable filters / saved views. */
+/** issue 254 — focused local graph for the open note plus configurable filters / saved views. */
 const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => {
   const [data, setData] = useState<Neighborhood | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,9 +121,45 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
     return Array.from(types).sort();
   }, [data]);
 
+  // Resolved once per data refresh so canvas colors track the active theme.
+  const palette = useMemo<GraphPalette>(
+    () => ({
+      center: tokenColor('destructive'),
+      node: tokenColor('primary-hover'),
+      edge: tokenColor('border-strong'),
+      label: tokenColor('subtle-foreground'),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [refreshKey]
+  );
+
   const graph = useMemo(
-    () => (data ? buildGraph(data, filters.linkTypes) : new DirectedGraph()),
-    [data, filters.linkTypes]
+    () => (data ? buildGraph(data, filters.linkTypes, palette) : new DirectedGraph()),
+    [data, filters.linkTypes, palette]
+  );
+
+  const sigmaSettings = useMemo(
+    () => ({
+      defaultNodeColor: palette.node,
+      defaultEdgeColor: palette.edge,
+      labelSize: 11,
+      labelWeight: 'normal',
+      labelColor: { color: palette.label },
+      renderEdgeLabels: false,
+    }),
+    [palette]
+  );
+
+  const sigmaStyle = useMemo(
+    () =>
+      ({
+        height: '360px',
+        width: '100%',
+        // The vendor stylesheet paints the canvas white via this variable;
+        // repoint it at the panel surface token.
+        '--sigma-background-color': 'hsl(var(--surface))',
+      }) as React.CSSProperties,
+    []
   );
 
   const handleSaveView = () => {
@@ -131,12 +181,17 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           Depth
           <Select
-            value={filters.depth}
-            onChange={(e) => setFilters({ ...filters, depth: Number(e.target.value) })}
+            value={String(filters.depth)}
+            onValueChange={(val) => setFilters({ ...filters, depth: Number(val) })}
           >
-            <option value={1}>1 hop</option>
-            <option value={2}>2 hops</option>
-            <option value={3}>3 hops</option>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 hop</SelectItem>
+              <SelectItem value="2">2 hops</SelectItem>
+              <SelectItem value="3">3 hops</SelectItem>
+            </SelectContent>
           </Select>
         </label>
 
@@ -145,6 +200,7 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
             Link types
             <select
               multiple
+              aria-label="Filter by link types"
               value={filters.linkTypes}
               onChange={(e) =>
                 setFilters({
@@ -185,13 +241,16 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
                   className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-2"
                 >
                   <button
-                    className="px-2.5 py-1 text-xs text-subtle-foreground transition-colors hover:text-foreground"
+                    type="button"
+                    className="px-2.5 py-1 text-xs text-subtle-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => handleApplyView(v)}
                   >
                     {v.name}
                   </button>
                   <button
-                    className="flex items-center px-2 py-1 text-muted-foreground transition-colors hover:text-destructive"
+                    type="button"
+                    className="flex items-center px-2 py-1 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`Delete view ${v.name}`}
                     title="Delete view"
                     onClick={() => handleDeleteView(v.id)}
                   >
@@ -204,7 +263,11 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
         </div>
       </div>
 
-      {loading && <div className="p-3.5 text-[13px] text-muted-foreground">Loading local graph…</div>}
+      {loading && (
+        <div aria-busy="true" aria-label="Loading local graph">
+          <Skeleton className="h-[360px] w-full rounded-lg" />
+        </div>
+      )}
       {error && (
         <div className="flex items-center gap-2 p-3.5 text-[13px] text-destructive">
           {error}{' '}
@@ -220,16 +283,7 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
       )}
       {!loading && !error && graph.order > 1 && (
         <div className="overflow-hidden rounded-lg border border-border bg-surface">
-          <SigmaContainer
-            style={{ height: '360px', width: '100%' }}
-            settings={{
-              defaultNodeColor: NODE_COLOR,
-              defaultEdgeColor: EDGE_COLOR,
-              labelSize: 11,
-              labelWeight: 'normal',
-              renderEdgeLabels: false,
-            }}
-          >
+          <SigmaContainer style={sigmaStyle} settings={sigmaSettings}>
             <GraphLoader graph={graph} onOpenNote={onOpenNote} />
           </SigmaContainer>
         </div>

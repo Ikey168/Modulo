@@ -91,7 +91,7 @@ describe('validateIR — happy path', () => {
 
 describe('validateIR — schema errors', () => {
   it('rejects an unsupported IR version', () => {
-    const ir = { ...FULL_PIPELINE, irVersion: 99 as any };
+    const ir = { ...FULL_PIPELINE, irVersion: 99 as unknown as typeof IR_VERSION };
     const res = validateIR(ir, catalog);
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toMatch(/Unsupported IR version/);
@@ -214,21 +214,10 @@ describe('validateIR — connection validation errors', () => {
   });
 
   it('rejects mixing exec and data pin kinds in one edge', () => {
-    const ir: BlueprintIR = {
-      irVersion: IR_VERSION,
-      nodes: [
-        { id: 'n1', type: 'trigger.note.saved', nodeVersion: 1 },
-        { id: 'n2', type: 'action.tag.add', nodeVersion: 1 },
-      ],
-      edges: [
-        { id: 'e1', kind: 'exec', fromNode: 'n1', fromPin: 'then', toNode: 'n2', toPin: 'note' },
-      ],
-      metadata: { name: 'Kind mismatch', createdAt: '', updatedAt: '' },
-    };
     // exec -> data: the endpoints have the same kind ('exec') on both sides,
     // but 'note' as toPin will be fine for exec since execIn is only checked by boolean.
-    // Actually this IS valid because validateConnection(exec, exec) only checks execIn
-    // and from.execOut. Let's do the real kind-mismatch test: one side exec one side data.
+    // validateConnection(exec, exec) only checks execIn and from.execOut, so the
+    // real kind-mismatch test is an exec edge from a non-existent exec output.
     const ir2: BlueprintIR = {
       irVersion: IR_VERSION,
       nodes: [

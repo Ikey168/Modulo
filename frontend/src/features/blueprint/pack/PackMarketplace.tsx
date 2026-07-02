@@ -58,7 +58,7 @@ export default function PackMarketplace() {
   return (
     <div className="mt-8 border-t border-border pt-6">
       <div className="mb-4">
-        <h2 className="m-0 mb-1 text-[1.1rem] font-semibold text-foreground">Packs</h2>
+        <h2 className="m-0 mb-1 text-[1.1rem] font-semibold text-foreground">Browse packs</h2>
         <p className="m-0 text-xs text-muted-foreground">Community-published blueprint packs distributed via IPFS</p>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
@@ -72,7 +72,7 @@ export default function PackMarketplace() {
               className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong"
             >
               <div className="flex items-center gap-2.5">
-                <div className="flex size-[34px] shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 text-sm font-semibold text-indigo-400">
+                <div className="flex size-[34px] shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 text-sm font-semibold text-primary-hover">
                   {(pack.name ?? pack.packId).charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">

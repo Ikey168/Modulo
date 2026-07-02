@@ -1,53 +1,120 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  clockIcon, 
-  checkIcon, 
-  xIcon, 
-  eyeIcon, 
-  uploadIcon,
-  refreshIcon
-} from '../components/Icons';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Clock,
+  Eye,
+  RefreshCw,
+  Upload,
+  X,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Separator,
+  Skeleton,
+  cn,
+  useToast,
+  type BadgeProps,
+} from '@/ui';
 import { submissionService, PluginSubmission as ImportedPluginSubmission } from '../services/SubmissionService';
-import '../styles/MySubmissions.css';
 
 type PluginSubmission = ImportedPluginSubmission;
 
-const STATUS_CONFIG = {
-  PENDING_REVIEW: {
-    label: 'Pending Review',
-    color: '#f59e0b',
-    bgColor: '#fef3c7',
-    icon: clockIcon
-  },
-  IN_REVIEW: {
-    label: 'In Review',
-    color: '#3b82f6',
-    bgColor: '#dbeafe',
-    icon: eyeIcon
-  },
-  APPROVED: {
-    label: 'Approved',
-    color: '#10b981',
-    bgColor: '#d1fae5',
-    icon: checkIcon
-  },
-  REJECTED: {
-    label: 'Rejected',
-    color: '#ef4444',
-    bgColor: '#fee2e2',
-    icon: xIcon
-  },
-  PUBLISHED: {
-    label: 'Published',
-    color: '#8b5cf6',
-    bgColor: '#ede9fe',
-    icon: checkIcon
-  }
+interface StatusConfig {
+  label: string;
+  variant: NonNullable<BadgeProps['variant']>;
+  icon: LucideIcon;
+}
+
+/** Single status → Badge-variant map; tokens only, works in light and dark themes. */
+const STATUS_CONFIG: Record<string, StatusConfig> = {
+  PENDING_REVIEW: { label: 'Pending Review', variant: 'warning', icon: Clock },
+  IN_REVIEW: { label: 'In Review', variant: 'info', icon: Eye },
+  APPROVED: { label: 'Approved', variant: 'success', icon: CheckCircle2 },
+  REJECTED: { label: 'Rejected', variant: 'destructive', icon: XCircle },
+  PUBLISHED: { label: 'Published', variant: 'secondary', icon: CheckCircle2 },
 };
+
+const statusConfigFor = (status: string): StatusConfig =>
+  STATUS_CONFIG[status] ?? { label: status, variant: 'outline', icon: Clock };
+
+function StatusBadge({ status }: { status: string }) {
+  const { label, variant, icon: Icon } = statusConfigFor(status);
+  return (
+    <Badge variant={variant}>
+      <Icon className="size-3" aria-hidden="true" />
+      {label}
+    </Badge>
+  );
+}
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+/** Ordered list of lifecycle timestamps present on a submission. */
+const timelineOf = (submission: PluginSubmission): Array<{ label: string; date: string }> => {
+  const entries = [{ label: 'Submitted', date: submission.submittedAt }];
+  if (submission.reviewStartedAt) entries.push({ label: 'Review Started', date: submission.reviewStartedAt });
+  if (submission.approvedAt) entries.push({ label: 'Approved', date: submission.approvedAt });
+  if (submission.rejectedAt) entries.push({ label: 'Rejected', date: submission.rejectedAt });
+  if (submission.publishedAt) entries.push({ label: 'Published', date: submission.publishedAt });
+  return entries;
+};
+
+function ValidationCheck({ label, passed }: { label: string; passed: boolean }) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1.5 text-xs font-medium',
+        passed ? 'text-success' : 'text-destructive',
+      )}
+    >
+      {passed ? <Check className="size-3.5" aria-hidden="true" /> : <X className="size-3.5" aria-hidden="true" />}
+      <span>
+        {label} {passed ? 'passed' : 'failed'}
+      </span>
+    </div>
+  );
+}
 
 export default function MySubmissions() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [submissions, setSubmissions] = useState<PluginSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +125,16 @@ export default function MySubmissions() {
 
   useEffect(() => {
     fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSubmissions = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await submissionService.getSubmissionsByDeveloper(userEmail);
-      
+
       if (result.data) {
         setSubmissions(result.data);
       } else {
@@ -82,9 +150,9 @@ export default function MySubmissions() {
 
   const handleResubmit = (submission: PluginSubmission) => {
     // Navigate to submission form with pre-filled data for resubmission
-    navigate('/plugins/submit', { 
-      state: { 
-        resubmit: true, 
+    navigate('/plugins/submit', {
+      state: {
+        resubmit: true,
         submissionId: submission.submissionId,
         formData: {
           pluginName: submission.pluginName,
@@ -92,9 +160,9 @@ export default function MySubmissions() {
           description: submission.description,
           category: submission.category,
           developerName: submission.developerName,
-          developerEmail: submission.developerEmail
-        }
-      } 
+          developerEmail: submission.developerEmail,
+        },
+      },
     });
   };
 
@@ -107,310 +175,249 @@ export default function MySubmissions() {
       const result = await submissionService.deleteSubmission(submissionId);
 
       if (!result.error) {
-        setSubmissions(submissions.filter(s => s.submissionId !== submissionId));
+        setSubmissions(submissions.filter((s) => s.submissionId !== submissionId));
+        toast({ title: 'Submission deleted', description: 'The submission has been removed.' });
       } else {
-        alert(result.error);
+        toast({ variant: 'destructive', title: 'Delete failed', description: result.error });
       }
     } catch (err) {
       console.error('Error deleting submission:', err);
-      alert('Failed to delete submission. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: 'Failed to delete submission. Please try again.',
+      });
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  if (loading) {
-    return (
-      <div className="my-submissions">
-        <div className="submissions-container">
-          <div className="loading-state">
-            <div className="loading-spinner large"></div>
-            <p>Loading your submissions...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="my-submissions">
-        <div className="submissions-container">
-          <div className="error-state">
-            <div className="error-icon">{xIcon}</div>
-            <h3>Failed to Load Submissions</h3>
-            <p>{error}</p>
-            <button className="btn btn-primary" onClick={fetchSubmissions}>
-              {refreshIcon}
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="my-submissions">
-      <div className="submissions-container">
-        <div className="submissions-header">
-          <div className="header-content">
-            <h1>My Plugin Submissions</h1>
-            <p>Track the status of your submitted plugins and manage resubmissions.</p>
+    <div className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-4xl animate-fade-in space-y-6">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Plugin Submissions</h1>
+            <p className="text-[13px] text-muted-foreground">
+              Track the status of your submitted plugins and manage resubmissions.
+            </p>
           </div>
-          <div className="header-actions">
-            <button className="btn btn-outline" onClick={fetchSubmissions}>
-              {refreshIcon}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchSubmissions} disabled={loading}>
+              <RefreshCw aria-hidden="true" />
               Refresh
-            </button>
-            <button className="btn btn-primary" onClick={() => navigate('/plugins/submit')}>
-              {uploadIcon}
+            </Button>
+            <Button onClick={() => navigate('/plugins/submit')}>
+              <Upload aria-hidden="true" />
               Submit New Plugin
-            </button>
+            </Button>
           </div>
-        </div>
+        </header>
 
-        {submissions.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">{uploadIcon}</div>
-            <h3>No Submissions Yet</h3>
-            <p>You haven't submitted any plugins yet. Share your work with the Modulo community!</p>
-            <button className="btn btn-primary" onClick={() => navigate('/plugins/submit')}>
-              Submit Your First Plugin
-            </button>
+        {loading ? (
+          <div className="space-y-4" aria-busy="true" aria-label="Loading your submissions">
+            {[0, 1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex-row items-start justify-between space-y-0">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-3.5 w-28" />
+                  </div>
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Failed to Load Submissions</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={fetchSubmissions}>
+                <RefreshCw aria-hidden="true" />
+                Try Again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : submissions.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Upload aria-hidden="true" />}
+              title="No Submissions Yet"
+              description="You haven't submitted any plugins yet. Share your work with the Modulo community!"
+              action={<Button onClick={() => navigate('/plugins/submit')}>Submit Your First Plugin</Button>}
+            />
+          </Card>
         ) : (
-          <div className="submissions-list">
-            {submissions.map((submission) => {
-              const statusConfig = STATUS_CONFIG[submission.status as keyof typeof STATUS_CONFIG];
-              
-              return (
-                <div key={submission.submissionId} className="submission-card">
-                  <div className="submission-header">
-                    <div className="submission-info">
-                      <h3>{submission.pluginName}</h3>
-                      <p className="version">v{submission.version}</p>
-                      <div className="submission-meta">
-                        <span className="category">{submission.category || 'Uncategorized'}</span>
-                        <span className="file-size">{formatFileSize(submission.fileSize)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="submission-status">
-                      <div 
-                        className="status-badge"
-                        style={{ 
-                          color: statusConfig?.color || '#6b7280',
-                          backgroundColor: statusConfig?.bgColor || '#f3f4f6'
-                        }}
-                      >
-                        {statusConfig?.icon}
-                        {statusConfig?.label || submission.status}
-                      </div>
+          <div className="space-y-4">
+            {submissions.map((submission) => (
+              <Card key={submission.submissionId}>
+                <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="text-base">
+                      {submission.pluginName}{' '}
+                      <span className="font-normal text-muted-foreground">v{submission.version}</span>
+                    </CardTitle>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>{submission.category || 'Uncategorized'}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{formatFileSize(submission.fileSize)}</span>
                     </div>
                   </div>
+                  <StatusBadge status={submission.status} />
+                </CardHeader>
 
-                  <div className="submission-description">
-                    <p>{submission.description}</p>
+                <CardContent className="space-y-4">
+                  <p className="text-[13px] text-muted-foreground">{submission.description}</p>
+
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                    {timelineOf(submission).map(({ label, date }) => (
+                      <span key={label}>
+                        <span className="font-medium text-foreground">{label}:</span> {formatDate(date)}
+                      </span>
+                    ))}
                   </div>
 
-                  <div className="submission-timeline">
-                    <div className="timeline-item">
-                      <strong>Submitted:</strong> {formatDate(submission.submittedAt)}
-                    </div>
-                    {submission.reviewStartedAt && (
-                      <div className="timeline-item">
-                        <strong>Review Started:</strong> {formatDate(submission.reviewStartedAt)}
-                      </div>
-                    )}
-                    {submission.approvedAt && (
-                      <div className="timeline-item">
-                        <strong>Approved:</strong> {formatDate(submission.approvedAt)}
-                      </div>
-                    )}
-                    {submission.rejectedAt && (
-                      <div className="timeline-item">
-                        <strong>Rejected:</strong> {formatDate(submission.rejectedAt)}
-                      </div>
-                    )}
-                    {submission.publishedAt && (
-                      <div className="timeline-item">
-                        <strong>Published:</strong> {formatDate(submission.publishedAt)}
-                      </div>
-                    )}
+                  <div className="flex flex-wrap gap-4">
+                    <ValidationCheck label="Security Check" passed={submission.securityCheckPassed} />
+                    <ValidationCheck label="Compatibility Check" passed={submission.compatibilityCheckPassed} />
                   </div>
 
-                  {/* Validation Status */}
-                  <div className="validation-status">
-                    <div className="validation-checks">
-                      <div className={`check-item ${submission.securityCheckPassed ? 'passed' : 'failed'}`}>
-                        {submission.securityCheckPassed ? checkIcon : xIcon}
-                        <span>Security Check</span>
-                      </div>
-                      <div className={`check-item ${submission.compatibilityCheckPassed ? 'passed' : 'failed'}`}>
-                        {submission.compatibilityCheckPassed ? checkIcon : xIcon}
-                        <span>Compatibility Check</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Review Notes */}
                   {submission.reviewNotes && (
-                    <div className="review-notes">
-                      <h4>Review Notes:</h4>
-                      <p>{submission.reviewNotes}</p>
-                    </div>
+                    <Alert variant="info">
+                      <AlertCircle className="size-4" />
+                      <AlertTitle>Review Notes</AlertTitle>
+                      <AlertDescription>{submission.reviewNotes}</AlertDescription>
+                    </Alert>
                   )}
 
-                  {/* Validation Errors */}
                   {submission.validationErrors && (
-                    <div className="validation-errors">
-                      <h4>Validation Errors:</h4>
-                      <p>{submission.validationErrors}</p>
-                    </div>
+                    <Alert variant="destructive">
+                      <XCircle className="size-4" />
+                      <AlertTitle>Validation Errors</AlertTitle>
+                      <AlertDescription>{submission.validationErrors}</AlertDescription>
+                    </Alert>
                   )}
 
-                  {/* Validation Warnings */}
                   {submission.validationWarnings && (
-                    <div className="validation-warnings">
-                      <h4>Validation Warnings:</h4>
-                      <p>{submission.validationWarnings}</p>
-                    </div>
+                    <Alert variant="warning">
+                      <AlertTriangle className="size-4" />
+                      <AlertTitle>Validation Warnings</AlertTitle>
+                      <AlertDescription>{submission.validationWarnings}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+
+                <CardFooter className="flex flex-wrap gap-2 border-t border-border pt-4">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedSubmission(submission)}>
+                    <Eye aria-hidden="true" />
+                    View Details
+                  </Button>
+
+                  {submission.status === 'REJECTED' && (
+                    <Button variant="secondary" size="sm" onClick={() => handleResubmit(submission)}>
+                      <Upload aria-hidden="true" />
+                      Resubmit
+                    </Button>
                   )}
 
-                  <div className="submission-actions">
-                    <button 
-                      className="btn btn-outline"
-                      onClick={() => setSelectedSubmission(submission)}
+                  {submission.status === 'PUBLISHED' && (
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/plugins/marketplace?plugin=${submission.submissionId}`)}
                     >
-                      {eyeIcon}
-                      View Details
-                    </button>
-                    
-                    {submission.status === 'REJECTED' && (
-                      <button 
-                        className="btn btn-secondary"
-                        onClick={() => handleResubmit(submission)}
-                      >
-                        {uploadIcon}
-                        Resubmit
-                      </button>
-                    )}
-                    
-                    {submission.status === 'PUBLISHED' && (
-                      <button 
-                        className="btn btn-primary"
-                        onClick={() => navigate(`/plugins/marketplace?plugin=${submission.submissionId}`)}
-                      >
-                        View in Marketplace
-                      </button>
-                    )}
-                    
-                    {(submission.status === 'PENDING_REVIEW' || submission.status === 'REJECTED') && (
-                      <button 
-                        className="btn btn-danger"
-                        onClick={() => handleDelete(submission.submissionId)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                      View in Marketplace
+                    </Button>
+                  )}
+
+                  {(submission.status === 'PENDING_REVIEW' || submission.status === 'REJECTED') && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(submission.submissionId)}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         )}
 
-        {/* Submission Details Modal */}
-        {selectedSubmission && (
-          <div className="modal-overlay" onClick={() => setSelectedSubmission(null)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>{selectedSubmission.pluginName} v{selectedSubmission.version}</h2>
-                <button 
-                  className="modal-close"
-                  onClick={() => setSelectedSubmission(null)}
-                >
-                  {xIcon}
-                </button>
-              </div>
-              
-              <div className="modal-body">
-                <div className="detail-section">
-                  <h3>Submission Details</h3>
-                  <div className="detail-grid">
-                    <div className="detail-item">
-                      <strong>Submission ID:</strong>
-                      <span className="monospace">{selectedSubmission.submissionId}</span>
-                    </div>
-                    <div className="detail-item">
-                      <strong>Category:</strong>
-                      <span>{selectedSubmission.category || 'Uncategorized'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <strong>File Size:</strong>
-                      <span>{formatFileSize(selectedSubmission.fileSize)}</span>
-                    </div>
-                    <div className="detail-item">
-                      <strong>Checksum:</strong>
-                      <span className="monospace">{selectedSubmission.checksum}</span>
-                    </div>
+        {/* Submission details dialog */}
+        <Dialog
+          open={selectedSubmission !== null}
+          onOpenChange={(open) => {
+            if (!open) setSelectedSubmission(null);
+          }}
+        >
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+            {selectedSubmission && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>
+                    {selectedSubmission.pluginName} v{selectedSubmission.version}
+                  </DialogTitle>
+                  <DialogDescription>Full submission details and review timeline.</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-5 text-[13px]">
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">Submission Details</h3>
+                    <dl className="grid gap-3 rounded-lg border border-border bg-surface-2 p-4 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-muted-foreground">Submission ID</dt>
+                        <dd className="mt-0.5 break-all font-mono text-foreground">
+                          {selectedSubmission.submissionId}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Category</dt>
+                        <dd className="mt-0.5 text-foreground">
+                          {selectedSubmission.category || 'Uncategorized'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">File Size</dt>
+                        <dd className="mt-0.5 text-foreground">{formatFileSize(selectedSubmission.fileSize)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Checksum</dt>
+                        <dd className="mt-0.5 break-all font-mono text-foreground">
+                          {selectedSubmission.checksum}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">Description</h3>
+                    <p className="text-muted-foreground">{selectedSubmission.description}</p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">Timeline</h3>
+                    <ul className="space-y-1.5">
+                      {timelineOf(selectedSubmission).map(({ label, date }) => (
+                        <li key={label} className="text-muted-foreground">
+                          <span className="font-medium text-foreground">{label}:</span> {formatDate(date)}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-                
-                <div className="detail-section">
-                  <h3>Description</h3>
-                  <p>{selectedSubmission.description}</p>
-                </div>
-                
-                <div className="detail-section">
-                  <h3>Timeline</h3>
-                  <div className="timeline-details">
-                    <div className="timeline-item">
-                      <strong>Submitted:</strong> {formatDate(selectedSubmission.submittedAt)}
-                    </div>
-                    {selectedSubmission.reviewStartedAt && (
-                      <div className="timeline-item">
-                        <strong>Review Started:</strong> {formatDate(selectedSubmission.reviewStartedAt)}
-                      </div>
-                    )}
-                    {selectedSubmission.approvedAt && (
-                      <div className="timeline-item">
-                        <strong>Approved:</strong> {formatDate(selectedSubmission.approvedAt)}
-                      </div>
-                    )}
-                    {selectedSubmission.rejectedAt && (
-                      <div className="timeline-item">
-                        <strong>Rejected:</strong> {formatDate(selectedSubmission.rejectedAt)}
-                      </div>
-                    )}
-                    {selectedSubmission.publishedAt && (
-                      <div className="timeline-item">
-                        <strong>Published:</strong> {formatDate(selectedSubmission.publishedAt)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

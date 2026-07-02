@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { X } from 'lucide-react';
-import { Button, Textarea } from '@/ui';
+import { Button, Textarea, cn, useToast } from '@/ui';
 import { NoteComment, commentsApi } from './commentsApi';
 
 interface Props {
@@ -12,13 +12,18 @@ interface Props {
   users?: { id: string; name: string }[];
 }
 
+const MENTION_LISTBOX_ID = 'comment-mention-listbox';
+const mentionOptionId = (userId: string) => `comment-mention-option-${userId}`;
+
 const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = [] }) => {
   const [comments, setComments] = useState<NoteComment[]>([]);
   const [newContent, setNewContent] = useState('');
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [activeMentionIdx, setActiveMentionIdx] = useState(0);
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const loadComments = useCallback(async () => {
     try {
@@ -57,6 +62,7 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
     setNewContent(val);
     const mentionMatch = val.match(/@(\w*)$/);
     setMentionQuery(mentionMatch ? mentionMatch[1] : null);
+    setActiveMentionIdx(0);
   };
 
   const insertMention = (name: string) => {
@@ -64,6 +70,36 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
     setNewContent(val);
     setMentionQuery(null);
     textareaRef.current?.focus();
+  };
+
+  const filteredUsers = mentionQuery !== null
+    ? users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5)
+    : [];
+
+  const mentionListOpen = filteredUsers.length > 0;
+  const safeMentionIdx = Math.min(activeMentionIdx, Math.max(filteredUsers.length - 1, 0));
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!mentionListOpen) return;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveMentionIdx(i => Math.min(i + 1, filteredUsers.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveMentionIdx(i => Math.max(i - 1, 0));
+        break;
+      case 'Enter':
+      case 'Tab':
+        e.preventDefault();
+        insertMention(filteredUsers[safeMentionIdx].name);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setMentionQuery(null);
+        break;
+    }
   };
 
   const submitComment = async (e: React.FormEvent) => {
@@ -78,7 +114,7 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
       setNewContent('');
       setReplyTo(null);
     } catch {
-      // ignore
+      toast({ variant: 'destructive', title: 'Failed to post comment', description: 'Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -89,7 +125,7 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
       const updated = await commentsApi.resolve(noteId, c.id, userId);
       setComments(prev => prev.map(x => x.id === updated.id ? updated : x));
     } catch {
-      // ignore
+      toast({ variant: 'destructive', title: 'Failed to update comment' });
     }
   };
 
@@ -99,17 +135,13 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
       await commentsApi.delete(noteId, c.id, userId);
       setComments(prev => prev.filter(x => x.id !== c.id));
     } catch {
-      // ignore
+      toast({ variant: 'destructive', title: 'Failed to delete comment' });
     }
   };
 
   const roots = comments.filter(c => !c.parentId && !c.resolved);
   const resolved = comments.filter(c => c.resolved);
   const replies = (parentId: number) => comments.filter(c => c.parentId === parentId);
-
-  const filteredUsers = mentionQuery !== null
-    ? users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5)
-    : [];
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -155,7 +187,8 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              className="flex cursor-pointer items-center border-none bg-transparent p-0 text-current transition-colors hover:text-foreground"
+              aria-label="Cancel reply"
+              className="flex cursor-pointer items-center border-none bg-transparent p-0 text-current transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="size-3.5" />
             </button>
@@ -165,17 +198,37 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
           ref={textareaRef}
           value={newContent}
           onChange={handleInput}
+          onKeyDown={handleTextareaKeyDown}
           placeholder="Add a comment… (@mention to notify)"
           rows={3}
           className="min-h-0 resize-none"
+          aria-autocomplete="list"
+          aria-expanded={mentionListOpen}
+          aria-controls={mentionListOpen ? MENTION_LISTBOX_ID : undefined}
+          aria-activedescendant={
+            mentionListOpen ? mentionOptionId(filteredUsers[safeMentionIdx].id) : undefined
+          }
         />
-        {filteredUsers.length > 0 && (
-          <ul className="absolute inset-x-0 bottom-full z-[100] m-0 list-none rounded-md border border-border bg-popover py-1 shadow-md">
-            {filteredUsers.map(u => (
+        {mentionListOpen && (
+          <ul
+            id={MENTION_LISTBOX_ID}
+            role="listbox"
+            aria-label="Mention a collaborator"
+            className="absolute inset-x-0 bottom-full z-[100] m-0 list-none rounded-md border border-border bg-popover py-1 shadow-md"
+          >
+            {filteredUsers.map((u, i) => (
               <li
                 key={u.id}
-                onClick={() => insertMention(u.name)}
-                className="cursor-pointer px-3 py-1.5 text-[13px] text-foreground transition-colors hover:bg-surface-2"
+                id={mentionOptionId(u.id)}
+                role="option"
+                aria-selected={i === safeMentionIdx}
+                // Select before the textarea loses focus.
+                onMouseDown={(e) => { e.preventDefault(); insertMention(u.name); }}
+                onMouseEnter={() => setActiveMentionIdx(i)}
+                className={cn(
+                  'cursor-pointer px-3 py-1.5 text-[13px] text-foreground transition-colors',
+                  i === safeMentionIdx && 'bg-surface-2',
+                )}
               >
                 @{u.name}
               </li>
@@ -228,33 +281,38 @@ const CommentThread: React.FC<ThreadProps> = ({
         </p>
         <div className="flex gap-2 text-[11px]">
           <button
+            type="button"
             onClick={onReply}
-            className={`cursor-pointer rounded border-none p-0 text-indigo-400 transition-colors hover:text-primary ${
-              isReplyTarget ? 'font-semibold' : ''
-            }`}
+            className={cn(
+              'cursor-pointer rounded border-none bg-transparent p-0 text-primary-hover transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              isReplyTarget && 'font-semibold',
+            )}
           >
             Reply
           </button>
           {!comment.resolved && (
             <button
+              type="button"
               onClick={onResolve}
-              className="cursor-pointer border-none bg-transparent p-0 text-success transition-opacity hover:opacity-80"
+              className="cursor-pointer border-none bg-transparent p-0 text-success transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Resolve
             </button>
           )}
           {comment.resolved && (
             <button
+              type="button"
               onClick={onResolve}
-              className="cursor-pointer border-none bg-transparent p-0 text-muted-foreground transition-colors hover:text-foreground"
+              className="cursor-pointer border-none bg-transparent p-0 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Reopen
             </button>
           )}
           {comment.authorId === userId && (
             <button
+              type="button"
               onClick={onDelete}
-              className="cursor-pointer border-none bg-transparent p-0 text-destructive transition-opacity hover:opacity-80"
+              className="cursor-pointer border-none bg-transparent p-0 text-destructive transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Delete
             </button>

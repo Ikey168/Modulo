@@ -2,14 +2,32 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { configureStore, EnhancedStore } from '@reduxjs/toolkit';
+import { configureStore, EnhancedStore, type UnknownAction } from '@reduxjs/toolkit';
 
 // Create a simple mock reducer for testing
-const mockAuthReducer = (state: any = { user: null, isAuthenticated: false, isLoading: false, error: null, isInitialized: false, token: null }, _action: any) => state;
+interface MockAuthState {
+  user: unknown;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: unknown;
+  isInitialized: boolean;
+  token: unknown;
+}
+
+const initialMockAuthState: MockAuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
+  isInitialized: false,
+  token: null,
+};
+
+const mockAuthReducer = (state: MockAuthState = initialMockAuthState, _action: UnknownAction) => state;
 
 // Mock store setup for testing
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
-  preloadedState?: any;
+  preloadedState?: { auth?: MockAuthState };
   store?: EnhancedStore;
 }
 

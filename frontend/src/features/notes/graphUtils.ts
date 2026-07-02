@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { DirectedGraph } from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import louvain from 'graphology-communities-louvain';
+import { accentColor, rotatedTokenColor, tokenColor } from './theme/tokens';
 
 export interface Note {
   id: number;
@@ -39,22 +39,36 @@ export interface GraphEdge {
   size: number;
 }
 
-export const LINK_TYPE_COLORS = {
-  RELATED: '#3b82f6',
-  REFERENCES: '#10b981',
-  DEPENDS_ON: '#f59e0b',
-  PART_OF: '#8b5cf6',
-  CONTRADICTS: '#ef4444',
-  SUPPORTS: '#06d6a0',
-  EXTENDS: '#ff6b6b',
-  EXAMPLE_OF: '#ffd23f'
-} as const;
+/**
+ * Link-type palette, resolved from design tokens at call time (see
+ * theme/tokens.ts). Semantic accents cover the common types; the remaining
+ * types derive distinct hues by rotating a nearby accent.
+ */
+const LINK_TYPE_TOKEN_MAP: Record<string, { token: string; rotate?: number }> = {
+  RELATED: { token: 'info' },
+  REFERENCES: { token: 'success' },
+  DEPENDS_ON: { token: 'warning' },
+  PART_OF: { token: 'primary-hover' },
+  CONTRADICTS: { token: 'destructive' },
+  SUPPORTS: { token: 'success', rotate: 24 },
+  EXTENDS: { token: 'destructive', rotate: -24 },
+  EXAMPLE_OF: { token: 'warning', rotate: 14 },
+};
 
-export const COMMUNITY_COLORS = [
-  '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', 
-  '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd',
-  '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24'
-];
+/** Resolve the edge color for a link type (muted token for unknown types). */
+export function linkTypeColor(linkType: string): string {
+  const entry = LINK_TYPE_TOKEN_MAP[linkType];
+  if (!entry) return tokenColor('muted-foreground');
+  return entry.rotate ? rotatedTokenColor(entry.token, entry.rotate) : tokenColor(entry.token);
+}
+
+/** All link types with a dedicated palette entry (legend rendering). */
+export const LINK_TYPES_WITH_COLORS = Object.keys(LINK_TYPE_TOKEN_MAP);
+
+/** Categorical color for a community index — token-derived, see accentColor. */
+export function communityColor(community: number): string {
+  return accentColor(community);
+}
 
 export function createGraphFromData(notes: Note[], links: NoteLink[]): DirectedGraph {
   const graph = new DirectedGraph();
@@ -72,7 +86,7 @@ export function createGraphFromData(notes: Note[], links: NoteLink[]): DirectedG
       x: Math.random() * 1000,
       y: Math.random() * 1000,
       size,
-      color: '#6366f1', // Will be overridden by community detection
+      color: tokenColor('primary-hover'), // Will be overridden by community detection
       tags: note.tags?.map(tag => tag.name) || [],
       connectionCount: connections,
       originalNote: note
@@ -89,7 +103,7 @@ export function createGraphFromData(notes: Note[], links: NoteLink[]): DirectedG
         id: link.id,
         label: link.linkType.replace('_', ' '),
         type: link.linkType,
-        color: LINK_TYPE_COLORS[link.linkType as keyof typeof LINK_TYPE_COLORS] || '#666666',
+        color: linkTypeColor(link.linkType),
         size: 2
       });
     }
@@ -104,16 +118,15 @@ export function applyCommunityDetection(graph: DirectedGraph): void {
     
     graph.forEachNode((node) => {
       const community = communities[node];
-      const communityColor = COMMUNITY_COLORS[community % COMMUNITY_COLORS.length];
-      graph.setNodeAttribute(node, 'color', communityColor);
+      graph.setNodeAttribute(node, 'color', communityColor(community));
       graph.setNodeAttribute(node, 'community', community);
     });
   } catch (error) {
     console.warn('Community detection failed:', error);
-    // Fallback: assign random colors
+    // Fallback: assign palette colors round-robin
+    let i = 0;
     graph.forEachNode((node) => {
-      const randomColor = COMMUNITY_COLORS[Math.floor(Math.random() * COMMUNITY_COLORS.length)];
-      graph.setNodeAttribute(node, 'color', randomColor);
+      graph.setNodeAttribute(node, 'color', communityColor(i++));
     });
   }
 }

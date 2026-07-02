@@ -1,4 +1,4 @@
-// #254 — named, persisted graph filters ("saved views"), stored in localStorage.
+// issue 254 — named, persisted graph filters ("saved views"), stored in localStorage.
 
 export interface GraphFilters {
   tags: string[];

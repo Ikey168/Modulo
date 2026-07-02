@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../store/store';
+import { useAppSelector } from '../../store/store';
 import { mobileOAuthService, AuthResult, OAuthUser, BlockchainUser } from './mobileOAuthService';
-import { AuthProvider } from './mobileAuthConfig';
-import { selectIsAuthenticated, selectCurrentUser, selectAuthLoading } from './authSlice';
+import { selectIsAuthenticated, selectCurrentUser, selectAuthLoading, type User } from './authSlice';
 
 export interface MobileAuthState {
   isAuthenticated: boolean;
-  user: OAuthUser | BlockchainUser | null;
+  user: OAuthUser | BlockchainUser | User | null;
   isLoading: boolean;
   error: string | null;
   authMethod: 'oauth' | 'blockchain' | null;
@@ -22,7 +21,6 @@ export interface MobileAuthActions {
 }
 
 export const useMobileAuth = (): MobileAuthState & MobileAuthActions => {
-  const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const authUser = useAppSelector(selectCurrentUser);
   const isLoadingAuth = useAppSelector(selectAuthLoading);

@@ -1,71 +1,99 @@
-import React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { render } from '../../../__tests__/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ThemeToggle from '../ThemeToggle';
 
-// Mock the theme context
-const mockToggleDarkMode = vi.fn();
+// Radix popper-positioned content needs ResizeObserver, which jsdom lacks.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+
+// Mutable theme state so individual tests can switch the active theme.
 const mockSetTheme = vi.fn();
+const themeState = { themeName: 'dark', isDarkMode: true };
 
 vi.mock('../../../themes/ThemeContext', () => ({
   useTheme: () => ({
-    currentTheme: 'light',
+    themeName: themeState.themeName,
+    isDarkMode: themeState.isDarkMode,
     setTheme: mockSetTheme,
-    isDarkMode: false,
-    toggleDarkMode: mockToggleDarkMode,
+    toggleDarkMode: vi.fn(),
   }),
 }));
 
-// Mock themes
-vi.mock('../../../themes/themes', () => ({
-  themes: {
-    light: { name: 'Light Theme' },
-    dark: { name: 'Dark Theme' },
-    blue: { name: 'Blue Theme' },
-  },
-}));
+const openMenu = async () => {
+  const user = userEvent.setup({ pointerEventsCheck: 0 });
+  await user.click(screen.getByRole('button', { name: /change theme/i }));
+  return { user, menu: await screen.findByRole('menu') };
+};
 
 describe('ThemeToggle Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    themeState.themeName = 'dark';
+    themeState.isDarkMode = true;
   });
 
-  it('renders without crashing', () => {
+  it('renders a compact icon trigger with accessible label', () => {
     render(<ThemeToggle />);
-    // Full (non-compact) mode renders multiple buttons (selector + quick toggle).
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    const trigger = screen.getByRole('button', { name: /change theme/i });
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
   });
 
-  it('renders in compact mode', () => {
-    render(<ThemeToggle compact={true} />);
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('theme-toggle-compact');
+  it('shows the moon icon in dark mode and the sun icon otherwise', () => {
+    const { unmount } = render(<ThemeToggle />);
+    expect(
+      screen.getByRole('button', { name: /change theme/i }).querySelector('svg.lucide-moon'),
+    ).toBeInTheDocument();
+    unmount();
+
+    themeState.themeName = 'light';
+    themeState.isDarkMode = false;
+    render(<ThemeToggle />);
+    expect(
+      screen.getByRole('button', { name: /change theme/i }).querySelector('svg.lucide-sun'),
+    ).toBeInTheDocument();
   });
 
-  it('shows light mode icon when in light mode', () => {
-    render(<ThemeToggle compact={true} />);
-    const button = screen.getByRole('button');
-    expect(button).toHaveTextContent('🌙'); // Moon icon for switching to dark
+  it('lists every theme with the active one checked', async () => {
+    render(<ThemeToggle />);
+    const { menu } = await openMenu();
+
+    const items = within(menu).getAllByRole('menuitemcheckbox');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Dark Mode',
+      'Light Mode',
+      'Ocean Blue',
+      'Forest Green',
+      'Royal Purple',
+    ]);
+    expect(within(menu).getByRole('menuitemcheckbox', { name: 'Dark Mode' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(within(menu).getByRole('menuitemcheckbox', { name: 'Light Mode' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
   });
 
-  it('calls toggleDarkMode when clicked in compact mode', () => {
-    render(<ThemeToggle compact={true} />);
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    expect(mockToggleDarkMode).toHaveBeenCalledTimes(1);
+  it('calls setTheme with the selected theme name', async () => {
+    render(<ThemeToggle />);
+    const { user, menu } = await openMenu();
+
+    await user.click(within(menu).getByRole('menuitemcheckbox', { name: 'Ocean Blue' }));
+
+    expect(mockSetTheme).toHaveBeenCalledTimes(1);
+    expect(mockSetTheme).toHaveBeenCalledWith('blue');
   });
 
-  it('has proper accessibility attributes', () => {
-    render(<ThemeToggle compact={true} />);
-    const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Switch to dark mode');
-    expect(button).toHaveAttribute('title', 'Switch to dark mode');
-  });
-
-  it('applies custom className', () => {
-    render(<ThemeToggle className="custom-class" compact={true} />);
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('custom-class');
+  it('applies a custom className to the trigger', () => {
+    render(<ThemeToggle className="custom-class" />);
+    expect(screen.getByRole('button', { name: /change theme/i })).toHaveClass('custom-class');
   });
 });

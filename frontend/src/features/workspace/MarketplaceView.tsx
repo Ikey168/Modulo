@@ -1,67 +1,89 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Badge, Button, Card, Tabs, TabsList, TabsTrigger } from '@/ui';
 import { PLUGINS, type PluginInfo } from './plugins';
 import PackMarketplace from '../blueprint/pack/PackMarketplace';
+import PackManager from '../blueprint/pack/PackManager';
 
 interface MarketplaceViewProps {
   installedPlugins: Set<string>;
   onTogglePlugin: (id: string) => void;
 }
 
+type MarketplaceTab = 'plugins' | 'packs';
+
 export function MarketplaceView({ installedPlugins, onTogglePlugin }: MarketplaceViewProps) {
+  const [tab, setTab] = useState<MarketplaceTab>('plugins');
   const items = PLUGINS.map((p) => ({ ...p, installed: installedPlugins.has(p.id) }));
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '36px 40px', boxSizing: 'border-box', animation: 'fadeIn .15s ease' }}>
-      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+    <div className="flex-1 animate-fade-in overflow-y-auto p-5 md:px-10 md:py-9">
+      <header className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <h1 style={{ margin: '0 0 5px', fontSize: 22, fontWeight: 600, letterSpacing: '-.5px', color: '#f4f4f5' }}>Marketplace</h1>
-          <p style={{ margin: 0, fontSize: 13, color: '#52525b' }}>Extend Modulo with community plugins</p>
+          <h1 className="mb-1 text-[22px] font-semibold tracking-tight text-foreground">Marketplace</h1>
+          <p className="text-[13px] text-muted-foreground">Extend Modulo with plugins and blueprint packs</p>
         </div>
-        <span style={{ fontSize: 12, color: '#52525b', paddingBottom: 2 }}>{installedPlugins.size} installed</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
-        {items.map((p) => (
-          <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
-        ))}
-      </div>
-      <PackMarketplace />
+        <Button asChild size="sm" variant="outline">
+          <Link to="/plugins/submit">Submit a plugin</Link>
+        </Button>
+      </header>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as MarketplaceTab)}>
+        <TabsList variant="underline" className="mb-6">
+          <TabsTrigger value="plugins">Plugins ({installedPlugins.size} installed)</TabsTrigger>
+          <TabsTrigger value="packs">Packs</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === 'plugins' && (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          {items.map((p) => (
+            <PluginCard key={p.id} plugin={p} onToggle={() => onTogglePlugin(p.id)} />
+          ))}
+        </div>
+      )}
+      {tab === 'packs' && (
+        <div className="flex flex-col gap-2">
+          <PackMarketplace />
+          <PackManager />
+        </div>
+      )}
     </div>
   );
 }
 
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo & { installed: boolean }; onToggle: () => void }) {
-  const [h, setH] = useState(false);
-  const [bh, setBh] = useState(false);
   return (
-    <div
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{ background: '#111114', border: `1px solid ${h ? '#2a2a30' : '#1e1e24'}`, borderRadius: 10, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, transition: 'border-color .15s' }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a1f', border: '1px solid #2a2a30', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: '#818cf8', fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>
+    <Card className="flex flex-col gap-3 p-5 transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-mono text-[15px] text-primary-hover"
+            aria-hidden="true"
+          >
             {plugin.icon}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{plugin.name}</div>
-            <div style={{ fontSize: 11, color: '#52525b' }}>by {plugin.author}</div>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-semibold text-foreground">{plugin.name}</div>
+            <div className="text-xxs text-muted-foreground">by {plugin.author}</div>
           </div>
         </div>
-        <div
+        <Button
+          size="sm"
+          variant={plugin.installed ? 'outline' : 'primary'}
           onClick={onToggle}
-          onMouseEnter={() => setBh(true)}
-          onMouseLeave={() => setBh(false)}
-          style={{ padding: '5px 12px', borderRadius: 5, fontSize: 11.5, fontWeight: 500, cursor: 'pointer', background: plugin.installed ? 'transparent' : '#4f46e5', color: plugin.installed ? '#52525b' : '#fff', border: `1px solid ${plugin.installed ? '#2a2a30' : 'transparent'}`, whiteSpace: 'nowrap', flexShrink: 0, opacity: bh ? 0.8 : 1, transition: 'opacity .1s' }}
+          aria-pressed={plugin.installed}
+          aria-label={`${plugin.installed ? 'Uninstall' : 'Install'} ${plugin.name}`}
+          className="h-7 shrink-0 px-3 text-xxs"
         >
           {plugin.installed ? 'Installed' : 'Install'}
-        </div>
+        </Button>
       </div>
-      <div style={{ fontSize: 12.5, color: '#71717a', lineHeight: 1.55 }}>{plugin.desc}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: '#52525b' }}>
+      <p className="text-xs leading-relaxed text-muted-foreground">{plugin.desc}</p>
+      <div className="flex items-center gap-3 text-xxs text-muted-foreground">
         <span>↓ {plugin.downloads}</span>
         <span>★ {plugin.rating}</span>
-        <span style={{ background: '#1c1c22', padding: '1px 8px', borderRadius: 4, fontFamily: "'DM Mono',monospace", fontSize: 10.5 }}>{plugin.category}</span>
+        <Badge variant="secondary" className="rounded font-mono text-[10.5px]">
+          {plugin.category}
+        </Badge>
       </div>
-    </div>
+    </Card>
   );
 }

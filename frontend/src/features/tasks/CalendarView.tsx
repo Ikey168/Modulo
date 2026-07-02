@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, Spinner, cn } from '@/ui';
-import './CalendarView.css';
-
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'BLOCKED' | 'ON_HOLD';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  dueDate?: string;
-  startDate?: string;
-  completionDate?: string;
-  progressPercentage: number;
-  isOverdue?: boolean;
-  isDueToday?: boolean;
-}
+import { Button, Card, Spinner, Tabs, TabsList, TabsTrigger, cn } from '@/ui';
+import type { Task } from './types';
+import { PRIORITY_KEYS, PRIORITY_META, STATUS_KEYS, STATUS_META, getPriorityMeta, getStatusMeta } from './taskMeta';
 
 interface CalendarViewProps {
   userId: number;
   onTaskSelect?: (task: Task) => void;
   onDateSelect?: (date: string) => void;
 }
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Enter/Space activation for role="button" containers; ignores bubbled events from nested controls. */
+const activateOnKey = (e: React.KeyboardEvent<HTMLElement>, action: () => void) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    action();
+  }
+};
+
+const toISODate = (date: Date) => date.toISOString().split('T')[0];
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   userId,
@@ -109,7 +109,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, [currentDate]);
 
   const getTasksForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toISODate(date);
     return tasks.filter(task => {
       const taskDueDate = task.dueDate?.split('T')[0];
       const taskStartDate = task.startDate?.split('T')[0];
@@ -119,27 +119,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
              taskStartDate === dateStr ||
              taskCompletionDate === dateStr;
     });
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return '#ef4444';
-      case 'HIGH': return '#f59e0b';
-      case 'MEDIUM': return '#3b82f6';
-      case 'LOW': return '#22c55e';
-      default: return '#71717a';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return '#22c55e';
-      case 'IN_PROGRESS': return '#f59e0b';
-      case 'BLOCKED': return '#ef4444';
-      case 'ON_HOLD': return '#0ea5e9';
-      case 'CANCELLED': return '#71717a';
-      default: return '#4f46e5';
-    }
   };
 
   const navigateMonth = (direction: number) => {
@@ -186,6 +165,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return date.getMonth() === currentDate.getMonth();
   };
 
+  const selectDate = (date: Date) => onDateSelect?.(toISODate(date));
+
+  /** Compact chip used in month cells and the mobile agenda. */
+  const renderTaskChip = (task: Task) => (
+    <button
+      key={task.id}
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onTaskSelect?.(task);
+      }}
+      title={`${task.title} - ${task.status} (${task.priority})`}
+      className={cn(
+        'flex w-full min-w-0 items-center gap-1.5 rounded border px-1.5 py-0.5 text-left text-[11px] font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        getStatusMeta(task.status).chipClass
+      )}
+    >
+      <span
+        className={cn('size-1.5 shrink-0 rounded-full', getPriorityMeta(task.priority).dotClass)}
+        aria-hidden="true"
+      />
+      <span className="truncate">{task.title}</span>
+    </button>
+  );
+
   if (loading) {
     return (
       <div className="mx-auto max-w-[1400px] bg-background p-4">
@@ -212,13 +217,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="mx-auto max-w-[1400px] bg-background p-4">
-      <div className="mb-8 flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center justify-center gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => viewType === 'month' ? navigateMonth(-1) : navigateWeek(-1)}
-            aria-label="Previous"
+            aria-label={viewType === 'month' ? 'Previous month' : 'Previous week'}
           >
             <ChevronLeft />
           </Button>
@@ -234,7 +239,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             variant="outline"
             size="icon"
             onClick={() => viewType === 'month' ? navigateMonth(1) : navigateWeek(1)}
-            aria-label="Next"
+            aria-label={viewType === 'month' ? 'Next month' : 'Next week'}
           >
             <ChevronRight />
           </Button>
@@ -245,129 +250,164 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             Today
           </Button>
 
-          <div className="inline-flex overflow-hidden rounded-md border border-border-strong">
-            <button
-              onClick={() => setViewType('month')}
-              className={cn(
-                'px-4 py-2 text-[13px] font-medium transition-colors',
-                viewType === 'month'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-surface-2 text-subtle-foreground hover:bg-surface-3'
-              )}
-            >
-              Month
-            </button>
-            <button
-              onClick={() => setViewType('week')}
-              className={cn(
-                'px-4 py-2 text-[13px] font-medium transition-colors',
-                viewType === 'week'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-surface-2 text-subtle-foreground hover:bg-surface-3'
-              )}
-            >
-              Week
-            </button>
-          </div>
+          <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'month' | 'week')}>
+            <TabsList>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
 
       {viewType === 'month' ? (
-        <div className="calendar-grid month-view">
-          <div className="calendar-weekdays">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="weekday-header">
-                {day}
-              </div>
-            ))}
+        <Card className="mb-6 overflow-hidden">
+          {/* >= sm: classic 7-column month grid */}
+          <div className="hidden sm:block">
+            <div className="grid grid-cols-7 border-b border-border bg-surface-2" role="row">
+              {WEEKDAYS.map(day => (
+                <div
+                  key={day}
+                  className="border-r border-border p-3 text-center text-[13px] font-semibold text-subtle-foreground last:border-r-0"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7">
+              {monthData.days.map((date, index) => {
+                const dayTasks = getTasksForDate(date);
+                return (
+                  <div
+                    key={index}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={date.toDateString()}
+                    onClick={() => selectDate(date)}
+                    onKeyDown={(e) => activateOnKey(e, () => selectDate(date))}
+                    className={cn(
+                      'min-h-[120px] cursor-pointer border-b border-r border-border p-2 transition-colors',
+                      'hover:bg-surface-2 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                      '[&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0',
+                      !isCurrentMonth(date) && 'bg-background text-muted-foreground',
+                      isToday(date) && 'bg-primary/10'
+                    )}
+                  >
+                    <div className="mb-1.5 text-[13px] font-semibold">
+                      {isToday(date) ? (
+                        <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                          {date.getDate()}
+                        </span>
+                      ) : (
+                        date.getDate()
+                      )}
+                    </div>
+
+                    {dayTasks.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        {dayTasks.slice(0, 3).map(renderTaskChip)}
+                        {dayTasks.length > 3 && (
+                          <div className="px-1 text-center text-[11px] italic text-muted-foreground">
+                            +{dayTasks.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="calendar-days">
-            {monthData.days.map((date, index) => {
+          {/* < sm: agenda-style stacked month list with visible day labels */}
+          <div className="sm:hidden">
+            {monthData.days.filter(isCurrentMonth).map(date => {
               const dayTasks = getTasksForDate(date);
               return (
                 <div
-                  key={index}
-                  className={`calendar-day ${!isCurrentMonth(date) ? 'other-month' : ''} ${isToday(date) ? 'today' : ''}`}
-                  onClick={() => onDateSelect?.(date.toISOString().split('T')[0])}
+                  key={toISODate(date)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={date.toDateString()}
+                  onClick={() => selectDate(date)}
+                  onKeyDown={(e) => activateOnKey(e, () => selectDate(date))}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 border-b border-border p-3 transition-colors last:border-b-0',
+                    'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                    isToday(date) && 'bg-primary/10'
+                  )}
                 >
-                  <div className="day-number">
-                    {date.getDate()}
+                  <div className="w-12 shrink-0 text-center">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                    </div>
+                    <div className={cn('text-lg font-semibold text-foreground', isToday(date) && 'text-primary')}>
+                      {date.getDate()}
+                    </div>
                   </div>
 
-                  {dayTasks.length > 0 && (
-                    <div className="day-tasks">
-                      {dayTasks.slice(0, 3).map(task => (
-                        <div
-                          key={task.id}
-                          className="task-dot"
-                          style={{
-                            backgroundColor: getStatusColor(task.status),
-                            borderLeft: `3px solid ${getPriorityColor(task.priority)}`
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTaskSelect?.(task);
-                          }}
-                          title={`${task.title} - ${task.status} (${task.priority})`}
-                        >
-                          <span className="task-title-snippet">
-                            {task.title.length > 15 ? `${task.title.substring(0, 15)}...` : task.title}
-                          </span>
-                        </div>
-                      ))}
-                      {dayTasks.length > 3 && (
-                        <div className="more-tasks">
-                          +{dayTasks.length - 3} more
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+                    {dayTasks.length > 0 ? (
+                      dayTasks.map(renderTaskChip)
+                    ) : (
+                      <span className="text-xs italic text-muted-foreground">No tasks</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="calendar-grid week-view">
+        <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-sm sm:grid-cols-7">
           {weekData.map((date, index) => {
             const dayTasks = getTasksForDate(date);
             return (
               <div
                 key={index}
-                className={`week-day ${isToday(date) ? 'today' : ''}`}
-                onClick={() => onDateSelect?.(date.toISOString().split('T')[0])}
+                role="button"
+                tabIndex={0}
+                aria-label={date.toDateString()}
+                onClick={() => selectDate(date)}
+                onKeyDown={(e) => activateOnKey(e, () => selectDate(date))}
+                className={cn(
+                  'min-h-[160px] cursor-pointer bg-surface transition-colors sm:min-h-[400px]',
+                  'hover:bg-surface-2 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                  isToday(date) && 'bg-primary/10'
+                )}
               >
-                <div className="week-day-header">
-                  <div className="day-name">
+                <div className="border-b border-border bg-surface-2 p-3 text-center">
+                  <div className="text-[13px] font-semibold text-muted-foreground">
                     {date.toLocaleDateString('en-US', { weekday: 'short' })}
                   </div>
-                  <div className="day-number">
+                  <div className={cn('mt-0.5 text-xl font-bold text-foreground', isToday(date) && 'text-primary')}>
                     {date.getDate()}
                   </div>
                 </div>
 
-                <div className="week-day-tasks">
+                <div className="flex flex-col gap-2 p-2">
                   {dayTasks.map(task => (
-                    <div
+                    <button
                       key={task.id}
-                      className="week-task"
-                      style={{ backgroundColor: getStatusColor(task.status) }}
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onTaskSelect?.(task);
                       }}
+                      title={`${task.title} - ${task.status} (${task.priority})`}
+                      className={cn(
+                        'relative flex w-full flex-col gap-0.5 overflow-hidden rounded-md border p-2 pl-3 text-left transition-all',
+                        'hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                        getStatusMeta(task.status).chipClass
+                      )}
                     >
-                      <div className="task-priority-indicator"
-                           style={{ backgroundColor: getPriorityColor(task.priority) }}>
-                      </div>
-                      <div className="task-content">
-                        <div className="task-title">{task.title}</div>
-                        <div className="task-progress">
-                          {task.progressPercentage}%
-                        </div>
-                      </div>
-                    </div>
+                      <span
+                        className={cn('absolute inset-y-0 left-0 w-1', getPriorityMeta(task.priority).dotClass)}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate text-[13px] font-semibold leading-tight">{task.title}</span>
+                      <span className="text-xs opacity-80">{task.progressPercentage}%</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -376,41 +416,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      <div className="mb-6 flex flex-col items-center justify-center gap-4 rounded-md border border-border bg-surface px-4 py-3 sm:flex-row sm:gap-8">
-        <div className="flex items-center gap-3">
+      <Card className="flex flex-col items-center justify-center gap-4 px-4 py-3 sm:flex-row sm:gap-8">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <span className="text-[13px] font-semibold text-subtle-foreground">Priority:</span>
-          <div className="flex gap-4">
-            {[
-              { key: 'URGENT', label: 'Urgent', color: '#ef4444' },
-              { key: 'HIGH', label: 'High', color: '#f59e0b' },
-              { key: 'MEDIUM', label: 'Medium', color: '#3b82f6' },
-              { key: 'LOW', label: 'Low', color: '#22c55e' }
-            ].map(item => (
-              <div key={item.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <div className="size-3 rounded-sm" style={{ backgroundColor: item.color }}></div>
-                <span>{item.label}</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {PRIORITY_KEYS.map(key => (
+              <div key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={cn('size-3 rounded-sm', PRIORITY_META[key].dotClass)} aria-hidden="true" />
+                <span>{PRIORITY_META[key].label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <span className="text-[13px] font-semibold text-subtle-foreground">Status:</span>
-          <div className="flex gap-4">
-            {[
-              { key: 'TODO', label: 'To Do', color: '#4f46e5' },
-              { key: 'IN_PROGRESS', label: 'In Progress', color: '#f59e0b' },
-              { key: 'COMPLETED', label: 'Completed', color: '#22c55e' },
-              { key: 'BLOCKED', label: 'Blocked', color: '#ef4444' }
-            ].map(item => (
-              <div key={item.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <div className="size-3 rounded-sm" style={{ backgroundColor: item.color }}></div>
-                <span>{item.label}</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {STATUS_KEYS.map(key => (
+              <div key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={cn('size-3 rounded-sm', STATUS_META[key].dotClass)} aria-hidden="true" />
+                <span>{STATUS_META[key].label}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

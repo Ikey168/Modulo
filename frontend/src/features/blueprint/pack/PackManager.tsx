@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Button, Input, Textarea, Badge, Switch, Tabs, Separator } from '@/ui';
+import { Button, Input, Textarea, Badge, Switch, Tabs, TabsList, TabsTrigger, Separator } from '@/ui';
 import {
   listPacks, installPack, uninstallPack, publishPackToIpfs, installPackFromCid,
   anchorPack, setPackPricing,
@@ -195,18 +195,15 @@ export default function PackManager() {
   }
 
   return (
-    <div className="mx-auto max-w-[900px] p-6 text-foreground">
-      <h2 className="mb-4 text-[1.4rem] font-semibold text-foreground">Packs</h2>
+    <div className="text-foreground">
+      <h2 className="mb-4 text-[15px] font-semibold text-foreground">Manage packs</h2>
 
-      <Tabs
-        className="mb-5"
-        value={tab}
-        onChange={(v) => setTab(v as Tab)}
-        items={[
-          { value: 'installed', label: `Installed (${packs.length})` },
-          { value: 'install', label: 'Install' },
-        ]}
-      />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <TabsList variant="underline" className="mb-5">
+          <TabsTrigger value="installed">Installed ({packs.length})</TabsTrigger>
+          <TabsTrigger value="install">Install</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {error && (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</div>
@@ -242,7 +239,7 @@ export default function PackManager() {
                   return (
                     <React.Fragment key={p.packId}>
                     <tr className="border-b border-border">
-                      <td className="px-3 py-2 font-mono text-indigo-400">{p.packId}</td>
+                      <td className="px-3 py-2 font-mono text-primary-hover">{p.packId}</td>
                       <td className="px-3 py-2">{p.version}</td>
                       <td className="px-3 py-2">
                         <Badge variant={(p.source ?? 'LOCAL') === 'IPFS' ? 'info' : 'secondary'}>
@@ -256,7 +253,7 @@ export default function PackManager() {
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-indigo-400 no-underline hover:underline"
+                              className="font-mono text-primary-hover no-underline hover:underline"
                               title={cid}
                             >
                               {cid.slice(0, 14)}…
@@ -316,9 +313,9 @@ export default function PackManager() {
                               <h4 className="m-0 mb-1 text-[0.85rem] uppercase tracking-[0.05em] text-subtle-foreground">On-chain provenance</h4>
                               {p.anchorTx ? (
                                 <div className="mb-1 flex flex-col gap-0.5 break-all text-[0.78rem] text-subtle-foreground">
-                                  <div>tx: <code className="font-mono text-[0.75rem] text-indigo-400">{p.anchorTx}</code></div>
-                                  <div>author: <code className="font-mono text-[0.75rem] text-indigo-400">{p.authorAddress ?? '—'}</code></div>
-                                  {p.onchainId != null && <div>on-chain id: <code className="font-mono text-[0.75rem] text-indigo-400">{p.onchainId}</code></div>}
+                                  <div>tx: <code className="font-mono text-[0.75rem] text-primary-hover">{p.anchorTx}</code></div>
+                                  <div>author: <code className="font-mono text-[0.75rem] text-primary-hover">{p.authorAddress ?? '—'}</code></div>
+                                  {p.onchainId != null && <div>on-chain id: <code className="font-mono text-[0.75rem] text-primary-hover">{p.onchainId}</code></div>}
                                 </div>
                               ) : (
                                 <p className="mb-2 text-sm text-muted-foreground">Anchor the pack hash on-chain for verifiable authorship.</p>
@@ -340,7 +337,7 @@ export default function PackManager() {
                               <label className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-subtle-foreground">
                                 <Switch
                                   checked={priceDraft.premium}
-                                  onChange={checked => setPriceDraft(d => ({ ...d, premium: checked }))}
+                                  onCheckedChange={checked => setPriceDraft(d => ({ ...d, premium: checked }))}
                                   aria-label="Premium (paid pack)"
                                 />
                                 Premium (paid pack)

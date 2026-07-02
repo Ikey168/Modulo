@@ -1,9 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import { mobileOAuthService } from '../../features/auth/mobileOAuthService';
-import LoadingSpinner from '../common/LoadingSpinner';
-import ErrorAlert from '../common/ErrorAlert';
-import './OAuthCallback.css';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Spinner,
+} from '@/ui';
 
 interface OAuthCallbackProps {
   provider: 'google' | 'microsoft';
@@ -14,161 +25,109 @@ export const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  // OAuth authorization codes are single-use: guard against the effect running
+  // twice (React 18 StrictMode) so we never attempt a second token exchange.
+  const handled = useRef(false);
+
+  const providerName = provider === 'google' ? 'Google' : 'Microsoft';
 
   useEffect(() => {
-    const handleCallback = async () => {
+    if (handled.current) return;
+    handled.current = true;
+
+    const completeLogin = async () => {
       try {
-        setIsProcessing(true);
-        setError(null);
+        // The service owns the whole callback contract: it validates the
+        // `state` param against its own sessionStorage entry, retrieves the
+        // PKCE code verifier it stored when the flow started, exchanges the
+        // code for tokens and fetches the user profile. We just pass the
+        // callback query params straight through.
+        const result = await mobileOAuthService.handleCallback(searchParams);
 
-        // Get authorization code from URL parameters
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
-        const errorParam = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
-
-        if (errorParam) {
-          throw new Error(errorDescription || `OAuth error: ${errorParam}`);
+        if (!result.success) {
+          throw new Error(result.error || `Failed to complete ${providerName} sign in`);
         }
 
-        if (!code) {
-          throw new Error('No authorization code received from OAuth provider');
-        }
+        // Persist the session under the keys useMobileAuth reads on mount so
+        // the app is authenticated after the redirect.
+        sessionStorage.setItem('mobile_auth_user', JSON.stringify(result.user));
+        sessionStorage.setItem('mobile_auth_method', result.type);
 
-        if (!state) {
-          throw new Error('No state parameter received from OAuth provider');
-        }
-
-        // Verify state parameter matches what we stored
-        const storedState = sessionStorage.getItem(`oauth_state_${provider}`);
-        if (state !== storedState) {
-          throw new Error('Invalid state parameter - possible CSRF attack');
-        }
-
-        // Get stored code verifier for PKCE
-        const codeVerifier = sessionStorage.getItem(`code_verifier_${provider}`);
-        if (!codeVerifier) {
-          throw new Error('Code verifier not found - please restart the login process');
-        }
-
-        console.log(`Processing ${provider} OAuth callback with code:`, code.substring(0, 10) + '...');
-
-        // Exchange authorization code for tokens
-        const result = await mobileOAuthService.handleCallback(provider, code, codeVerifier);
-        
-        if (result.success && result.user) {
-          console.log(`${provider} OAuth login successful:`, result.user);
-          
-          // Clean up stored values
-          sessionStorage.removeItem(`oauth_state_${provider}`);
-          sessionStorage.removeItem(`code_verifier_${provider}`);
-          
-          // Store tokens if needed
-          if (result.tokens) {
-            localStorage.setItem(`${provider}_tokens`, JSON.stringify(result.tokens));
-          }
-          
-          // Navigate to the intended destination or dashboard
-          const returnUrl = sessionStorage.getItem('oauth_return_url') || '/dashboard';
-          sessionStorage.removeItem('oauth_return_url');
-          
-          // Small delay to ensure state updates are processed
-          setTimeout(() => {
-            navigate(returnUrl, { replace: true });
-          }, 500);
-        } else {
-          throw new Error(result.error || `Failed to complete ${provider} OAuth login`);
-        }
+        const returnUrl = sessionStorage.getItem('oauth_return_url') || '/dashboard';
+        sessionStorage.removeItem('oauth_return_url');
+        navigate(returnUrl, { replace: true });
       } catch (err) {
-        console.error(`${provider} OAuth callback error:`, err);
+        console.error(`${providerName} OAuth callback error:`, err);
         setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         setIsProcessing(false);
-        
-        // Clean up stored values on error
-        sessionStorage.removeItem(`oauth_state_${provider}`);
-        sessionStorage.removeItem(`code_verifier_${provider}`);
       }
     };
 
-    handleCallback();
-  }, [provider, navigate, searchParams]);
+    completeLogin();
+  }, [navigate, searchParams, providerName]);
 
   const handleRetry = () => {
-    // Clear error and redirect back to login
-    setError(null);
-    navigate('/mobile/login', { replace: true });
-  };
-
-  const handleCancel = () => {
     navigate('/mobile/login', { replace: true });
   };
 
   if (isProcessing) {
     return (
-      <div className="oauth-callback-page">
-        <div className="callback-container">
-          <div className="callback-header">
-            <div className="provider-logo">
-              {provider === 'google' ? '🔍' : '🏢'}
-            </div>
-            <h2>Completing {provider === 'google' ? 'Google' : 'Microsoft'} Sign In</h2>
-            <p>Please wait while we process your authentication...</p>
-          </div>
-          
-          <div className="loading-section">
-            <LoadingSpinner size="large" />
-            <p className="loading-text">Verifying your credentials</p>
-          </div>
-          
-          <div className="security-note">
-            <p>🔒 Your information is being securely processed</p>
-          </div>
-        </div>
+      // text-base keeps the effective font-size at 16px on this mobile-only
+      // page so any form control inherits it and iOS Safari does not zoom on
+      // focus (replaces the old global rule from styles/mobile.css).
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="items-center text-center">
+            <CardTitle>Completing {providerName} sign in</CardTitle>
+            <CardDescription>Please wait while we process your authentication…</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-3 py-6">
+            <Spinner className="size-8 text-primary" />
+            <p className="text-sm text-muted-foreground">Verifying your credentials</p>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <p className="flex items-center gap-1.5 text-xs text-subtle-foreground">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Your information is being securely processed
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="oauth-callback-page">
-        <div className="callback-container">
-          <div className="callback-header">
-            <div className="provider-logo error">
-              ❌
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <CardTitle>Sign in failed</CardTitle>
+            <CardDescription>
+              We encountered an issue while signing you in with {providerName}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" aria-hidden="true" />
+              <AlertTitle>Authentication error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+
+            <Button size="lg" className="w-full" onClick={handleRetry}>
+              Back to login and try again
+            </Button>
+
+            <div className="rounded-lg border border-border bg-surface p-3">
+              <h3 className="mb-1.5 text-xs font-semibold text-foreground">Troubleshooting tips</h3>
+              <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+                <li>Ensure you have a stable internet connection</li>
+                <li>Check if popup blockers are disabled</li>
+                <li>Try clearing your browser cache and cookies</li>
+                <li>Make sure JavaScript is enabled in your browser</li>
+              </ul>
             </div>
-            <h2>Sign In Failed</h2>
-            <p>We encountered an issue while signing you in with {provider === 'google' ? 'Google' : 'Microsoft'}.</p>
-          </div>
-          
-          <div className="error-section">
-            <ErrorAlert message={error} />
-          </div>
-          
-          <div className="action-buttons">
-            <button 
-              onClick={handleRetry}
-              className="retry-button"
-            >
-              Try Again
-            </button>
-            <button 
-              onClick={handleCancel}
-              className="cancel-button"
-            >
-              Back to Login
-            </button>
-          </div>
-          
-          <div className="help-section">
-            <h3>Troubleshooting Tips:</h3>
-            <ul>
-              <li>Ensure you have a stable internet connection</li>
-              <li>Check if popup blockers are disabled</li>
-              <li>Try clearing your browser cache and cookies</li>
-              <li>Make sure JavaScript is enabled in your browser</li>
-            </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

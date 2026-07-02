@@ -147,7 +147,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
                 href={a.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-indigo-400 hover:underline"
+                className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-primary-hover hover:underline"
               >
                 {a.originalFilename}
               </a>
@@ -158,6 +158,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
                 <Button
                   onClick={() => onInsertMarkdown(`![${a.originalFilename}](${a.url})\n`)}
                   title="Insert into note"
+                  aria-label={`Insert ${a.originalFilename} into note`}
                   variant="ghost"
                   size="icon-sm"
                 >
@@ -167,6 +168,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
               <Button
                 onClick={() => deleteAttachment(a.id)}
                 title="Remove"
+                aria-label={`Remove ${a.originalFilename}`}
                 variant="ghost"
                 size="icon-sm"
                 className="shrink-0 text-muted-foreground hover:text-destructive"

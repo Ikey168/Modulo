@@ -1,64 +1,124 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Store,
+  Waypoints,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
-import './workspace.css';
+import {
+  Avatar,
+  AvatarFallback,
+  Button,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  useToast,
+} from '@/ui';
 import { NavItem, UserPill } from './atoms';
 import { NotesView } from './NotesView';
 import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
 import { useCoreWorkspace } from './useCoreWorkspace';
+
+// Heavy React Flow editor loads on demand when the Blueprints view is opened.
+const BlueprintEditor = lazy(() => import('../blueprint/editor/BlueprintEditor'));
 import { mergeWithWikiLinks } from './deriveWikiLinks';
 
-const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
+const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace', 'blueprints'] as const;
 type View = (typeof VIEWS)[number];
+type NavTarget = View;
 
-const NAV_ICONS: Record<View, ReactNode> = {
-  notes: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <path d="M3 1.5h9a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1v-10a1 1 0 011-1z" stroke="currentColor" strokeWidth={1.2} fill="none" />
-      <path d="M4 5h7M4 7.5h7M4 10h4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-    </svg>
-  ),
-  graph: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <circle cx={7.5} cy={7.5} r={2.2} stroke="currentColor" strokeWidth={1.2} />
-      <circle cx={12.5} cy={2.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={2.5} cy={2.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={2.5} cy={12.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={12.5} cy={12.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <path d="M9.3 6.3L11.3 4M5.7 6.3L3.7 4M5.7 8.8L3.7 11M9.3 8.8L11.3 11" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" />
-    </svg>
-  ),
-  dashboard: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <rect x={1.5} y={1.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={8.5} y={1.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={1.5} y={8.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={8.5} y={8.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-    </svg>
-  ),
-  marketplace: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <path d="M1.5 3h12M3 3l1 8h7l1-8" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx={5.5} cy={12.5} r={1} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={9.5} cy={12.5} r={1} stroke="currentColor" strokeWidth={1.1} />
-    </svg>
-  ),
+const NAV_ICONS: Record<NavTarget, LucideIcon> = {
+  notes: FileText,
+  graph: Waypoints,
+  dashboard: LayoutDashboard,
+  marketplace: Store,
+  blueprints: Workflow,
 };
+
+const NAV_LABELS: Record<NavTarget, string> = {
+  notes: 'Notes',
+  graph: 'Graph',
+  dashboard: 'Dashboard',
+  marketplace: 'Marketplace',
+  blueprints: 'Blueprints',
+};
+
+// Plugins & blueprints are the product's center of gravity; notes follow.
+const NAV_ORDER: NavTarget[] = ['dashboard', 'marketplace', 'blueprints', 'notes', 'graph'];
+
+/** Modulo brand mark (icon only), tinted by the primary token. */
+function ModuloMark({ className }: { className?: string }) {
+  return (
+    <svg width={22} height={22} viewBox="0 0 22 22" fill="none" className={cn('shrink-0 text-primary', className)} aria-hidden="true">
+      <rect x={1} y={1} width={9} height={9} rx={2} fill="currentColor" />
+      <rect x={12} y={1} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
+      <rect x={1} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.4} />
+      <rect x={12} y={12} width={9} height={9} rx={2} fill="currentColor" opacity={0.7} />
+    </svg>
+  );
+}
+
+/** Icon-only nav button on the md+ rail; label lives in a right-side tooltip. */
+function RailItem({ active, label, icon: Icon, onClick }: { active: boolean; label: string; icon: LucideIcon; onClick: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'relative flex h-10 w-full items-center justify-center transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            active
+              ? 'text-primary before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:bg-primary'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export default function Workspace() {
   const navigate = useNavigate();
   const { view: viewParam } = useParams<{ view: string }>();
-  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'notes';
+  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'dashboard';
 
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const data = useCoreWorkspace();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [installed, setInstalled] = useState<Set<string>>(new Set(['mermaid', 'github-sync']));
+  const [navOpen, setNavOpen] = useState(false);
 
   // Default the selection to the first note once data loads.
   useEffect(() => {
@@ -67,13 +127,23 @@ export default function Workspace() {
     }
   }, [data.notes, selectedId]);
 
+  // Surface workspace errors as dismissible toasts instead of a fixed banner.
+  useEffect(() => {
+    if (data.error) {
+      toast({ variant: 'destructive', title: 'Something went wrong', description: data.error });
+    }
+  }, [data.error, toast]);
+
   // [[wiki-links]] in note bodies become graph edges alongside explicit links.
   const graphLinks = useMemo(
     () => mergeWithWikiLinks(data.notes, data.links),
     [data.notes, data.links],
   );
 
-  const goTo = (v: View) => navigate(`/app/${v}`);
+  const goTo = (target: NavTarget) => {
+    setNavOpen(false);
+    navigate(`/app/${target}`);
+  };
 
   const openNote = (id: number) => {
     setSelectedId(id);
@@ -99,68 +169,101 @@ export default function Workspace() {
   const userLabel = user?.name || user?.email || 'Account';
   const userSub = user?.name && user?.email ? user.email : undefined;
   const walletAddress = user?.walletAddress;
-
-  const errorBanner = useMemo(
-    () =>
-      data.error ? (
-        <div style={{ position: 'absolute', bottom: 14, right: 18, zIndex: 10, background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', color: '#fca5a5', fontSize: 12, padding: '8px 12px', borderRadius: 8, maxWidth: 360 }}>
-          {data.error}
-        </div>
-      ) : null,
-    [data.error],
-  );
+  const initials = userLabel
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]!.toUpperCase())
+    .join('');
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0a0a0b', color: '#f4f4f5', fontFamily: "'DM Sans',system-ui,sans-serif", fontSize: 13.5 }}>
-      {/* Sidebar */}
-      <aside style={{ width: 220, flexShrink: 0, background: '#111114', borderRight: '1px solid #1e1e24', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 16px 15px', display: 'flex', alignItems: 'center', gap: 9, borderBottom: '1px solid #1e1e24' }}>
-          <svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-            <rect x={1} y={1} width={9} height={9} rx={2} fill="#4f46e5" />
-            <rect x={12} y={1} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
-            <rect x={1} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.4} />
-            <rect x={12} y={12} width={9} height={9} rx={2} fill="#4f46e5" opacity={0.7} />
-          </svg>
-          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.5px', color: '#f4f4f5' }}>Modulo</span>
+    <div className="flex h-screen flex-col overflow-hidden bg-background font-sans text-[13.5px] text-foreground md:flex-row">
+      {/* <md: slim top bar with the nav in a sheet */}
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-2 md:hidden">
+        <Sheet open={navOpen} onOpenChange={setNavOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Open navigation">
+              <Menu aria-hidden="true" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="flex w-64 flex-col gap-0 bg-surface p-0">
+            <SheetHeader className="border-b border-border px-4 py-4 text-left">
+              <SheetTitle className="flex items-center gap-2 text-[15px] tracking-tight">
+                <ModuloMark />
+                Modulo
+              </SheetTitle>
+              <SheetDescription className="sr-only">Workspace navigation</SheetDescription>
+            </SheetHeader>
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" aria-label="Workspace">
+              {NAV_ORDER.map((target) => {
+                const Icon = NAV_ICONS[target];
+                return (
+                  <NavItem
+                    key={target}
+                    active={target === view}
+                    onClick={() => goTo(target)}
+                    icon={<Icon aria-hidden="true" />}
+                    label={NAV_LABELS[target]}
+                  />
+                );
+              })}
+            </nav>
+            <div className="border-t border-border p-2.5">
+              <UserPill label={userLabel} sublabel={userSub} onClick={() => void logout()} />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <ModuloMark className="size-[18px]" />
+        <span className="text-sm font-semibold tracking-tight">Modulo</span>
+        <span className="ml-auto pr-1 text-xs capitalize text-muted-foreground">{view}</span>
+      </header>
+
+      {/* md+: icon-only rail */}
+      <aside className="hidden w-14 shrink-0 flex-col border-r border-border md:flex">
+        <div className="flex h-12 shrink-0 items-center justify-center">
+          <ModuloMark />
         </div>
-
-        <nav style={{ padding: 8, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {VIEWS.map((v) => (
-            <NavItem key={v} active={view === v} onClick={() => goTo(v)} icon={NAV_ICONS[v]} label={v.charAt(0).toUpperCase() + v.slice(1)} />
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-2" aria-label="Workspace">
+          {NAV_ORDER.map((target) => (
+            <RailItem
+              key={target}
+              active={target === view}
+              label={NAV_LABELS[target]}
+              icon={NAV_ICONS[target]}
+              onClick={() => goTo(target)}
+            />
           ))}
-          <NavItem
-            active={false}
-            onClick={() => navigate('/blueprints')}
-            icon={
-              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-                <rect x={1.5} y={5.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-                <rect x={9.5} y={1.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-                <rect x={9.5} y={9.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-                <path d="M5.5 7.5h2.2M7.7 7.5V3.5h1.8M7.7 7.5v4h1.8" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" fill="none" />
-              </svg>
-            }
-            label="Blueprints"
-          />
-          <NavItem
-            active={false}
-            onClick={() => navigate('/packs')}
-            icon={
-              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-                <rect x={1.5} y={1.5} width={12} height={12} rx={1.5} stroke="currentColor" strokeWidth={1.2} />
-                <path d="M5 7.5h5M7.5 5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-              </svg>
-            }
-            label="Packs"
-          />
         </nav>
-
-        <div style={{ padding: '10px 10px 14px', borderTop: '1px solid #1e1e24' }}>
-          <UserPill label={userLabel} sublabel={userSub} onClick={() => void logout()} />
+        <div className="flex shrink-0 justify-center pb-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Account: ${userLabel}`}
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Avatar className="size-7">
+                  <AvatarFallback className="text-xxs">{initials || '?'}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="min-w-44">
+              <DropdownMenuLabel>
+                <span className="block truncate text-xs">{userLabel}</span>
+                {userSub && <span className="block truncate text-xxs font-normal text-muted-foreground">{userSub}</span>}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void logout()}>
+                <LogOut className="size-4" aria-hidden="true" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
       {/* Main */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {view === 'notes' && (
           <NotesView
             data={data}
@@ -177,10 +280,14 @@ export default function Workspace() {
           <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
         )}
         {view === 'dashboard' && (
-          <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />
+          <DashboardView notes={data.notes} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} onOpenBlueprints={() => goTo('blueprints')} onOpenMarketplace={() => goTo('marketplace')} />
         )}
         {view === 'marketplace' && <MarketplaceView installedPlugins={installed} onTogglePlugin={togglePlugin} />}
-        {errorBanner}
+        {view === 'blueprints' && (
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-muted-foreground">Loading editor…</div>}>
+            <BlueprintEditor />
+          </Suspense>
+        )}
       </div>
     </div>
   );

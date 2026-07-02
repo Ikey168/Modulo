@@ -1,9 +1,11 @@
 // Service Worker for Modulo PWA
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'modulo-v1.0.0';
-const STATIC_CACHE_NAME = 'modulo-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.0.0';
+// Bumped to v1.2.0 so the activate handler purges the v1.1.0 caches, which
+// were polluted with /api responses (incl. app-shell HTML) by the old logic.
+const CACHE_NAME = 'modulo-v1.2.0';
+const STATIC_CACHE_NAME = 'modulo-static-v1.2.0';
+const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.2.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -14,14 +16,6 @@ const STATIC_ASSETS = [
   '/src/styles/index.css',
   '/src/styles/mobile.css',
   '/src/styles/mobile-interactions.css',
-];
-
-// API endpoints to cache dynamically
-const CACHE_API_PATTERNS = [
-  /^\/api\/notes/,
-  /^\/api\/tags/,
-  /^\/api\/contracts/,
-  /^\/api\/auth/,
 ];
 
 // Install event - cache static assets
@@ -79,16 +73,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests (HTML pages)
+  // Never intercept API calls. The SW must not cache or fall back for /api:
+  // doing so served stale responses and, for paths the app shell matched,
+  // returned index.html for JSON endpoints (e.g. /api/network/status), and
+  // hid live backend errors. Let these go straight to the network so the app
+  // sees the real backend response. (The app manages its own offline state.)
+  if (url.pathname.startsWith('/api')) {
+    return;
+  }
+
+  // Handle navigation requests (HTML pages) - Network First so a new deploy's
+  // index.html is always picked up; fall back to cache when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/')
+      fetch(request)
         .then((response) => {
-          return response || fetch(request);
+          const clone = response.clone();
+          caches.open(STATIC_CACHE_NAME).then((cache) => cache.put('/', clone));
+          return response;
         })
-        .catch(() => {
-          return caches.match('/');
-        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
     );
     return;
   }
@@ -105,46 +109,6 @@ self.addEventListener('fetch', (event) => {
                   cache.put(request, fetchResponse.clone());
                   return fetchResponse;
                 });
-            });
-        })
-    );
-    return;
-  }
-
-  // Handle API requests (Network First with fallback)
-  if (CACHE_API_PATTERNS.some(pattern => pattern.test(url.pathname))) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful responses
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE_NAME)
-              .then((cache) => {
-                cache.put(request, responseClone);
-              });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache if network fails
-          return caches.match(request)
-            .then((response) => {
-              if (response) {
-                return response;
-              }
-              // Return offline page or error response
-              return new Response(
-                JSON.stringify({ 
-                  error: 'Offline', 
-                  message: 'This request requires an internet connection' 
-                }), 
-                {
-                  status: 503,
-                  statusText: 'Service Unavailable',
-                  headers: { 'Content-Type': 'application/json' }
-                }
-              );
             });
         })
     );

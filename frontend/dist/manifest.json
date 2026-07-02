@@ -1,12 +1,12 @@
 {
-  "name": "Modulo - Blockchain Development Platform",
+  "name": "Modulo",
   "short_name": "Modulo",
-  "description": "A comprehensive platform for blockchain development with smart contracts, notes, and graph visualization",
+  "description": "A knowledge-management app for notes that link together, with a knowledge graph, real-time sync, and on-chain anchoring.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#3b82f6",
-  "background_color": "#ffffff",
+  "theme_color": "#0a0a0b",
+  "background_color": "#0a0a0b",
   "categories": ["productivity", "developer", "blockchain"],
   "icons": [
     {
