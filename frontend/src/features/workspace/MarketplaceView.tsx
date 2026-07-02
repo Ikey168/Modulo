@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Download, Check } from 'lucide-react';
+import { Search, Check } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -156,13 +156,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
                     </div>
                     <div className="mb-1 text-sm font-semibold text-foreground">{p.name}</div>
                     <p className="mb-3 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">{p.desc}</p>
-                    <div className="flex items-center gap-3 text-xxs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Star className="size-3 fill-warning text-warning" /> {p.rating}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Download className="size-3" /> {p.downloads}
-                      </span>
+                    <div className="flex items-center text-xxs text-muted-foreground">
                       <span className="ml-auto font-mono">{p.category}</span>
                     </div>
                   </Card>
@@ -204,13 +198,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
                         <span className="truncate text-[13px] font-semibold text-foreground">{p.name}</span>
                         <span className="shrink-0 text-xxs text-muted-foreground">{p.author}</span>
                       </div>
-                      <div className="mt-0.5 flex items-center gap-2.5 text-xxs text-muted-foreground">
-                        <span className="flex items-center gap-0.5">
-                          <Star className="size-3 fill-warning text-warning" /> {p.rating}
-                        </span>
-                        <span>{p.downloads}</span>
-                        <span className="truncate">{p.desc}</span>
-                      </div>
+                      <div className="mt-0.5 truncate text-xxs text-muted-foreground">{p.desc}</div>
                     </div>
                     <Button
                       size="sm"
@@ -249,23 +237,6 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
                       </div>
                     </div>
                   </DialogHeader>
-
-                  <div className="grid grid-cols-3 divide-x divide-border rounded-lg border border-border py-3 text-center">
-                    <div>
-                      <div className="flex items-center justify-center gap-1 text-sm font-semibold text-foreground">
-                        <Star className="size-3.5 fill-warning text-warning" /> {detail.rating}
-                      </div>
-                      <div className="mt-0.5 text-xxs text-muted-foreground">rating</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-foreground">{detail.downloads}</div>
-                      <div className="mt-0.5 text-xxs text-muted-foreground">installs</div>
-                    </div>
-                    <div>
-                      <div className="font-mono text-sm font-semibold text-foreground">{detail.category}</div>
-                      <div className="mt-0.5 text-xxs text-muted-foreground">category</div>
-                    </div>
-                  </div>
 
                   <p className="text-[13px] leading-relaxed text-subtle-foreground">{detail.desc}</p>
 
