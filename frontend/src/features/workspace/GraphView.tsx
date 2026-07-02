@@ -232,7 +232,7 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
         </div>
       )}
 
-      <div className="absolute left-4 top-4 flex items-center gap-4 rounded-lg border border-border-strong bg-surface/90 px-4 py-2 backdrop-blur-md">
+      <div className="absolute left-4 top-4 flex items-center gap-4 rounded-lg border border-border bg-surface/90 px-4 py-2 backdrop-blur-md">
         {([
           ['bg-primary', 'Note'],
           ['bg-success', 'Anchored'],
@@ -243,7 +243,7 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
             <span className="text-xxs text-muted-foreground">{label}</span>
           </div>
         ))}
-        <Separator orientation="vertical" className="hidden h-3.5 bg-border-strong sm:block" />
+        <Separator orientation="vertical" className="hidden h-3.5 sm:block" />
         <span className="hidden text-xxs text-muted-foreground sm:inline">Click a node to focus</span>
       </div>
 

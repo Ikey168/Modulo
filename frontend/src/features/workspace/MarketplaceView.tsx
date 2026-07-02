@@ -34,7 +34,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo & { installed: bo
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 font-mono text-[15px] text-primary-hover"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-mono text-[15px] text-primary-hover"
             aria-hidden="true"
           >
             {plugin.icon}

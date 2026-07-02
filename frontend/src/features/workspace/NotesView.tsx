@@ -1,4 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Anchor,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  Info,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import type { CoreNote } from '@modulo/core';
 import {
   AlertDialog,
@@ -206,29 +218,20 @@ interface NoteListColumnProps {
 
 function NoteListColumn({ notes, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, className }: NoteListColumnProps) {
   return (
-    <div className={cn('shrink-0 flex-col overflow-hidden border-r border-border bg-surface', className)}>
-      <div className="flex shrink-0 items-center justify-between px-3 pb-2.5 pt-3.5">
+    <div className={cn('shrink-0 flex-col overflow-hidden border-r border-border', className)}>
+      <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
         <SectionLabel>Notes</SectionLabel>
-        <Button size="icon-sm" className="h-6 w-6 rounded-[5px] [&_svg]:size-2.5" onClick={onNewNote} aria-label="New note" title="New note">
-          <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-          </svg>
+        <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={onNewNote} aria-label="New note" title="New note">
+          <Plus aria-hidden="true" />
         </Button>
       </div>
 
       <div className="shrink-0 px-2.5 pb-2">
         <div className="relative">
-          <svg
-            width={12}
-            height={12}
-            viewBox="0 0 12 12"
-            fill="none"
+          <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          >
-            <circle cx={5} cy={5} r={3.5} stroke="currentColor" strokeWidth={1.2} />
-            <path d="M8 8l2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-          </svg>
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
@@ -329,12 +332,10 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-3 md:px-5">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-3 md:px-5">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onBack} aria-label="Back to note list">
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M7.5 2L3.5 6l4 4" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ChevronLeft aria-hidden="true" />
           </Button>
           <h2 className="truncate text-sm font-semibold text-foreground">{title || 'Untitled Note'}</h2>
           {isAnchored(note) && (
@@ -361,11 +362,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
             </TabsList>
           </Tabs>
           <Button variant="ghost" size="icon-sm" className="xl:hidden" onClick={onOpenInfo} aria-label="Note details">
-            <svg viewBox="0 0 15 15" fill="none" aria-hidden="true">
-              <circle cx={7.5} cy={7.5} r={6} stroke="currentColor" strokeWidth={1.2} />
-              <path d="M7.5 7v3.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
-              <circle cx={7.5} cy={4.7} r={0.8} fill="currentColor" />
-            </svg>
+            <Info aria-hidden="true" />
           </Button>
         </div>
       </div>
@@ -440,7 +437,7 @@ function InfoPanel({
   const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id));
 
   return (
-    <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border bg-surface', className)}>
+    <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border', className)}>
       <InfoSection title="Tags">
         <div className="mb-2 flex flex-wrap gap-1.5">
           {(note.tags ?? []).map((tag) => (
@@ -451,9 +448,9 @@ function InfoPanel({
                 onClick={() => onRemoveTag(tag.id)}
                 aria-label={`Remove tag ${tag.name}`}
                 title="Remove tag"
-                className="rounded-full px-0.5 text-primary/60 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="rounded-full p-0.5 text-primary/60 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                ×
+                <X className="size-2.5" aria-hidden="true" />
               </button>
             </Badge>
           ))}
@@ -515,9 +512,7 @@ function InfoPanel({
         {isAnchored(note) ? (
           <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-2.5">
             <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-success">
-              <svg width={11} height={11} viewBox="0 0 11 11" fill="none" aria-hidden="true">
-                <path d="M2 5.5l2.5 2.5L9 3" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Check className="size-3" aria-hidden="true" />
               Anchored
             </div>
             <div className="break-all font-mono text-xxs leading-relaxed text-muted-foreground">
@@ -526,11 +521,7 @@ function InfoPanel({
           </div>
         ) : (
           <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={onAnchor}>
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M6 1.5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-              <path d="M3.5 4L6 1.5 8.5 4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M1.5 8.5v1A1.5 1.5 0 003 11h6a1.5 1.5 0 001.5-1.5v-1" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-            </svg>
+            <Anchor aria-hidden="true" />
             Anchor to chain
           </Button>
         )}
@@ -542,15 +533,7 @@ function InfoPanel({
               size="sm"
               className="mt-4 w-full justify-start gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             >
-              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path
-                  d="M2.5 3h7M4.5 3V2a1 1 0 011-1h1a1 1 0 011 1v1M3.5 3l.5 7a1 1 0 001 1h2a1 1 0 001-1l.5-7"
-                  stroke="currentColor"
-                  strokeWidth={1.1}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Trash2 aria-hidden="true" />
               Delete note
             </Button>
           </AlertDialogTrigger>
@@ -590,18 +573,16 @@ function LinkItem({ note, dir, onSelect }: { note: CoreNote; dir: 'out' | 'in'; 
       type="button"
       onClick={() => onSelect(note.id)}
       className={cn(
-        'flex w-full items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1.5 text-left text-xs transition-colors',
-        'hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors',
+        'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isOut ? 'text-primary-hover' : 'text-subtle-foreground',
       )}
     >
-      <svg width={10} height={10} viewBox="0 0 10 10" fill="none" aria-hidden="true" className="shrink-0">
-        {isOut ? (
-          <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
-        ) : (
-          <path d="M8 5H2M4.5 2.5L2 5l2.5 2.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
-        )}
-      </svg>
+      {isOut ? (
+        <ArrowRight className="size-2.5 shrink-0" aria-hidden="true" />
+      ) : (
+        <ArrowLeft className="size-2.5 shrink-0" aria-hidden="true" />
+      )}
       <span className="truncate">{note.title}</span>
     </button>
   );

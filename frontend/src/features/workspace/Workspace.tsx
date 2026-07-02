@@ -1,15 +1,37 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  Store,
+  Waypoints,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import {
+  Avatar,
+  AvatarFallback,
   Button,
   cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
   useToast,
 } from '@/ui';
 import { NavItem, UserPill } from './atoms';
@@ -24,52 +46,13 @@ const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
 type View = (typeof VIEWS)[number];
 type NavTarget = View | 'blueprints' | 'packs';
 
-const NAV_ICONS: Record<NavTarget, ReactNode> = {
-  notes: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <path d="M3 1.5h9a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1v-10a1 1 0 011-1z" stroke="currentColor" strokeWidth={1.2} fill="none" />
-      <path d="M4 5h7M4 7.5h7M4 10h4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-    </svg>
-  ),
-  graph: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <circle cx={7.5} cy={7.5} r={2.2} stroke="currentColor" strokeWidth={1.2} />
-      <circle cx={12.5} cy={2.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={2.5} cy={2.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={2.5} cy={12.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={12.5} cy={12.5} r={1.5} stroke="currentColor" strokeWidth={1.1} />
-      <path d="M9.3 6.3L11.3 4M5.7 6.3L3.7 4M5.7 8.8L3.7 11M9.3 8.8L11.3 11" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" />
-    </svg>
-  ),
-  dashboard: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <rect x={1.5} y={1.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={8.5} y={1.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={1.5} y={8.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={8.5} y={8.5} width={5} height={5} rx={1} stroke="currentColor" strokeWidth={1.2} />
-    </svg>
-  ),
-  marketplace: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <path d="M1.5 3h12M3 3l1 8h7l1-8" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx={5.5} cy={12.5} r={1} stroke="currentColor" strokeWidth={1.1} />
-      <circle cx={9.5} cy={12.5} r={1} stroke="currentColor" strokeWidth={1.1} />
-    </svg>
-  ),
-  blueprints: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <rect x={1.5} y={5.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={9.5} y={1.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <rect x={9.5} y={9.5} width={4} height={4} rx={1} stroke="currentColor" strokeWidth={1.2} />
-      <path d="M5.5 7.5h2.2M7.7 7.5V3.5h1.8M7.7 7.5v4h1.8" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" fill="none" />
-    </svg>
-  ),
-  packs: (
-    <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <rect x={1.5} y={1.5} width={12} height={12} rx={1.5} stroke="currentColor" strokeWidth={1.2} />
-      <path d="M5 7.5h5M7.5 5v5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
-    </svg>
-  ),
+const NAV_ICONS: Record<NavTarget, LucideIcon> = {
+  notes: FileText,
+  graph: Waypoints,
+  dashboard: LayoutDashboard,
+  marketplace: Store,
+  blueprints: Workflow,
+  packs: Package,
 };
 
 const NAV_LABELS: Record<NavTarget, string> = {
@@ -83,7 +66,8 @@ const NAV_LABELS: Record<NavTarget, string> = {
 
 const NAV_ORDER: NavTarget[] = [...VIEWS, 'blueprints', 'packs'];
 
-function Logo({ className }: { className?: string }) {
+/** Modulo brand mark (icon only), tinted by the primary token. */
+function ModuloMark({ className }: { className?: string }) {
   return (
     <svg width={22} height={22} viewBox="0 0 22 22" fill="none" className={cn('shrink-0 text-primary', className)} aria-hidden="true">
       <rect x={1} y={1} width={9} height={9} rx={2} fill="currentColor" />
@@ -94,20 +78,29 @@ function Logo({ className }: { className?: string }) {
   );
 }
 
-function SidebarNav({ view, collapsed, onGo }: { view: View; collapsed?: boolean; onGo: (target: NavTarget) => void }) {
+/** Icon-only nav button on the md+ rail; label lives in a right-side tooltip. */
+function RailItem({ active, label, icon: Icon, onClick }: { active: boolean; label: string; icon: LucideIcon; onClick: () => void }) {
   return (
-    <nav className={cn('flex flex-1 flex-col gap-0.5 overflow-y-auto p-2', collapsed && 'px-1.5')}>
-      {NAV_ORDER.map((target) => (
-        <NavItem
-          key={target}
-          active={target === view}
-          collapsed={collapsed}
-          onClick={() => onGo(target)}
-          icon={NAV_ICONS[target]}
-          label={NAV_LABELS[target]}
-        />
-      ))}
-    </nav>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'relative flex h-10 w-full items-center justify-center transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            active
+              ? 'text-primary before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:bg-primary'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -179,70 +172,96 @@ export default function Workspace() {
   const userLabel = user?.name || user?.email || 'Account';
   const userSub = user?.name && user?.email ? user.email : undefined;
   const walletAddress = user?.walletAddress;
+  const initials = userLabel
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]!.toUpperCase())
+    .join('');
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background font-sans text-[13.5px] text-foreground md:flex-row">
-      {/* <md: top bar with the nav in a sheet */}
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 md:hidden">
+      {/* <md: slim top bar with the nav in a sheet */}
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-2 md:hidden">
         <Sheet open={navOpen} onOpenChange={setNavOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label="Open navigation">
-              <svg viewBox="0 0 15 15" fill="none" aria-hidden="true">
-                <path d="M2 4h11M2 7.5h11M2 11h11" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
-              </svg>
+              <Menu aria-hidden="true" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="flex w-64 flex-col gap-0 bg-surface p-0">
             <SheetHeader className="border-b border-border px-4 py-4 text-left">
               <SheetTitle className="flex items-center gap-2 text-[15px] tracking-tight">
-                <Logo />
+                <ModuloMark />
                 Modulo
               </SheetTitle>
               <SheetDescription className="sr-only">Workspace navigation</SheetDescription>
             </SheetHeader>
-            <SidebarNav view={view} onGo={goTo} />
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" aria-label="Workspace">
+              {NAV_ORDER.map((target) => {
+                const Icon = NAV_ICONS[target];
+                return (
+                  <NavItem
+                    key={target}
+                    active={target === view}
+                    onClick={() => goTo(target)}
+                    icon={<Icon aria-hidden="true" />}
+                    label={NAV_LABELS[target]}
+                  />
+                );
+              })}
+            </nav>
             <div className="border-t border-border p-2.5">
               <UserPill label={userLabel} sublabel={userSub} onClick={() => void logout()} />
             </div>
           </SheetContent>
         </Sheet>
-        <Logo className="size-[18px]" />
+        <ModuloMark className="size-[18px]" />
         <span className="text-sm font-semibold tracking-tight">Modulo</span>
-        <span className="ml-auto text-xs capitalize text-muted-foreground">{view}</span>
+        <span className="ml-auto pr-1 text-xs capitalize text-muted-foreground">{view}</span>
       </header>
 
-      {/* md: collapsed icon rail */}
-      <aside className="hidden w-14 shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:flex lg:hidden">
-        <div className="flex items-center justify-center border-b border-border py-4">
-          <Logo className="size-[18px]" />
+      {/* md+: icon-only rail */}
+      <aside className="hidden w-14 shrink-0 flex-col border-r border-border md:flex">
+        <div className="flex h-12 shrink-0 items-center justify-center">
+          <ModuloMark />
         </div>
-        <SidebarNav view={view} collapsed onGo={goTo} />
-        <div className="border-t border-border p-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="w-full"
-            onClick={() => void logout()}
-            aria-label={`Log out (${userLabel})`}
-            title="Log out"
-          >
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M4.5 1.5H2.5A1 1 0 001.5 2.5v7a1 1 0 001 1h2" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" />
-              <path d="M7 8.5L9.5 6 7 3.5M9.5 6h-6" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Button>
-        </div>
-      </aside>
-
-      {/* ≥lg: full sidebar */}
-      <aside className="hidden w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-surface lg:flex">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-[17px]">
-          <Logo />
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">Modulo</span>
-        </div>
-        <SidebarNav view={view} onGo={goTo} />
-        <div className="border-t border-border p-2.5">
-          <UserPill label={userLabel} sublabel={userSub} onClick={() => void logout()} />
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-2" aria-label="Workspace">
+          {NAV_ORDER.map((target) => (
+            <RailItem
+              key={target}
+              active={target === view}
+              label={NAV_LABELS[target]}
+              icon={NAV_ICONS[target]}
+              onClick={() => goTo(target)}
+            />
+          ))}
+        </nav>
+        <div className="flex shrink-0 justify-center pb-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Account: ${userLabel}`}
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Avatar className="size-7">
+                  <AvatarFallback className="text-xxs">{initials || '?'}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="min-w-44">
+              <DropdownMenuLabel>
+                <span className="block truncate text-xs">{userLabel}</span>
+                {userSub && <span className="block truncate text-xxs font-normal text-muted-foreground">{userSub}</span>}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void logout()}>
+                <LogOut className="size-4" aria-hidden="true" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
