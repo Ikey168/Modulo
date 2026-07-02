@@ -89,7 +89,7 @@
    below the "in" label on nodes with several data pins. */
 .bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; position: relative; }
 /* Clear the exec-in handle diamond, which straddles the node's left border. */
-.bp-node__exec-in .bp-pin-label { padding-left: 10px; }
+.bp-node__exec-in .bp-pin-label { padding-left: 14px; }
 
 .bp-node__data {
   display: flex;
@@ -131,7 +131,20 @@
 .bp-handle--exec {
   background: hsl(var(--foreground));
   border-radius: 2px;
-  transform: rotate(45deg) translateY(-50%);
+}
+/* Center the exec diamonds on the node border. translate() runs before
+   rotate() so the offset is in page axes (the old rotate-first order pushed
+   the diamond diagonally into the label). */
+.bp-node__exec-in .bp-handle--exec {
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.bp-pin-row--out .bp-handle--exec {
+  left: auto;
+  right: 0;
+  top: 50%;
+  transform: translate(50%, -50%) rotate(45deg);
 }
 .bp-handle--data {
   border-radius: 50%;
