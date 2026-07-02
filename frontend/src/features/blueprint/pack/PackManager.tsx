@@ -239,7 +239,7 @@ export default function PackManager() {
                   return (
                     <React.Fragment key={p.packId}>
                     <tr className="border-b border-border">
-                      <td className="px-3 py-2 font-mono text-indigo-400">{p.packId}</td>
+                      <td className="px-3 py-2 font-mono text-primary-hover">{p.packId}</td>
                       <td className="px-3 py-2">{p.version}</td>
                       <td className="px-3 py-2">
                         <Badge variant={(p.source ?? 'LOCAL') === 'IPFS' ? 'info' : 'secondary'}>
@@ -253,7 +253,7 @@ export default function PackManager() {
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-indigo-400 no-underline hover:underline"
+                              className="font-mono text-primary-hover no-underline hover:underline"
                               title={cid}
                             >
                               {cid.slice(0, 14)}…
@@ -313,9 +313,9 @@ export default function PackManager() {
                               <h4 className="m-0 mb-1 text-[0.85rem] uppercase tracking-[0.05em] text-subtle-foreground">On-chain provenance</h4>
                               {p.anchorTx ? (
                                 <div className="mb-1 flex flex-col gap-0.5 break-all text-[0.78rem] text-subtle-foreground">
-                                  <div>tx: <code className="font-mono text-[0.75rem] text-indigo-400">{p.anchorTx}</code></div>
-                                  <div>author: <code className="font-mono text-[0.75rem] text-indigo-400">{p.authorAddress ?? '—'}</code></div>
-                                  {p.onchainId != null && <div>on-chain id: <code className="font-mono text-[0.75rem] text-indigo-400">{p.onchainId}</code></div>}
+                                  <div>tx: <code className="font-mono text-[0.75rem] text-primary-hover">{p.anchorTx}</code></div>
+                                  <div>author: <code className="font-mono text-[0.75rem] text-primary-hover">{p.authorAddress ?? '—'}</code></div>
+                                  {p.onchainId != null && <div>on-chain id: <code className="font-mono text-[0.75rem] text-primary-hover">{p.onchainId}</code></div>}
                                 </div>
                               ) : (
                                 <p className="mb-2 text-sm text-muted-foreground">Anchor the pack hash on-chain for verifiable authorship.</p>

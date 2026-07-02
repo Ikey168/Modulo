@@ -341,11 +341,13 @@ function EditorInner() {
 
       {status && (
         <div
+          role="status"
+          aria-live="polite"
           className={cn(
             'border-b border-border px-3.5 py-[7px] text-[12.5px]',
-            status.kind === 'info' && 'bg-primary/[0.12] text-indigo-300',
-            status.kind === 'error' && 'bg-destructive/[0.12] text-destructive',
-            status.kind === 'success' && 'bg-success/[0.14] text-success',
+            status.kind === 'info' && 'bg-info/10 text-info',
+            status.kind === 'error' && 'bg-destructive/10 text-destructive',
+            status.kind === 'success' && 'bg-success/10 text-success',
           )}
         >
           {status.text}
@@ -366,9 +368,10 @@ function EditorInner() {
             fitView
             deleteKeyCode={['Backspace', 'Delete']}
           >
-            <Background gap={18} color="#1e1e24" />
+            {/* Pattern colour comes from --xy-background-pattern-color (token-driven, editor.css). */}
+            <Background gap={18} />
             <Controls />
-            <MiniMap pannable zoomable className="bp-minimap" />
+            <MiniMap pannable zoomable />
           </ReactFlow>
         </div>
       </div>

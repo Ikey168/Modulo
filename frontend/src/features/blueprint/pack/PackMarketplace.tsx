@@ -72,7 +72,7 @@ export default function PackMarketplace() {
               className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong"
             >
               <div className="flex items-center gap-2.5">
-                <div className="flex size-[34px] shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 text-sm font-semibold text-indigo-400">
+                <div className="flex size-[34px] shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-2 text-sm font-semibold text-primary-hover">
                   {(pack.name ?? pack.packId).charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">

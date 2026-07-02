@@ -6,21 +6,8 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input, cn } from '@/ui';
 import { NodeCatalog } from '../nodeCatalog';
-import { NodeCategory, NodeDescriptor } from '../nodeModel';
-
-const CATEGORY_ORDER: NodeCategory[] = ['trigger', 'action', 'logic'];
-const CATEGORY_LABELS: Record<NodeCategory, string> = {
-  trigger: 'Triggers',
-  action: 'Actions',
-  logic: 'Logic',
-};
-
-// Left accent bar per category — trigger green, action indigo, logic amber.
-const CATEGORY_ACCENT: Record<NodeCategory, string> = {
-  trigger: 'border-l-success',
-  action: 'border-l-primary',
-  logic: 'border-l-warning',
-};
+import { NodeDescriptor } from '../nodeModel';
+import { CATEGORY_ORDER, categoryMeta } from './categoryMeta';
 
 interface NodePaletteProps {
   catalog: NodeCatalog;
@@ -72,7 +59,7 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
         {grouped.map((group) => (
           <div key={group.category}>
             <div className="mx-1 mb-1.5 mt-2.5 text-[10.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-              {CATEGORY_LABELS[group.category]}
+              {categoryMeta(group.category).label}
             </div>
             {group.nodes.map((node) => (
               <button
@@ -80,7 +67,7 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
                 type="button"
                 className={cn(
                   'mb-1.5 flex w-full cursor-grab flex-col gap-0.5 rounded-md border border-border-strong border-l-[3px] bg-surface-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-3 active:cursor-grabbing',
-                  CATEGORY_ACCENT[node.category],
+                  categoryMeta(node.category).borderClass,
                 )}
                 title={node.description}
                 draggable
