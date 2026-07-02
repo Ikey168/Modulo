@@ -39,7 +39,7 @@ import { NotesView } from './NotesView';
 import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { GRAPH_PLUGIN_ID } from './plugins';
+import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
 import { useCoreWorkspace } from './useCoreWorkspace';
 
 // Heavy React Flow editor loads on demand when the Blueprints view is opened.
@@ -127,7 +127,7 @@ export default function Workspace() {
     } catch {
       /* corrupted storage falls through to defaults */
     }
-    return new Set(['mermaid', 'github-sync', GRAPH_PLUGIN_ID]);
+    return new Set(['mermaid', 'github-sync', GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID]);
   });
   const [navOpen, setNavOpen] = useState(false);
 
@@ -185,7 +185,10 @@ export default function Workspace() {
   // The Graph view is provided by an installable plugin; hide its nav entry
   // (and gate the view below) while the plugin is not installed.
   const graphInstalled = installed.has(GRAPH_PLUGIN_ID);
-  const navItems = NAV_ORDER.filter((t) => t !== 'graph' || graphInstalled);
+  const notesInstalled = installed.has(NOTES_PLUGIN_ID);
+  const navItems = NAV_ORDER.filter(
+    (t) => (t !== 'graph' || graphInstalled) && (t !== 'notes' || notesInstalled),
+  );
 
   const userLabel = user?.name || user?.email || 'Account';
   const userSub = user?.name && user?.email ? user.email : undefined;
@@ -285,7 +288,7 @@ export default function Workspace() {
 
       {/* Main */}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {view === 'notes' && (
+        {view === 'notes' && notesInstalled && (
           <NotesView
             data={data}
             selectedId={selectedId}
@@ -296,6 +299,21 @@ export default function Workspace() {
             onSearch={setSearchQuery}
             onNewNote={handleNewNote}
           />
+        )}
+        {view === 'notes' && !notesInstalled && (
+          <div className="flex flex-1 items-center justify-center p-8">
+            <EmptyState
+              icon={<FileText className="size-5" />}
+              title="Markdown Notes is not installed"
+              description="The notes editor is provided by the Markdown Notes plugin. Install it from the marketplace to write and link notes."
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => togglePlugin(NOTES_PLUGIN_ID)}>Install plugin</Button>
+                  <Button size="sm" variant="outline" onClick={() => goTo('marketplace')}>Open marketplace</Button>
+                </div>
+              }
+            />
+          </div>
         )}
         {view === 'graph' && graphInstalled && (
           <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
