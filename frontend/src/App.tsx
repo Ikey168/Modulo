@@ -68,7 +68,7 @@ function App() {
             
             {/* note-workbench pack routes — only present when the pack is registered. */}
             {workbenchPack && (
-              <Route path="/app" element={<Navigate to="/app/marketplace" replace />} />
+              <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
             )}
             {workbenchPack?.routes?.map((route) => {
               const Component = route.component;

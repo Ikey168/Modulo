@@ -28,15 +28,15 @@ import {
 
 /** Primary destinations — the note-workbench app routes. */
 const PRIMARY_LINKS = [
+  { label: 'Dashboard', to: '/app/dashboard' },
   { label: 'Marketplace', to: '/app/marketplace' },
   { label: 'Blueprints', to: '/app/blueprints' },
   { label: 'Notes', to: '/app/notes' },
-  { label: 'Graph', to: '/app/graph' },
 ] as const;
 
 /** Secondary destinations, tucked into the "More" menu on desktop. */
 const MORE_LINKS = [
-  { label: 'Dashboard', to: '/app/dashboard' },
+  { label: 'Graph', to: '/app/graph' },
   { label: 'Contracts', to: '/contracts' },
   { label: 'About', to: '/about' },
 ] as const;
@@ -146,7 +146,7 @@ const Header = () => {
 
         {/* Brand */}
         <Link
-          to="/app/marketplace"
+          to="/app/dashboard"
           className="flex items-center gap-2 text-foreground transition-opacity hover:opacity-80"
         >
           <ModuloMark size={22} className="text-primary" />

@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Get the intended destination from location state (defaults into the workspace)
-  const from = location.state?.from?.pathname || '/app/marketplace';
+  const from = location.state?.from?.pathname || '/app/dashboard';
 
   // Check for callback errors
   useEffect(() => {

@@ -65,7 +65,7 @@ const NAV_LABELS: Record<NavTarget, string> = {
 };
 
 // Plugins & blueprints are the product's center of gravity; notes follow.
-const NAV_ORDER: NavTarget[] = ['marketplace', 'blueprints', 'notes', 'graph', 'dashboard'];
+const NAV_ORDER: NavTarget[] = ['dashboard', 'marketplace', 'blueprints', 'notes', 'graph'];
 
 /** Modulo brand mark (icon only), tinted by the primary token. */
 function ModuloMark({ className }: { className?: string }) {
@@ -108,7 +108,7 @@ function RailItem({ active, label, icon: Icon, onClick }: { active: boolean; lab
 export default function Workspace() {
   const navigate = useNavigate();
   const { view: viewParam } = useParams<{ view: string }>();
-  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'marketplace';
+  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'dashboard';
 
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -280,7 +280,7 @@ export default function Workspace() {
           <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
         )}
         {view === 'dashboard' && (
-          <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />
+          <DashboardView notes={data.notes} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} onOpenBlueprints={() => goTo('blueprints')} />
         )}
         {view === 'marketplace' && <MarketplaceView installedPlugins={installed} onTogglePlugin={togglePlugin} />}
         {view === 'blueprints' && (
