@@ -84,7 +84,10 @@
   padding: 6px 0;
   border-bottom: 1px solid hsl(var(--border));
 }
-.bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; }
+/* position: relative anchors the exec-in handle to its row — without it the
+   React Flow handle (absolute, top 50%) centers on the whole node and droops
+   below the "in" label on nodes with several data pins. */
+.bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; position: relative; }
 
 .bp-node__data {
   display: flex;
