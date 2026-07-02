@@ -3,7 +3,6 @@ export { MobileOptimizedButton } from './MobileOptimizedButton';
 export { MobileOptimizedInput } from './MobileOptimizedInput';
 export { MobileSearchBar } from './MobileSearchBar';
 export { MobileNotesCard } from './MobileNotesCard';
-export { EnhancedMobileMenu } from './EnhancedMobileMenu';
 export { MobileLayout } from './MobileLayout';
 export { MobilePerformanceDashboard } from './MobilePerformanceDashboard';
 export { MobileDebugger } from './MobileDebugger';
