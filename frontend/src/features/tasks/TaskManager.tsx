@@ -1,28 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays, LayoutDashboard, ListTodo, Plus, RefreshCw } from 'lucide-react';
-import { Button, Select, Tabs } from '@/ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/ui';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import CalendarView from './CalendarView';
-
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'BLOCKED' | 'ON_HOLD';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  dueDate?: string;
-  startDate?: string;
-  completionDate?: string;
-  estimatedDurationMinutes?: number;
-  progressPercentage: number;
-  isOverdue?: boolean;
-  isDueToday?: boolean;
-  linkedNotes?: any[];
-  tags?: string;
-  googleCalendarEventId?: string;
-  syncWithGoogleCalendar?: boolean;
-}
+import type { Task } from './types';
 
 interface TaskStats {
   totalTasks: number;
@@ -37,6 +34,9 @@ interface TaskManagerProps {
   noteId?: number;
   initialView?: 'list' | 'calendar';
 }
+
+/** Radix SelectItem forbids value=""; sentinel mapped back to '' (= no filter) in state. */
+const ALL_FILTER = 'all';
 
 const TaskManager: React.FC<TaskManagerProps> = ({
   userId,
@@ -178,60 +178,64 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
       <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-3 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
-          variant="pills"
           value={currentView}
-          onChange={(v) => setCurrentView(v as 'list' | 'calendar' | 'dashboard')}
-          items={[
-            { value: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
-            { value: 'list', label: 'Task List', icon: <ListTodo /> },
-            { value: 'calendar', label: 'Calendar', icon: <CalendarDays /> },
-          ]}
-        />
+          onValueChange={(v) => setCurrentView(v as 'list' | 'calendar' | 'dashboard')}
+        >
+          <TabsList>
+            <TabsTrigger value="dashboard"><LayoutDashboard />Dashboard</TabsTrigger>
+            <TabsTrigger value="list"><ListTodo />Task List</TabsTrigger>
+            <TabsTrigger value="calendar"><CalendarDays />Calendar</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {currentView === 'list' && (
           <div className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-center">
             <Select
-              value={taskFilters.status}
-              onChange={(e) => handleFilterChange({ ...taskFilters, status: e.target.value })}
-              className="sm:w-40"
+              value={taskFilters.status || ALL_FILTER}
+              onValueChange={(val) => handleFilterChange({ ...taskFilters, status: val === ALL_FILTER ? '' : val })}
             >
-              <option value="">All Statuses</option>
-              <option value="TODO">To Do</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="BLOCKED">Blocked</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="CANCELLED">Cancelled</option>
+              <SelectTrigger className="sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All Statuses</SelectItem>
+                <SelectItem value="TODO">To Do</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+                <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
             </Select>
 
             <Select
-              value={taskFilters.priority}
-              onChange={(e) => handleFilterChange({ ...taskFilters, priority: e.target.value })}
-              className="sm:w-40"
+              value={taskFilters.priority || ALL_FILTER}
+              onValueChange={(val) => handleFilterChange({ ...taskFilters, priority: val === ALL_FILTER ? '' : val })}
             >
-              <option value="">All Priorities</option>
-              <option value="URGENT">Urgent</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
+              <SelectTrigger className="sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All Priorities</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
+              </SelectContent>
             </Select>
 
             <label className="flex cursor-pointer items-center gap-2 text-[13px] text-subtle-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={taskFilters.showOverdue}
-                onChange={(e) => handleFilterChange({ ...taskFilters, showOverdue: e.target.checked })}
-                className="size-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
+                onCheckedChange={(checked) => handleFilterChange({ ...taskFilters, showOverdue: checked === true })}
               />
               Overdue Only
             </label>
 
             <label className="flex cursor-pointer items-center gap-2 text-[13px] text-subtle-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={taskFilters.showDueToday}
-                onChange={(e) => handleFilterChange({ ...taskFilters, showDueToday: e.target.checked })}
-                className="size-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-primary"
+                onCheckedChange={(checked) => handleFilterChange({ ...taskFilters, showDueToday: checked === true })}
               />
               Due Today Only
             </label>
@@ -241,46 +245,52 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
       <div className="flex-1 overflow-auto">
         {currentView === 'dashboard' && (
-          <div className="mx-auto max-w-[1200px] p-8 animate-fade-in">
-            <div className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-border border-l-4 border-l-primary bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+          <div className="mx-auto max-w-[1200px] p-6 animate-fade-in">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card className="border-l-4 border-l-primary p-6 text-center transition-transform hover:-translate-y-0.5 hover:shadow-md">
                 <div className="mb-2 text-4xl font-bold text-foreground">{stats.totalTasks}</div>
                 <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Total Tasks</div>
-              </div>
+              </Card>
 
-              <div className="rounded-lg border border-border border-l-4 border-l-success bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+              <Card className="border-l-4 border-l-success p-6 text-center transition-transform hover:-translate-y-0.5 hover:shadow-md">
                 <div className="mb-2 text-4xl font-bold text-foreground">{stats.completedTasks}</div>
                 <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Completed</div>
-              </div>
+              </Card>
 
-              <div className="rounded-lg border border-border border-l-4 border-l-destructive bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+              <Card className="border-l-4 border-l-destructive p-6 text-center transition-transform hover:-translate-y-0.5 hover:shadow-md">
                 <div className="mb-2 text-4xl font-bold text-foreground">{stats.overdueTasks}</div>
                 <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Overdue</div>
-              </div>
+              </Card>
 
-              <div className="rounded-lg border border-border border-l-4 border-l-warning bg-surface p-8 text-center shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+              <Card className="border-l-4 border-l-warning p-6 text-center transition-transform hover:-translate-y-0.5 hover:shadow-md">
                 <div className="mb-2 text-4xl font-bold text-foreground">{stats.dueTodayTasks}</div>
                 <div className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Due Today</div>
-              </div>
+              </Card>
             </div>
 
-            <div className="mb-8 rounded-lg border border-border bg-surface p-8 text-center shadow-sm">
-              <h3 className="mb-6 text-xl font-semibold text-foreground">Completion Rate</h3>
-              <div
-                className="relative mx-auto size-[150px] rounded-full"
-                style={{
-                  background: `conic-gradient(hsl(var(--success)) ${stats.completionRate * 3.6}deg, hsl(var(--surface-3)) 0deg)`
-                }}
-              >
-                <div className="absolute left-1/2 top-1/2 flex size-[100px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-surface-2 shadow-md">
-                  <span className="text-2xl font-bold text-foreground">{Math.round(stats.completionRate)}%</span>
+            <Card className="mb-6">
+              <CardHeader className="items-center">
+                <CardTitle>Completion Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className="relative mx-auto size-[150px] rounded-full"
+                  style={{
+                    background: `conic-gradient(hsl(var(--success)) ${stats.completionRate * 3.6}deg, hsl(var(--surface-3)) 0deg)`
+                  }}
+                >
+                  <div className="absolute left-1/2 top-1/2 flex size-[100px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-surface-2 shadow-md">
+                    <span className="text-2xl font-bold text-foreground">{Math.round(stats.completionRate)}%</span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            <div className="rounded-lg border border-border bg-surface p-8 shadow-sm">
-              <h3 className="mb-6 text-xl font-semibold text-foreground">Quick Actions</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Button
                   variant="outline"
                   size="lg"
@@ -315,8 +325,8 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                 >
                   View Calendar
                 </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

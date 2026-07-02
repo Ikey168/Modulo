@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Check } from 'lucide-react';
 import { useTheme } from '../../themes/ThemeContext';
-import { ThemeToggle } from '../../components/theme';
 import { themes } from '../../themes/themes';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Switch, cn } from '@/ui';
 
 const Settings: React.FC = () => {
   const { currentTheme, setTheme, isDarkMode } = useTheme();
+  const radioRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const followSystem = !localStorage.getItem('modulo-theme');
 
@@ -18,6 +18,44 @@ const Settings: React.FC = () => {
       setTheme(prefersDark ? 'dark' : 'light');
     } else {
       setTheme(currentTheme.name);
+    }
+  };
+
+  const selectedIndex = themes.findIndex((t) => t.name === currentTheme.name);
+
+  const selectAndFocus = (index: number) => {
+    const next = (index + themes.length) % themes.length;
+    setTheme(themes[next].name);
+    radioRefs.current[next]?.focus();
+  };
+
+  // Radio-group keyboard semantics: arrows move selection, Home/End jump,
+  // Enter/Space confirm the focused option.
+  const handleRadioKeyDown = (event: React.KeyboardEvent, index: number) => {
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault();
+        selectAndFocus(index + 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        event.preventDefault();
+        selectAndFocus(index - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        selectAndFocus(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        selectAndFocus(themes.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        setTheme(themes[index].name);
+        break;
     }
   };
 
@@ -35,92 +73,104 @@ const Settings: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-8">
             <div>
-              <h3 className="mb-4 text-sm font-medium text-foreground">Theme Selection</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {themes.map((theme) => (
-                  <div
-                    key={theme.name}
-                    className={cn(
-                      'group relative cursor-pointer overflow-hidden rounded-lg border transition-colors',
-                      currentTheme.name === theme.name
-                        ? 'border-primary ring-2 ring-primary/40'
-                        : 'border-border hover:border-border-strong',
-                    )}
-                    onClick={() => setTheme(theme.name)}
-                  >
-                    <div className="relative h-44 overflow-hidden">
-                      <div
-                        className="flex h-10 items-center px-4"
-                        style={{ backgroundColor: theme.colors.brand.primary }}
-                      >
-                        <div className="text-sm font-semibold" style={{ color: theme.colors.text.inverse }}>
-                          {theme.displayName}
-                        </div>
-                      </div>
-                      <div
-                        className="flex h-[136px] flex-col gap-3 p-4"
-                        style={{ backgroundColor: theme.colors.background.primary }}
-                      >
+              <h3 id="theme-selection-label" className="mb-4 text-sm font-medium text-foreground">
+                Theme
+              </h3>
+              <div
+                role="radiogroup"
+                aria-labelledby="theme-selection-label"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {themes.map((theme, index) => {
+                  const isSelected = currentTheme.name === theme.name;
+                  return (
+                    <div
+                      key={theme.name}
+                      ref={(el) => {
+                        radioRefs.current[index] = el;
+                      }}
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={theme.displayName}
+                      tabIndex={index === (selectedIndex === -1 ? 0 : selectedIndex) ? 0 : -1}
+                      onClick={() => setTheme(theme.name)}
+                      onKeyDown={(event) => handleRadioKeyDown(event, index)}
+                      className={cn(
+                        'group relative cursor-pointer overflow-hidden rounded-lg border transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/40'
+                          : 'border-border hover:border-border-strong',
+                      )}
+                    >
+                      {/* Preview swatches render the colors of *other* themes, so
+                          they are data-driven and cannot come from the active
+                          theme's Tailwind tokens. */}
+                      <div className="relative h-44 overflow-hidden" aria-hidden="true">
                         <div
-                          className="flex flex-1 flex-col gap-2 rounded-md p-3"
-                          style={{
-                            backgroundColor: theme.colors.background.card,
-                            border: `1px solid ${theme.colors.border.primary}`,
-                            color: theme.colors.text.primary,
-                          }}
+                          className="flex h-10 items-center px-4"
+                          style={{ backgroundColor: theme.colors.brand.primary }}
                         >
-                          <div className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>
-                            Sample content
+                          <div className="text-sm font-semibold" style={{ color: theme.colors.text.inverse }}>
+                            {theme.displayName}
                           </div>
-                          <div className="text-xs" style={{ color: theme.colors.text.secondary }}>
-                            Secondary text
-                          </div>
+                        </div>
+                        <div
+                          className="flex h-[136px] flex-col gap-3 p-4"
+                          style={{ backgroundColor: theme.colors.background.primary }}
+                        >
                           <div
-                            className="mt-auto rounded px-3 py-1.5 text-center text-xs font-medium"
+                            className="flex flex-1 flex-col gap-2 rounded-md p-3"
                             style={{
-                              backgroundColor: theme.colors.brand.accent,
-                              color: theme.colors.text.inverse,
+                              backgroundColor: theme.colors.background.card,
+                              border: `1px solid ${theme.colors.border.primary}`,
+                              color: theme.colors.text.primary,
                             }}
                           >
-                            Button
+                            <div className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>
+                              Sample content
+                            </div>
+                            <div className="text-xs" style={{ color: theme.colors.text.secondary }}>
+                              Secondary text
+                            </div>
+                            <div
+                              className="mt-auto rounded px-3 py-1.5 text-center text-xs font-medium"
+                              style={{
+                                backgroundColor: theme.colors.brand.accent,
+                                color: theme.colors.text.inverse,
+                              }}
+                            >
+                              Button
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-border bg-surface-2 p-4">
-                      <div className="font-semibold text-foreground">{theme.displayName}</div>
-                      <div className="flex gap-1">
-                        <span
-                          className="size-4 rounded-full border border-border-strong"
-                          style={{ backgroundColor: theme.colors.brand.primary }}
-                          title="Primary"
-                        />
-                        <span
-                          className="size-4 rounded-full border border-border-strong"
-                          style={{ backgroundColor: theme.colors.brand.accent }}
-                          title="Accent"
-                        />
-                        <span
-                          className="size-4 rounded-full border border-border-strong"
-                          style={{ backgroundColor: theme.colors.background.primary }}
-                          title="Background"
-                        />
+                      <div className="flex items-center justify-between border-t border-border bg-surface-2 p-4">
+                        <div className="font-semibold text-foreground">{theme.displayName}</div>
+                        <div className="flex gap-1" aria-hidden="true">
+                          <span
+                            className="size-4 rounded-full border border-border-strong"
+                            style={{ backgroundColor: theme.colors.brand.primary }}
+                          />
+                          <span
+                            className="size-4 rounded-full border border-border-strong"
+                            style={{ backgroundColor: theme.colors.brand.accent }}
+                          />
+                          <span
+                            className="size-4 rounded-full border border-border-strong"
+                            style={{ backgroundColor: theme.colors.background.primary }}
+                          />
+                        </div>
                       </div>
+                      {isSelected && (
+                        <div className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm [&_svg]:size-3.5">
+                          <Check strokeWidth={3} />
+                        </div>
+                      )}
                     </div>
-                    {currentTheme.name === theme.name && (
-                      <div className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full bg-success text-white shadow-sm [&_svg]:size-3.5">
-                        <Check strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 text-sm font-medium text-foreground">Quick Theme Toggle</h3>
-              <p className="mb-3 text-sm text-subtle-foreground">Use this for quick switching between light and dark modes:</p>
-              <ThemeToggle showLabels={true} compact={false} />
             </div>
 
             <div>
@@ -134,34 +184,10 @@ const Settings: React.FC = () => {
                 </div>
                 <Switch
                   checked={followSystem}
-                  onChange={handleFollowSystemChange}
+                  onCheckedChange={handleFollowSystemChange}
                   aria-label="Follow system theme automatically"
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Accessibility</CardTitle>
-            <CardDescription>Options to improve accessibility and usability.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-2 p-4">
-              <div>
-                <div className="text-sm font-medium text-foreground">High contrast mode</div>
-                <p className="mt-1 text-sm text-muted-foreground">Increases contrast for better visibility.</p>
-              </div>
-              <Switch checked={false} onChange={() => {}} aria-label="High contrast mode" />
-            </div>
-
-            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-2 p-4">
-              <div>
-                <div className="text-sm font-medium text-foreground">Reduce animations</div>
-                <p className="mt-1 text-sm text-muted-foreground">Minimizes motion effects throughout the interface.</p>
-              </div>
-              <Switch checked={false} onChange={() => {}} aria-label="Reduce animations" />
             </div>
           </CardContent>
         </Card>

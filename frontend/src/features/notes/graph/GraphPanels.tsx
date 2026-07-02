@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Tabs } from '@/ui';
+import { Tabs, TabsList, TabsTrigger } from '@/ui';
 import BacklinksPanel from './BacklinksPanel';
 import UnlinkedMentionsPanel from './UnlinkedMentionsPanel';
 import RelatedNotesPanel from './RelatedNotesPanel';
 import LocalGraphPanel from './LocalGraphPanel';
-import './graphPanels.css';
 
 interface Props {
   noteId: number;
@@ -14,16 +13,9 @@ interface Props {
 
 type Tab = 'backlinks' | 'mentions' | 'related' | 'localGraph';
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'backlinks', label: 'Backlinks' },
-  { key: 'mentions', label: 'Unlinked Mentions' },
-  { key: 'related', label: 'Related' },
-  { key: 'localGraph', label: 'Local Graph' },
-];
-
 /**
- * Knowledge-graph sidebar for the open note, combining backlinks (#251),
- * unlinked mentions (#252), related notes (#253) and the local subgraph (#254).
+ * Knowledge-graph sidebar for the open note, combining backlinks (issue 251),
+ * unlinked mentions (issue 252), related notes (issue 253) and the local subgraph (issue 254).
  */
 const GraphPanels: React.FC<Props> = ({ noteId, onOpenNote }) => {
   const [active, setActive] = useState<Tab>('backlinks');
@@ -34,12 +26,14 @@ const GraphPanels: React.FC<Props> = ({ noteId, onOpenNote }) => {
 
   return (
     <div className="mt-6 border-t border-border pt-4">
-      <Tabs
-        className="mb-3 flex-wrap"
-        items={TABS.map((tab) => ({ value: tab.key, label: tab.label }))}
-        value={active}
-        onChange={(v) => setActive(v as Tab)}
-      />
+      <Tabs value={active} onValueChange={(v) => setActive(v as Tab)}>
+        <TabsList variant="underline" className="mb-3 flex-wrap">
+          <TabsTrigger value="backlinks">Backlinks</TabsTrigger>
+          <TabsTrigger value="mentions">Unlinked Mentions</TabsTrigger>
+          <TabsTrigger value="related">Related</TabsTrigger>
+          <TabsTrigger value="localGraph">Local Graph</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="min-h-[80px]">
         {active === 'backlinks' && (

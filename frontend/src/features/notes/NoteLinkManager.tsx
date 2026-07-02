@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createCoreAPI } from '@modulo/core';
 import type { CoreLink } from '@modulo/core';
-import { Button, Label, Select, Badge } from '@/ui';
+import {
+  Badge,
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
 
 const LINK_TYPES = [
   'RELATED',
@@ -13,6 +22,9 @@ const LINK_TYPES = [
   'EXTENDS',
   'EXAMPLE_OF',
 ];
+
+/** Radix SelectItem forbids value=""; sentinel maps to '' (= no target selected) in state. */
+const NO_TARGET = '__none__';
 
 interface NoteLinkManagerProps {
   noteId: number;
@@ -145,31 +157,36 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="target-note">Target Note</Label>
             <Select
-              id="target-note"
-              value={selectedTargetNoteId}
-              onChange={(e) => setSelectedTargetNoteId(e.target.value)}
+              value={selectedTargetNoteId || NO_TARGET}
+              onValueChange={(val) => setSelectedTargetNoteId(val === NO_TARGET ? '' : val)}
             >
-              <option value="">Select a note...</option>
-              {availableTargetNotes.map((note) => (
-                <option key={note.id} value={note.id}>
-                  {note.title}
-                </option>
-              ))}
+              <SelectTrigger id="target-note">
+                <SelectValue placeholder="Select a note..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_TARGET}>Select a note...</SelectItem>
+                {availableTargetNotes.map((note) => (
+                  <SelectItem key={note.id} value={String(note.id)}>
+                    {note.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="link-type">Link Type</Label>
-            <Select
-              id="link-type"
-              value={selectedLinkType}
-              onChange={(e) => setSelectedLinkType(e.target.value)}
-            >
-              {LINK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type.replace(/_/g, ' ')}
-                </option>
-              ))}
+            <Select value={selectedLinkType} onValueChange={setSelectedLinkType}>
+              <SelectTrigger id="link-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LINK_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 

@@ -12,7 +12,7 @@ const CLOSED: SlashMenuState = { open: false, query: '', position: { top: 0, lef
 export function useSlashCommands(textareaRef: RefObject<HTMLTextAreaElement>) {
   const [menuState, setMenuState] = useState<SlashMenuState>(CLOSED);
 
-  const handleKeyUp = useCallback((_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyUp = useCallback(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     const cursor = ta.selectionStart;

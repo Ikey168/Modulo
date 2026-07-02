@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Badge } from '@/ui';
-import './RenderedNoteDisplay.css';
+import { Badge, cn } from '@/ui';
+import { NoteMarkdown } from './rendering/NoteMarkdown';
 
 interface RenderedNoteDisplayProps {
   content: string;
@@ -10,6 +10,9 @@ interface RenderedNoteDisplayProps {
   rendererId: string;
   onEvent?: (eventType: string, eventData: any) => void;
 }
+
+const PRE_CLASSES =
+  'm-0 overflow-x-auto rounded-md border border-border bg-surface-3 p-4 font-mono text-[13px] leading-relaxed text-subtle-foreground';
 
 const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
   content,
@@ -23,18 +26,12 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    if (isInteractive) {
-      setupEventListeners();
-    }
-  }, [content, isInteractive]);
-
-  const setupEventListeners = () => {
     if (!isInteractive || !onEvent) return;
 
     // Listen for custom events from rendered content
     const handleCustomEvent = (event: CustomEvent) => {
       const { type, detail } = event;
-      
+
       switch (type) {
         case 'mindmap-node-click':
           onEvent('node-click', {
@@ -43,7 +40,7 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
             level: detail.level
           });
           break;
-        
+
         case 'kanban-card-move':
           onEvent('card-move', {
             cardId: detail.cardId,
@@ -51,14 +48,14 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
             toColumn: detail.toColumn
           });
           break;
-          
+
         case 'timeline-event-select':
           onEvent('event-select', {
             eventId: detail.eventId,
             timestamp: detail.timestamp
           });
           break;
-          
+
         default:
           onEvent(type, detail);
       }
@@ -69,20 +66,37 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
     window.addEventListener('kanban-card-move', handleCustomEvent as EventListener);
     window.addEventListener('timeline-event-select', handleCustomEvent as EventListener);
 
-    // Cleanup
     return () => {
       window.removeEventListener('mindmap-node-click', handleCustomEvent as EventListener);
       window.removeEventListener('kanban-card-move', handleCustomEvent as EventListener);
       window.removeEventListener('timeline-event-select', handleCustomEvent as EventListener);
     };
-  };
+  }, [content, isInteractive, onEvent]);
+
+  // Interactive renderer output posts `renderer-event` messages from its
+  // sandboxed iframe; relay them to the host via onEvent.
+  useEffect(() => {
+    if (!isInteractive || !onEvent) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        event.source === iframeRef.current?.contentWindow &&
+        event.data?.type === 'renderer-event'
+      ) {
+        onEvent(event.data.eventType, event.data.data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isInteractive, onEvent]);
 
   const renderContent = () => {
     switch (mimeType) {
       case 'text/html':
         return renderHTMLContent();
       case 'text/markdown':
-        return renderMarkdownContent();
+        return <NoteMarkdown content={content} className="p-4" />;
       case 'application/json':
         return renderJSONContent();
       case 'text/plain':
@@ -93,92 +107,74 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
 
   const renderHTMLContent = () => {
     if (isInteractive) {
-      // For interactive content, use an iframe for security and isolation
+      // Interactive renderer output runs inside a fully sandboxed iframe:
+      // scripts are allowed but the document stays cross-origin (no
+      // `allow-same-origin`), so it can't touch the host DOM/storage. It
+      // communicates outward via postMessage only (relayed above).
       return (
         <iframe
           ref={iframeRef}
-          className="rendered-content-iframe"
+          className="block h-[600px] w-full rounded-md border-0 bg-surface max-md:h-[400px] print:hidden"
           srcDoc={content}
           title="Rendered Note Content"
-          sandbox="allow-scripts allow-same-origin"
-          onLoad={() => {
-            // Setup communication with iframe if needed
-            if (iframeRef.current && onEvent) {
-              const iframe = iframeRef.current;
-              iframe.contentWindow?.addEventListener('message', (event) => {
-                if (event.data.type === 'renderer-event') {
-                  onEvent(event.data.eventType, event.data.data);
-                }
-              });
-            }
-          }}
-        />
-      );
-    } else {
-      // For static HTML, render directly (with sanitization in a real app)
-      return (
-        <div
-          className="rendered-content-html"
-          dangerouslySetInnerHTML={{ __html: content }}
+          sandbox="allow-scripts"
         />
       );
     }
-  };
-
-  const renderMarkdownContent = () => {
-    // In a real implementation, you'd use a markdown parser like marked or react-markdown
-    return (
-      <div className="rendered-content-markdown">
-        <pre>{content}</pre>
-      </div>
-    );
+    // Static HTML renders through the sanitization pipeline
+    // (rehype-raw → rehype-sanitize) — never injected unsanitized.
+    return <NoteMarkdown content={content} allowHtml className="p-4" />;
   };
 
   const renderJSONContent = () => {
     try {
       const jsonData = typeof content === 'string' ? JSON.parse(content) : content;
       return (
-        <div className="rendered-content-json">
-          <pre>{JSON.stringify(jsonData, null, 2)}</pre>
+        <div className="p-4">
+          <pre className={cn(PRE_CLASSES, 'bg-background text-primary-hover')}>
+            {JSON.stringify(jsonData, null, 2)}
+          </pre>
         </div>
       );
     } catch (error) {
       return (
-        <div className="rendered-content-error">
-          <p>Invalid JSON content</p>
-          <pre>{content}</pre>
+        <div className="p-4 text-destructive">
+          <p className="mb-2 mt-0 text-[13px] font-medium">Invalid JSON content</p>
+          <pre className="m-0 overflow-x-auto rounded-md border border-destructive/30 bg-destructive/10 p-3 font-mono text-[13px] leading-relaxed text-destructive">
+            {content}
+          </pre>
         </div>
       );
     }
   };
 
-  const renderPlainTextContent = () => {
-    return (
-      <div className="rendered-content-text">
-        <pre>{content}</pre>
-      </div>
-    );
-  };
+  const renderPlainTextContent = () => (
+    <div className="p-4">
+      <pre className={cn(PRE_CLASSES, 'whitespace-pre-wrap break-words border-0 bg-transparent p-0')}>
+        {content}
+      </pre>
+    </div>
+  );
 
   const getMetadataInfo = () => {
     const info = [];
-    
+
     if (metadata.nodeCount) {
       info.push(`${metadata.nodeCount} nodes`);
     }
-    
+
     if (metadata.maxDepth) {
       info.push(`${metadata.maxDepth} levels deep`);
     }
-    
+
     if (metadata.theme) {
       info.push(`${metadata.theme} theme`);
     }
-    
+
     if (metadata.cardCount) {
       info.push(`${metadata.cardCount} cards`);
     }
-    
+
     if (metadata.eventCount) {
       info.push(`${metadata.eventCount} events`);
     }
@@ -214,7 +210,7 @@ const RenderedNoteDisplay: React.FC<RenderedNoteDisplayProps> = ({
 
       <div
         ref={containerRef}
-        className={`rendered-content-container ${isInteractive ? 'interactive' : 'static'}`}
+        className={cn('relative bg-surface', isInteractive && 'min-h-[400px]')}
       >
         {renderContent()}
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { accentColor } from '../theme/tokens';
 
 export interface Participant {
   userId: string;
@@ -24,15 +25,13 @@ export interface PresenceMessage {
   timestamp: string;
 }
 
-const USER_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
-];
+/** Eight distinct presence colors, derived from the design tokens at runtime. */
+const USER_COLOR_COUNT = 8;
 
 function colorForUser(userId: string): string {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+  return accentColor(Math.abs(hash) % USER_COLOR_COUNT);
 }
 
 const HEARTBEAT_INTERVAL_MS = 15_000;

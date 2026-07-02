@@ -4,9 +4,9 @@ import { Suspense, useEffect } from 'react';
 import { store } from './store/store';
 import { networkStatusService } from './services/networkStatus';
 import { ThemeProvider } from './themes/ThemeContext';
+import { Toaster, TooltipProvider } from '@/ui';
 import Layout from './components/layout/Layout';
 import Home from './features/home/Home';
-import Dashboard from './features/dashboard/Dashboard';
 import Contracts from './features/contracts/Contracts';
 import About from './features/about/About';
 import Settings from './features/settings/Settings';
@@ -14,11 +14,11 @@ import LoginPage from './features/auth/LoginPage';
 import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
-import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
-import PackManager from './features/blueprint/pack/PackManager';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 import SharedNotePage from './features/notes/sharing/SharedNotePage';
+import PluginSubmission from './features/PluginSubmission';
+import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
@@ -43,6 +43,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark">
       <Provider store={store}>
+        <TooltipProvider delayDuration={300}>
         <Router>
           <Routes>
             {/* Login is the main entry page */}
@@ -67,13 +68,13 @@ function App() {
             
             {/* note-workbench pack routes — only present when the pack is registered. */}
             {workbenchPack && (
-              <Route path="/app" element={<Navigate to="/app/notes" replace />} />
+              <Route path="/app" element={<Navigate to="/app/marketplace" replace />} />
             )}
             {workbenchPack?.routes?.map((route) => {
               const Component = route.component;
               const element = route.requiresAuth ? (
                 <RequireAuth>
-                  <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#0a0a0b', color: '#52525b' }}>Loading…</div>}>
+                  <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
                     <Component />
                   </Suspense>
                 </RequireAuth>
@@ -85,41 +86,17 @@ function App() {
               return <Route key={route.path} path={route.path} element={element} />;
             })}
 
-            {/* Blueprint visual editor (#274) */}
-            <Route
-              path="/blueprints"
-              element={
-                <RequireAuth>
-                  <BlueprintEditor />
-                </RequireAuth>
-              }
-            />
+            {/* Blueprint editor now lives inside the workspace shell */}
+            <Route path="/blueprints" element={<Navigate to="/app/blueprints" replace />} />
 
-            {/* Pack manager (#276) */}
-            <Route
-              path="/packs"
-              element={
-                <RequireAuth>
-                  <PackManager />
-                </RequireAuth>
-              }
-            />
+            {/* Packs now live inside the marketplace (Packs tab) */}
+            <Route path="/packs" element={<Navigate to="/app/marketplace" replace />} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
             <Route path="/notes" element={<Navigate to="/app/notes" replace />} />
             <Route path="/notes-graph" element={<Navigate to="/app/graph" replace />} />
             <Route path="/plugins/marketplace" element={<Navigate to="/app/marketplace" replace />} />
-            <Route
-              path="/legacy/dashboard"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
             <Route
               path="/contracts"
               element={
@@ -131,10 +108,34 @@ function App() {
               }
             />
 
+            {/* Plugin submission pipeline */}
+            <Route
+              path="/plugins/submit"
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <PluginSubmission />
+                  </Layout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/plugins/my-submissions"
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <MySubmissions />
+                  </Layout>
+                </RequireAuth>
+              }
+            />
+
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
+        <Toaster />
+        </TooltipProvider>
       </Provider>
     </ThemeProvider>
   );

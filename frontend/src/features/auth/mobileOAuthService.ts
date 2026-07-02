@@ -65,12 +65,21 @@ export class MobileOAuthService {
   }
 
   /**
+   * Redirect URI for the OAuth flow. Must point at the callback routes
+   * actually mounted in App.tsx (/mobile/auth/<provider>/callback) and be
+   * byte-identical in the authorization request and the token exchange.
+   */
+  private getRedirectUri(provider: OAuthProvider): string {
+    return `${window.location.origin}/mobile/auth/${provider.name}/callback`;
+  }
+
+  /**
    * Build OAuth authorization URL
    */
   private buildAuthUrl(provider: OAuthProvider, state: string, codeChallenge: string): string {
     const params = new URLSearchParams({
       client_id: provider.config.clientId,
-      redirect_uri: provider.config.redirectUri,
+      redirect_uri: this.getRedirectUri(provider),
       response_type: provider.config.responseType,
       scope: provider.config.scope,
       state: state,
@@ -230,7 +239,7 @@ export class MobileOAuthService {
       grant_type: 'authorization_code',
       client_id: provider.config.clientId,
       code: code,
-      redirect_uri: provider.config.redirectUri,
+      redirect_uri: this.getRedirectUri(provider),
       code_verifier: codeVerifier
     };
 

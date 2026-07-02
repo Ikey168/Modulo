@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Select, Label } from '@/ui';
+import {
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui';
+
+/** Radix SelectItem forbids value=""; sentinel represents "no target selected". */
+const NO_TARGET = '__none__';
 
 interface NoteLink {
   id: string;
@@ -187,30 +198,35 @@ const NoteLinkManager: React.FC<NoteLinkManagerProps> = ({ currentNoteId, onLink
           <div className="mb-3 flex flex-col gap-1.5">
             <Label htmlFor="target-note-select">Target Note:</Label>
             <Select
-              id="target-note-select"
-              value={selectedTargetNoteId || ''}
-              onChange={(e) => setSelectedTargetNoteId(Number(e.target.value))}
+              value={selectedTargetNoteId ? String(selectedTargetNoteId) : NO_TARGET}
+              onValueChange={(val) => setSelectedTargetNoteId(val === NO_TARGET ? null : Number(val))}
             >
-              <option value="">Select a note...</option>
-              {availableNotes.map(note => (
-                <option key={note.id} value={note.id}>
-                  {note.title}
-                </option>
-              ))}
+              <SelectTrigger id="target-note-select">
+                <SelectValue placeholder="Select a note..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_TARGET}>Select a note...</SelectItem>
+                {availableNotes.map(note => (
+                  <SelectItem key={note.id} value={String(note.id)}>
+                    {note.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="mb-4 flex flex-col gap-1.5">
             <Label htmlFor="link-type-select">Link Type:</Label>
-            <Select
-              id="link-type-select"
-              value={linkType}
-              onChange={(e) => setLinkType(e.target.value)}
-            >
-              {LINK_TYPES.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
+            <Select value={linkType} onValueChange={setLinkType}>
+              <SelectTrigger id="link-type-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LINK_TYPES.map(type => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="flex justify-end">

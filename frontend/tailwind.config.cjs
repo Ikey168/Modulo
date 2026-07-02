@@ -1,11 +1,12 @@
 /**
  * Modulo design system — Tailwind configuration.
  *
- * The whole app unifies on the dark "workspace" aesthetic: deep charcoal
- * surfaces, an indigo accent, DM Sans / DM Mono type. Colors are expressed as
- * semantic tokens backed by CSS variables (HSL channels) declared in
- * src/styles/index.css, so opacity modifiers (bg-primary/10) work and a future
- * light theme can be layered in by re-declaring the variables under a selector.
+ * The whole app unifies on the "emerald terminal" aesthetic: green-black ink
+ * surfaces, an emerald accent, Inter body / JetBrains Mono display type, sharp
+ * corners. Colors are expressed as semantic tokens backed by CSS variables
+ * (HSL channels) declared in src/styles/index.css, so opacity modifiers
+ * (bg-primary/10) work and the alternate themes re-declare the variables
+ * under [data-theme] selectors.
  */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -75,17 +76,20 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        mono: ['DM Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       fontSize: {
         // App runs slightly tighter than the browser default (13.5px base).
         xxs: ['0.6875rem', { lineHeight: '1rem' }],
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        // All tiers follow the token so the corner language changes in one place.
+        sm: 'calc(var(--radius) - 2px)',
+        md: 'var(--radius)',
+        lg: 'calc(var(--radius) + 2px)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 6px)',
       },
       boxShadow: {
         // Var-backed so elevation softens on the light themes (see index.css).

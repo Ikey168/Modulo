@@ -20,7 +20,16 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './editor.css';
-import { Button, Input, Select, cn } from '@/ui';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  cn,
+} from '@/ui';
 
 import { BlueprintIR } from '../blueprintIR';
 import { createCoreCatalog } from '../nodeCatalog';
@@ -287,18 +296,18 @@ function EditorInner() {
   const clearHighlight = useCallback(() => setHighlighted(new Set()), []);
 
   return (
-    <div className="flex h-screen flex-col bg-background font-sans text-[13px] text-foreground">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-3.5 py-2.5">
+    <div className="flex h-full min-w-0 flex-1 flex-col bg-background font-sans text-[13px] text-foreground">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
           <Input
-            className="h-8 w-[200px] font-semibold"
+            className="h-8 w-[200px] border-transparent bg-transparent px-1.5 font-semibold hover:border-border focus-visible:border-primary"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Blueprint name"
             aria-label="Blueprint name"
           />
           <Input
-            className="h-8 w-[220px]"
+            className="h-8 w-[220px] border-transparent bg-transparent px-1.5 text-muted-foreground hover:border-border focus-visible:border-primary"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)"
@@ -306,23 +315,23 @@ function EditorInner() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={handleNew}>New</Button>
-          <Select
-            className="h-8 w-[130px] text-xs"
-            value=""
-            onChange={(e) => e.target.value && handleLoad(e.target.value)}
-            aria-label="Load blueprint"
-          >
-            <option value="">Load…</option>
-            {saved.map((b) => (
-              <option key={b.id} value={b.name}>{b.name}</option>
-            ))}
+          <Button type="button" variant="ghost" size="sm" onClick={handleNew}>New</Button>
+          {/* Action select: value stays "" so the trigger always reads "Load…". */}
+          <Select value="" onValueChange={(val) => { if (val) handleLoad(val); }}>
+            <SelectTrigger className="h-8 w-[130px] text-xs" aria-label="Load blueprint">
+              <SelectValue placeholder="Load…" />
+            </SelectTrigger>
+            <SelectContent>
+              {saved.map((b) => (
+                <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <Button type="button" variant="primary" size="sm" onClick={handleSave}>Save</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={handleTestRun}>Test Run</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={handleDebugLastRun}>Debug Last Run</Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleTestRun}>Test Run</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={handleDebugLastRun}>Debug</Button>
           {loadedName && (
-            <Button type="button" variant="secondary" size="sm" onClick={() => setShowConsent(true)}>Permissions</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowConsent(true)}>Permissions</Button>
           )}
           {highlighted.size > 0 && (
             <Button type="button" variant="ghost" size="sm" onClick={clearHighlight}>Clear Highlight</Button>
@@ -332,11 +341,13 @@ function EditorInner() {
 
       {status && (
         <div
+          role="status"
+          aria-live="polite"
           className={cn(
             'border-b border-border px-3.5 py-[7px] text-[12.5px]',
-            status.kind === 'info' && 'bg-primary/[0.12] text-indigo-300',
-            status.kind === 'error' && 'bg-destructive/[0.12] text-destructive',
-            status.kind === 'success' && 'bg-success/[0.14] text-success',
+            status.kind === 'info' && 'bg-info/10 text-info',
+            status.kind === 'error' && 'bg-destructive/10 text-destructive',
+            status.kind === 'success' && 'bg-success/10 text-success',
           )}
         >
           {status.text}
@@ -357,9 +368,10 @@ function EditorInner() {
             fitView
             deleteKeyCode={['Backspace', 'Delete']}
           >
-            <Background gap={18} color="#1e1e24" />
+            {/* Pattern colour comes from --xy-background-pattern-color (token-driven, editor.css). */}
+            <Background gap={18} />
             <Controls />
-            <MiniMap pannable zoomable className="bp-minimap" />
+            <MiniMap pannable zoomable />
           </ReactFlow>
         </div>
       </div>

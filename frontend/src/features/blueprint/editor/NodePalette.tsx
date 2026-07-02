@@ -6,21 +6,8 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input, cn } from '@/ui';
 import { NodeCatalog } from '../nodeCatalog';
-import { NodeCategory, NodeDescriptor } from '../nodeModel';
-
-const CATEGORY_ORDER: NodeCategory[] = ['trigger', 'action', 'logic'];
-const CATEGORY_LABELS: Record<NodeCategory, string> = {
-  trigger: 'Triggers',
-  action: 'Actions',
-  logic: 'Logic',
-};
-
-// Left accent bar per category — trigger green, action indigo, logic amber.
-const CATEGORY_ACCENT: Record<NodeCategory, string> = {
-  trigger: 'border-l-success',
-  action: 'border-l-primary',
-  logic: 'border-l-warning',
-};
+import { NodeDescriptor } from '../nodeModel';
+import { CATEGORY_ORDER, categoryMeta } from './categoryMeta';
 
 interface NodePaletteProps {
   catalog: NodeCatalog;
@@ -48,11 +35,11 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
 
   return (
     <div
-      className="flex w-[230px] shrink-0 flex-col overflow-hidden border-r border-border bg-surface"
+      className="flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-border"
       role="complementary"
       aria-label="Node palette"
     >
-      <div className="border-b border-border p-2.5">
+      <div className="p-2.5 pb-1.5">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -72,16 +59,13 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
         {grouped.map((group) => (
           <div key={group.category}>
             <div className="mx-1 mb-1.5 mt-2.5 text-[10.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-              {CATEGORY_LABELS[group.category]}
+              {categoryMeta(group.category).label}
             </div>
             {group.nodes.map((node) => (
               <button
                 key={`${node.type}@${node.version}`}
                 type="button"
-                className={cn(
-                  'mb-1.5 flex w-full cursor-grab flex-col gap-0.5 rounded-md border border-border-strong border-l-[3px] bg-surface-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-3 active:cursor-grabbing',
-                  CATEGORY_ACCENT[node.category],
-                )}
+                className="group mb-0.5 flex w-full cursor-grab items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:cursor-grabbing"
                 title={node.description}
                 draggable
                 onDragStart={(e) => {
@@ -90,8 +74,14 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
                 }}
                 onClick={() => onAdd(node)}
               >
-                <span className="text-xs font-semibold text-foreground">{node.title}</span>
-                <span className="font-mono text-[10.5px] text-muted-foreground">{node.type}</span>
+                <span
+                  className={cn('size-1.5 shrink-0 rounded-full', categoryMeta(node.category).dotClass)}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium text-foreground">{node.title}</span>
+                  <span className="block truncate font-mono text-[10.5px] text-muted-foreground/80">{node.type}</span>
+                </span>
               </button>
             ))}
           </div>
