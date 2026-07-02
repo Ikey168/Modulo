@@ -81,7 +81,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-6 max-md:px-4">
+      <div className="mx-auto flex h-12 max-w-7xl items-center gap-3 px-6 max-md:px-4">
         {/* Mobile nav — hamburger opening a left sheet with the full IA. */}
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
