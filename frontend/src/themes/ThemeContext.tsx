@@ -40,51 +40,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const currentTheme = getThemeByName(themeName);
   const isDarkMode = themeName === 'dark';
 
-  // Apply CSS variables when theme changes
+  // The data-theme attribute drives the token overrides in styles/index.css —
+  // the design system (Tailwind + shadcn/ui) reads only those CSS variables.
   useEffect(() => {
-    const root = document.documentElement;
-    
-    // Apply all color variables
-    Object.entries(currentTheme.colors.background).forEach(([key, value]) => {
-      root.style.setProperty(`--color-bg-${key}`, value);
-    });
-    
-    Object.entries(currentTheme.colors.text).forEach(([key, value]) => {
-      root.style.setProperty(`--color-text-${key}`, value);
-    });
-    
-    Object.entries(currentTheme.colors.border).forEach(([key, value]) => {
-      root.style.setProperty(`--color-border-${key}`, value);
-    });
-    
-    Object.entries(currentTheme.colors.brand).forEach(([key, value]) => {
-      root.style.setProperty(`--color-brand-${key}`, value);
-    });
-    
-    Object.entries(currentTheme.colors.status).forEach(([key, value]) => {
-      root.style.setProperty(`--color-status-${key}`, value);
-    });
-    
-    Object.entries(currentTheme.colors.interactive).forEach(([key, value]) => {
-      root.style.setProperty(`--color-interactive-${key}`, value);
-    });
-
-    // Apply shadow variables
-    Object.entries(currentTheme.shadows).forEach(([key, value]) => {
-      root.style.setProperty(`--shadow-${key}`, value);
-    });
-
-    // Apply theme name as data attribute for CSS targeting
-    root.setAttribute('data-theme', currentTheme.name);
-    
-    // Add/remove dark mode class for compatibility
-    if (isDarkMode) {
-      root.classList.add('dark-mode');
-    } else {
-      root.classList.remove('dark-mode');
-    }
-
-  }, [currentTheme, isDarkMode]);
+    document.documentElement.setAttribute('data-theme', currentTheme.name);
+  }, [currentTheme]);
 
   // Listen for system theme changes
   useEffect(() => {
