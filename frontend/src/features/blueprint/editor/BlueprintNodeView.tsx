@@ -64,14 +64,14 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
                 position={Position.Left}
                 className="bp-handle bp-handle--exec"
               />
-              <span className="bp-pin-label">▶ in</span>
+              <span className="bp-pin-label">in</span>
             </>
           )}
         </div>
         <div className="bp-node__exec-out">
           {descriptor.execOut.map((name) => (
             <div key={name} className="bp-pin-row bp-pin-row--out">
-              <span className="bp-pin-label">{name} ▶</span>
+              <span className="bp-pin-label">{name}</span>
               <Handle
                 id={execOutHandle(name)}
                 type="source"

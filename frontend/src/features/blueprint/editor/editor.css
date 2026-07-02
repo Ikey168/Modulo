@@ -88,6 +88,8 @@
    React Flow handle (absolute, top 50%) centers on the whole node and droops
    below the "in" label on nodes with several data pins. */
 .bp-node__exec-in, .bp-node__exec-out { display: flex; flex-direction: column; gap: 4px; position: relative; }
+/* Clear the exec-in handle diamond, which straddles the node's left border. */
+.bp-node__exec-in .bp-pin-label { padding-left: 10px; }
 
 .bp-node__data {
   display: flex;
