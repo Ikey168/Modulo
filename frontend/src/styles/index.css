@@ -1,10 +1,6 @@
 /* DM Sans / DM Mono — the app typeface (kept in sync with tailwind fontFamily). */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-/* Mobile + interaction optimizations (token-driven). */
-@import url('./mobile.css');
-@import url('./mobile-interactions.css');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

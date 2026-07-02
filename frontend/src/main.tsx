@@ -4,7 +4,6 @@ import { Provider } from 'react-redux'; // Import Provider
 import { store } from './store/store';   // Import store
 import App from './App';
 import './styles/index.css';
-import './styles/mobile-layout.css';
 import { registerFeature, mountFeature } from '@modulo/core';
 import { helloWorldPack } from './features/helloWorld/helloWorldPack';
 import { noteWorkbenchPack } from './features/noteWorkbench/noteWorkbenchPack';
