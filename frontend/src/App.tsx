@@ -19,6 +19,8 @@ import PackManager from './features/blueprint/pack/PackManager';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 import SharedNotePage from './features/notes/sharing/SharedNotePage';
+import PluginSubmission from './features/PluginSubmission';
+import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
@@ -117,6 +119,28 @@ function App() {
                 <RequireAuth>
                   <Layout>
                     <Contracts />
+                  </Layout>
+                </RequireAuth>
+              }
+            />
+
+            {/* Plugin submission pipeline */}
+            <Route
+              path="/plugins/submit"
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <PluginSubmission />
+                  </Layout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/plugins/my-submissions"
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <MySubmissions />
                   </Layout>
                 </RequireAuth>
               }

@@ -49,10 +49,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={asChild ? undefined : disabled || loading}
+        aria-busy={loading || undefined}
         {...props}
       >
-        {loading && <Spinner className="size-4" />}
-        {children}
+        {/* Slot requires exactly one child, so the loading spinner only
+            renders for real <button> elements. */}
+        {asChild ? (
+          children
+        ) : (
+          <>
+            {loading && <Spinner className="size-4" />}
+            {children}
+          </>
+        )}
       </Comp>
     );
   },
