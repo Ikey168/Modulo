@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock } from 'lucide-react';
 import {
+  Clock,
+  Eye,
+  FilePlus2,
+  FileText,
+  Link2,
+  Pencil,
+  Trash2,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Badge,
+  type BadgeProps,
   Button,
   Input,
   Label,
@@ -9,6 +21,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
 } from '@/ui';
 import { auditApi, AuditEventRecord, AuditFilter } from './auditApi';
 
@@ -18,22 +31,22 @@ interface Props {
   isAdmin?: boolean;
 }
 
-const EVENT_ICONS: Record<string, string> = {
-  NOTE_READ:      '👁️',
-  NOTE_CREATE:    '📝',
-  NOTE_UPDATE:    '✏️',
-  NOTE_DELETE:    '🗑️',
-  SHARE_CREATED:  '🔗',
-  SHARE_VIEWED:   '👁️',
-  SHARE_REVOKED:  '✕',
+const EVENT_ICONS: Record<string, LucideIcon> = {
+  NOTE_READ:      Eye,
+  NOTE_CREATE:    FilePlus2,
+  NOTE_UPDATE:    Pencil,
+  NOTE_DELETE:    Trash2,
+  SHARE_CREATED:  Link2,
+  SHARE_VIEWED:   Eye,
+  SHARE_REVOKED:  XCircle,
 };
 
-const OUTCOME_COLORS: Record<string, string> = {
-  ALLOW:   '#22c55e',
-  SUCCESS: '#22c55e',
-  DENY:    '#ef4444',
-  FAILURE: '#ef4444',
-  ERROR:   '#f59e0b',
+const OUTCOME_VARIANTS: Record<string, BadgeProps['variant']> = {
+  ALLOW:   'success',
+  SUCCESS: 'success',
+  DENY:    'destructive',
+  FAILURE: 'destructive',
+  ERROR:   'warning',
 };
 
 const EVENT_TYPES = ['NOTE_READ', 'NOTE_CREATE', 'NOTE_UPDATE', 'NOTE_DELETE', 'SHARE_CREATED', 'SHARE_VIEWED', 'SHARE_REVOKED'];
@@ -137,7 +150,13 @@ const AuditTimeline: React.FC<Props> = ({ noteId, userId, isAdmin = false }) => 
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}
-          {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
+          {loading && (
+            <div className="flex flex-col gap-1" aria-busy="true" aria-label="Loading audit events">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          )}
 
           {!loading && events.length === 0 && (
             <p className="py-6 text-center text-[13px] text-muted-foreground">
@@ -151,29 +170,32 @@ const AuditTimeline: React.FC<Props> = ({ noteId, userId, isAdmin = false }) => 
                 Showing {events.length} of {total} events
               </p>
               <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                {events.map(e => (
-                  <li
-                    key={e.id}
-                    className="flex items-center gap-2.5 rounded-md bg-surface-2 px-2.5 py-2 text-[13px]"
-                  >
-                    <span className="w-[22px] shrink-0 text-center text-base">
-                      {EVENT_ICONS[e.eventType] ?? '📋'}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium text-foreground">{e.eventType.replace(/_/g, ' ')}</span>
-                      {e.userId && <span className="ml-1.5 text-muted-foreground">by {e.userName ?? e.userId}</span>}
-                      {e.ipAddress && <span className="ml-1.5 text-[11px] text-muted-foreground">from {e.ipAddress}</span>}
-                    </div>
-                    {e.outcome && (
-                      <span className="shrink-0 text-[11px] font-semibold" style={{ color: OUTCOME_COLORS[e.outcome] ?? '#71717a' }}>
-                        {e.outcome}
+                {events.map(e => {
+                  const Icon = EVENT_ICONS[e.eventType] ?? FileText;
+                  return (
+                    <li
+                      key={e.id}
+                      className="flex items-center gap-2.5 rounded-md bg-surface-2 px-2.5 py-2 text-[13px]"
+                    >
+                      <span className="flex w-[22px] shrink-0 items-center justify-center text-muted-foreground">
+                        <Icon className="size-4" aria-hidden="true" />
                       </span>
-                    )}
-                    <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
-                      {new Date(e.createdAt).toLocaleString()}
-                    </span>
-                  </li>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-foreground">{e.eventType.replace(/_/g, ' ')}</span>
+                        {e.userId && <span className="ml-1.5 text-muted-foreground">by {e.userName ?? e.userId}</span>}
+                        {e.ipAddress && <span className="ml-1.5 text-[11px] text-muted-foreground">from {e.ipAddress}</span>}
+                      </div>
+                      {e.outcome && (
+                        <Badge variant={OUTCOME_VARIANTS[e.outcome] ?? 'secondary'} className="shrink-0">
+                          {e.outcome}
+                        </Badge>
+                      )}
+                      <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
+                        {new Date(e.createdAt).toLocaleString()}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
               {total > events.length && (
                 <Button

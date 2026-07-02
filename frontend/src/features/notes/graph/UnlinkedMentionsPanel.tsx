@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button } from '@/ui';
+import { Button, Skeleton, useToast } from '@/ui';
 import { graphApi, UnlinkedMention } from './graphApi';
 
 interface Props {
@@ -19,6 +19,7 @@ const UnlinkedMentionsPanel: React.FC<Props> = ({ noteId, onOpenNote, onLinked, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [linking, setLinking] = useState<number | null>(null);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,12 +46,13 @@ const UnlinkedMentionsPanel: React.FC<Props> = ({ noteId, onOpenNote, onLinked, 
         setMentions((prev) => prev.filter((m) => m.id !== sourceId));
         onLinked?.();
       } catch (e) {
-        setError('Failed to create link');
+        // Transient failure — surface as a toast, keep the list intact.
+        toast({ variant: 'destructive', title: 'Failed to create link', description: 'Please try again.' });
       } finally {
         setLinking(null);
       }
     },
-    [noteId, onLinked]
+    [noteId, onLinked, toast]
   );
 
   /** Highlight the matched term inside the snippet. */
@@ -74,7 +76,12 @@ const UnlinkedMentionsPanel: React.FC<Props> = ({ noteId, onOpenNote, onLinked, 
   };
 
   if (loading) {
-    return <div className="p-3.5 text-[13px] text-muted-foreground">Scanning for mentions…</div>;
+    return (
+      <div className="flex flex-col gap-2" aria-busy="true" aria-label="Scanning for mentions">
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
+      </div>
+    );
   }
   if (error) {
     return (

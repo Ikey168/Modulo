@@ -4,7 +4,6 @@ import BacklinksPanel from './BacklinksPanel';
 import UnlinkedMentionsPanel from './UnlinkedMentionsPanel';
 import RelatedNotesPanel from './RelatedNotesPanel';
 import LocalGraphPanel from './LocalGraphPanel';
-import './graphPanels.css';
 
 interface Props {
   noteId: number;

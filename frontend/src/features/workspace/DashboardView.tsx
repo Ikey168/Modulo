@@ -1,22 +1,9 @@
 import { useMemo } from 'react';
 import type { CoreNote, CoreTag, CoreLink } from '@modulo/core';
-import { Hover } from './atoms';
+import { Badge, Card, CardContent, CardHeader, CardTitle, cn } from '@/ui';
+import { SectionLabel } from './atoms';
+import { isAnchored, relativeTime } from './workspaceUtils';
 import { PLUGINS } from './plugins';
-
-function isAnchored(note: CoreNote): boolean {
-  return Boolean(note.isOnBlockchain || note.isDecentralized);
-}
-
-function relativeTime(iso?: string): string {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
 
 interface DashboardViewProps {
   notes: CoreNote[];
@@ -48,76 +35,79 @@ export function DashboardView({ notes, links, tags, installedPlugins, walletAddr
     [installedPlugins],
   );
 
-  const stats = [
-    { label: 'Notes', value: notes.length, color: '#f4f4f5' },
-    { label: 'On-Chain', value: notes.filter(isAnchored).length, color: '#22c55e' },
-    { label: 'Tags', value: totalTags, color: '#f4f4f5' },
-    { label: 'Connections', value: links.length, color: '#818cf8' },
+  const stats: Array<{ label: string; value: number; tone?: string }> = [
+    { label: 'Notes', value: notes.length },
+    { label: 'On-Chain', value: notes.filter(isAnchored).length, tone: 'text-success' },
+    { label: 'Tags', value: totalTags },
+    { label: 'Connections', value: links.length, tone: 'text-primary-hover' },
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '36px 40px', boxSizing: 'border-box', animation: 'fadeIn .15s ease' }}>
-      <div style={{ marginBottom: 30 }}>
-        <h1 style={{ margin: '0 0 5px', fontSize: 22, fontWeight: 600, letterSpacing: '-.5px', color: '#f4f4f5' }}>Dashboard</h1>
-        <p style={{ margin: 0, fontSize: 13, color: '#52525b' }}>Your knowledge base at a glance</p>
-      </div>
+    <div className="flex-1 animate-fade-in overflow-y-auto p-5 md:px-10 md:py-9">
+      <header className="mb-7">
+        <h1 className="mb-1 text-[22px] font-semibold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-[13px] text-muted-foreground">Your knowledge base at a glance</p>
+      </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 28 }}>
-        {stats.map(({ label, value, color }) => (
-          <div key={label} style={{ background: '#111114', border: '1px solid #1e1e24', borderRadius: 10, padding: '18px 20px' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>{label}</div>
-            <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-1px', color }}>{value}</div>
-          </div>
+      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map(({ label, value, tone }) => (
+          <Card key={label} className="px-5 py-4">
+            <SectionLabel className="mb-2.5">{label}</SectionLabel>
+            <div className={cn('text-3xl font-semibold tracking-tight text-foreground', tone)}>{value}</div>
+          </Card>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ background: '#111114', border: '1px solid #1e1e24', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid #1e1e24' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5' }}>Recent Notes</span>
-          </div>
-          <div style={{ padding: 8 }}>
-            {recent.length === 0 && <div style={{ padding: '12px', fontSize: 12.5, color: '#52525b' }}>No notes yet.</div>}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border px-5 py-4">
+            <CardTitle className="text-[13px]">Recent Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            {recent.length === 0 && <p className="p-3 text-xs text-muted-foreground">No notes yet.</p>}
             {recent.map((n) => (
-              <Hover
+              <button
                 key={n.id}
+                type="button"
                 onClick={() => onOpenNote(n.id)}
-                style={{ padding: '9px 12px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
-                hoverStyle={{ background: '#16161a' }}
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: isAnchored(n) ? '#22c55e' : '#2a2a30', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 13, color: '#e4e4e7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</span>
-                <span style={{ fontSize: 11, color: '#3f3f46', flexShrink: 0 }}>{relativeTime(n.updatedAt)}</span>
-              </Hover>
+                <span
+                  className={cn('size-1.5 shrink-0 rounded-full', isAnchored(n) ? 'bg-success' : 'bg-border-strong')}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">{n.title}</span>
+                <span className="shrink-0 text-xxs text-muted-foreground">{relativeTime(n.updatedAt)}</span>
+              </button>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div style={{ background: '#111114', border: '1px solid #1e1e24', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid #1e1e24', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5' }}>Active Plugins</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#818cf8' }}>{installedPlugins.size}</span>
-          </div>
-          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {activeNames.length === 0 && <div style={{ fontSize: 12.5, color: '#52525b' }}>No plugins installed.</div>}
+        <Card className="overflow-hidden">
+          <CardHeader className="flex-row items-center justify-between border-b border-border px-5 py-4">
+            <CardTitle className="text-[13px]">Active Plugins</CardTitle>
+            <span className="text-xs font-semibold text-primary-hover">{installedPlugins.size}</span>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2.5 px-5 py-4">
+            {activeNames.length === 0 && <p className="text-xs text-muted-foreground">No plugins installed.</p>}
             {activeNames.map((name) => (
-              <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5 }}>
-                <span style={{ color: '#71717a' }}>{name}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: '#22c55e' }}>Active</span>
+              <div key={name} className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{name}</span>
+                <Badge variant="success">Active</Badge>
               </div>
             ))}
-          </div>
-          <div style={{ padding: '14px 20px', borderTop: '1px solid #1e1e24' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>Wallet</div>
+          </CardContent>
+          <div className="border-t border-border px-5 py-3.5">
+            <SectionLabel className="mb-2.5">Wallet</SectionLabel>
             {walletAddress ? (
-              <div style={{ fontSize: 12, color: '#a1a1aa', fontFamily: "'DM Mono',monospace" }}>
+              <div className="font-mono text-xs text-subtle-foreground">
                 {`${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`}
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: '#52525b' }}>No wallet connected</div>
+              <div className="text-xs text-muted-foreground">No wallet connected</div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

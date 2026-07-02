@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button } from '@/ui';
+import { Button, Skeleton } from '@/ui';
 import { graphApi, Backlink } from './graphApi';
 
 interface Props {
@@ -33,7 +33,12 @@ const BacklinksPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => 
   }, [load, refreshKey]);
 
   if (loading) {
-    return <div className="p-3.5 text-[13px] text-muted-foreground">Loading backlinks…</div>;
+    return (
+      <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading backlinks">
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
+      </div>
+    );
   }
   if (error) {
     return (
@@ -47,17 +52,19 @@ const BacklinksPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) => 
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {backlinks.map((b) => (
-        <li
-          key={b.id}
-          className="cursor-pointer rounded-lg border border-border bg-surface p-2.5 transition-colors hover:border-primary/60 hover:bg-surface-2"
-          onClick={() => onOpenNote(b.id)}
-        >
-          <div className="text-sm font-semibold text-foreground">{b.title || `Note #${b.id}`}</div>
-          {b.snippet && (
-            <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{b.snippet}</div>
-          )}
+        <li key={b.id}>
+          <button
+            type="button"
+            onClick={() => onOpenNote(b.id)}
+            className="block w-full rounded-lg border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary/60 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <div className="text-sm font-semibold text-foreground">{b.title || `Note #${b.id}`}</div>
+            {b.snippet && (
+              <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{b.snippet}</div>
+            )}
+          </button>
         </li>
       ))}
     </ul>

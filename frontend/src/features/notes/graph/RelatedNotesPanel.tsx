@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button, Badge } from '@/ui';
+import { Button, Badge, Skeleton } from '@/ui';
 import { graphApi, RelatedNote } from './graphApi';
 
 interface Props {
@@ -31,7 +31,12 @@ const RelatedNotesPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) 
   }, [load, refreshKey]);
 
   if (loading) {
-    return <div className="p-3.5 text-[13px] text-muted-foreground">Finding related notes…</div>;
+    return (
+      <div className="flex flex-col gap-2" aria-busy="true" aria-label="Finding related notes">
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
+      </div>
+    );
   }
   if (error) {
     return (
@@ -49,20 +54,22 @@ const RelatedNotesPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) 
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {related.map((r) => (
-        <li
-          key={r.id}
-          className="cursor-pointer rounded-lg border border-border bg-surface p-2.5 transition-colors hover:border-primary/60 hover:bg-surface-2"
-          onClick={() => onOpenNote(r.id)}
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            {r.title || `Note #${r.id}`}
-            <Badge variant="default" title="Shared connections">{r.score}</Badge>
-          </div>
-          {r.snippet && (
-            <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{r.snippet}</div>
-          )}
+        <li key={r.id}>
+          <button
+            type="button"
+            onClick={() => onOpenNote(r.id)}
+            className="block w-full rounded-lg border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary/60 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              {r.title || `Note #${r.id}`}
+              <Badge variant="default" title="Shared connections">{r.score}</Badge>
+            </div>
+            {r.snippet && (
+              <div className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{r.snippet}</div>
+            )}
+          </button>
         </li>
       ))}
     </ul>
