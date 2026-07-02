@@ -68,7 +68,7 @@ describe('Header', () => {
     signIn();
     render(<Header />);
     expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/app/marketplace');
-    expect(screen.getByRole('link', { name: 'Blueprints' })).toHaveAttribute('href', '/blueprints');
+    expect(screen.getByRole('link', { name: 'Blueprints' })).toHaveAttribute('href', '/app/blueprints');
     expect(screen.getByRole('link', { name: 'Notes' })).toHaveAttribute('href', '/app/notes');
     expect(screen.getByRole('link', { name: 'Graph' })).toHaveAttribute('href', '/app/graph');
     expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('Header', () => {
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('link', { name: 'Notes' })).toHaveAttribute('href', '/app/notes');
-    expect(within(dialog).getByRole('link', { name: 'Blueprints' })).toHaveAttribute('href', '/blueprints');
+    expect(within(dialog).getByRole('link', { name: 'Blueprints' })).toHaveAttribute('href', '/app/blueprints');
     expect(within(dialog).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     expect(within(dialog).getByText('Ada Lovelace')).toBeInTheDocument();
 

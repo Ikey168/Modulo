@@ -16,6 +16,8 @@ export interface CategoryMeta {
   bgClass: string;
   /** Tailwind left-accent border-colour class. */
   borderClass: string;
+  /** Tailwind solid-accent background class (palette dots). */
+  dotClass: string;
   /** Human label for palette group headers. */
   label: string;
 }
@@ -29,6 +31,7 @@ export const CATEGORY_META: Record<NodeCategory, CategoryMeta> = {
     textClass: 'text-success',
     bgClass: 'bg-success/15',
     borderClass: 'border-l-success',
+    dotClass: 'bg-success',
     label: 'Triggers',
   },
   action: {
@@ -36,6 +39,7 @@ export const CATEGORY_META: Record<NodeCategory, CategoryMeta> = {
     textClass: 'text-primary',
     bgClass: 'bg-primary/15',
     borderClass: 'border-l-primary',
+    dotClass: 'bg-primary',
     label: 'Actions',
   },
   logic: {
@@ -43,6 +47,7 @@ export const CATEGORY_META: Record<NodeCategory, CategoryMeta> = {
     textClass: 'text-warning',
     bgClass: 'bg-warning/15',
     borderClass: 'border-l-warning',
+    dotClass: 'bg-warning',
     label: 'Logic',
   },
 };
@@ -52,6 +57,7 @@ const FALLBACK_CATEGORY_META: CategoryMeta = {
   textClass: 'text-muted-foreground',
   bgClass: 'bg-muted-foreground/15',
   borderClass: 'border-l-muted-foreground',
+  dotClass: 'bg-muted-foreground',
   label: 'Other',
 };
 

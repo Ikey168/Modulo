@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FileText,
@@ -39,11 +39,14 @@ import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
 import { useCoreWorkspace } from './useCoreWorkspace';
+
+// Heavy React Flow editor loads on demand when the Blueprints view is opened.
+const BlueprintEditor = lazy(() => import('../blueprint/editor/BlueprintEditor'));
 import { mergeWithWikiLinks } from './deriveWikiLinks';
 
-const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace'] as const;
+const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace', 'blueprints'] as const;
 type View = (typeof VIEWS)[number];
-type NavTarget = View | 'blueprints';
+type NavTarget = View;
 
 const NAV_ICONS: Record<NavTarget, LucideIcon> = {
   notes: FileText,
@@ -139,11 +142,7 @@ export default function Workspace() {
 
   const goTo = (target: NavTarget) => {
     setNavOpen(false);
-    if ((VIEWS as readonly string[]).includes(target)) {
-      navigate(`/app/${target}`);
-    } else {
-      navigate(`/${target}`);
-    }
+    navigate(`/app/${target}`);
   };
 
   const openNote = (id: number) => {
@@ -284,6 +283,11 @@ export default function Workspace() {
           <DashboardView notes={data.notes} links={data.links} tags={data.tags} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} />
         )}
         {view === 'marketplace' && <MarketplaceView installedPlugins={installed} onTogglePlugin={togglePlugin} />}
+        {view === 'blueprints' && (
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-muted-foreground">Loading editor…</div>}>
+            <BlueprintEditor />
+          </Suspense>
+        )}
       </div>
     </div>
   );

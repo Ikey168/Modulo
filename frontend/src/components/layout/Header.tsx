@@ -29,7 +29,7 @@ import {
 /** Primary destinations — the note-workbench app routes. */
 const PRIMARY_LINKS = [
   { label: 'Marketplace', to: '/app/marketplace' },
-  { label: 'Blueprints', to: '/blueprints' },
+  { label: 'Blueprints', to: '/app/blueprints' },
   { label: 'Notes', to: '/app/notes' },
   { label: 'Graph', to: '/app/graph' },
 ] as const;

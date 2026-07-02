@@ -14,7 +14,6 @@ import LoginPage from './features/auth/LoginPage';
 import AuthCallback from './features/auth/AuthCallback';
 import SilentCallback from './features/auth/SilentCallback';
 import RequireAuth from './features/auth/RequireAuth';
-import BlueprintEditor from './features/blueprint/editor/BlueprintEditor';
 import MobileLoginPage from './components/mobile/MobileLoginPage';
 import { GoogleOAuthCallback, MicrosoftOAuthCallback } from './components/mobile/OAuthCallback';
 import SharedNotePage from './features/notes/sharing/SharedNotePage';
@@ -87,15 +86,8 @@ function App() {
               return <Route key={route.path} path={route.path} element={element} />;
             })}
 
-            {/* Blueprint visual editor (#274) */}
-            <Route
-              path="/blueprints"
-              element={
-                <RequireAuth>
-                  <BlueprintEditor />
-                </RequireAuth>
-              }
-            />
+            {/* Blueprint editor now lives inside the workspace shell */}
+            <Route path="/blueprints" element={<Navigate to="/app/blueprints" replace />} />
 
             {/* Packs now live inside the marketplace (Packs tab) */}
             <Route path="/packs" element={<Navigate to="/app/marketplace" replace />} />
