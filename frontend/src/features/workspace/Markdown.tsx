@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { CoreNote } from '@modulo/core';
-import { nodeText, slugify } from './outline';
+import { nodeText, parseWikiRef, slugify } from './outline';
 
 /** Slug id + scroll margin so the Outline plugin can jump to a heading. */
 function headingId(children: ReactNode): string {
@@ -16,14 +16,34 @@ interface MarkdownProps {
 }
 
 const WIKI_PREFIX = '#wiki:';
+const HEAD_PREFIX = '#wiki-head:';
 
-// Rewrites [[Note Title]] into markdown links the custom <a> renderer can
-// resolve, so wiki-links stay navigable without raw HTML / sanitization risk.
+/** Brackets would break the generated markdown link, so drop them from labels. */
+const cleanLabel = (s: string) => s.replace(/[[\]]/g, '').trim();
+
+// Rewrites Obsidian-style wiki-links into markdown links the custom <a>
+// renderer can resolve, so they stay navigable without raw HTML / sanitization
+// risk. Supports:
+//   [[Note Title]]                 → link to a note by title
+//   [[Note Title|Alias]]           → same, with custom display text
+//   [[Note Title#Heading]]         → link to a note (heading kept in the label)
+//   [[#Heading]]                   → jump to a heading in the current note
 function preprocess(content: string, notes: CoreNote[]): string {
-  return content.replace(/\[\[([^\]]+)\]\]/g, (_match, title: string) => {
-    const note = notes.find((n) => n.title === title.trim());
-    const target = note ? String(note.id) : 'missing';
-    return `[${title}](${WIKI_PREFIX}${target})`;
+  return content.replace(/\[\[([^\]]+)\]\]/g, (_match, inner: string) => {
+    const { target, heading, alias } = parseWikiRef(inner);
+
+    // In-note heading link: [[#Heading]]
+    if (!target && heading) {
+      const label = cleanLabel(alias || heading);
+      return `[${label}](${HEAD_PREFIX}${slugify(heading)})`;
+    }
+    const note = notes.find((n) => n.title === target);
+    if (!note) {
+      const label = cleanLabel(alias || (heading ? `${target}#${heading}` : target));
+      return `[${label}](${WIKI_PREFIX}missing)`;
+    }
+    const label = cleanLabel(alias || (heading ? `${target} › ${heading}` : target));
+    return `[${label}](${WIKI_PREFIX}${note.id})`;
   });
 }
 
@@ -46,12 +66,23 @@ export function Markdown({ content, notes, onSelectNote }: MarkdownProps) {
         remarkPlugins={[remarkGfm]}
         components={{
           h1: (props) => (
-            <h1 id={headingId(props.children)} className="mb-4 scroll-mt-6 text-[22px] font-semibold leading-snug tracking-tight text-foreground" {...strip(props)} />
+            <h1 id={headingId(props.children)} className="mb-4 mt-2 scroll-mt-6 text-[30px] font-bold leading-[1.15] tracking-tight text-foreground first:mt-0" {...strip(props)} />
           ),
           h2: (props) => (
-            <h2 id={headingId(props.children)} className="mb-2.5 mt-7 scroll-mt-6 text-base font-semibold tracking-tight text-foreground" {...strip(props)} />
+            <h2 id={headingId(props.children)} className="mb-3 mt-9 scroll-mt-6 text-[23px] font-semibold leading-tight tracking-tight text-foreground" {...strip(props)} />
           ),
-          h3: (props) => <h3 id={headingId(props.children)} className="mb-2 mt-5 scroll-mt-6 text-sm font-semibold text-foreground" {...strip(props)} />,
+          h3: (props) => (
+            <h3 id={headingId(props.children)} className="mb-2 mt-7 scroll-mt-6 text-[18px] font-semibold tracking-tight text-foreground" {...strip(props)} />
+          ),
+          h4: (props) => (
+            <h4 id={headingId(props.children)} className="mb-1.5 mt-5 scroll-mt-6 text-[15px] font-semibold text-foreground" {...strip(props)} />
+          ),
+          h5: (props) => (
+            <h5 id={headingId(props.children)} className="mb-1 mt-4 scroll-mt-6 text-[13px] font-semibold uppercase tracking-wide text-subtle-foreground" {...strip(props)} />
+          ),
+          h6: (props) => (
+            <h6 id={headingId(props.children)} className="mb-1 mt-4 scroll-mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground" {...strip(props)} />
+          ),
           p: (props) => <p className="mb-3.5 leading-[1.75] text-foreground/90" {...strip(props)} />,
           strong: (props) => <strong className="font-semibold text-foreground" {...strip(props)} />,
           em: (props) => <em className="text-subtle-foreground" {...strip(props)} />,
@@ -84,6 +115,18 @@ export function Markdown({ content, notes, onSelectNote }: MarkdownProps) {
           ),
           td: (props) => <td className="border border-border px-3 py-1.5 text-subtle-foreground" {...strip(props)} />,
           a({ href, children }: { href?: string; children?: ReactNode }) {
+            if (href && href.startsWith(HEAD_PREFIX)) {
+              const slug = href.slice(HEAD_PREFIX.length);
+              return (
+                <button
+                  type="button"
+                  onClick={() => document.getElementById(slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className={LINK_CLASSES}
+                >
+                  {children}
+                </button>
+              );
+            }
             if (href && href.startsWith(WIKI_PREFIX)) {
               const ref = href.slice(WIKI_PREFIX.length);
               if (ref === 'missing') {

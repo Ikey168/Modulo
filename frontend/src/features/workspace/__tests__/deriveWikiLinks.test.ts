@@ -22,6 +22,21 @@ describe('deriveWikiLinks', () => {
     expect(edgeKeys(deriveWikiLinks(notes))).toEqual(['1->2']);
   });
 
+  it('forms an edge for an aliased link [[Title|alias]]', () => {
+    const notes = [note(1, 'Alpha', 'see [[Beta|the beta note]]'), note(2, 'Beta')];
+    expect(edgeKeys(deriveWikiLinks(notes))).toEqual(['1->2']);
+  });
+
+  it('forms an edge for a heading-scoped link [[Title#Heading]]', () => {
+    const notes = [note(1, 'Alpha', 'see [[Beta#Usage|usage]]'), note(2, 'Beta')];
+    expect(edgeKeys(deriveWikiLinks(notes))).toEqual(['1->2']);
+  });
+
+  it('does not form an edge for an in-note heading link [[#Heading]]', () => {
+    const notes = [note(1, 'Alpha', 'jump to [[#Section]]'), note(2, 'Beta')];
+    expect(deriveWikiLinks(notes)).toEqual([]);
+  });
+
   it('ignores references to unknown titles (missing links)', () => {
     const notes = [note(1, 'Alpha', 'see [[Ghost]]')];
     expect(deriveWikiLinks(notes)).toEqual([]);

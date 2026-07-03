@@ -10,6 +10,26 @@ export interface Heading {
   slug: string;
 }
 
+export interface WikiRef {
+  /** Note title (empty for an in-note heading link `[[#Heading]]`). */
+  target: string;
+  /** Heading fragment after `#`, if any. */
+  heading: string;
+  /** Display alias after `|`, if any. */
+  alias: string;
+}
+
+/** Parses the inside of a `[[…]]` into target / heading / alias parts. */
+export function parseWikiRef(inner: string): WikiRef {
+  const pipe = inner.indexOf('|');
+  const linkPart = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
+  const alias = pipe >= 0 ? inner.slice(pipe + 1).trim() : '';
+  const hash = linkPart.indexOf('#');
+  const target = (hash >= 0 ? linkPart.slice(0, hash) : linkPart).trim();
+  const heading = hash >= 0 ? linkPart.slice(hash + 1).trim() : '';
+  return { target, heading, alias };
+}
+
 /** Stable, id-safe slug from heading text. Renderer and parser must agree. */
 export function slugify(text: string): string {
   return (

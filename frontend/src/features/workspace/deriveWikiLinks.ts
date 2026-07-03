@@ -11,6 +11,7 @@
 // removeLink(). Merge them only for read/render purposes.
 
 import type { CoreLink, CoreNote } from '@modulo/core';
+import { parseWikiRef } from './outline';
 
 const WIKI_RE = /\[\[([^\]]+)\]\]/g;
 
@@ -44,7 +45,12 @@ export function deriveWikiLinks(notes: CoreNote[]): CoreLink[] {
     WIKI_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = WIKI_RE.exec(text)) !== null) {
-      const targetId = idByTitle.get(m[1].trim());
+      // Resolve by note title, ignoring any #heading / |alias parts so aliased
+      // and heading-scoped links still form graph edges. In-note heading links
+      // ([[#Heading]]) have no target and produce no edge.
+      const { target } = parseWikiRef(m[1]);
+      if (!target) continue;
+      const targetId = idByTitle.get(target);
       if (targetId == null || targetId === n.id) continue;
       const key = edgeKey(n.id, targetId);
       if (seen.has(key)) continue;
