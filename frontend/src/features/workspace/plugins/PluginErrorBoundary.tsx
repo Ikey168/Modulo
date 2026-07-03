@@ -22,7 +22,7 @@ export class PluginErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    console.error(`[plugin] "${this.props.name}" crashed while rendering`, error);
+    console.error('[plugin] "%s" crashed while rendering', this.props.name, error);
   }
 
   render() {
