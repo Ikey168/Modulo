@@ -18,7 +18,7 @@ export interface WorkspaceData {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  createNote: () => Promise<CoreNote | null>;
+  createNote: (title?: string, content?: string) => Promise<CoreNote | null>;
   updateNote: (
     id: number,
     patch: { title?: string; content?: string; markdownContent?: string },
@@ -76,16 +76,19 @@ export function useCoreWorkspace(): WorkspaceData {
     });
   }, []);
 
-  const createNote = useCallback(async (): Promise<CoreNote | null> => {
-    try {
-      const created = await api.createNote('Untitled Note', '# Untitled Note\n\n');
-      upsertNote(created);
-      return created;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create note');
-      return null;
-    }
-  }, [api, upsertNote]);
+  const createNote = useCallback(
+    async (title = 'Untitled Note', content?: string): Promise<CoreNote | null> => {
+      try {
+        const created = await api.createNote(title, content ?? `# ${title}\n\n`);
+        upsertNote(created);
+        return created;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to create note');
+        return null;
+      }
+    },
+    [api, upsertNote],
+  );
 
   const updateNote = useCallback(
     async (

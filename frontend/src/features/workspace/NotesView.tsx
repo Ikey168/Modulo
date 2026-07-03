@@ -116,6 +116,15 @@ export function NotesView({
     setMobileDetailOpen(true);
   };
 
+  // Obsidian-style: clicking a [[Missing Note]] link creates it and opens it.
+  const createFromLink = async (title: string) => {
+    const created = await data.createNote(title);
+    if (created) {
+      openNote(created.id);
+      onToggleEdit(true);
+    }
+  };
+
   const showDetailOnMobile = mobileDetailOpen && note != null;
 
   const infoPanelProps = note
@@ -163,6 +172,7 @@ export function NotesView({
             allNotes={notes}
             onBack={() => setMobileDetailOpen(false)}
             onOpenInfo={() => setInfoOpen(true)}
+            onCreateNote={createFromLink}
           />
         ) : (
           <div className="flex flex-1 items-center justify-center">
@@ -299,9 +309,10 @@ interface EditorProps {
   allNotes: CoreNote[];
   onBack: () => void;
   onOpenInfo: () => void;
+  onCreateNote: (title: string) => void;
 }
 
-function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo }: EditorProps) {
+function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote }: EditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
@@ -396,7 +407,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
           </div>
         ) : (
           <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
-            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} />
+            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} />
           </div>
         )}
       </div>
