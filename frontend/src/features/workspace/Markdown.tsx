@@ -1,8 +1,9 @@
-import { useMemo, type ReactNode } from 'react';
+import { isValidElement, useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { CoreNote } from '@modulo/core';
 import { nodeText, parseWikiRef, slugify } from './outline';
+import { DatabaseView } from './DatabaseView';
 
 /** Slug id + scroll margin so the Outline plugin can jump to a heading. */
 function headingId(children: ReactNode): string {
@@ -15,11 +16,22 @@ interface MarkdownProps {
   onSelectNote: (id: number) => void;
   /** Called when a link to a non-existent note is clicked (Obsidian-style). */
   onCreateNote?: (title: string) => void;
+  /** Render ```database fences as interactive tables (Database plugin). */
+  databaseEnabled?: boolean;
 }
 
 const WIKI_PREFIX = '#wiki:';
 const HEAD_PREFIX = '#wiki-head:';
 const NEW_PREFIX = '#wiki-new:';
+
+/** True when a fenced code block is a ```database block. */
+const DATABASE_LANG = /\blanguage-database\b/;
+function isDatabaseCode(node: ReactNode): boolean {
+  const child = Array.isArray(node) ? node[0] : node;
+  if (!isValidElement(child)) return false;
+  const className = (child.props as { className?: string }).className ?? '';
+  return DATABASE_LANG.test(className);
+}
 
 /** Brackets would break the generated markdown link, so drop them from labels. */
 const cleanLabel = (s: string) => s.replace(/[[\]]/g, '').trim();
@@ -64,7 +76,7 @@ const LINK_CLASSES =
 const NEW_LINK_CLASSES =
   'rounded-sm border-b border-dashed border-warning/50 text-warning transition-colors hover:border-warning hover:text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-export function Markdown({ content, notes, onSelectNote, onCreateNote }: MarkdownProps) {
+export function Markdown({ content, notes, onSelectNote, onCreateNote, databaseEnabled }: MarkdownProps) {
   const processed = useMemo(() => preprocess(content || '', notes), [content, notes]);
 
   return (
@@ -93,15 +105,28 @@ export function Markdown({ content, notes, onSelectNote, onCreateNote }: Markdow
           p: (props) => <p className="mb-3.5 leading-[1.75] text-foreground/90" {...strip(props)} />,
           strong: (props) => <strong className="font-semibold text-foreground" {...strip(props)} />,
           em: (props) => <em className="text-subtle-foreground" {...strip(props)} />,
-          code: (props) => (
-            <code className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[12.5px] text-primary-hover" {...strip(props)} />
-          ),
-          pre: (props) => (
-            <pre
-              className="mb-4 overflow-x-auto rounded-lg border border-border-strong bg-surface px-5 py-4 [&_code]:bg-transparent [&_code]:p-0 [&_code]:leading-relaxed [&_code]:text-subtle-foreground"
-              {...strip(props)}
-            />
-          ),
+          code: (props) => {
+            const className = (props as { className?: string }).className ?? '';
+            if (databaseEnabled && DATABASE_LANG.test(className)) {
+              return <DatabaseView source={nodeText(props.children)} />;
+            }
+            return (
+              <code className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[12.5px] text-primary-hover" {...strip(props)} />
+            );
+          },
+          pre: (props) => {
+            // A ```database fence becomes a full interactive table, so shed the
+            // <pre> code chrome and let the DatabaseView stand on its own.
+            if (databaseEnabled && isDatabaseCode(props.children)) {
+              return <>{props.children}</>;
+            }
+            return (
+              <pre
+                className="mb-4 overflow-x-auto rounded-lg border border-border-strong bg-surface px-5 py-4 [&_code]:bg-transparent [&_code]:p-0 [&_code]:leading-relaxed [&_code]:text-subtle-foreground"
+                {...strip(props)}
+              />
+            );
+          },
           ul: (props) => (
             <ul className="mb-3.5 list-disc pl-[22px] leading-[1.75] text-foreground/90 [&_li]:mb-1" {...strip(props)} />
           ),

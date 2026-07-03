@@ -63,6 +63,8 @@ interface NotesViewProps {
   onNewNote: () => void;
   /** Obsidian-style document outline in the info panel (Outline plugin). */
   outlineEnabled?: boolean;
+  /** Render ```database fences as interactive tables (Database plugin). */
+  databaseEnabled?: boolean;
 }
 
 export function NotesView({
@@ -75,6 +77,7 @@ export function NotesView({
   onSearch,
   onNewNote,
   outlineEnabled = false,
+  databaseEnabled = false,
 }: NotesViewProps) {
   const { notes, links, updateNote, deleteNote, anchorNote, addTag, removeTag, createLink } = data;
   // <md: the list is primary; opening a note switches to the full-width editor.
@@ -190,6 +193,7 @@ export function NotesView({
             onBack={() => setMobileDetailOpen(false)}
             onOpenInfo={() => setInfoOpen(true)}
             onCreateNote={createFromLink}
+            databaseEnabled={databaseEnabled}
           />
         ) : (
           <div className="flex flex-1 items-center justify-center">
@@ -333,9 +337,10 @@ interface EditorProps {
   onBack: () => void;
   onOpenInfo: () => void;
   onCreateNote: (title: string) => void;
+  databaseEnabled: boolean;
 }
 
-function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote }: EditorProps) {
+function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, databaseEnabled }: EditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
@@ -430,7 +435,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
           </div>
         ) : (
           <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
-            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} />
+            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} databaseEnabled={databaseEnabled} />
           </div>
         )}
       </div>

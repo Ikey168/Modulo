@@ -17,10 +17,13 @@ export const GRAPH_PLUGIN_ID = 'graph-view';
 export const NOTES_PLUGIN_ID = 'notes-editor';
 /** Plugin id that adds the Obsidian-style document outline to the note view. */
 export const OUTLINE_PLUGIN_ID = 'obsidian-outline';
+/** Plugin id that renders ```database fences as Notion-style embedded tables. */
+export const DATABASE_PLUGIN_ID = 'notion-database';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', author: 'Modulo Labs', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', downloads: '24.1k', rating: '4.9', icon: '¶' },
   { id: OUTLINE_PLUGIN_ID, name: 'Obsidian Outline', author: 'Modulo Labs', desc: 'Obsidian-style document outline plus in-note heading links: jump between a note’s headings.', category: 'productivity', downloads: '13.2k', rating: '4.8', icon: '☰' },
+  { id: DATABASE_PLUGIN_ID, name: 'Embedded Databases', author: 'Modulo Labs', desc: 'Notion-style databases inside a note: typed columns, a table and a board view, edited inline.', category: 'productivity', downloads: '16.7k', rating: '4.8', icon: '▤' },
   { id: GRAPH_PLUGIN_ID, name: 'Knowledge Graph', author: 'Modulo Labs', desc: 'Interactive force-directed graph of your notes and their links.', category: 'analytics', downloads: '18.6k', rating: '4.9', icon: '◉' },
   { id: 'latex', name: 'LaTeX Math', author: 'Modulo Labs', desc: 'Render mathematical equations inline and in blocks using KaTeX.', category: 'render', downloads: '12.4k', rating: '4.8', icon: 'Σ' },
   { id: 'ai-summary', name: 'AI Summarizer', author: 'OpenMind', desc: 'Generate concise note summaries powered by GPT-4.', category: 'ai', downloads: '8.9k', rating: '4.6', icon: '✦' },
