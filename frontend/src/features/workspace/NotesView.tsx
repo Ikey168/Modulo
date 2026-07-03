@@ -47,6 +47,7 @@ import {
 import { SectionLabel } from './atoms';
 import { Markdown } from './Markdown';
 import { anchorRef, isAnchored } from './workspaceUtils';
+import { parseHeadings } from './outline';
 import type { WorkspaceData } from './useCoreWorkspace';
 
 interface NotesViewProps {
@@ -58,6 +59,8 @@ interface NotesViewProps {
   searchQuery: string;
   onSearch: (q: string) => void;
   onNewNote: () => void;
+  /** Obsidian-style document outline in the info panel (Outline plugin). */
+  outlineEnabled?: boolean;
 }
 
 export function NotesView({
@@ -69,6 +72,7 @@ export function NotesView({
   searchQuery,
   onSearch,
   onNewNote,
+  outlineEnabled = false,
 }: NotesViewProps) {
   const { notes, links, updateNote, deleteNote, anchorNote, addTag, removeTag, createLink } = data;
   // <md: the list is primary; opening a note switches to the full-width editor.
@@ -120,6 +124,7 @@ export function NotesView({
         outgoing,
         backlinks,
         allNotes: notes,
+        outlineEnabled,
         onSelect: openNote,
         onAnchor: () => anchorNote(note.id),
         onAddTag: (name: string) => addTag(note.id, name),
@@ -406,6 +411,7 @@ interface InfoPanelProps {
   outgoing: CoreNote[];
   backlinks: CoreNote[];
   allNotes: CoreNote[];
+  outlineEnabled?: boolean;
   onSelect: (id: number) => void;
   onAnchor: () => void;
   onAddTag: (name: string) => void;
@@ -420,6 +426,7 @@ function InfoPanel({
   outgoing,
   backlinks,
   allNotes,
+  outlineEnabled,
   onSelect,
   onAnchor,
   onAddTag,
@@ -432,9 +439,29 @@ function InfoPanel({
   // Remount the link Select after each pick so it snaps back to the placeholder.
   const [selectKey, setSelectKey] = useState(0);
   const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id));
+  const headings = outlineEnabled ? parseHeadings(note.markdownContent ?? note.content ?? '') : [];
 
   return (
     <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border', className)}>
+      {outlineEnabled && headings.length > 0 && (
+        <InfoSection title="Outline">
+          <nav aria-label="Document outline" className="-mx-1 flex flex-col">
+            {headings.map((h, i) => (
+              <button
+                key={`${h.slug}-${i}`}
+                type="button"
+                onClick={() => document.getElementById(h.slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                style={{ paddingLeft: `${(h.level - 1) * 12 + 4}px` }}
+                className="truncate rounded-sm py-1 pr-1 text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                title={h.text}
+              >
+                {h.text}
+              </button>
+            ))}
+          </nav>
+        </InfoSection>
+      )}
+
       <InfoSection title="Tags">
         <div className="mb-2 flex flex-wrap gap-1.5">
           {(note.tags ?? []).map((tag) => (

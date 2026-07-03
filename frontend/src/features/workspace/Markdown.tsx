@@ -2,6 +2,12 @@ import { useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { CoreNote } from '@modulo/core';
+import { nodeText, slugify } from './outline';
+
+/** Slug id + scroll margin so the Outline plugin can jump to a heading. */
+function headingId(children: ReactNode): string {
+  return slugify(nodeText(children));
+}
 
 interface MarkdownProps {
   content: string;
@@ -40,12 +46,12 @@ export function Markdown({ content, notes, onSelectNote }: MarkdownProps) {
         remarkPlugins={[remarkGfm]}
         components={{
           h1: (props) => (
-            <h1 className="mb-4 text-[22px] font-semibold leading-snug tracking-tight text-foreground" {...strip(props)} />
+            <h1 id={headingId(props.children)} className="mb-4 scroll-mt-6 text-[22px] font-semibold leading-snug tracking-tight text-foreground" {...strip(props)} />
           ),
           h2: (props) => (
-            <h2 className="mb-2.5 mt-7 text-base font-semibold tracking-tight text-foreground" {...strip(props)} />
+            <h2 id={headingId(props.children)} className="mb-2.5 mt-7 scroll-mt-6 text-base font-semibold tracking-tight text-foreground" {...strip(props)} />
           ),
-          h3: (props) => <h3 className="mb-2 mt-5 text-sm font-semibold text-foreground" {...strip(props)} />,
+          h3: (props) => <h3 id={headingId(props.children)} className="mb-2 mt-5 scroll-mt-6 text-sm font-semibold text-foreground" {...strip(props)} />,
           p: (props) => <p className="mb-3.5 leading-[1.75] text-foreground/90" {...strip(props)} />,
           strong: (props) => <strong className="font-semibold text-foreground" {...strip(props)} />,
           em: (props) => <em className="text-subtle-foreground" {...strip(props)} />,
