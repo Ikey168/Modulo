@@ -46,6 +46,8 @@ import {
 } from '@/ui';
 import { SectionLabel } from './atoms';
 import { Markdown } from './Markdown';
+import { NoteTree } from './NoteTree';
+import { useNoteTree, type NoteTreeApi } from './noteTree';
 import { anchorRef, isAnchored } from './workspaceUtils';
 import { parseHeadings } from './outline';
 import type { WorkspaceData } from './useCoreWorkspace';
@@ -78,6 +80,8 @@ export function NotesView({
   // <md: the list is primary; opening a note switches to the full-width editor.
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  // Notion-style hierarchy (parent/order kept client-side) over the note list.
+  const tree = useNoteTree(notes);
 
   const note = useMemo(
     () => notes.find((n) => n.id === selectedId) ?? notes[0] ?? null,
@@ -125,6 +129,17 @@ export function NotesView({
     }
   };
 
+  // Notion-style "+" on a row: create a subnote nested under that note.
+  const addChild = async (parentId: number) => {
+    const created = await data.createNote();
+    if (created) {
+      tree.setParent(created.id, parentId);
+      tree.expand(parentId);
+      openNote(created.id);
+      onToggleEdit(true);
+    }
+  };
+
   const showDetailOnMobile = mobileDetailOpen && note != null;
 
   const infoPanelProps = note
@@ -152,12 +167,14 @@ export function NotesView({
       <NoteListColumn
         className={cn('w-full md:w-64', showDetailOnMobile ? 'hidden md:flex' : 'flex')}
         notes={filtered}
+        tree={tree}
         selectedId={note?.id ?? selectedId}
         loading={data.loading}
         searchQuery={searchQuery}
         onSearch={onSearch}
         onNewNote={onNewNote}
         onSelect={openNote}
+        onAddChild={addChild}
       />
 
       <div className={cn('min-w-0 flex-1 flex-col overflow-hidden', showDetailOnMobile ? 'flex' : 'hidden md:flex')}>
@@ -222,16 +239,20 @@ function NoteGlyph() {
 
 interface NoteListColumnProps {
   notes: CoreNote[];
+  tree: NoteTreeApi;
   selectedId: number | null;
   loading: boolean;
   searchQuery: string;
   onSearch: (q: string) => void;
   onNewNote: () => void;
   onSelect: (id: number) => void;
+  onAddChild: (parentId: number) => void;
   className?: string;
 }
 
-function NoteListColumn({ notes, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, className }: NoteListColumnProps) {
+function NoteListColumn({ notes, tree, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, onAddChild, className }: NoteListColumnProps) {
+  // While filtering, show a flat match list; otherwise the draggable tree.
+  const searching = searchQuery.trim().length > 0;
   return (
     <div className={cn('shrink-0 flex-col overflow-hidden border-r border-border', className)}>
       <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
@@ -266,10 +287,12 @@ function NoteListColumn({ notes, selectedId, loading, searchQuery, onSearch, onN
           </div>
         ) : notes.length === 0 ? (
           <p className="px-2 pt-2 text-xs text-muted-foreground">
-            {searchQuery ? 'No notes match your filter.' : 'No notes yet.'}
+            {searching ? 'No notes match your filter.' : 'No notes yet.'}
           </p>
-        ) : (
+        ) : searching ? (
           notes.map((n) => <NoteRow key={n.id} note={n} selected={n.id === selectedId} onSelect={onSelect} />)
+        ) : (
+          <NoteTree tree={tree} selectedId={selectedId} onSelect={onSelect} onAddChild={onAddChild} />
         )}
       </div>
     </div>
