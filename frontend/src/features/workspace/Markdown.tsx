@@ -1,9 +1,9 @@
-import { isValidElement, useMemo, type ReactNode } from 'react';
+import { isValidElement, useMemo, type ComponentType, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { CoreNote } from '@modulo/core';
 import { nodeText, parseWikiRef, slugify } from './outline';
-import { DatabaseView } from './DatabaseView';
+import type { NoteFenceContribution, NoteFenceProps } from './plugins/types';
 
 /** Slug id + scroll margin so the Outline plugin can jump to a heading. */
 function headingId(children: ReactNode): string {
@@ -16,21 +16,23 @@ interface MarkdownProps {
   onSelectNote: (id: number) => void;
   /** Called when a link to a non-existent note is clicked (Obsidian-style). */
   onCreateNote?: (title: string) => void;
-  /** Render ```database fences as interactive tables (Database plugin). */
-  databaseEnabled?: boolean;
+  /** Fence renderers contributed by installed plugins (keyed by ```language). */
+  fences?: NoteFenceContribution[];
 }
 
 const WIKI_PREFIX = '#wiki:';
 const HEAD_PREFIX = '#wiki-head:';
 const NEW_PREFIX = '#wiki-new:';
 
-/** True when a fenced code block is a ```database block. */
-const DATABASE_LANG = /\blanguage-database\b/;
-function isDatabaseCode(node: ReactNode): boolean {
+/** The fenced language from a code element's `language-xxx` class, if any. */
+function languageOf(className: string | undefined): string | null {
+  const m = /\blanguage-([\w-]+)\b/.exec(className ?? '');
+  return m ? m[1] : null;
+}
+function fenceLanguageOf(node: ReactNode): string | null {
   const child = Array.isArray(node) ? node[0] : node;
-  if (!isValidElement(child)) return false;
-  const className = (child.props as { className?: string }).className ?? '';
-  return DATABASE_LANG.test(className);
+  if (!isValidElement(child)) return null;
+  return languageOf((child.props as { className?: string }).className);
 }
 
 /** Brackets would break the generated markdown link, so drop them from labels. */
@@ -76,8 +78,13 @@ const LINK_CLASSES =
 const NEW_LINK_CLASSES =
   'rounded-sm border-b border-dashed border-warning/50 text-warning transition-colors hover:border-warning hover:text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-export function Markdown({ content, notes, onSelectNote, onCreateNote, databaseEnabled }: MarkdownProps) {
+export function Markdown({ content, notes, onSelectNote, onCreateNote, fences }: MarkdownProps) {
   const processed = useMemo(() => preprocess(content || '', notes), [content, notes]);
+  const fenceMap = useMemo(() => {
+    const map = new Map<string, ComponentType<NoteFenceProps>>();
+    for (const f of fences ?? []) map.set(f.language, f.component);
+    return map;
+  }, [fences]);
 
   return (
     <div className="text-[13.5px]">
@@ -106,18 +113,20 @@ export function Markdown({ content, notes, onSelectNote, onCreateNote, databaseE
           strong: (props) => <strong className="font-semibold text-foreground" {...strip(props)} />,
           em: (props) => <em className="text-subtle-foreground" {...strip(props)} />,
           code: (props) => {
-            const className = (props as { className?: string }).className ?? '';
-            if (databaseEnabled && DATABASE_LANG.test(className)) {
-              return <DatabaseView source={nodeText(props.children)} />;
+            const lang = languageOf((props as { className?: string }).className);
+            const Fence = lang ? fenceMap.get(lang) : undefined;
+            if (Fence) {
+              return <Fence source={nodeText(props.children)} />;
             }
             return (
               <code className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[12.5px] text-primary-hover" {...strip(props)} />
             );
           },
           pre: (props) => {
-            // A ```database fence becomes a full interactive table, so shed the
-            // <pre> code chrome and let the DatabaseView stand on its own.
-            if (databaseEnabled && isDatabaseCode(props.children)) {
+            // A plugin fence (e.g. ```database) renders as a full-width surface,
+            // so shed the <pre> code chrome and let it stand on its own.
+            const fenceLang = fenceLanguageOf(props.children);
+            if (fenceLang && fenceMap.has(fenceLang)) {
               return <>{props.children}</>;
             }
             return (

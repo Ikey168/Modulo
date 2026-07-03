@@ -11,19 +11,18 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  Spinner,
   Tabs,
   TabsList,
   TabsTrigger,
   cn,
+  useToast,
 } from '@/ui';
 import { PLUGINS, type PluginInfo } from './plugins';
+import { usePlugins } from './plugins/PluginProvider';
+import { isRunnable } from './plugins/types';
 import PackMarketplace from '../blueprint/pack/PackMarketplace';
 import PackManager from '../blueprint/pack/PackManager';
-
-interface MarketplaceViewProps {
-  installedPlugins: Set<string>;
-  onTogglePlugin: (id: string) => void;
-}
 
 type MarketplaceTab = 'plugins' | 'packs';
 
@@ -33,7 +32,75 @@ function parseDownloads(d: string): number {
   return d.endsWith('k') ? n * 1000 : n;
 }
 
-export function MarketplaceView({ installedPlugins, onTogglePlugin }: MarketplaceViewProps) {
+/**
+ * Install/uninstall control backed by the plugin runtime. Handles the three
+ * real states — installable, installed (removable), and metadata-only ("coming
+ * soon") — plus the in-flight installing/removing phases and dependency errors.
+ */
+function PluginActionButton({ id, full = false }: { id: string; full?: boolean }) {
+  const plugins = usePlugins();
+  const { toast } = useToast();
+  const manifest = plugins.manifest(id);
+  const runnable = manifest ? isRunnable(manifest) : false;
+  const installed = plugins.isInstalled(id);
+  const phase = plugins.phaseOf(id);
+  const busy = phase === 'installing' || phase === 'uninstalling';
+  const size = full ? 'md' : 'sm';
+  const shape = full ? 'w-full' : 'h-7 shrink-0 px-3 text-xxs';
+
+  if (!runnable) {
+    return (
+      <Button size={size} variant="outline" disabled className={shape} title="Not yet available">
+        Coming soon
+      </Button>
+    );
+  }
+
+  const act = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      if (installed) await plugins.uninstall(id);
+      else await plugins.install(id);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: installed ? 'Cannot uninstall' : 'Install failed',
+        description: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  return (
+    <Button
+      size={size}
+      variant={installed ? 'outline' : 'primary'}
+      disabled={busy}
+      onClick={act}
+      aria-pressed={installed}
+      aria-label={`${installed ? 'Uninstall' : 'Install'} ${manifest?.name ?? id}`}
+      className={shape}
+    >
+      {busy ? (
+        <>
+          <Spinner className={full ? 'size-4' : 'size-3'} /> {phase === 'installing' ? 'Installing…' : 'Removing…'}
+        </>
+      ) : installed ? (
+        full ? (
+          <>
+            <Check className="size-4" /> Installed — remove
+          </>
+        ) : (
+          'Installed'
+        )
+      ) : (
+        'Install'
+      )}
+    </Button>
+  );
+}
+
+export function MarketplaceView() {
+  const plugins = usePlugins();
   const [tab, setTab] = useState<MarketplaceTab>('plugins');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -55,7 +122,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
   const featured = useMemo(() => (query || category ? [] : filtered.slice(0, 3)), [filtered, query, category]);
   const rest = useMemo(() => (featured.length ? filtered.slice(3) : filtered), [filtered, featured]);
 
-  const isInstalled = (p: PluginInfo) => installedPlugins.has(p.id);
+  const isInstalled = (p: PluginInfo) => plugins.isInstalled(p.id);
 
   return (
     <div className="flex-1 animate-fade-in overflow-y-auto p-5 md:px-10 md:py-9">
@@ -71,7 +138,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as MarketplaceTab)}>
         <TabsList variant="underline" className="mb-5">
-          <TabsTrigger value="plugins">Plugins ({installedPlugins.size} installed)</TabsTrigger>
+          <TabsTrigger value="plugins">Plugins ({plugins.installedIds.size} installed)</TabsTrigger>
           <TabsTrigger value="packs">Packs</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -200,19 +267,7 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
                       </div>
                       <div className="mt-0.5 truncate text-xxs text-muted-foreground">{p.desc}</div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={isInstalled(p) ? 'outline' : 'primary'}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTogglePlugin(p.id);
-                      }}
-                      aria-pressed={isInstalled(p)}
-                      aria-label={`${isInstalled(p) ? 'Uninstall' : 'Install'} ${p.name}`}
-                      className="h-7 shrink-0 px-3 text-xxs"
-                    >
-                      {isInstalled(p) ? 'Installed' : 'Install'}
-                    </Button>
+                    <PluginActionButton id={p.id} />
                   </div>
                 </li>
               ))}
@@ -233,6 +288,9 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
                         <DialogTitle className="text-base">{detail.name}</DialogTitle>
                         <DialogDescription className="mt-0.5">
                           by {detail.author} · <span className="font-mono">{detail.category}</span>
+                          {plugins.manifest(detail.id)?.version && isRunnable(plugins.manifest(detail.id)!) && (
+                            <> · v{plugins.manifest(detail.id)!.version}</>
+                          )}
                         </DialogDescription>
                       </div>
                     </div>
@@ -240,20 +298,17 @@ export function MarketplaceView({ installedPlugins, onTogglePlugin }: Marketplac
 
                   <p className="text-[13px] leading-relaxed text-subtle-foreground">{detail.desc}</p>
 
-                  <Button
-                    className="w-full"
-                    variant={isInstalled(detail) ? 'outline' : 'primary'}
-                    onClick={() => onTogglePlugin(detail.id)}
-                    aria-pressed={isInstalled(detail)}
-                  >
-                    {isInstalled(detail) ? (
-                      <>
-                        <Check className="size-4" /> Installed — tap to remove
-                      </>
-                    ) : (
-                      'Install'
-                    )}
-                  </Button>
+                  {(plugins.manifest(detail.id)?.dependencies?.length ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Requires:{' '}
+                      {plugins
+                        .manifest(detail.id)!
+                        .dependencies!.map((d) => plugins.manifest(d)?.name ?? d)
+                        .join(', ')}
+                    </p>
+                  )}
+
+                  <PluginActionButton id={detail.id} full />
                 </>
               )}
             </DialogContent>
