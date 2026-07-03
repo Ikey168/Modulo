@@ -8,6 +8,7 @@ import {
   Info,
   Plus,
   Search,
+  Table2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -345,6 +346,25 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Insert a ready-to-use database block at the cursor so users never have to
+  // hand-write the fence. A unique id keeps multiple embeds from colliding.
+  const insertDatabase = () => {
+    const ta = textareaRef.current;
+    const id = `db-${Math.random().toString(36).slice(2, 8)}`;
+    const snippet = `\n\n\`\`\`database\nid: ${id}\ntitle: New database\ncolumns: Name:text, Status:select(Todo|In progress|Done)\n\`\`\`\n\n`;
+    const start = ta?.selectionStart ?? content.length;
+    const end = ta?.selectionEnd ?? content.length;
+    const next = content.slice(0, start) + snippet + content.slice(end);
+    dirtyRef.current = true;
+    setContent(next);
+    requestAnimationFrame(() => {
+      const pos = start + snippet.length;
+      ta?.focus();
+      ta?.setSelectionRange(pos, pos);
+    });
+  };
 
   const flush = () => {
     if (saveTimer.current) {
@@ -422,7 +442,22 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
               aria-label="Note title"
               className="border-b border-border bg-transparent px-5 pb-3.5 pt-4 text-lg font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary md:px-10"
             />
+            {databaseEnabled && (
+              <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-1.5 md:px-8">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={insertDatabase}
+                  title="Insert a database at the cursor"
+                >
+                  <Table2 className="size-3.5" aria-hidden="true" />
+                  Insert database
+                </Button>
+              </div>
+            )}
             <textarea
+              ref={textareaRef}
               value={content}
               onChange={(e) => {
                 dirtyRef.current = true;
