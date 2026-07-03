@@ -13,10 +13,13 @@ interface MarkdownProps {
   content: string;
   notes: CoreNote[];
   onSelectNote: (id: number) => void;
+  /** Called when a link to a non-existent note is clicked (Obsidian-style). */
+  onCreateNote?: (title: string) => void;
 }
 
 const WIKI_PREFIX = '#wiki:';
 const HEAD_PREFIX = '#wiki-head:';
+const NEW_PREFIX = '#wiki-new:';
 
 /** Brackets would break the generated markdown link, so drop them from labels. */
 const cleanLabel = (s: string) => s.replace(/[[\]]/g, '').trim();
@@ -40,7 +43,8 @@ function preprocess(content: string, notes: CoreNote[]): string {
     const note = notes.find((n) => n.title === target);
     if (!note) {
       const label = cleanLabel(alias || (heading ? `${target}#${heading}` : target));
-      return `[${label}](${WIKI_PREFIX}missing)`;
+      // Encode the real target title so a click can create that note.
+      return `[${label}](${NEW_PREFIX}${encodeURIComponent(target)})`;
     }
     const label = cleanLabel(alias || (heading ? `${target} › ${heading}` : target));
     return `[${label}](${WIKI_PREFIX}${note.id})`;
@@ -56,8 +60,11 @@ function strip<P extends { node?: unknown }>(props: P): Omit<P, 'node'> {
 
 const LINK_CLASSES =
   'rounded-sm border-b border-primary/40 text-primary-hover transition-colors hover:border-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+// Unresolved link: dashed amber, becomes a real link once the note is created.
+const NEW_LINK_CLASSES =
+  'rounded-sm border-b border-dashed border-warning/50 text-warning transition-colors hover:border-warning hover:text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-export function Markdown({ content, notes, onSelectNote }: MarkdownProps) {
+export function Markdown({ content, notes, onSelectNote, onCreateNote }: MarkdownProps) {
   const processed = useMemo(() => preprocess(content || '', notes), [content, notes]);
 
   return (
@@ -122,6 +129,22 @@ export function Markdown({ content, notes, onSelectNote }: MarkdownProps) {
                   type="button"
                   onClick={() => document.getElementById(slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                   className={LINK_CLASSES}
+                >
+                  {children}
+                </button>
+              );
+            }
+            if (href && href.startsWith(NEW_PREFIX)) {
+              const title = decodeURIComponent(href.slice(NEW_PREFIX.length));
+              if (!onCreateNote || !title) {
+                return <span className="text-warning">{children}</span>;
+              }
+              return (
+                <button
+                  type="button"
+                  onClick={() => onCreateNote(title)}
+                  title={`Create note “${title}”`}
+                  className={NEW_LINK_CLASSES}
                 >
                   {children}
                 </button>
