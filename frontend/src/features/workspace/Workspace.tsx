@@ -39,7 +39,7 @@ import { NotesView } from './NotesView';
 import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
+import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID, OUTLINE_PLUGIN_ID } from './plugins';
 import { useCoreWorkspace } from './useCoreWorkspace';
 
 // Heavy React Flow editor loads on demand when the Blueprints view is opened.
@@ -298,6 +298,7 @@ export default function Workspace() {
             searchQuery={searchQuery}
             onSearch={setSearchQuery}
             onNewNote={handleNewNote}
+            outlineEnabled={installed.has(OUTLINE_PLUGIN_ID)}
           />
         )}
         {view === 'notes' && !notesInstalled && (
