@@ -267,6 +267,149 @@ Build on the existing Yjs real-time layer.
 
 ---
 
+## 11. Original / high-novelty plugins — what only Modulo could ship
+
+The plugins above are strong but many exist elsewhere. This section is the
+opposite: ideas that fall out of the **intersection** of Modulo's differentiators
+— the Neo4j graph, on-chain + IPFS provenance, the sandboxed Blueprint compute
+engine, Web3 identity, and Yjs CRDTs — and that a plain note app fundamentally
+*cannot* build. Each entry leads with the seam it exploits. Some need new
+primitives (a ZK library, an escrow contract); those are flagged, not hidden.
+
+### Boldest bets
+
+| Plugin | Exploits | Runtime | Effort |
+|--------|----------|---------|--------|
+| ZK proof-of-knowledge | blockchain × zero-knowledge | EXT + contract | L |
+| Content-authenticity credentials (human vs AI) | provenance × AI | JAR | M |
+| Argument graph + contradiction finder | typed graph × AI | JAR + UI | M |
+| Living documents (reactive cells) | Blueprint sandbox × notes | JAR + UI | L |
+| Knowledge bounties (staked escrow) | web3 escrow × collab | EXT + contract | L |
+| Graph-weighted forgetting curve | graph centrality × review | JAR | M |
+
+### A. Cryptographic knowledge proofs — provenance × ZK × notes
+
+- **ZK proof-of-knowledge** `EXT` + smart contract · **L** — prove *"I held a
+  note satisfying predicate P (tagged `patent`, created before date D)"* without
+  revealing the note. Turns the existing hash-anchor into a zero-knowledge claim.
+  Nobody else has the on-chain anchoring to make this real; foundation for
+  prior-art defense, whistleblower timestamps, sealed-bid research.
+- **Defensive-publication / prior-art anchor** `JAR` · **S–M** — one click turns
+  a note into a timestamped, IPFS-pinned, on-chain-anchored *defensive
+  publication* that establishes prior art and blocks others from patenting the
+  idea. Reuses `IpfsService` + `BlockchainService`; produces a citable public
+  record. A concrete, valuable use of provenance no PKM tool offers.
+- **Redactable signed notes (selective disclosure)** `JAR` · **M** — publish a
+  note with sections cryptographically blacked out while the *rest* stays
+  verifiable against the original signature (redactable signatures / Merkle
+  commitments). Journalists shielding sources, legal disclosure, GxP records.
+- **Content-authenticity credentials (human vs AI)** `JAR` · **M** — label which
+  spans of a note were human-written vs model-generated and anchor a C2PA-style
+  content credential on-chain. As AI text floods everything, *provable human
+  authorship* becomes the scarce asset — and Modulo already has the ledger.
+- **AI model-attestation ledger** `JAR` · **S–M** — every AI summary/tag records
+  model, prompt hash, and output hash so any AI-derived content is auditable and
+  reproducible. Subscribes to the AI plugins' events; writes `blockchain.*`
+  provenance. Compliance-grade AI usage, essentially free on this stack.
+
+### B. The graph as a reasoning substrate — typed edges × Neo4j × AI
+
+- **Argument / claim graph + contradiction finder** `JAR` + `UI` · **M** — typed
+  edges (`supports`, `refutes`, `depends-on`, `contradicts`) turn the knowledge
+  graph into a reasoning structure; a Cypher/AI pass flags contradictions and
+  unsupported claims. The graph stops being a pretty picture and becomes a logic
+  engine — only possible because the graph is a first-class Neo4j store.
+- **Structural-hole / knowledge-gap finder** `JAR` · **M** — graph topology
+  surfaces concepts you reference but never defined, and pairs of clusters that
+  *should* connect but don't ("you write about A and B separately — here's the
+  bridge you never wrote"). Pure graph-algorithm value, not text search.
+- **Ontology induction** `JAR` · **M** — AI proposes a typed schema (entity kinds
+  + relationship types) inferred from your unstructured notes, then offers to
+  promote free-text links into typed edges. Bootstraps the argument graph above.
+- **Devil's-advocate agent** `EXT` · **M** — an agent walks your claim graph and
+  attacks the weakest links, citing your own notes. A thinking partner grounded
+  in *your* graph, not the open web.
+- **Graph-diff / "evolution of my thinking"** `JAR` + `UI` · **M** — snapshot the
+  graph structure over time and diff it: which ideas merged, split, or died. A
+  changelog for a mind. Needs the graph-as-system-of-record; text history can't
+  show this.
+
+### C. Notes as computable, live objects — Blueprint sandbox × notes
+
+The Blueprint engine is really a safe, metered serverless runtime
+(`SandboxedScriptService`, 500k instructions / 2s). Point it *at notes* and notes
+stop being static text.
+
+- **Living documents / reactive cells** `JAR` + `UI` · **L** — embed sandboxed
+  expressions that recompute from other notes and the graph, spreadsheet-style
+  (`{{ sum(query('#expense')) }}`). Dashboards, budgets, trackers that stay
+  correct on their own. Obsidian bolts this on with plugins; Modulo has the
+  sandbox natively.
+- **Note-as-API** `JAR` · **M** — publish a note's embedded blueprint as an
+  authenticated HTTP endpoint. A note becomes a micro-app: a form handler, a
+  calculator, a webhook. Reuses the pack runtime + Keycloak.
+- **Autonomous vault agent** `EXT` · **L** — a scheduled agent loop that reads the
+  graph, proposes new links/notes/tasks, and leaves an auditable, revertible
+  changelog. Guardrailed by the same sandbox limits and a per-run cap.
+- **Digital-twin mirror** `PACK` · **M** — Blueprint nodes that mirror an external
+  system's state (a repo, a sensor, a market) into graph nodes so you can
+  *link your thinking to live data*. The graph becomes a queryable twin.
+
+### D. Knowledge economy — on-chain escrow × collaboration × graph
+
+- **Knowledge bounties** `EXT` + escrow contract · **L** — stake tokens on a
+  question note; a smart-contract escrow releases to whoever contributes the
+  accepted answer. Turns a shared vault into a market for answers — directly
+  enabled by the Hardhat/ERC contracts and Web3 identity already in the repo.
+- **Verifiable contribution ledger** `JAR` · **M** — in a co-authored vault,
+  record provable per-author attribution (who wrote which hash-anchored revision)
+  and compute contribution splits. Co-authored papers, DAO wikis, grant
+  reporting — attribution you can *prove*, not just `git blame`.
+- **Calibration / prediction staking** `JAR` + `UI` · **M** — attach a dated
+  prediction to a note, optionally stake on it, resolve later, and track your
+  calibration over time. A personal, provenance-backed forecasting record; the
+  on-chain resolution stops you from editing history after the fact.
+- **Token-curated knowledge base** `EXT` · **L** — a community curates a public
+  set of notes by staking on quality; good curation is rewarded, spam is
+  slashed. A self-governing public digital garden.
+
+### E. Privacy-preserving social knowledge — federation × PSI × linked data
+
+- **Private set intersection ("what do we both know")** `EXT` · **L** — two users
+  discover shared notes/interests/contacts without revealing their full vaults.
+  Serendipitous collaboration without surveillance; needs a PSI service but the
+  identity layer is there.
+- **Federated cross-vault graph queries** `EXT` · **L** — query a peer's *public*
+  subgraph and weave their nodes into yours by reference (content-addressed via
+  IPFS). A federation of knowledge graphs, not a walled garden.
+- **Linked-data / RDF + ActivityPub publishing** `JAR` · **M** — publish your
+  public graph as machine-readable linked data and to the fediverse, so other
+  tools (and people) can follow and query it. Your knowledge graph becomes part
+  of the web's, uniquely leveraging Modulo's graph-native model.
+
+### F. Novel cognition & interaction
+
+- **Graph-centrality-weighted forgetting curve** `JAR` · **M** — instead of
+  reviewing flashcards, resurface *whole notes* ranked by how structurally
+  central they are **and** how at-risk of being forgotten. Spaced repetition that
+  understands your graph's importance, not just card scheduling. Only works with
+  a real graph + review log.
+- **Socratic path tutor** `EXT` · **M** — the AI walks you along a path through
+  your own graph, quizzing and connecting as it goes — a guided tour of what you
+  know that adapts to your answers.
+- **Spatial / audio graph navigation** `UI` · **M** — navigate the knowledge
+  graph by spatial audio and keyboard, making the graph a first-class,
+  accessible surface for low-vision users — a differentiator the force-directed
+  view can't offer on its own.
+
+> Reality check: group A and D entries need primitives Modulo doesn't have yet
+> (a ZK toolkit, escrow/curation contracts, a PSI service). They are listed as
+> *bets*, not quick wins — but each is only a bet **because** the graph +
+> provenance + identity foundation is already in place. That foundation is the
+> moat these plugins are built on.
+
+---
+
 ## Cross-cutting infrastructure this list implies
 
 Several plugins share prerequisites worth funding once, centrally:
