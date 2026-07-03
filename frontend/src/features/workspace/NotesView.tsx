@@ -46,7 +46,7 @@ import {
 } from '@/ui';
 import { SectionLabel } from './atoms';
 import { Markdown } from './Markdown';
-import { anchorRef, isAnchored, relativeTime } from './workspaceUtils';
+import { anchorRef, isAnchored } from './workspaceUtils';
 import type { WorkspaceData } from './useCoreWorkspace';
 
 interface NotesViewProps {
@@ -268,20 +268,17 @@ function NoteRow({ note, selected, onSelect }: { note: CoreNote; selected: boole
       onClick={() => onSelect(note.id)}
       aria-current={selected ? 'true' : undefined}
       className={cn(
-        'mb-0.5 block w-full rounded-md border-l-2 px-2.5 py-1.5 text-left transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        selected ? 'border-primary bg-surface-3' : 'border-transparent hover:bg-surface-2',
+        'flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        selected ? 'bg-surface-3' : 'hover:bg-surface-2',
       )}
     >
-      <span className="flex items-center gap-1.5">
-        <span className={cn('min-w-0 flex-1 truncate text-[13px]', selected ? 'font-medium text-foreground' : 'text-subtle-foreground')}>
-          {note.title}
-        </span>
-        {isAnchored(note) && (
-          <span className="size-[5px] shrink-0 rounded-full bg-success" role="img" aria-label="Anchored on-chain" />
-        )}
+      <span className={cn('min-w-0 flex-1 truncate text-[13px]', selected ? 'font-medium text-foreground' : 'text-subtle-foreground')}>
+        {note.title}
       </span>
-      <span className="mt-0.5 block text-xxs text-muted-foreground">{relativeTime(note.updatedAt)}</span>
+      {isAnchored(note) && (
+        <span className="size-[5px] shrink-0 rounded-full bg-success" role="img" aria-label="Anchored on-chain" />
+      )}
     </button>
   );
 }
