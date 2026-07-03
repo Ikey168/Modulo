@@ -1,8 +1,11 @@
 # Modulo
 
-Modulo is a knowledge-management application for notes that link together. It
-combines a local-first note workspace with a knowledge graph, real-time
-synchronization, and optional on-chain anchoring for verifiable authorship.
+Modulo is a decentralized knowledge-management workspace. It combines linked
+Markdown notes and a knowledge graph with a visual **workflow** engine and a
+**plugin marketplace**, plus optional on-chain anchoring for verifiable
+authorship. The experience is workflow-first: automations you build in the
+Blueprint editor sit at the center, with notes, graph, and marketplace as
+installable capabilities around them.
 
 [![CI/CD](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml)
@@ -32,18 +35,35 @@ synchronization, and optional on-chain anchoring for verifiable authorship.
 
 ## Features
 
-- Note-taking with a Markdown editor, full-text search, and tags.
-- Wiki-style `[[note]]` links and a knowledge graph that visualizes the
-  connections between notes.
-- A unified workspace UI with four views (Notes, Graph, Dashboard,
-  Marketplace), served to authenticated users at `/app`.
-- Real-time synchronization across clients over WebSocket (STOMP/SockJS).
-- Offline support backed by a local database, with conflict resolution on sync.
-- Optional on-chain anchoring and IPFS content addressing for provenance and
-  verifiable authorship.
-- Multiple authentication methods: OpenID Connect (Keycloak), Google, Azure AD,
+- **Workflow automation.** A visual Blueprint editor (built on React Flow) lets
+  you wire triggers, actions, and logic nodes into automations — for example,
+  "on note saved, summarize it and anchor the digest on-chain." Blueprints run
+  in a sandboxed interpreter and can be packaged and shared as **packs**.
+- **Plugin marketplace.** A store-style marketplace with search, categories, a
+  featured row, and a detail dialog. Capabilities install and uninstall at
+  runtime — even the Notes editor and Knowledge Graph ship as (pre-installed)
+  plugins, so the workspace is composed rather than fixed.
+- **Linked notes.** A Markdown editor with wiki-style `[[note]]` links, tags,
+  full-text search, and a sandboxed, sanitized Markdown/HTML renderer.
+- **Knowledge graph.** A force-directed graph of notes and their links, with a
+  canvas that follows the active theme.
+- **Real-time and offline.** Live sync across clients over WebSocket
+  (STOMP/SockJS), plus offline support backed by a local database with conflict
+  resolution on reconnect.
+- **On-chain provenance.** Optional anchoring records a content hash on-chain,
+  and IPFS content addressing gives notes and attachments verifiable
+  authorship (integrity and provenance, not confidentiality — see
+  [Security](#security)).
+- **Unified workspace.** One authenticated app at `/app`, presented through a
+  minimal icon rail: Dashboard (a workflow command center), Marketplace,
+  Blueprints, Notes, and Graph. The default landing is the Dashboard.
+- **Multiple sign-in methods.** OpenID Connect (Keycloak), Google, Azure AD,
   and MetaMask.
-- Containerized deployment with Docker Compose and Kubernetes manifests.
+- **Design system.** A shadcn/ui component library on Tailwind design tokens,
+  with a dark-first "emerald terminal" theme plus light/blue/green/purple
+  variants driven entirely by CSS variables.
+- **Containerized.** Docker Compose for local and production-style runs, with
+  Kubernetes manifests for cluster deployment.
 
 ## Project Structure
 
@@ -82,7 +102,18 @@ Once the stack is running:
 - Backend API: http://localhost:8080 (REST endpoints are served under `/api`)
 - PostgreSQL: localhost:5432
 
-The authenticated workspace is available at http://localhost:3000/app.
+Sign in, and the workspace opens at http://localhost:3000/app on the
+**Dashboard** — a command center for your workflows. The icon rail on the left
+switches between Dashboard, Marketplace, Blueprints, Notes, and Graph; the
+rail only shows capabilities you have installed, so uninstalling a view plugin
+(for example the Knowledge Graph) removes it from the rail until you reinstall
+it from the Marketplace.
+
+> The production-style `docker compose up` serves the built frontend on
+> **http://localhost** (port 80) instead of `:3000`. It bakes the UI at build
+> time and registers a service worker, so after changing the frontend, rebuild
+> the image (`docker compose build frontend`) and hard-reload past the old
+> cached page.
 
 ## Local Development
 
@@ -141,8 +172,11 @@ graph TB
     A[React Frontend] --> B[Spring Boot Backend]
     A --> F[WebSocket Service]
     B --> C[PostgreSQL Database]
+    B --> H[Neo4j Knowledge Graph]
     B --> D[Offline Database]
+    B --> I[Blueprint Interpreter]
     B --> E[Ethereum Network]
+    B --> J[IPFS]
     B --> F
     E --> G[Smart Contracts]
 ```
@@ -151,10 +185,11 @@ graph TB
 
 Frontend:
 
-- React 18 with TypeScript
-- Vite build tooling
+- React 18 with TypeScript, Vite build tooling
+- shadcn/ui components on Tailwind CSS design tokens (dark-first, theme-aware)
 - Redux Toolkit for state, React Router for routing
-- react-markdown with remark-gfm for Markdown rendering
+- React Flow (`@xyflow/react`) for the Blueprint workflow editor
+- react-markdown with remark-gfm and rehype-sanitize for safe Markdown/HTML
 - d3-force, Sigma, and Graphology for the knowledge graph
 - ethers.js for Web3, oidc-client-ts for authentication
 - STOMP over SockJS for real-time updates

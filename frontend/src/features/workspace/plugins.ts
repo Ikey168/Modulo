@@ -27,4 +27,12 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'graph-stats', name: 'Graph Analytics', author: 'nodelab', desc: 'Advanced graph analytics: centrality scores, cluster detection, and more.', category: 'analytics', downloads: '3.2k', rating: '4.7', icon: '◎' },
   { id: 'web3-id', name: 'Web3 Identity', author: 'Modulo Labs', desc: 'Sign notes with your Ethereum wallet for verifiable on-chain authorship.', category: 'web3', downloads: '4.5k', rating: '4.4', icon: 'Ξ' },
   { id: 'focus', name: 'Focus Timer', author: 'deepwork', desc: 'Built-in Pomodoro timer that logs focus sessions linked to your notes.', category: 'productivity', downloads: '7.8k', rating: '4.2', icon: '◷' },
+  { id: 'ipfs-attach', name: 'IPFS Attachments', author: 'Modulo Labs', desc: 'Pin images and files to IPFS; notes reference content by CID.', category: 'web3', downloads: '5.6k', rating: '4.5', icon: '⬢' },
+  { id: 'timestamp-proofs', name: 'Timestamp Proofs', author: 'chainmark', desc: 'OpenTimestamps proofs for notes without a full on-chain anchor.', category: 'web3', downloads: '2.4k', rating: '4.3', icon: '⧗' },
+  { id: 'webhook-trigger', name: 'Webhook Trigger', author: 'Modulo Labs', desc: 'Start a blueprint workflow from an inbound webhook.', category: 'automation', downloads: '6.1k', rating: '4.6', icon: '↯' },
+  { id: 'scheduled-digest', name: 'Scheduled Digest', author: 'deepwork', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', downloads: '4.9k', rating: '4.4', icon: '✉' },
+  { id: 'semantic-search', name: 'Semantic Search', author: 'OpenMind', desc: 'Vector search across your whole vault, powered by embeddings.', category: 'ai', downloads: '11.3k', rating: '4.7', icon: '⌕' },
+  { id: 'auto-linker', name: 'Auto-Linker', author: 'OpenMind', desc: 'Suggest [[wiki-links]] between notes from embedding similarity.', category: 'ai', downloads: '8.2k', rating: '4.5', icon: '⇲' },
+  { id: 'daily-notes', name: 'Daily Notes', author: 'paperworks', desc: 'Automatically create a dated journal note each day.', category: 'productivity', downloads: '10.4k', rating: '4.8', icon: '☉' },
+  { id: 'kanban', name: 'Kanban Board', author: 'nodelab', desc: 'Turn note checklists into drag-and-drop task boards.', category: 'productivity', downloads: '9.7k', rating: '4.6', icon: '▦' },
 ];
