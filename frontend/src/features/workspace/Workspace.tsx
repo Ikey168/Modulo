@@ -29,45 +29,46 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  Spinner,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   useToast,
 } from '@/ui';
 import { NavItem, UserPill } from './atoms';
-import { NotesView } from './NotesView';
-import { GraphView } from './GraphView';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { DATABASE_PLUGIN_ID, GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID, OUTLINE_PLUGIN_ID } from './plugins';
+import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
+import { PluginProvider, usePlugins } from './plugins/PluginProvider';
+import { PluginErrorBoundary } from './plugins/PluginErrorBoundary';
+import type { WorkspaceViewProps } from './plugins/types';
 import { useCoreWorkspace } from './useCoreWorkspace';
 
 // Heavy React Flow editor loads on demand when the Blueprints view is opened.
 const BlueprintEditor = lazy(() => import('../blueprint/editor/BlueprintEditor'));
 import { mergeWithWikiLinks } from './deriveWikiLinks';
 
-const VIEWS = ['notes', 'graph', 'dashboard', 'marketplace', 'blueprints'] as const;
-type View = (typeof VIEWS)[number];
-type NavTarget = View;
+// Views the shell always provides. Notes and Graph are no longer here — they
+// are contributed by installed plugins and merged into the nav at render time.
+interface NavEntry {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  order: number;
+}
+const BUILTIN_VIEWS: NavEntry[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, order: 10 },
+  { id: 'marketplace', label: 'Marketplace', icon: Store, order: 20 },
+  { id: 'blueprints', label: 'Blueprints', icon: Workflow, order: 30 },
+];
+const BUILTIN_IDS = new Set(BUILTIN_VIEWS.map((v) => v.id));
 
-const NAV_ICONS: Record<NavTarget, LucideIcon> = {
-  notes: FileText,
-  graph: Waypoints,
-  dashboard: LayoutDashboard,
-  marketplace: Store,
-  blueprints: Workflow,
+// Which plugin backs a given view id, so a not-installed view can offer to
+// install the plugin that provides it. Icons for the "not installed" prompts.
+const VIEW_PLUGIN: Record<string, { pluginId: string; icon: LucideIcon }> = {
+  notes: { pluginId: NOTES_PLUGIN_ID, icon: FileText },
+  graph: { pluginId: GRAPH_PLUGIN_ID, icon: Waypoints },
 };
-
-const NAV_LABELS: Record<NavTarget, string> = {
-  notes: 'Notes',
-  graph: 'Graph',
-  dashboard: 'Dashboard',
-  marketplace: 'Marketplace',
-  blueprints: 'Blueprints',
-};
-
-// Plugins & blueprints are the product's center of gravity; notes follow.
-const NAV_ORDER: NavTarget[] = ['dashboard', 'marketplace', 'blueprints', 'notes', 'graph'];
 
 /** Modulo percent-sign brand mark (icon only), tinted by the primary token. */
 function ModuloMark({ className }: { className?: string }) {
@@ -106,29 +107,64 @@ function RailItem({ active, label, icon: Icon, onClick }: { active: boolean; lab
   );
 }
 
+/** Shown when the user navigates to a view whose plugin isn't installed. */
+function NotInstalledView({
+  viewId,
+  onInstall,
+  onOpenMarketplace,
+}: {
+  viewId: string;
+  onInstall: (id: string) => Promise<void>;
+  onOpenMarketplace: () => void;
+}) {
+  const backing = VIEW_PLUGIN[viewId];
+  const Icon = backing?.icon ?? Store;
+  const label = viewId.charAt(0).toUpperCase() + viewId.slice(1);
+  return (
+    <div className="flex flex-1 items-center justify-center p-8">
+      <EmptyState
+        icon={<Icon className="size-5" />}
+        title={`${label} is not installed`}
+        description="This view is provided by a plugin. Install it to use it, or browse the marketplace."
+        action={
+          <div className="flex gap-2">
+            {backing && (
+              <Button size="sm" onClick={() => void onInstall(backing.pluginId)}>
+                Install plugin
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={onOpenMarketplace}>
+              Open marketplace
+            </Button>
+          </div>
+        }
+      />
+    </div>
+  );
+}
+
 export default function Workspace() {
+  // The plugin runtime lives above the shell so every surface (nav, views,
+  // marketplace) reads one source of truth for what is installed and active.
+  return (
+    <PluginProvider>
+      <WorkspaceShell />
+    </PluginProvider>
+  );
+}
+
+function WorkspaceShell() {
   const navigate = useNavigate();
   const { view: viewParam } = useParams<{ view: string }>();
-  const view: View = (VIEWS as readonly string[]).includes(viewParam ?? '') ? (viewParam as View) : 'dashboard';
 
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const data = useCoreWorkspace();
+  const plugins = usePlugins();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  // Client-side install state, persisted so uninstalling a view plugin (e.g.
-  // the Knowledge Graph) survives reloads. Graph ships pre-installed.
-  const [installed, setInstalled] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('modulo-plugins');
-      if (stored) return new Set(JSON.parse(stored) as string[]);
-    } catch {
-      /* corrupted storage falls through to defaults */
-    }
-    return new Set(['mermaid', 'github-sync', GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID]);
-  });
   const [navOpen, setNavOpen] = useState(false);
 
   // Default the selection to the first note once data loads.
@@ -151,7 +187,7 @@ export default function Workspace() {
     [data.notes, data.links],
   );
 
-  const goTo = (target: NavTarget) => {
+  const goTo = (target: string) => {
     setNavOpen(false);
     navigate(`/app/${target}`);
   };
@@ -169,26 +205,38 @@ export default function Workspace() {
     }
   };
 
-  const togglePlugin = (id: string) =>
-    setInstalled((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      try {
-        localStorage.setItem('modulo-plugins', JSON.stringify([...next]));
-      } catch {
-        /* storage full/unavailable: state still applies for this session */
-      }
-      return next;
-    });
+  // Nav = built-in views + views contributed by active plugins, ordered.
+  const contributedViews = plugins.contributions.views;
+  const navItems = useMemo<NavEntry[]>(() => {
+    const contributed = contributedViews.map((v) => ({ id: v.id, label: v.label, icon: v.icon, order: v.order }));
+    return [...BUILTIN_VIEWS, ...contributed].sort((a, b) => a.order - b.order);
+  }, [contributedViews]);
 
-  // The Graph view is provided by an installable plugin; hide its nav entry
-  // (and gate the view below) while the plugin is not installed.
-  const graphInstalled = installed.has(GRAPH_PLUGIN_ID);
-  const notesInstalled = installed.has(NOTES_PLUGIN_ID);
-  const navItems = NAV_ORDER.filter(
-    (t) => (t !== 'graph' || graphInstalled) && (t !== 'notes' || notesInstalled),
-  );
+  // A view id from the URL is valid if it is built-in, contributed by an active
+  // plugin, or a known plugin-backed view we can offer to install.
+  const isKnownPluginView = viewParam != null && viewParam in VIEW_PLUGIN;
+  const view =
+    viewParam &&
+    (BUILTIN_IDS.has(viewParam) || navItems.some((n) => n.id === viewParam) || isKnownPluginView)
+      ? viewParam
+      : 'dashboard';
+  const activeView = contributedViews.find((v) => v.id === view);
+  const ActiveViewComponent = activeView?.component;
+
+  const viewProps: WorkspaceViewProps = {
+    data,
+    selectedId,
+    setSelectedId,
+    editMode,
+    setEditMode,
+    searchQuery,
+    setSearchQuery,
+    onNewNote: handleNewNote,
+    onOpenNote: openNote,
+    graphLinks,
+    navigateView: goTo,
+    contributions: plugins.contributions,
+  };
 
   const userLabel = user?.name || user?.email || 'Account';
   const userSub = user?.name && user?.email ? user.email : undefined;
@@ -219,15 +267,15 @@ export default function Workspace() {
               <SheetDescription className="sr-only">Workspace navigation</SheetDescription>
             </SheetHeader>
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" aria-label="Workspace">
-              {navItems.map((target) => {
-                const Icon = NAV_ICONS[target];
+              {navItems.map((item) => {
+                const Icon = item.icon;
                 return (
                   <NavItem
-                    key={target}
-                    active={target === view}
-                    onClick={() => goTo(target)}
+                    key={item.id}
+                    active={item.id === view}
+                    onClick={() => goTo(item.id)}
                     icon={<Icon aria-hidden="true" />}
-                    label={NAV_LABELS[target]}
+                    label={item.label}
                   />
                 );
               })}
@@ -248,13 +296,13 @@ export default function Workspace() {
           <ModuloMark />
         </div>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto py-2" aria-label="Workspace">
-          {navItems.map((target) => (
+          {navItems.map((item) => (
             <RailItem
-              key={target}
-              active={target === view}
-              label={NAV_LABELS[target]}
-              icon={NAV_ICONS[target]}
-              onClick={() => goTo(target)}
+              key={item.id}
+              active={item.id === view}
+              label={item.label}
+              icon={item.icon}
+              onClick={() => goTo(item.id)}
             />
           ))}
         </nav>
@@ -288,62 +336,29 @@ export default function Workspace() {
 
       {/* Main */}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {view === 'notes' && notesInstalled && (
-          <NotesView
-            data={data}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            editMode={editMode}
-            onToggleEdit={setEditMode}
-            searchQuery={searchQuery}
-            onSearch={setSearchQuery}
-            onNewNote={handleNewNote}
-            outlineEnabled={installed.has(OUTLINE_PLUGIN_ID)}
-            databaseEnabled={installed.has(DATABASE_PLUGIN_ID)}
-          />
-        )}
-        {view === 'notes' && !notesInstalled && (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState
-              icon={<FileText className="size-5" />}
-              title="Markdown Notes is not installed"
-              description="The notes editor is provided by the Markdown Notes plugin. Install it from the marketplace to write and link notes."
-              action={
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => togglePlugin(NOTES_PLUGIN_ID)}>Install plugin</Button>
-                  <Button size="sm" variant="outline" onClick={() => goTo('marketplace')}>Open marketplace</Button>
-                </div>
-              }
-            />
-          </div>
-        )}
-        {view === 'graph' && graphInstalled && (
-          <GraphView notes={data.notes} links={graphLinks} selectedId={selectedId} onSelectNode={setSelectedId} onOpenNote={() => goTo('notes')} />
-        )}
-        {view === 'graph' && !graphInstalled && (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState
-              icon={<Waypoints className="size-5" />}
-              title="Knowledge Graph is not installed"
-              description="The graph view is provided by the Knowledge Graph plugin. Install it from the marketplace to explore your notes visually."
-              action={
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => togglePlugin(GRAPH_PLUGIN_ID)}>Install plugin</Button>
-                  <Button size="sm" variant="outline" onClick={() => goTo('marketplace')}>Open marketplace</Button>
-                </div>
-              }
-            />
-          </div>
-        )}
         {view === 'dashboard' && (
-          <DashboardView notes={data.notes} installedPlugins={installed} walletAddress={walletAddress} onOpenNote={openNote} onOpenBlueprints={() => goTo('blueprints')} onOpenMarketplace={() => goTo('marketplace')} />
+          <DashboardView notes={data.notes} installedPlugins={plugins.installedIds} walletAddress={walletAddress} onOpenNote={openNote} onOpenBlueprints={() => goTo('blueprints')} onOpenMarketplace={() => goTo('marketplace')} />
         )}
-        {view === 'marketplace' && <MarketplaceView installedPlugins={installed} onTogglePlugin={togglePlugin} />}
+        {view === 'marketplace' && <MarketplaceView />}
         {view === 'blueprints' && (
           <Suspense fallback={<div className="flex flex-1 items-center justify-center text-muted-foreground">Loading editor…</div>}>
             <BlueprintEditor />
           </Suspense>
         )}
+
+        {/* Plugin-contributed views (Notes, Graph, …). */}
+        {!BUILTIN_IDS.has(view) &&
+          (ActiveViewComponent ? (
+            <PluginErrorBoundary name={activeView?.label ?? view}>
+              <ActiveViewComponent {...viewProps} />
+            </PluginErrorBoundary>
+          ) : !plugins.ready ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Spinner className="size-5 text-muted-foreground" />
+            </div>
+          ) : (
+            <NotInstalledView viewId={view} onInstall={plugins.install} onOpenMarketplace={() => goTo('marketplace')} />
+          ))}
       </div>
     </div>
   );

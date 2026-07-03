@@ -8,7 +8,6 @@ import {
   Info,
   Plus,
   Search,
-  Table2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -50,8 +49,12 @@ import { Markdown } from './Markdown';
 import { NoteTree } from './NoteTree';
 import { useNoteTree, type NoteTreeApi } from './noteTree';
 import { anchorRef, isAnchored } from './workspaceUtils';
-import { parseHeadings } from './outline';
 import type { WorkspaceData } from './useCoreWorkspace';
+import type {
+  EditorActionContribution,
+  NoteFenceContribution,
+  NotePanelContribution,
+} from './plugins/types';
 
 interface NotesViewProps {
   data: WorkspaceData;
@@ -62,10 +65,12 @@ interface NotesViewProps {
   searchQuery: string;
   onSearch: (q: string) => void;
   onNewNote: () => void;
-  /** Obsidian-style document outline in the info panel (Outline plugin). */
-  outlineEnabled?: boolean;
-  /** Render ```database fences as interactive tables (Database plugin). */
-  databaseEnabled?: boolean;
+  /** Detail-panel sections contributed by plugins (e.g. the Outline). */
+  notePanels?: NotePanelContribution[];
+  /** ```fence renderers contributed by plugins (e.g. Databases). */
+  noteFences?: NoteFenceContribution[];
+  /** Editor toolbar actions contributed by plugins (e.g. Insert database). */
+  editorActions?: EditorActionContribution[];
 }
 
 export function NotesView({
@@ -77,8 +82,9 @@ export function NotesView({
   searchQuery,
   onSearch,
   onNewNote,
-  outlineEnabled = false,
-  databaseEnabled = false,
+  notePanels = [],
+  noteFences = [],
+  editorActions = [],
 }: NotesViewProps) {
   const { notes, links, updateNote, deleteNote, anchorNote, addTag, removeTag, createLink } = data;
   // <md: the list is primary; opening a note switches to the full-width editor.
@@ -152,7 +158,7 @@ export function NotesView({
         outgoing,
         backlinks,
         allNotes: notes,
-        outlineEnabled,
+        notePanels,
         onSelect: openNote,
         onAnchor: () => anchorNote(note.id),
         onAddTag: (name: string) => addTag(note.id, name),
@@ -194,7 +200,8 @@ export function NotesView({
             onBack={() => setMobileDetailOpen(false)}
             onOpenInfo={() => setInfoOpen(true)}
             onCreateNote={createFromLink}
-            databaseEnabled={databaseEnabled}
+            noteFences={noteFences}
+            editorActions={editorActions}
           />
         ) : (
           <div className="flex flex-1 items-center justify-center">
@@ -338,29 +345,28 @@ interface EditorProps {
   onBack: () => void;
   onOpenInfo: () => void;
   onCreateNote: (title: string) => void;
-  databaseEnabled: boolean;
+  noteFences: NoteFenceContribution[];
+  editorActions: EditorActionContribution[];
 }
 
-function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, databaseEnabled }: EditorProps) {
+function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, noteFences, editorActions }: EditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Insert a ready-to-use database block at the cursor so users never have to
-  // hand-write the fence. A unique id keeps multiple embeds from colliding.
-  const insertDatabase = () => {
+  // Generic insert-at-cursor handed to plugin editor actions (e.g. the Database
+  // plugin's "Insert database"), so the editor stays agnostic of any one plugin.
+  const insertAtCursor = (text: string) => {
     const ta = textareaRef.current;
-    const id = `db-${Math.random().toString(36).slice(2, 8)}`;
-    const snippet = `\n\n\`\`\`database\nid: ${id}\ntitle: New database\ncolumns: Name:text, Status:select(Todo|In progress|Done)\n\`\`\`\n\n`;
     const start = ta?.selectionStart ?? content.length;
     const end = ta?.selectionEnd ?? content.length;
-    const next = content.slice(0, start) + snippet + content.slice(end);
+    const next = content.slice(0, start) + text + content.slice(end);
     dirtyRef.current = true;
     setContent(next);
     requestAnimationFrame(() => {
-      const pos = start + snippet.length;
+      const pos = start + text.length;
       ta?.focus();
       ta?.setSelectionRange(pos, pos);
     });
@@ -442,18 +448,24 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
               aria-label="Note title"
               className="border-b border-border bg-transparent px-5 pb-3.5 pt-4 text-lg font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary md:px-10"
             />
-            {databaseEnabled && (
+            {editorActions.length > 0 && (
               <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-1.5 md:px-8">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={insertDatabase}
-                  title="Insert a database at the cursor"
-                >
-                  <Table2 className="size-3.5" aria-hidden="true" />
-                  Insert database
-                </Button>
+                {editorActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <Button
+                      key={action.id}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => action.run({ insertAtCursor })}
+                      title={action.label}
+                    >
+                      <Icon className="size-3.5" aria-hidden="true" />
+                      {action.label}
+                    </Button>
+                  );
+                })}
               </div>
             )}
             <textarea
@@ -470,7 +482,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
           </div>
         ) : (
           <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
-            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} databaseEnabled={databaseEnabled} />
+            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} fences={noteFences} />
           </div>
         )}
       </div>
@@ -485,7 +497,7 @@ interface InfoPanelProps {
   outgoing: CoreNote[];
   backlinks: CoreNote[];
   allNotes: CoreNote[];
-  outlineEnabled?: boolean;
+  notePanels?: NotePanelContribution[];
   onSelect: (id: number) => void;
   onAnchor: () => void;
   onAddTag: (name: string) => void;
@@ -500,7 +512,7 @@ function InfoPanel({
   outgoing,
   backlinks,
   allNotes,
-  outlineEnabled,
+  notePanels = [],
   onSelect,
   onAnchor,
   onAddTag,
@@ -513,28 +525,17 @@ function InfoPanel({
   // Remount the link Select after each pick so it snaps back to the placeholder.
   const [selectKey, setSelectKey] = useState(0);
   const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id));
-  const headings = outlineEnabled ? parseHeadings(note.markdownContent ?? note.content ?? '') : [];
 
   return (
     <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border', className)}>
-      {outlineEnabled && headings.length > 0 && (
-        <InfoSection title="Outline">
-          <nav aria-label="Document outline" className="-mx-1 flex flex-col">
-            {headings.map((h, i) => (
-              <button
-                key={`${h.slug}-${i}`}
-                type="button"
-                onClick={() => document.getElementById(h.slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ paddingLeft: `${(h.level - 1) * 12 + 4}px` }}
-                className="truncate rounded-sm py-1 pr-1 text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                title={h.text}
-              >
-                {h.text}
-              </button>
-            ))}
-          </nav>
-        </InfoSection>
-      )}
+      {notePanels.map((panel) => {
+        const Panel = panel.component;
+        return (
+          <InfoSection key={panel.id} title={panel.title}>
+            <Panel note={note} />
+          </InfoSection>
+        );
+      })}
 
       <InfoSection title="Tags">
         <div className="mb-2 flex flex-wrap gap-1.5">
