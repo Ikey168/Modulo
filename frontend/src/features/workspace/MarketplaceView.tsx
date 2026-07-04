@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Check, type LucideIcon } from 'lucide-react';
+import { Search, Check, ChevronRight, type LucideIcon } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -108,33 +108,52 @@ function PluginActionButton({ id, full = false }: { id: string; full?: boolean }
   );
 }
 
-/** One row in the vertical category rail: label plus a plugin count. */
-function CategoryItem({
-  label,
-  count,
-  active,
-  mono,
-  onClick,
-}: {
+interface CategoryItemProps {
   label: string;
   count: number;
   active: boolean;
   mono?: boolean;
-  onClick: () => void;
-}) {
+  /** Nesting depth: 0 = category, 1 = subcategory (indented). */
+  depth?: number;
+  /** Categories with subcategories get an expand chevron. */
+  expandable?: boolean;
+  expanded?: boolean;
+  onSelect: () => void;
+  onToggle?: () => void;
+}
+
+/** One row in the vertical category rail: an optional expand chevron, a label,
+ *  and a plugin count. Subcategories render nested and indented under it. */
+function CategoryItem({ label, count, active, mono, depth = 0, expandable, expanded, onSelect, onToggle }: CategoryItemProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        active ? 'bg-surface-3 font-medium text-foreground' : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
-      )}
+    <div
+      className={cn('flex items-center rounded-md pr-2.5 transition-colors', active ? 'bg-surface-3' : 'hover:bg-surface-2')}
+      style={depth > 0 ? { paddingLeft: 34 } : undefined}
     >
-      <span className={cn('truncate', mono && 'font-mono text-xs')}>{label}</span>
-      <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{count}</span>
-    </button>
+      {expandable ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+          className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronRight className={cn('size-3 transition-transform', expanded && 'rotate-90')} aria-hidden="true" />
+        </button>
+      ) : (
+        depth === 0 && <span className="w-6 shrink-0" aria-hidden="true" />
+      )}
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={active}
+        className="flex min-w-0 flex-1 items-center justify-between gap-2 py-1.5 text-left text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <span className={cn('truncate', mono && 'font-mono text-xs', active ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+          {label}
+        </span>
+        <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{count}</span>
+      </button>
+    </div>
   );
 }
 
@@ -143,6 +162,8 @@ export function MarketplaceView() {
   const [tab, setTab] = useState<MarketplaceTab>('plugins');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<PluginInfo | null>(null);
 
   const categories = useMemo(() => [...new Set(PLUGINS.map((p) => p.category))].sort(), []);
@@ -151,19 +172,61 @@ export function MarketplaceView() {
     for (const p of PLUGINS) counts[p.category] = (counts[p.category] ?? 0) + 1;
     return counts;
   }, []);
+  // Distinct subcategories per category, and a count per `category/subcategory`.
+  const subcatsByCategory = useMemo(() => {
+    const m: Record<string, string[]> = {};
+    for (const p of PLUGINS) {
+      if (!p.subcategory) continue;
+      (m[p.category] ??= []);
+      if (!m[p.category].includes(p.subcategory)) m[p.category].push(p.subcategory);
+    }
+    for (const k of Object.keys(m)) m[k].sort();
+    return m;
+  }, []);
+  const countBySubcategory = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const p of PLUGINS) if (p.subcategory) m[`${p.category}/${p.subcategory}`] = (m[`${p.category}/${p.subcategory}`] ?? 0) + 1;
+    return m;
+  }, []);
+
+  const selectAll = () => {
+    setCategory(null);
+    setSubcategory(null);
+  };
+  const selectCategory = (c: string) => {
+    setCategory(c);
+    setSubcategory(null);
+    setExpanded((prev) => new Set(prev).add(c));
+  };
+  const selectSubcategory = (c: string, s: string) => {
+    setCategory(c);
+    setSubcategory(s);
+    setExpanded((prev) => new Set(prev).add(c));
+  };
+  const toggleExpand = (c: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
+      return next;
+    });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return PLUGINS.filter(
       (p) =>
         (!category || p.category === category) &&
+        (!subcategory || p.subcategory === subcategory) &&
         (!q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)),
     ).sort((a, b) => parseDownloads(b.downloads) - parseDownloads(a.downloads));
-  }, [query, category]);
+  }, [query, category, subcategory]);
 
   // Featured: the three most-installed plugins, Play-store style hero cards.
   // Hidden while searching/filtering so results stay a single flat grid.
-  const featured = useMemo(() => (query || category ? [] : filtered.slice(0, 3)), [filtered, query, category]);
+  const featured = useMemo(
+    () => (query || category || subcategory ? [] : filtered.slice(0, 3)),
+    [filtered, query, category, subcategory],
+  );
   const rest = useMemo(() => (featured.length ? filtered.slice(3) : filtered), [filtered, featured]);
 
   const isInstalled = (p: PluginInfo) => plugins.isInstalled(p.id);
@@ -198,17 +261,38 @@ export function MarketplaceView() {
                   Categories
                 </div>
                 <nav className="flex flex-col gap-0.5">
-                  <CategoryItem label="All" count={PLUGINS.length} active={category === null} onClick={() => setCategory(null)} />
-                  {categories.map((c) => (
-                    <CategoryItem
-                      key={c}
-                      label={c}
-                      count={countByCategory[c] ?? 0}
-                      mono
-                      active={category === c}
-                      onClick={() => setCategory(c)}
-                    />
-                  ))}
+                  <CategoryItem label="All" count={PLUGINS.length} active={category === null && !subcategory} onSelect={selectAll} />
+                  {categories.map((c) => {
+                    const subs = subcatsByCategory[c] ?? [];
+                    const hasSubs = subs.length > 0;
+                    const isExpanded = expanded.has(c);
+                    return (
+                      <div key={c}>
+                        <CategoryItem
+                          label={c}
+                          count={countByCategory[c] ?? 0}
+                          mono
+                          active={category === c && !subcategory}
+                          expandable={hasSubs}
+                          expanded={isExpanded}
+                          onSelect={() => selectCategory(c)}
+                          onToggle={() => toggleExpand(c)}
+                        />
+                        {hasSubs &&
+                          isExpanded &&
+                          subs.map((s) => (
+                            <CategoryItem
+                              key={s}
+                              label={s}
+                              count={countBySubcategory[`${c}/${s}`] ?? 0}
+                              depth={1}
+                              active={category === c && subcategory === s}
+                              onSelect={() => selectSubcategory(c, s)}
+                            />
+                          ))}
+                      </div>
+                    );
+                  })}
                 </nav>
               </div>
             </aside>
@@ -225,18 +309,34 @@ export function MarketplaceView() {
                     className="pl-9"
                   />
                 </div>
-                {/* Category picker for < md, where the rail is hidden. */}
+                {/* Category picker for < md, where the rail is hidden. Categories
+                    and their subcategories are flattened into one list. */}
                 <div className="md:hidden">
-                  <Select value={category ?? 'all'} onValueChange={(v) => setCategory(v === 'all' ? null : v)}>
+                  <Select
+                    value={subcategory ? `${category}/${subcategory}` : category ?? 'all'}
+                    onValueChange={(v) => {
+                      if (v === 'all') selectAll();
+                      else if (v.includes('/')) {
+                        const [c, s] = v.split('/');
+                        selectSubcategory(c, s);
+                      } else selectCategory(v);
+                    }}
+                  >
                     <SelectTrigger className="w-full sm:w-44" aria-label="Filter by category">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All categories</SelectItem>
                       {categories.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
+                        <Fragment key={c}>
+                          <SelectItem value={c}>{c}</SelectItem>
+                          {(subcatsByCategory[c] ?? []).map((s) => (
+                            <SelectItem key={s} value={`${c}/${s}`}>
+                              {'  '}
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </Fragment>
                       ))}
                     </SelectContent>
                   </Select>
