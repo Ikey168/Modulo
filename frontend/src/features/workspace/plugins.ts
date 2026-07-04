@@ -7,6 +7,7 @@ import {
   FileDown,
   FileText,
   Fingerprint,
+  Frame,
   Github,
   Link2,
   ListTree,
@@ -44,12 +45,15 @@ export const NOTES_PLUGIN_ID = 'notes-editor';
 export const OUTLINE_PLUGIN_ID = 'obsidian-outline';
 /** Plugin id that renders ```database fences as Notion-style embedded tables. */
 export const DATABASE_PLUGIN_ID = 'notion-database';
+/** Plugin id that adds the freeform Canvas board view. */
+export const CANVAS_PLUGIN_ID = 'canvas-board';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
   { id: OUTLINE_PLUGIN_ID, name: 'Obsidian Outline', desc: 'Obsidian-style document outline plus in-note heading links: jump between a note’s headings.', category: 'productivity', subcategory: 'Writing', downloads: '13.2k', rating: '4.8', icon: ListTree },
   { id: DATABASE_PLUGIN_ID, name: 'Embedded Databases', desc: 'Notion-style databases inside a note: typed columns, a table and a board view, edited inline.', category: 'productivity', subcategory: 'Organizing', downloads: '16.7k', rating: '4.8', icon: Table2 },
   { id: GRAPH_PLUGIN_ID, name: 'Knowledge Graph', desc: 'Interactive force-directed graph of your notes and their links.', category: 'analytics', subcategory: 'Visualization', downloads: '18.6k', rating: '4.9', icon: Waypoints },
+  { id: CANVAS_PLUGIN_ID, name: 'Canvas', desc: 'Freeform board: arrange note cards spatially and draw connections between them.', category: 'productivity', subcategory: 'Whiteboard', downloads: '7.3k', rating: '4.7', icon: Frame },
   { id: 'latex', name: 'LaTeX Math', desc: 'Render mathematical equations inline and in blocks using KaTeX.', category: 'render', subcategory: 'Math', downloads: '12.4k', rating: '4.8', icon: Sigma },
   { id: 'ai-summary', name: 'AI Summarizer', desc: 'Generate concise note summaries powered by GPT-4.', category: 'ai', subcategory: 'Writing', downloads: '8.9k', rating: '4.6', icon: Sparkles },
   { id: 'github-sync', name: 'GitHub Sync', desc: 'Automatically back up and sync your notes to a GitHub repository.', category: 'sync', downloads: '15.2k', rating: '4.9', icon: Github },

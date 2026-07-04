@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FileText,
+  Frame,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -38,7 +39,7 @@ import {
 import { NavItem, UserPill } from './atoms';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
+import { CANVAS_PLUGIN_ID, GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
 import { PluginProvider, usePlugins } from './plugins/PluginProvider';
 import { PluginErrorBoundary } from './plugins/PluginErrorBoundary';
 import type { WorkspaceViewProps } from './plugins/types';
@@ -68,6 +69,7 @@ const BUILTIN_IDS = new Set(BUILTIN_VIEWS.map((v) => v.id));
 const VIEW_PLUGIN: Record<string, { pluginId: string; icon: LucideIcon }> = {
   notes: { pluginId: NOTES_PLUGIN_ID, icon: FileText },
   graph: { pluginId: GRAPH_PLUGIN_ID, icon: Waypoints },
+  canvas: { pluginId: CANVAS_PLUGIN_ID, icon: Frame },
 };
 
 /** Modulo percent-sign brand mark (icon only), tinted by the primary token. */
