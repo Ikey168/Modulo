@@ -146,7 +146,7 @@ export class PluginRuntime {
     return ids
       .map((id) => this.catalog.get(id))
       .filter((m): m is PluginManifest => Boolean(m) && isRunnable(m!))
-      .map((m) => ({ id: m.id, version: m.version, enabled: true }));
+      .map((m) => ({ id: m.id, enabled: true }));
   }
 
   private persist() {
@@ -231,7 +231,7 @@ export class PluginRuntime {
       for (const depId of manifest.dependencies ?? []) {
         if (!this.installed.has(depId)) await this.install(depId);
       }
-      this.installed.set(id, { id, version: manifest.version, enabled: true });
+      this.installed.set(id, { id, enabled: true });
       this.persist();
       await this.activate(id);
       this.setPhase(id, this.errors.has(id) ? 'error' : 'idle');

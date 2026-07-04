@@ -17,8 +17,6 @@ function makeCatalog() {
   const mk = (id: string, opts: Partial<PluginManifest> = {}, mod?: PluginModule): PluginManifest => ({
     id,
     name: id,
-    version: '1.0.0',
-    author: 'test',
     description: '',
     category: 'test',
     icon: NOOP,
@@ -176,8 +174,6 @@ describe('PluginRuntime — blueprint node contributions', () => {
       {
         id: 'bp',
         name: 'bp',
-        version: '1.0.0',
-        author: 't',
         description: '',
         category: 't',
         icon: NOOP,

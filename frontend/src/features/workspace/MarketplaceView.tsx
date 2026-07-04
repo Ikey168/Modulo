@@ -118,7 +118,7 @@ export function MarketplaceView() {
     return PLUGINS.filter(
       (p) =>
         (!category || p.category === category) &&
-        (!q || p.name.toLowerCase().includes(q) || p.author.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)),
+        (!q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)),
     ).sort((a, b) => parseDownloads(b.downloads) - parseDownloads(a.downloads));
   }, [query, category]);
 
@@ -266,10 +266,7 @@ export function MarketplaceView() {
                       <PluginIcon icon={p.icon} className="size-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="truncate text-[13px] font-semibold text-foreground">{p.name}</span>
-                        <span className="shrink-0 text-xxs text-muted-foreground">{p.author}</span>
-                      </div>
+                      <div className="truncate text-[13px] font-semibold text-foreground">{p.name}</div>
                       <div className="mt-0.5 truncate text-xxs text-muted-foreground">{p.desc}</div>
                     </div>
                     <PluginActionButton id={p.id} />
@@ -291,12 +288,7 @@ export function MarketplaceView() {
                       </div>
                       <div className="min-w-0">
                         <DialogTitle className="text-base">{detail.name}</DialogTitle>
-                        <DialogDescription className="mt-0.5">
-                          by {detail.author} · <span className="font-mono">{detail.category}</span>
-                          {plugins.manifest(detail.id)?.version && isRunnable(plugins.manifest(detail.id)!) && (
-                            <> · v{plugins.manifest(detail.id)!.version}</>
-                          )}
-                        </DialogDescription>
+                        <DialogDescription className="mt-0.5 font-mono">{detail.category}</DialogDescription>
                       </div>
                     </div>
                   </DialogHeader>
