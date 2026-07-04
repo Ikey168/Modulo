@@ -21,8 +21,7 @@ import {
 import { PLUGINS, type PluginInfo } from './plugins';
 import { usePlugins } from './plugins/PluginProvider';
 import { isRunnable } from './plugins/types';
-import PackMarketplace from '../blueprint/pack/PackMarketplace';
-import PackManager from '../blueprint/pack/PackManager';
+import { PacksView } from './PacksView';
 
 type MarketplaceTab = 'plugins' | 'packs';
 
@@ -313,12 +312,7 @@ export function MarketplaceView() {
         </>
       )}
 
-      {tab === 'packs' && (
-        <div className="flex flex-col gap-2">
-          <PackMarketplace />
-          <PackManager />
-        </div>
-      )}
+      {tab === 'packs' && <PacksView />}
     </div>
   );
 }

@@ -43,6 +43,7 @@ import {
   updateBlueprint,
   type BlueprintListItem,
 } from '../blueprintService';
+import { getLocalBlueprint, listLocalBlueprints } from '../localBlueprints';
 import { deriveRequiredCapabilities } from '../capabilities';
 import { CapabilityConsentScreen } from './CapabilityConsentScreen';
 import { BlueprintNodeView } from './BlueprintNodeView';
@@ -104,11 +105,12 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
   );
 
   const refreshList = useCallback(() => {
+    // Pack-installed blueprints (client-side) are merged ahead of backend rows,
+    // and remain listed even when the backend is unavailable.
+    const local = listLocalBlueprints();
     listBlueprints()
-      .then(setSaved)
-      .catch(() => {
-        /* listing is best-effort; ignore when backend is unavailable */
-      });
+      .then((remote) => setSaved([...local, ...remote.filter((r) => !local.some((l) => l.name === r.name))]))
+      .catch(() => setSaved(local));
   }, []);
 
   useEffect(() => {
@@ -219,7 +221,7 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
   const handleLoad = useCallback(
     async (toLoad: string) => {
       try {
-        const bp = await loadBlueprint(toLoad);
+        const bp = getLocalBlueprint(toLoad) ?? (await loadBlueprint(toLoad));
         const flow = irToFlow(bp.ir, catalog);
         setNodes(flow.nodes);
         setEdges(flow.edges);
