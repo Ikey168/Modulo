@@ -7,8 +7,10 @@ import {
   FileDown,
   FileText,
   Fingerprint,
+  FolderSearch,
   Frame,
   Github,
+  History,
   Link2,
   ListTree,
   Paperclip,
@@ -18,6 +20,7 @@ import {
   SquareKanban,
   Stamp,
   Table2,
+  Tags,
   Timer,
   Waypoints,
   Webhook,
@@ -47,6 +50,14 @@ export const OUTLINE_PLUGIN_ID = 'obsidian-outline';
 export const DATABASE_PLUGIN_ID = 'notion-database';
 /** Plugin id that adds the freeform Canvas board view. */
 export const CANVAS_PLUGIN_ID = 'canvas-board';
+/** Plugin id that adds the Calendar view (notes on a month/week grid). */
+export const CALENDAR_PLUGIN_ID = 'calendar-view';
+/** Plugin id that adds the Timeline view (notes as a chronological stream). */
+export const TIMELINE_PLUGIN_ID = 'timeline-view';
+/** Plugin id that adds the Tag Explorer (nested tag tree that filters notes). */
+export const TAGS_PLUGIN_ID = 'tag-explorer';
+/** Plugin id that adds Saved Searches (named smart folders). */
+export const SAVED_SEARCHES_PLUGIN_ID = 'saved-searches';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -54,6 +65,10 @@ export const PLUGINS: PluginInfo[] = [
   { id: DATABASE_PLUGIN_ID, name: 'Embedded Databases', desc: 'Notion-style databases inside a note: typed columns, a table and a board view, edited inline.', category: 'productivity', subcategory: 'Organizing', downloads: '16.7k', rating: '4.8', icon: Table2 },
   { id: GRAPH_PLUGIN_ID, name: 'Knowledge Graph', desc: 'Interactive force-directed graph of your notes and their links.', category: 'analytics', subcategory: 'Visualization', downloads: '18.6k', rating: '4.9', icon: Waypoints },
   { id: CANVAS_PLUGIN_ID, name: 'Canvas', desc: 'Freeform board: arrange note cards spatially and draw connections between them.', category: 'productivity', subcategory: 'Whiteboard', downloads: '7.3k', rating: '4.7', icon: Frame },
+  { id: CALENDAR_PLUGIN_ID, name: 'Calendar', desc: 'Browse notes on a month or week grid by their updated or created date.', category: 'productivity', subcategory: 'Planning', downloads: '9.4k', rating: '4.7', icon: CalendarDays },
+  { id: TIMELINE_PLUGIN_ID, name: 'Timeline', desc: 'Notes as a chronological stream grouped by day, week, or month.', category: 'analytics', subcategory: 'Visualization', downloads: '6.8k', rating: '4.6', icon: History },
+  { id: TAGS_PLUGIN_ID, name: 'Tag Explorer', desc: 'Browse nested tags as a tree with counts and filter notes by tag.', category: 'productivity', subcategory: 'Organizing', downloads: '8.1k', rating: '4.7', icon: Tags },
+  { id: SAVED_SEARCHES_PLUGIN_ID, name: 'Saved Searches', desc: 'Save a query as a named smart folder that always reflects your notes.', category: 'productivity', subcategory: 'Search', downloads: '5.9k', rating: '4.6', icon: FolderSearch },
   { id: 'latex', name: 'LaTeX Math', desc: 'Render mathematical equations inline and in blocks using KaTeX.', category: 'render', subcategory: 'Math', downloads: '12.4k', rating: '4.8', icon: Sigma },
   { id: 'ai-summary', name: 'AI Summarizer', desc: 'Generate concise note summaries powered by GPT-4.', category: 'ai', subcategory: 'Writing', downloads: '8.9k', rating: '4.6', icon: Sparkles },
   { id: 'github-sync', name: 'GitHub Sync', desc: 'Automatically back up and sync your notes to a GitHub repository.', category: 'sync', downloads: '15.2k', rating: '4.9', icon: Github },
