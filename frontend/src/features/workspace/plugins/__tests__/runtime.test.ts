@@ -21,7 +21,7 @@ function makeCatalog() {
     author: 'test',
     description: '',
     category: 'test',
-    icon: 'x',
+    icon: NOOP,
     load: () => {
       loads[id] = (loads[id] ?? 0) + 1;
       return Promise.resolve({ default: mod ?? viewModule(id) });
@@ -180,7 +180,7 @@ describe('PluginRuntime — blueprint node contributions', () => {
         author: 't',
         description: '',
         category: 't',
-        icon: 'x',
+        icon: NOOP,
         load: () => Promise.resolve({ default: nodePlugin }),
       },
     ];
