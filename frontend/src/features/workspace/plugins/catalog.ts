@@ -4,12 +4,16 @@
 // marketplace as "coming soon" — they cannot be installed.
 
 import {
+  CALENDAR_PLUGIN_ID,
   CANVAS_PLUGIN_ID,
   DATABASE_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
   NOTES_PLUGIN_ID,
   OUTLINE_PLUGIN_ID,
   PLUGINS,
+  SAVED_SEARCHES_PLUGIN_ID,
+  TAGS_PLUGIN_ID,
+  TIMELINE_PLUGIN_ID,
 } from '../plugins';
 import type { PluginManifest, PluginModule } from './types';
 
@@ -40,6 +44,18 @@ const RUNNABLE: Record<string, Runnable> = {
   },
   [CANVAS_PLUGIN_ID]: {
     load: () => import('./builtins/canvasPlugin'),
+  },
+  [CALENDAR_PLUGIN_ID]: {
+    load: () => import('./builtins/calendarPlugin'),
+  },
+  [TIMELINE_PLUGIN_ID]: {
+    load: () => import('./builtins/timelinePlugin'),
+  },
+  [TAGS_PLUGIN_ID]: {
+    load: () => import('./builtins/tagExplorerPlugin'),
+  },
+  [SAVED_SEARCHES_PLUGIN_ID]: {
+    load: () => import('./builtins/savedSearchesPlugin'),
   },
 };
 

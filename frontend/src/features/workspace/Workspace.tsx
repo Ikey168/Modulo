@@ -1,12 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  CalendarDays,
   FileText,
+  FolderSearch,
   Frame,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
   Store,
+  Tags,
   Waypoints,
   Workflow,
   type LucideIcon,
@@ -39,7 +43,15 @@ import {
 import { NavItem, UserPill } from './atoms';
 import { DashboardView } from './DashboardView';
 import { MarketplaceView } from './MarketplaceView';
-import { CANVAS_PLUGIN_ID, GRAPH_PLUGIN_ID, NOTES_PLUGIN_ID } from './plugins';
+import {
+  CALENDAR_PLUGIN_ID,
+  CANVAS_PLUGIN_ID,
+  GRAPH_PLUGIN_ID,
+  NOTES_PLUGIN_ID,
+  SAVED_SEARCHES_PLUGIN_ID,
+  TAGS_PLUGIN_ID,
+  TIMELINE_PLUGIN_ID,
+} from './plugins';
 import { PluginProvider, usePlugins } from './plugins/PluginProvider';
 import { PluginErrorBoundary } from './plugins/PluginErrorBoundary';
 import type { WorkspaceViewProps } from './plugins/types';
@@ -70,6 +82,10 @@ const VIEW_PLUGIN: Record<string, { pluginId: string; icon: LucideIcon }> = {
   notes: { pluginId: NOTES_PLUGIN_ID, icon: FileText },
   graph: { pluginId: GRAPH_PLUGIN_ID, icon: Waypoints },
   canvas: { pluginId: CANVAS_PLUGIN_ID, icon: Frame },
+  calendar: { pluginId: CALENDAR_PLUGIN_ID, icon: CalendarDays },
+  timeline: { pluginId: TIMELINE_PLUGIN_ID, icon: History },
+  tags: { pluginId: TAGS_PLUGIN_ID, icon: Tags },
+  'saved-searches': { pluginId: SAVED_SEARCHES_PLUGIN_ID, icon: FolderSearch },
 };
 
 /** Modulo percent-sign brand mark (icon only), tinted by the primary token. */
