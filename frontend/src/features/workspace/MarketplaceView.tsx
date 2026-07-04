@@ -1,6 +1,21 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Check, ChevronRight, type LucideIcon } from 'lucide-react';
+import {
+  BarChart3,
+  Blocks,
+  Brain,
+  Check,
+  ChevronRight,
+  Download,
+  LayoutGrid,
+  RefreshCw,
+  Rocket,
+  Search,
+  Shapes,
+  Tag,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   Badge,
   Button,
@@ -108,11 +123,25 @@ function PluginActionButton({ id, full = false }: { id: string; full?: boolean }
   );
 }
 
+/** Icon per top-level category; unknown categories fall back to a tag. */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  ai: Brain,
+  analytics: BarChart3,
+  automation: Zap,
+  export: Download,
+  productivity: Rocket,
+  render: Shapes,
+  sync: RefreshCw,
+  web3: Blocks,
+};
+const iconForCategory = (category: string): LucideIcon => CATEGORY_ICONS[category] ?? Tag;
+
 interface CategoryItemProps {
   label: string;
   count: number;
   active: boolean;
   mono?: boolean;
+  icon?: LucideIcon;
   /** Nesting depth: 0 = category, 1 = subcategory (indented). */
   depth?: number;
   /** Categories with subcategories get an expand chevron. */
@@ -124,11 +153,12 @@ interface CategoryItemProps {
 
 /** One row in the vertical category rail: an optional expand chevron, a label,
  *  and a plugin count. Subcategories render nested and indented under it. */
-function CategoryItem({ label, count, active, mono, depth = 0, expandable, expanded, onSelect, onToggle }: CategoryItemProps) {
+function CategoryItem({ label, count, active, mono, icon: Icon, depth = 0, expandable, expanded, onSelect, onToggle }: CategoryItemProps) {
   return (
     <div
       className={cn('flex items-center rounded-md pr-2.5 transition-colors', active ? 'bg-surface-3' : 'hover:bg-surface-2')}
-      style={depth > 0 ? { paddingLeft: 34 } : undefined}
+      // Indent subcategories so they line up under the parent's label text.
+      style={depth > 0 ? { paddingLeft: 46 } : undefined}
     >
       {expandable ? (
         <button
@@ -146,9 +176,10 @@ function CategoryItem({ label, count, active, mono, depth = 0, expandable, expan
         type="button"
         onClick={onSelect}
         aria-pressed={active}
-        className="flex min-w-0 flex-1 items-center justify-between gap-2 py-1.5 text-left text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        <span className={cn('truncate', mono && 'font-mono text-xs', active ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+        {Icon && <Icon className={cn('size-3.5 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />}
+        <span className={cn('min-w-0 flex-1 truncate', mono && 'font-mono text-xs', active ? 'font-medium text-foreground' : 'text-muted-foreground')}>
           {label}
         </span>
         <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{count}</span>
@@ -261,7 +292,7 @@ export function MarketplaceView() {
                   Categories
                 </div>
                 <nav className="flex flex-col gap-0.5">
-                  <CategoryItem label="All" count={PLUGINS.length} active={category === null && !subcategory} onSelect={selectAll} />
+                  <CategoryItem label="All" count={PLUGINS.length} icon={LayoutGrid} active={category === null && !subcategory} onSelect={selectAll} />
                   {categories.map((c) => {
                     const subs = subcatsByCategory[c] ?? [];
                     const hasSubs = subs.length > 0;
@@ -272,6 +303,7 @@ export function MarketplaceView() {
                           label={c}
                           count={countByCategory[c] ?? 0}
                           mono
+                          icon={iconForCategory(c)}
                           active={category === c && !subcategory}
                           expandable={hasSubs}
                           expanded={isExpanded}
