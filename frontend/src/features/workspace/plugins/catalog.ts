@@ -4,6 +4,7 @@
 // marketplace as "coming soon" — they cannot be installed.
 
 import {
+  CANVAS_PLUGIN_ID,
   DATABASE_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
   NOTES_PLUGIN_ID,
@@ -36,6 +37,9 @@ const RUNNABLE: Record<string, Runnable> = {
   [DATABASE_PLUGIN_ID]: {
     dependencies: [NOTES_PLUGIN_ID],
     load: () => import('./builtins/databasePlugin'),
+  },
+  [CANVAS_PLUGIN_ID]: {
+    load: () => import('./builtins/canvasPlugin'),
   },
 };
 
