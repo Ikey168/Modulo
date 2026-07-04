@@ -11,6 +11,7 @@
 // cannot take down the host or the other installed plugins.
 
 import type {
+  BlueprintNodeContribution,
   Contributions,
   EditorActionContribution,
   InstalledRecord,
@@ -32,6 +33,7 @@ interface ActiveEntry {
   notePanels: NotePanelContribution[];
   noteFences: NoteFenceContribution[];
   editorActions: EditorActionContribution[];
+  blueprintNodes: BlueprintNodeContribution[];
   deactivate?: () => void | Promise<void>;
 }
 
@@ -97,15 +99,17 @@ export class PluginRuntime {
     const notePanels: NotePanelContribution[] = [];
     const noteFences: NoteFenceContribution[] = [];
     const editorActions: EditorActionContribution[] = [];
+    const blueprintNodes: BlueprintNodeContribution[] = [];
     for (const entry of this.active.values()) {
       views.push(...entry.views);
       notePanels.push(...entry.notePanels);
       noteFences.push(...entry.noteFences);
       editorActions.push(...entry.editorActions);
+      blueprintNodes.push(...entry.blueprintNodes);
     }
     views.sort((a, b) => a.order - b.order);
     notePanels.sort((a, b) => a.order - b.order);
-    return { views, notePanels, noteFences, editorActions };
+    return { views, notePanels, noteFences, editorActions, blueprintNodes };
   }
 
   // ── Persistence ────────────────────────────────────────────────────────────
@@ -170,12 +174,13 @@ export class PluginRuntime {
     const manifest = this.catalog.get(id);
     if (!manifest?.load) return;
 
-    const entry: ActiveEntry = { views: [], notePanels: [], noteFences: [], editorActions: [] };
+    const entry: ActiveEntry = { views: [], notePanels: [], noteFences: [], editorActions: [], blueprintNodes: [] };
     const ctx: PluginContext = {
       addView: (v) => entry.views.push(v),
       addNotePanel: (p) => entry.notePanels.push(p),
       addNoteFence: (f) => entry.noteFences.push(f),
       addEditorAction: (a) => entry.editorActions.push(a),
+      addBlueprintNode: (node) => entry.blueprintNodes.push(node),
     };
 
     try {

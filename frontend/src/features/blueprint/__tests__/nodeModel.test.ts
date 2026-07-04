@@ -7,7 +7,7 @@ import {
   validateConnection,
   validateDescriptor,
 } from '../nodeModel';
-import { CORE_NODES, NodeCatalog, createCoreCatalog } from '../nodeCatalog';
+import { CORE_NODES, NOTES_NODES, NodeCatalog, createCoreCatalog } from '../nodeCatalog';
 
 const exec = (node: NodeDescriptor, pin: string): ConnectionEndpoint => ({ node, kind: 'exec', pin });
 const data = (node: NodeDescriptor, pin: string): ConnectionEndpoint => ({ node, kind: 'data', pin });
@@ -27,6 +27,7 @@ describe('isAssignable', () => {
 
 describe('validateConnection (exec)', () => {
   const catalog = createCoreCatalog();
+  NOTES_NODES.forEach((n) => catalog.register(n));
   const trigger = catalog.get('trigger.note.saved')!;
   const addTag = catalog.get('action.tag.add')!;
   const branch = catalog.get('logic.branch')!;
@@ -58,6 +59,7 @@ describe('validateConnection (exec)', () => {
 
 describe('validateConnection (data)', () => {
   const catalog = createCoreCatalog();
+  NOTES_NODES.forEach((n) => catalog.register(n));
   const trigger = catalog.get('trigger.note.saved')!; // outputs: note
   const addTag = catalog.get('action.tag.add')!; // inputs: note, tag
   const summarize = catalog.get('action.ai.summarize')!; // outputs: summary (string)
@@ -131,11 +133,11 @@ describe('NodeCatalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('lists by category', () => {
+  it('lists core primitives by category (note nodes now live in a plugin)', () => {
     const catalog = createCoreCatalog();
-    expect(catalog.listByCategory('trigger').length).toBe(3);
-    expect(catalog.listByCategory('action').length).toBe(5);
-    expect(catalog.listByCategory('logic').length).toBe(2);
+    expect(catalog.listByCategory('trigger').length).toBe(1);
+    expect(catalog.listByCategory('action').length).toBe(1);
+    expect(catalog.listByCategory('logic').length).toBe(1);
   });
 
   it('resolves the latest version by default and exact version on request', () => {

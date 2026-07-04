@@ -51,9 +51,59 @@ function key(type: string, version: number): string {
   return `${type}@${version}`;
 }
 
-/** The built-in node set. Plain data, so it is also a JSON spec the backend can read. */
+// The catalog is split so the editor palette can be plugin-gated: CORE_NODES
+// are generic workflow primitives that are always available, while feature
+// nodes (e.g. NOTES_NODES) are contributed by a plugin and only appear in the
+// editor while that plugin is installed. All descriptors are plain data, so
+// they double as a JSON spec the backend can read.
+
+/** Generic workflow primitives — always available, independent of any plugin. */
 export const CORE_NODES: NodeDescriptor[] = [
-  // ----- Triggers (entry points: no exec input) -----
+  {
+    type: 'trigger.schedule',
+    version: 1,
+    category: 'trigger',
+    title: 'On Schedule',
+    description: 'Fires on a schedule. The cron expression is node config (see the IR), not a pin.',
+    execIn: false,
+    execOut: ['then'],
+    inputs: [],
+    outputs: [{ id: 'firedAt', name: 'Fired At', type: DataTypes.String }],
+  },
+  {
+    type: 'action.code.execute',
+    version: 1,
+    category: 'action',
+    title: 'Custom Code',
+    description:
+      'Runs a sandboxed JavaScript function with the note as input. ' +
+      'Write a function expression in the node body: function(note) { return note.title; }. ' +
+      'No Java, filesystem, or network access. CPU time and instruction count are bounded.',
+    execIn: true,
+    execOut: ['then'],
+    inputs: [{ id: 'note', name: 'Note', type: DataTypes.Note }],
+    outputs: [{ id: 'output', name: 'Output', type: DataTypes.String }],
+    capability: 'code:execute',
+  },
+  {
+    type: 'logic.branch',
+    version: 1,
+    category: 'logic',
+    title: 'Branch',
+    description: 'Routes execution down the true or false path based on a condition.',
+    execIn: true,
+    execOut: ['true', 'false'],
+    inputs: [{ id: 'condition', name: 'Condition', type: DataTypes.Boolean }],
+    outputs: [],
+  },
+];
+
+/**
+ * Note-related nodes contributed by the Markdown Notes plugin. Installing that
+ * plugin adds these to the editor palette; uninstalling removes them.
+ */
+export const NOTES_NODES: NodeDescriptor[] = [
+  // ----- Triggers -----
   {
     type: 'trigger.note.saved',
     version: 1,
@@ -79,17 +129,6 @@ export const CORE_NODES: NodeDescriptor[] = [
       { id: 'source', name: 'Source Note', type: DataTypes.Note },
       { id: 'target', name: 'Target Note', type: DataTypes.Note },
     ],
-  },
-  {
-    type: 'trigger.schedule',
-    version: 1,
-    category: 'trigger',
-    title: 'On Schedule',
-    description: 'Fires on a schedule. The cron expression is node config (see the IR), not a pin.',
-    execIn: false,
-    execOut: ['then'],
-    inputs: [],
-    outputs: [{ id: 'firedAt', name: 'Fired At', type: DataTypes.String }],
   },
 
   // ----- Actions -----
@@ -147,34 +186,8 @@ export const CORE_NODES: NodeDescriptor[] = [
     outputs: [{ id: 'summary', name: 'Summary', type: DataTypes.String }],
     capability: 'ai:invoke',
   },
-  {
-    type: 'action.code.execute',
-    version: 1,
-    category: 'action',
-    title: 'Custom Code',
-    description:
-      'Runs a sandboxed JavaScript function with the note as input. ' +
-      'Write a function expression in the node body: function(note) { return note.title; }. ' +
-      'No Java, filesystem, or network access. CPU time and instruction count are bounded.',
-    execIn: true,
-    execOut: ['then'],
-    inputs: [{ id: 'note', name: 'Note', type: DataTypes.Note }],
-    outputs: [{ id: 'output', name: 'Output', type: DataTypes.String }],
-    capability: 'code:execute',
-  },
 
   // ----- Logic -----
-  {
-    type: 'logic.branch',
-    version: 1,
-    category: 'logic',
-    title: 'Branch',
-    description: 'Routes execution down the true or false path based on a condition.',
-    execIn: true,
-    execOut: ['true', 'false'],
-    inputs: [{ id: 'condition', name: 'Condition', type: DataTypes.Boolean }],
-    outputs: [],
-  },
   {
     type: 'logic.notes.filter',
     version: 1,
@@ -191,7 +204,7 @@ export const CORE_NODES: NodeDescriptor[] = [
   },
 ];
 
-/** A fresh catalog seeded with {@link CORE_NODES}. */
+/** A fresh catalog seeded with {@link CORE_NODES}. Plugin nodes register on top. */
 export function createCoreCatalog(): NodeCatalog {
   const catalog = new NodeCatalog();
   for (const node of CORE_NODES) catalog.register(node);

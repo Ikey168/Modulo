@@ -64,8 +64,16 @@ interface Status {
   text: string;
 }
 
-function EditorInner() {
-  const catalog = useMemo(() => createCoreCatalog(), []);
+function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
+  // Core primitives plus any nodes contributed by installed plugins. Rebuilds
+  // when the plugin set changes, so installing a plugin adds its nodes.
+  const catalog = useMemo(() => {
+    const c = createCoreCatalog();
+    for (const node of extraNodes) {
+      if (!c.has(node.type, node.version)) c.register(node);
+    }
+    return c;
+  }, [extraNodes]);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [name, setName] = useState('Untitled Blueprint');
@@ -385,10 +393,10 @@ function EditorInner() {
   );
 }
 
-export default function BlueprintEditor() {
+export default function BlueprintEditor({ extraNodes = [] }: { extraNodes?: NodeDescriptor[] }) {
   return (
     <ReactFlowProvider>
-      <EditorInner />
+      <EditorInner extraNodes={extraNodes} />
     </ReactFlowProvider>
   );
 }

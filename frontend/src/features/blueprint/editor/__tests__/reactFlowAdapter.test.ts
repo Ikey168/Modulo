@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Connection } from '@xyflow/react';
 import { BlueprintIR, IR_VERSION } from '../../blueprintIR';
-import { createCoreCatalog } from '../../nodeCatalog';
+import { NOTES_NODES, createCoreCatalog } from '../../nodeCatalog';
 import { NodeDescriptor } from '../../nodeModel';
 import {
   EXEC_IN_HANDLE,
@@ -15,6 +15,8 @@ import {
 } from '../reactFlowAdapter';
 
 const catalog = createCoreCatalog();
+// Note nodes are contributed by the Markdown Notes plugin.
+NOTES_NODES.forEach((n) => catalog.register(n));
 
 const IR: BlueprintIR = {
   irVersion: IR_VERSION,

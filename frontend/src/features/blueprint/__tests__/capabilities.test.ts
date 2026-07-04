@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { createCoreCatalog } from '../nodeCatalog';
+import { NOTES_NODES, createCoreCatalog } from '../nodeCatalog';
 import { deriveRequiredCapabilities, capabilityLabel, capabilityDescription } from '../capabilities';
 import type { FlowNode } from '../editor/reactFlowAdapter';
 
 const catalog = createCoreCatalog();
+// The note nodes used by these tests are contributed by the Notes plugin.
+NOTES_NODES.forEach((n) => catalog.register(n));
 
 function makeNode(type: string): FlowNode {
   const descriptor = catalog.get(type)!;

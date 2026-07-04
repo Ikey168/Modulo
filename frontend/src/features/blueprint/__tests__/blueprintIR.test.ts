@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { BlueprintIR, IR_VERSION, validateIR } from '../blueprintIR';
-import { NodeCatalog, createCoreCatalog } from '../nodeCatalog';
+import { NodeCatalog, NOTES_NODES, createCoreCatalog } from '../nodeCatalog';
 import { DataTypes } from '../nodeModel';
 
 const catalog = createCoreCatalog();
+// Note nodes are contributed by the Markdown Notes plugin; register them so the
+// worked example (which uses note triggers/actions) resolves against the catalog.
+NOTES_NODES.forEach((n) => catalog.register(n));
 
 // The worked example from docs/blueprint/node-catalog.md:
 // trigger.note.saved → action.ai.summarize → action.tag.add → action.note.anchor
