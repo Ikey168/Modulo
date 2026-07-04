@@ -124,7 +124,7 @@ export interface PluginManifest {
   author: string;
   description: string;
   category: string;
-  icon: string;
+  icon: LucideIcon;
   /** Ids of other plugins that must be installed first. */
   dependencies?: string[];
   /** Pre-installed on a fresh vault. */

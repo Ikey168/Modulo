@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Check } from 'lucide-react';
+import { Search, Check, type LucideIcon } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -30,6 +30,11 @@ type MarketplaceTab = 'plugins' | 'packs';
 function parseDownloads(d: string): number {
   const n = parseFloat(d);
   return d.endsWith('k') ? n * 1000 : n;
+}
+
+/** Renders a plugin's lucide icon inside its marketplace tile. */
+function PluginIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
+  return <Icon className={className} aria-hidden="true" />;
 }
 
 /**
@@ -212,8 +217,8 @@ export function MarketplaceView() {
                     className="group cursor-pointer bg-gradient-to-br from-surface-2 to-surface p-5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="mb-3 flex items-start justify-between">
-                      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/15 font-mono text-xl text-primary" aria-hidden="true">
-                        {p.icon}
+                      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary" aria-hidden="true">
+                        <PluginIcon icon={p.icon} className="size-6" />
                       </div>
                       {isInstalled(p) && (
                         <Badge variant="success" className="gap-1">
@@ -257,8 +262,8 @@ export function MarketplaceView() {
                     }}
                     className="group flex w-full cursor-pointer items-center gap-3.5 px-1 py-3.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 font-mono text-base text-primary-hover" aria-hidden="true">
-                      {p.icon}
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-primary-hover" aria-hidden="true">
+                      <PluginIcon icon={p.icon} className="size-5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
@@ -281,8 +286,8 @@ export function MarketplaceView() {
                 <>
                   <DialogHeader>
                     <div className="mb-2 flex items-center gap-4">
-                      <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-primary/15 font-mono text-3xl text-primary" aria-hidden="true">
-                        {detail.icon}
+                      <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary" aria-hidden="true">
+                        <PluginIcon icon={detail.icon} className="size-8" />
                       </div>
                       <div className="min-w-0">
                         <DialogTitle className="text-base">{detail.name}</DialogTitle>
