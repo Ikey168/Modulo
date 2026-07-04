@@ -11,6 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Spinner,
   Tabs,
   TabsList,
@@ -103,6 +108,36 @@ function PluginActionButton({ id, full = false }: { id: string; full?: boolean }
   );
 }
 
+/** One row in the vertical category rail: label plus a plugin count. */
+function CategoryItem({
+  label,
+  count,
+  active,
+  mono,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  mono?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        active ? 'bg-surface-3 font-medium text-foreground' : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+      )}
+    >
+      <span className={cn('truncate', mono && 'font-mono text-xs')}>{label}</span>
+      <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{count}</span>
+    </button>
+  );
+}
+
 export function MarketplaceView() {
   const plugins = usePlugins();
   const [tab, setTab] = useState<MarketplaceTab>('plugins');
@@ -111,6 +146,11 @@ export function MarketplaceView() {
   const [detail, setDetail] = useState<PluginInfo | null>(null);
 
   const categories = useMemo(() => [...new Set(PLUGINS.map((p) => p.category))].sort(), []);
+  const countByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of PLUGINS) counts[p.category] = (counts[p.category] ?? 0) + 1;
+    return counts;
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -149,50 +189,59 @@ export function MarketplaceView() {
 
       {tab === 'plugins' && (
         <>
-          {/* Search + category chips (Obsidian-style browser controls) */}
-          <div className="mb-6 flex flex-col gap-3">
-            <div className="relative max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search plugins…"
-                aria-label="Search plugins"
-                className="pl-9"
-              />
-            </div>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by category">
-              <button
-                type="button"
-                onClick={() => setCategory(null)}
-                aria-pressed={category === null}
-                className={cn(
-                  'rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  category === null
-                    ? 'border-primary/50 bg-primary/15 text-primary-hover'
-                    : 'border-border-strong text-muted-foreground hover:text-foreground',
-                )}
-              >
-                All
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCategory(category === c ? null : c)}
-                  aria-pressed={category === c}
-                  className={cn(
-                    'rounded-full border px-3 py-1 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    category === c
-                      ? 'border-primary/50 bg-primary/15 text-primary-hover'
-                      : 'border-border-strong text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* A vertical category rail (md+) scales better than a wrapping pill
+              row as categories grow; on mobile it collapses to a dropdown. */}
+          <div className="flex gap-6 md:gap-8">
+            <aside className="hidden w-40 shrink-0 md:block" aria-label="Filter by category">
+              <div className="sticky top-0">
+                <div className="mb-2 px-2.5 font-mono text-xxs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Categories
+                </div>
+                <nav className="flex flex-col gap-0.5">
+                  <CategoryItem label="All" count={PLUGINS.length} active={category === null} onClick={() => setCategory(null)} />
+                  {categories.map((c) => (
+                    <CategoryItem
+                      key={c}
+                      label={c}
+                      count={countByCategory[c] ?? 0}
+                      mono
+                      active={category === c}
+                      onClick={() => setCategory(c)}
+                    />
+                  ))}
+                </nav>
+              </div>
+            </aside>
+
+            <div className="min-w-0 flex-1">
+              <div className="mb-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                <div className="relative flex-1 sm:max-w-md">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search plugins…"
+                    aria-label="Search plugins"
+                    className="pl-9"
+                  />
+                </div>
+                {/* Category picker for < md, where the rail is hidden. */}
+                <div className="md:hidden">
+                  <Select value={category ?? 'all'} onValueChange={(v) => setCategory(v === 'all' ? null : v)}>
+                    <SelectTrigger className="w-full sm:w-44" aria-label="Filter by category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
           {/* Featured row */}
           {featured.length > 0 && (
@@ -274,6 +323,8 @@ export function MarketplaceView() {
               ))}
             </ul>
           </section>
+            </div>
+          </div>
 
           {/* Play-style detail dialog */}
           <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
