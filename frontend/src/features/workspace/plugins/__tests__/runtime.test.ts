@@ -156,3 +156,42 @@ describe('PluginRuntime — lifecycle', () => {
     expect(rt.isInstalled('coming-soon')).toBe(false);
   });
 });
+
+describe('PluginRuntime — blueprint node contributions', () => {
+  const nodeDesc = {
+    type: 'x.node',
+    version: 1,
+    category: 'action' as const,
+    title: 'X',
+    description: '',
+    execIn: true,
+    execOut: ['then'],
+    inputs: [],
+    outputs: [],
+  };
+  const nodePlugin: PluginModule = { activate: (ctx) => ctx.addBlueprintNode(nodeDesc) };
+
+  it('adds blueprint nodes on install and removes them on uninstall', async () => {
+    const catalog: PluginManifest[] = [
+      {
+        id: 'bp',
+        name: 'bp',
+        version: '1.0.0',
+        author: 't',
+        description: '',
+        category: 't',
+        icon: 'x',
+        load: () => Promise.resolve({ default: nodePlugin }),
+      },
+    ];
+    const rt = new PluginRuntime(catalog);
+    await rt.init(); // 'bp' is not a built-in default → not installed
+    expect(rt.contributions().blueprintNodes).toHaveLength(0);
+
+    await rt.install('bp');
+    expect(rt.contributions().blueprintNodes.map((n) => n.type)).toEqual(['x.node']);
+
+    await rt.uninstall('bp');
+    expect(rt.contributions().blueprintNodes).toHaveLength(0);
+  });
+});

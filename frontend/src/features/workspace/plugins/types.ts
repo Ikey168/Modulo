@@ -13,6 +13,7 @@
 import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { CoreLink, CoreNote } from '@modulo/core';
+import type { NodeDescriptor } from '../../blueprint/nodeModel';
 import type { WorkspaceData } from '../useCoreWorkspace';
 
 // ── Props passed to contributed surfaces ─────────────────────────────────────
@@ -81,12 +82,16 @@ export interface EditorActionContribution {
   run: (ctx: EditorActionRunCtx) => void;
 }
 
+/** A blueprint node descriptor added to the editor palette while active. */
+export type BlueprintNodeContribution = NodeDescriptor;
+
 /** Everything an active plugin has registered, aggregated across all plugins. */
 export interface Contributions {
   views: ViewContribution[];
   notePanels: NotePanelContribution[];
   noteFences: NoteFenceContribution[];
   editorActions: EditorActionContribution[];
+  blueprintNodes: BlueprintNodeContribution[];
 }
 
 // ── Plugin module & manifest ─────────────────────────────────────────────────
@@ -99,6 +104,7 @@ export interface PluginContext {
   addNotePanel: (p: NotePanelContribution) => void;
   addNoteFence: (f: NoteFenceContribution) => void;
   addEditorAction: (a: EditorActionContribution) => void;
+  addBlueprintNode: (node: BlueprintNodeContribution) => void;
 }
 
 /** What a plugin's lazily-loaded code module exports. */

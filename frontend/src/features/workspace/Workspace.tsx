@@ -342,7 +342,7 @@ function WorkspaceShell() {
         {view === 'marketplace' && <MarketplaceView />}
         {view === 'blueprints' && (
           <Suspense fallback={<div className="flex flex-1 items-center justify-center text-muted-foreground">Loading editor…</div>}>
-            <BlueprintEditor />
+            <BlueprintEditor extraNodes={plugins.contributions.blueprintNodes} />
           </Suspense>
         )}
 

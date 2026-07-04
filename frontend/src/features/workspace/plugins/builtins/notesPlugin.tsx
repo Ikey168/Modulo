@@ -2,6 +2,7 @@
 // (large) NotesView tree only enters the bundle once this plugin is installed.
 import { FileText } from 'lucide-react';
 import { NotesView } from '../../NotesView';
+import { NOTES_NODES } from '../../../blueprint/nodeCatalog';
 import type { PluginModule, WorkspaceViewProps } from '../types';
 
 function NotesSurface(p: WorkspaceViewProps) {
@@ -25,6 +26,8 @@ function NotesSurface(p: WorkspaceViewProps) {
 const notesPlugin: PluginModule = {
   activate(ctx) {
     ctx.addView({ id: 'notes', label: 'Notes', icon: FileText, order: 40, component: NotesSurface });
+    // Contribute the note-related blueprint nodes to the editor palette.
+    for (const node of NOTES_NODES) ctx.addBlueprintNode(node);
   },
 };
 
