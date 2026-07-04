@@ -77,9 +77,10 @@ export function useCoreWorkspace(): WorkspaceData {
   }, []);
 
   const createNote = useCallback(
-    async (title = 'Untitled Note', content?: string): Promise<CoreNote | null> => {
+    async (title = 'Untitled Note', content = ''): Promise<CoreNote | null> => {
       try {
-        const created = await api.createNote(title, content ?? `# ${title}\n\n`);
+        // A new note starts with an empty body; the title lives in its own field.
+        const created = await api.createNote(title, content);
         upsertNote(created);
         return created;
       } catch (e) {

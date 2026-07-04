@@ -400,11 +400,21 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-3 md:px-5">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onBack} aria-label="Back to note list">
             <ChevronLeft aria-hidden="true" />
           </Button>
-          <h2 className="truncate text-sm font-semibold text-foreground">{title || 'Untitled Note'}</h2>
+          <input
+            value={title}
+            onChange={(e) => {
+              dirtyRef.current = true;
+              setTitle(e.target.value);
+            }}
+            onBlur={flush}
+            placeholder="Untitled Note"
+            aria-label="Note title"
+            className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+          />
           {isAnchored(note) && (
             <Badge variant="success" className="shrink-0 tracking-wider">
               ON-CHAIN
@@ -437,17 +447,6 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
       <div className="relative flex-1 overflow-hidden">
         {editMode ? (
           <div className="flex h-full flex-col">
-            <input
-              value={title}
-              onChange={(e) => {
-                dirtyRef.current = true;
-                setTitle(e.target.value);
-              }}
-              onBlur={flush}
-              placeholder="Note title"
-              aria-label="Note title"
-              className="border-b border-border bg-transparent px-5 pb-3.5 pt-4 text-lg font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary md:px-10"
-            />
             {editorActions.length > 0 && (
               <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-1.5 md:px-8">
                 {editorActions.map((action) => {
