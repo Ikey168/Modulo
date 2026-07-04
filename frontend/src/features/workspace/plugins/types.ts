@@ -120,8 +120,6 @@ export interface PluginModule {
 export interface PluginManifest {
   id: string;
   name: string;
-  version: string;
-  author: string;
   description: string;
   category: string;
   icon: LucideIcon;
@@ -141,6 +139,5 @@ export type InstallPhase = 'idle' | 'installing' | 'uninstalling' | 'error';
 
 export interface InstalledRecord {
   id: string;
-  version: string;
   enabled: boolean;
 }
