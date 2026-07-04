@@ -428,21 +428,6 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
         </div>
       )}
 
-      <div className="absolute left-4 top-4 flex items-center gap-4 rounded-lg border border-border bg-surface/90 px-4 py-2 backdrop-blur-md">
-        {([
-          ['bg-primary', 'Note'],
-          ['bg-success', 'Anchored'],
-          ['bg-primary-hover', 'Selected'],
-        ] as const).map(([dot, label]) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`size-2 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
-            <span className="text-xxs text-muted-foreground">{label}</span>
-          </div>
-        ))}
-        <Separator orientation="vertical" className="hidden h-3.5 sm:block" />
-        <span className="hidden text-xxs text-muted-foreground sm:inline">Scroll to zoom · drag to pan · drag a node to move</span>
-      </div>
-
       {/* Zoom / fit controls */}
       {notes.length > 0 && (
         <div className="absolute bottom-5 right-5 flex flex-col overflow-hidden rounded-lg border border-border bg-surface/90 backdrop-blur-md">
