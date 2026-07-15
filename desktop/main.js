@@ -7,16 +7,19 @@
  *  - dev  (`electron . --dev` or ELECTRON_START_URL set): loads the Vite dev
  *    server, which already proxies /api and /ws to the backend.
  *  - prod (default): starts the embedded static+proxy server from serve.js
- *    over the built frontend and loads it. The port is fixed (not random) so
- *    the app's origin is stable and can be registered as a Keycloak redirect
- *    URI (http://127.0.0.1:<port>/*).
+ *    over the built frontend and loads it at http://localhost:3000 — the
+ *    same origin as the Vite dev server, which the Keycloak realm
+ *    (redirectUris/webOrigins) and the backend CORS allowlist already
+ *    trust, so OIDC login and API mutations work with no server-side
+ *    configuration. Overriding MODULO_DESKTOP_PORT changes the origin and
+ *    then requires registering it in both places.
  *
  * Environment variables:
  *  - ELECTRON_START_URL    dev-server URL (implies dev mode)
  *  - MODULO_BACKEND_URL    backend origin, default http://localhost:8080
  *  - MODULO_KEYCLOAK_URL   Keycloak origin allowed for in-window OIDC
  *                          navigation, default http://localhost:8180
- *  - MODULO_DESKTOP_PORT   port of the embedded server, default 34600
+ *  - MODULO_DESKTOP_PORT   port of the embedded server, default 3000
  *  - MODULO_SMOKE_TEST     path to write a screenshot to, then exit
  *                          (used by automated verification)
  */
@@ -29,7 +32,7 @@ const DEV_MODE = process.argv.includes('--dev') || !!process.env.ELECTRON_START_
 const DEV_URL = process.env.ELECTRON_START_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.MODULO_BACKEND_URL || 'http://localhost:8080';
 const KEYCLOAK_URL = process.env.MODULO_KEYCLOAK_URL || 'http://localhost:8180';
-const DESKTOP_PORT = Number(process.env.MODULO_DESKTOP_PORT || 34600);
+const DESKTOP_PORT = Number(process.env.MODULO_DESKTOP_PORT || 3000);
 const SMOKE_TEST_PATH = process.env.MODULO_SMOKE_TEST || '';
 
 let mainWindow = null;
@@ -56,8 +59,13 @@ function resolveStartUrl() {
         backendUrl: BACKEND_URL,
         port: DESKTOP_PORT,
       });
-      console.log(`Modulo desktop ready at ${appServer.url} (backend: ${BACKEND_URL})`);
-      return appServer.url;
+      // Load via the `localhost` hostname, not 127.0.0.1: the origin string
+      // must match what Keycloak's webOrigins and the backend CORS allowlist
+      // contain (http://localhost:3000). The server binds 127.0.0.1;
+      // Chromium resolves localhost to the loopback itself.
+      const url = `http://localhost:${appServer.port}`;
+      console.log(`Modulo desktop ready at ${url} (backend: ${BACKEND_URL})`);
+      return url;
     })();
   }
   return startUrlPromise;

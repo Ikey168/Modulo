@@ -11,7 +11,7 @@ and WebSockets/STOMP work unchanged.
 ```
 ┌────────────── Electron ──────────────┐
 │  BrowserWindow (sandboxed renderer)  │
-│      http://127.0.0.1:34600          │
+│      http://localhost:3000           │
 │                │                     │
 │   ┌────────────▼────────────┐        │      ┌──────────────────┐
 │   │ serve.js                │  /api  │      │ Spring Boot      │
@@ -84,22 +84,22 @@ All settings are environment variables read by the main process:
 |----------|---------|---------|
 | `MODULO_BACKEND_URL` | `http://localhost:8080` | Backend origin the embedded server proxies to |
 | `MODULO_KEYCLOAK_URL` | `http://localhost:8180` | Keycloak origin allowed for in-window OIDC navigation |
-| `MODULO_DESKTOP_PORT` | `34600` | Fixed port of the embedded server (the app's origin) |
+| `MODULO_DESKTOP_PORT` | `3000` | Fixed port of the embedded server (the app's origin) |
 | `ELECTRON_START_URL` | — | Dev-server URL to load instead (implies dev mode) |
 | `MODULO_SMOKE_TEST` | — | Path to write a screenshot to, then exit (automation hook) |
 
 ### Keycloak
 
-The OIDC redirect URI is derived from `window.location.origin`, so the
-desktop app authenticates from a stable origin: `http://127.0.0.1:34600`
-(dev mode: `http://localhost:3000`, same as the browser). Add
+The app's origin is `http://localhost:3000` — deliberately the same origin
+as the Vite dev server, which the `modulo-frontend` client's redirect URIs
+(and `webOrigins: ["+"]`) and the backend's CORS allowlist already trust.
+OIDC login therefore works with **no Keycloak or backend changes**.
 
-```
-http://127.0.0.1:34600/*
-```
-
-to the `modulo-frontend` client's *Valid redirect URIs* (and *Web origins*)
-in Keycloak to log in from the packaged app.
+If you override `MODULO_DESKTOP_PORT`, the origin changes and you must add
+`http://localhost:<port>/*` to the client's *Valid redirect URIs* in
+Keycloak and allow the origin in the backend CORS config. The embedded
+server refuses to start if the port is taken (e.g. by a running Vite dev
+server) — stop Vite or pick another port.
 
 ## Security model
 
