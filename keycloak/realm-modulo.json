@@ -1,6 +1,7 @@
 {
   "realm": "modulo",
   "enabled": true,
+  "loginTheme": "modulo",
   "sslRequired": "none",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,

@@ -1,0 +1,229 @@
+/*
+ * Modulo login skin — keeps the Keycloak login visually continuous with the
+ * app (frontend/src/styles/index.css + LoginPage.tsx): green-black canvas
+ * with an ambient emerald glow, borderless centered column, emerald primary
+ * button, Inter type, sharp corners.
+ *
+ * CSS-only: targets the stable element IDs (#kc-*) plus both PatternFly
+ * class generations (.pf-c-* / .pf-v5-c-*) used by recent Keycloak versions.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --m-background: #090e0c;
+  --m-foreground: #f3f6f4;
+  --m-muted: #72807a;
+  --m-border: #2a322e;
+  --m-input-bg: #0d1310;
+  --m-primary: #10b981;
+  --m-primary-hover: #34d399;
+  --m-primary-fg: #02120b;
+  --m-destructive: #ef4444;
+  --m-radius: 4px;
+}
+
+/* ---- page canvas ------------------------------------------------------- */
+
+html,
+body,
+body.login-pf {
+  background: var(--m-background) !important;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Ambient emerald glow behind the form, like the app's login screen */
+.login-pf-page {
+  position: relative;
+  background:
+    radial-gradient(640px 420px at 50% 33%, rgba(16, 185, 129, 0.12), transparent 70%),
+    var(--m-background);
+  min-height: 100vh;
+  padding-top: 12vh;
+}
+
+/* ---- header / brand ----------------------------------------------------- */
+
+/* Replace the realm name text with the Modulo mark (same SVG as the app's
+   ModuloMark component, emerald), then let the card title carry the words. */
+#kc-header-wrapper {
+  font-size: 0;
+  line-height: 0;
+  padding: 0;
+}
+
+#kc-header-wrapper::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 22 22' fill='none'%3E%3Cline x1='5' y1='17.5' x2='17' y2='4.5' stroke='%2310b981' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='6.2' cy='6.2' r='3.4' fill='%2310b981'/%3E%3Ccircle cx='15.8' cy='15.8' r='3.4' fill='%2310b981' opacity='0.7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+#kc-page-title {
+  color: var(--m-foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* ---- card → borderless centered column ---------------------------------- */
+
+.card-pf,
+.pf-v5-c-login__main {
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.login-pf-page .login-pf-header {
+  margin-bottom: 0;
+}
+
+/* ---- form fields --------------------------------------------------------- */
+
+.pf-c-form-control,
+.pf-v5-c-form-control,
+.pf-v5-c-form-control > input,
+input[type='text'],
+input[type='password'],
+input[type='email'] {
+  background: var(--m-input-bg) !important;
+  border: 1px solid var(--m-border) !important;
+  border-radius: var(--m-radius) !important;
+  color: var(--m-foreground) !important;
+  font-family: inherit;
+  font-size: 14px;
+  height: 38px;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-c-form-control:focus,
+.pf-v5-c-form-control:focus-within,
+input[type='text']:focus,
+input[type='password']:focus,
+input[type='email']:focus {
+  border-color: var(--m-primary) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+  outline: none;
+}
+
+.pf-c-form__label,
+.pf-v5-c-form__label,
+label {
+  color: var(--m-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ---- primary button ------------------------------------------------------ */
+
+#kc-login,
+.pf-c-button.pf-m-primary,
+.pf-v5-c-button.pf-m-primary,
+input[type='submit'] {
+  background: var(--m-primary) !important;
+  border: none;
+  border-radius: var(--m-radius) !important;
+  color: var(--m-primary-fg) !important;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  height: 40px;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+#kc-login:hover,
+.pf-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:hover,
+input[type='submit']:hover {
+  background: var(--m-primary-hover) !important;
+}
+
+/* ---- links, secondary text ------------------------------------------------ */
+
+a,
+.pf-c-button.pf-m-link,
+.pf-v5-c-button.pf-m-link {
+  color: var(--m-primary-hover);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--m-foreground);
+  text-decoration: none;
+}
+
+#kc-registration,
+#kc-info,
+.login-pf-page .login-pf-signup,
+.pf-c-login__main-footer-band,
+.pf-v5-c-login__main-footer-band {
+  color: var(--m-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.checkbox label,
+.pf-c-check__label,
+.pf-v5-c-check__label,
+#kc-form-options {
+  color: var(--m-muted);
+  font-size: 13px;
+}
+
+/* ---- alerts (error / warning / info) -------------------------------------- */
+
+.alert-error,
+.pf-c-alert.pf-m-danger,
+.pf-v5-c-alert.pf-m-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  border-radius: 8px;
+  color: var(--m-destructive) !important;
+}
+
+.alert-error .pf-c-alert__title,
+.pf-c-alert.pf-m-danger .pf-c-alert__title,
+.pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title,
+.kc-feedback-text {
+  color: var(--m-destructive) !important;
+  font-size: 13px;
+}
+
+/* ---- locale picker, password reveal, misc chrome --------------------------- */
+
+#kc-locale a,
+#kc-current-locale-link {
+  color: var(--m-muted);
+}
+
+.pf-c-button.pf-m-control,
+.pf-v5-c-button.pf-m-control {
+  background: var(--m-input-bg);
+  border: 1px solid var(--m-border);
+  border-left: none;
+  color: var(--m-muted);
+}
+
+/* Kill the default PatternFly white panel backgrounds anywhere they linger */
+.pf-c-login,
+.pf-v5-c-login,
+.pf-c-login__main,
+#kc-content,
+#kc-content-wrapper {
+  background: transparent !important;
+}
