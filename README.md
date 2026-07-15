@@ -147,7 +147,21 @@ API with relative paths during development.
 
 The frontend also runs as a native desktop app. The Electron shell serves the
 built SPA from an embedded local server that proxies `/api` and `/ws` to the
-backend, so the web code runs unchanged:
+backend, so the web code runs unchanged.
+
+Deploy everything with one command from the repo root — it builds the
+frontend, starts the backend stack (Docker Compose: backend, db, neo4j,
+keycloak), waits for the backend to become healthy, and opens the app:
+
+```bash
+npm run deploy:desktop
+```
+
+Useful variants (`npm run deploy:desktop -- <flag>`): `--no-build` for a fast
+relaunch, `--stack-only` / `--app-only` to run the two halves separately, and
+`--stop` to shut the backend stack down.
+
+Working on the shell itself:
 
 ```bash
 cd desktop && npm install
@@ -168,6 +182,7 @@ npm run build            # Build frontend and backend
 npm run build:frontend   # Build the frontend only
 npm run build:backend    # Build the backend only (mvn clean package)
 npm run build:desktop    # Build the frontend, then package the Electron app
+npm run deploy:desktop   # Build + start backend stack + launch the desktop app
 npm run desktop:dev      # Launch the Electron shell against the Vite dev server
 npm run start            # Start the full stack with Docker Compose
 npm run start:dev        # Start the development compose file
