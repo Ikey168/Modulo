@@ -104,6 +104,8 @@ services:
       - "8180:8080"
     volumes:
       - ./keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro,z
+      # Custom login theme matching the app's design system (realm sets loginTheme=modulo)
+      - ./keycloak/themes:/opt/keycloak/themes:ro,z
     networks:
       - modulo-network
     restart: unless-stopped
