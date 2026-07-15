@@ -100,13 +100,21 @@ function serveStatic(distDir, pathname, res) {
 }
 
 function backendRequestOptions(backend, req) {
+  const headers = { ...req.headers, host: backend.host };
+  // Strip the Origin header: same-origin GETs don't carry one, but Chromium
+  // attaches Origin to every POST/PUT/DELETE, and the backend's CORS
+  // allowlist (WebConfig: http://localhost:3000) doesn't know the desktop
+  // shell's local origin — so reads would work while every mutation gets
+  // CORS-rejected. Without an Origin header Spring treats the request as
+  // same-origin, which is what a trusted local reverse proxy is.
+  delete headers.origin;
   return {
     protocol: backend.protocol,
     hostname: backend.hostname,
     port: backend.port || (backend.protocol === 'https:' ? 443 : 80),
     path: req.url,
     method: req.method,
-    headers: { ...req.headers, host: backend.host },
+    headers,
   };
 }
 
