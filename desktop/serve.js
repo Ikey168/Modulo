@@ -100,13 +100,22 @@ function serveStatic(distDir, pathname, res) {
 }
 
 function backendRequestOptions(backend, req) {
-  const headers = { ...req.headers, host: backend.host };
-  // Strip the Origin header: same-origin GETs don't carry one, but Chromium
-  // attaches Origin to every POST/PUT/DELETE, and the backend's CORS
-  // allowlist (WebConfig: http://localhost:3000) doesn't know the desktop
-  // shell's local origin — so reads would work while every mutation gets
-  // CORS-rejected. Without an Origin header Spring treats the request as
-  // same-origin, which is what a trusted local reverse proxy is.
+  // Match frontend/nginx.conf's proxy behaviour:
+  // - Preserve the incoming Host (proxy_set_header Host $host). Spring builds
+  //   absolute URLs (e.g. the /login redirect for unauthenticated requests)
+  //   from it; rewriting Host to the backend's would send the renderer to
+  //   http://localhost:8080/... — a cross-origin hop that CORS then blocks
+  //   and surfaces as "Failed to fetch".
+  // - Strip the Origin header: Chromium attaches Origin to every mutating
+  //   request, and unknown origins fail the backend's CORS allowlist
+  //   (reads would work while every POST/PUT/DELETE gets rejected). Without
+  //   Origin, Spring treats the request as same-origin — correct for a
+  //   trusted local reverse proxy.
+  const headers = {
+    ...req.headers,
+    'x-forwarded-for': req.socket.remoteAddress || '127.0.0.1',
+    'x-forwarded-proto': 'http',
+  };
   delete headers.origin;
   return {
     protocol: backend.protocol,
@@ -230,7 +239,19 @@ function createAppServer({ distDir, backendUrl = 'http://localhost:8080', port =
   });
 
   return new Promise((resolve, reject) => {
-    server.once('error', reject);
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        reject(
+          new Error(
+            `Port ${port} is already in use (a running Vite dev server?). Close it or set ` +
+              'MODULO_DESKTOP_PORT — note that a non-default port must also be allowed in ' +
+              "Keycloak's redirect URIs and the backend CORS allowlist."
+          )
+        );
+      } else {
+        reject(err);
+      }
+    });
     server.listen(port, host, () => {
       const actualPort = server.address().port;
       resolve({
@@ -253,7 +274,7 @@ module.exports = { createAppServer, PROXY_PREFIXES };
 if (require.main === module) {
   const distDir = process.env.MODULO_DIST_DIR || path.join(__dirname, '..', 'frontend', 'dist');
   const backendUrl = process.env.MODULO_BACKEND_URL || 'http://localhost:8080';
-  const port = Number(process.env.MODULO_DESKTOP_PORT || 34600);
+  const port = Number(process.env.MODULO_DESKTOP_PORT || 3000);
 
   createAppServer({ distDir, backendUrl, port })
     .then(({ url }) => {
