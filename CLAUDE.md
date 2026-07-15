@@ -21,6 +21,8 @@ frontend/         React/TS app (src/ tree below)
     components/   Shared UI (common/, layout/, mobile/)
     services/     Low-level REST/WS clients (api.ts, websocket.ts, …)
     store/        Redux store
+desktop/          Electron shell (standalone package, NOT an npm workspace;
+                  serve.js = embedded static+proxy server, main.js = main process)
 docs/             Architecture docs, ADRs
   architecture/   ADRs, boundary audit (B2-boundary-audit.md)
   blueprint/      Blueprint system docs
