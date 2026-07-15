@@ -70,6 +70,7 @@ installable capabilities around them.
 ```
 frontend/          React + TypeScript + Vite single-page app
 backend/           Spring Boot REST API and WebSocket server
+desktop/           Electron desktop shell (wraps the frontend build)
 smart-contracts/   Ethereum smart contracts (Hardhat)
 services/          Supporting services (e.g. audit-collector)
 database/          Database schemas and migrations
@@ -142,6 +143,22 @@ docker compose up db
 The Vite dev server proxies `/api` to the backend, so the frontend can call the
 API with relative paths during development.
 
+### Desktop app (Electron)
+
+The frontend also runs as a native desktop app. The Electron shell serves the
+built SPA from an embedded local server that proxies `/api` and `/ws` to the
+backend, so the web code runs unchanged:
+
+```bash
+cd desktop && npm install
+npm run dev              # against the Vite dev server (start it first)
+npm start                # against frontend/dist (run a frontend build first)
+npm run dist             # build installers (AppImage/deb, dmg, nsis)
+```
+
+See [`desktop/README.md`](desktop/README.md) for configuration (backend URL,
+Keycloak redirect URI) and the security model.
+
 ## Scripts
 
 Root `package.json` scripts:
@@ -150,6 +167,8 @@ Root `package.json` scripts:
 npm run build            # Build frontend and backend
 npm run build:frontend   # Build the frontend only
 npm run build:backend    # Build the backend only (mvn clean package)
+npm run build:desktop    # Build the frontend, then package the Electron app
+npm run desktop:dev      # Launch the Electron shell against the Vite dev server
 npm run start            # Start the full stack with Docker Compose
 npm run start:dev        # Start the development compose file
 npm run test             # Run smart-contract tests (Hardhat)

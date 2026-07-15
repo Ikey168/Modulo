@@ -1,0 +1,49 @@
+{
+  "name": "modulo-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron desktop shell for Modulo",
+  "author": "Ikey168",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "serve": "node serve.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.ikey168.modulo",
+    "productName": "Modulo",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.cjs",
+      "serve.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "app-dist"
+      }
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Office"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": ["nsis"]
+    }
+  }
+}
