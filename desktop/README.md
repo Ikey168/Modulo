@@ -110,3 +110,7 @@ in Keycloak to log in from the packaged app.
 - Window navigation is restricted to the app origin and Keycloak; all other
   links open in the system browser
 - The embedded server binds to `127.0.0.1` only
+- The proxy strips the `Origin` header from forwarded requests: the backend's
+  CORS allowlist doesn't know the shell's local origin, and Chromium attaches
+  `Origin` to every mutating request — without stripping, reads would work
+  but every POST/PUT/DELETE (e.g. creating a note) would be CORS-rejected
