@@ -12,6 +12,7 @@
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && mvn clean package",
     "build:desktop": "npm run build:frontend && cd desktop && npm run dist",
+    "deploy:desktop": "node scripts/deploy-desktop.js",
     "desktop": "cd desktop && npm start",
     "desktop:dev": "cd desktop && npm run dev",
     "start": "docker-compose up",

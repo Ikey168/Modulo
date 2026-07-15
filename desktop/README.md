@@ -27,6 +27,21 @@ and WebSockets/STOMP work unchanged.
 - A running Modulo backend (`docker-compose up` from the repo root, or any
   backend reachable via `MODULO_BACKEND_URL`)
 
+## One-command deploy
+
+From the repo root:
+
+```sh
+npm run deploy:desktop
+```
+
+builds the frontend, starts the backend stack with Docker Compose (backend +
+db, neo4j, keycloak), waits for the backend health endpoint, and launches the
+app. The stack keeps running after the window closes (relaunches are instant);
+`npm run deploy:desktop -- --stop` shuts it down. Other flags: `--no-build`
+(skip frontend/image rebuilds), `--stack-only`, `--app-only`. See
+`scripts/deploy-desktop.js`.
+
 ## Development
 
 Run against the Vite dev server (hot reload):
