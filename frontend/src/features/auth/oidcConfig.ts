@@ -33,13 +33,13 @@ export const oidcConfig: UserManagerSettings = {
   
   // Metadata configuration
   metadata: {
-    issuer: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo',
-    authorization_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/auth`,
-    token_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/token`,
-    userinfo_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/userinfo`,
-    end_session_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/logout`,
-    jwks_uri: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/certs`,
-    check_session_iframe: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/modulo'}/protocol/openid-connect/login-status-iframe.html`,
+    issuer: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo',
+    authorization_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/auth`,
+    token_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/token`,
+    userinfo_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/userinfo`,
+    end_session_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/logout`,
+    jwks_uri: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/certs`,
+    check_session_iframe: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/login-status-iframe.html`,
   }
 };
 
