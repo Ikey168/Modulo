@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package com.modulo.plugin.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.modulo.plugin.grpc";
+option java_outer_classname = "PluginHostServiceProto";
+
+// ---------------------------------------------------------------------------
+// Plugin contract v1 — host surface (#390).
+//
+// The service EXTERNAL plugins call back into the core with: the note
+// operations NotePluginAPI exposes in-process, plus event publish/subscribe.
+// Every call is authenticated (plugin-id / plugin-token metadata headers)
+// and gated per-call by the plugin's granted permissions:
+//
+//   GetNote/SearchNotes .......... notes.read
+//   SaveNote/AddNoteMetadata ..... notes.write
+//   DeleteNote ................... notes.delete
+//   PublishEvent ................. system.events.publish
+//   SubscribeEvents .............. system.events.subscribe
+//
+// Evolution rules (v1, additive-only): new fields, RPCs, and services may be
+// added; existing field numbers are never renumbered or repurposed; breaking
+// changes require a new service name, never a mutation. See
+// plugin-contract/README.md.
+// ---------------------------------------------------------------------------
+
+service PluginHostService {
+  // Note operations (mirrors the in-process NotePluginAPI surface)
+  rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
+  rpc SaveNote(SaveNoteRequest) returns (SaveNoteResponse);
+  rpc DeleteNote(DeleteNoteRequest) returns (DeleteNoteResponse);
+  rpc SearchNotes(HostSearchNotesRequest) returns (HostSearchNotesResponse);
+  rpc AddNoteMetadata(AddNoteMetadataRequest) returns (AddNoteMetadataResponse);
+
+  // Event bridge (envelope shared with the NATS bridge, #391)
+  rpc PublishEvent(PublishEventRequest) returns (PublishEventResponse);
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream EventEnvelope);
+}
+
+message NotePayload {
+  int64 id = 1;            // 0 on create
+  string title = 2;
+  string content = 3;
+  repeated string tags = 4;
+}
+
+message GetNoteRequest { int64 note_id = 1; }
+message GetNoteResponse {
+  bool found = 1;
+  NotePayload note = 2;
+}
+
+message SaveNoteRequest { NotePayload note = 1; }
+message SaveNoteResponse { int64 note_id = 1; }
+
+message DeleteNoteRequest { int64 note_id = 1; }
+message DeleteNoteResponse { bool deleted = 1; }
+
+message HostSearchNotesRequest {
+  string text = 1;         // free-text query; empty matches all
+  repeated string tags = 2;
+  int32 limit = 3;         // server clamps; 0 means server default
+}
+message HostSearchNotesResponse { repeated NotePayload notes = 1; }
+
+message AddNoteMetadataRequest {
+  int64 note_id = 1;
+  map<string, string> metadata = 2;
+}
+message AddNoteMetadataResponse { bool success = 1; }
+
+// One event crossing a process boundary. json_payload carries the
+// event-type-specific body; schema_version governs its shape (additive-only).
+message EventEnvelope {
+  string id = 1;             // event UUID
+  string type = 2;           // e.g. note.created
+  int32 schema_version = 3;  // currently 1
+  string timestamp = 4;      // ISO-8601
+  string origin = 5;         // core | plugin:<id> | bridge — loop protection
+  string json_payload = 6;
+}
+
+message PublishEventRequest { EventEnvelope event = 1; }
+message PublishEventResponse { bool accepted = 1; }
+
+message SubscribeEventsRequest {
+  repeated string event_types = 1;  // empty subscribes to nothing (be explicit)
+}

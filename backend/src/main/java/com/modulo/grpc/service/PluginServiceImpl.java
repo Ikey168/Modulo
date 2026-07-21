@@ -14,9 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 
 /**
- * gRPC Plugin Service Implementation
+ * gRPC Plugin Service Implementation.
+ *
+ * Gated by {@code modulo.features.enable-grpc} (#390): default off, enabled
+ * explicitly per profile in application.yml.
  */
 @GrpcService
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "modulo.features.enable-grpc", havingValue = "true")
 public class PluginServiceImpl extends PluginServiceGrpc.PluginServiceImplBase {
     
     private static final Logger logger = LoggerFactory.getLogger(PluginServiceImpl.class);

@@ -23,6 +23,7 @@
     </properties>
 
     <modules>
+        <module>plugin-contract</module>
         <module>backend</module>
         <!-- <module>frontend</module> Removed as frontend/pom.xml does not exist -->
         <module>smart-contracts</module>
