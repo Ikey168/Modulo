@@ -163,6 +163,73 @@ public class PluginManager {
     }
 
     /**
+     * Install an EXTERNAL plugin by endpoint (#392): the workload is already
+     * running as its own service; the core attaches over the gRPC contract,
+     * registers it, grants its declared permissions durably, issues its host
+     * token, and drives Initialize/Start remotely.
+     *
+     * @param endpoint host:port (or in-cluster service DNS) of the workload
+     * @param config configuration forwarded to the plugin's Initialize
+     * @return Plugin ID if successful
+     * @throws PluginException if the endpoint is unreachable or rejects the lifecycle
+     */
+    public String installExternalPlugin(String endpoint, Map<String, Object> config) throws PluginException {
+        logger.info("Installing external plugin at endpoint: {}", endpoint);
+        ExternalPluginProxy proxy = externalPluginProxyFactory.create(endpoint);
+        try {
+            proxy.attach(); // fetch identity + declared permissions; proves reachability
+            PluginInfo info = proxy.getInfo();
+            String pluginId = info.getName();
+
+            validatePlugin(proxy);
+            if (!securityManager.canInstallPlugin(pluginId, proxy.getRequiredPermissions())) {
+                throw new PluginException("Insufficient permissions to install external plugin: " + pluginId);
+            }
+
+            pluginRegistry.registerPlugin(proxy, config);
+            pluginRegistry.updatePluginRemoteInfo(pluginId, endpoint);
+
+            // Durable grants + the token the plugin authenticates host calls with.
+            securityManager.grantPermissions(pluginId, proxy.getRequiredPermissions());
+            String token = securityManager.generatePluginToken(pluginId);
+            Map<String, Object> initConfig = new java.util.HashMap<>(config != null ? config : Map.of());
+            initConfig.put("modulo.plugin.token", token);
+
+            proxy.initialize(initConfig);
+            proxy.start();
+
+            activePlugins.put(pluginId, proxy);
+            pluginStatuses.put(pluginId, PluginStatus.ACTIVE);
+            subscribeToEvents(proxy);
+
+            eventBus.publish(new SystemEvent.RemotePluginInstalled(pluginId, info.getVersion(), endpoint));
+            logger.info("External plugin {} attached and started from {}", pluginId, endpoint);
+            return pluginId;
+        } catch (PluginException e) {
+            proxy.close();
+            throw e;
+        } catch (Exception e) {
+            proxy.close();
+            logger.error("Failed to install external plugin at {}", endpoint, e);
+            throw new PluginException("Failed to install external plugin: " + e.getMessage(), e);
+        }
+    }
+
+    /** Factory seam so tests can inject proxies against in-process endpoints. */
+    ExternalPluginProxyFactory externalPluginProxyFactory = ExternalPluginProxy::new;
+
+    interface ExternalPluginProxyFactory {
+        ExternalPluginProxy create(String endpoint);
+    }
+
+    /**
+     * Mark a plugin's status (used by the external health monitor, #392).
+     */
+    void markPluginStatus(String pluginId, PluginStatus status) {
+        pluginStatuses.put(pluginId, status);
+    }
+
+    /**
      * Uninstall a plugin
      * @param pluginId Plugin ID to uninstall
      * @throws PluginException if uninstallation fails
@@ -325,28 +392,52 @@ public class PluginManager {
         for (PluginRegistryEntry entry : registeredPlugins) {
             if (entry.getStatus() == PluginStatus.ACTIVE) {
                 try {
-                    // Load plugin
-                    Plugin plugin = pluginLoader.loadPlugin(entry.getPath());
-                    
-                    // Initialize with stored config
-                    plugin.initialize(entry.getConfig());
-                    plugin.start();
-                    
+                    Plugin plugin;
+                    if (isExternalEntry(entry)) {
+                        // Re-attach to the workload (#392): same discipline as
+                        // blueprint re-registration — the registry survives
+                        // restarts, the endpoint is redialed, and a down pod
+                        // yields ERROR status, never a startup failure.
+                        ExternalPluginProxy proxy = externalPluginProxyFactory.create(entry.getEndpoint());
+                        proxy.attach();
+                        securityManager.grantPermissions(entry.getName(), proxy.getRequiredPermissions());
+                        Map<String, Object> initConfig = new java.util.HashMap<>(
+                            entry.getConfig() != null ? entry.getConfig() : Map.of());
+                        initConfig.put("modulo.plugin.token",
+                            securityManager.generatePluginToken(entry.getName()));
+                        proxy.initialize(initConfig);
+                        proxy.start();
+                        plugin = proxy;
+                    } else {
+                        // Load plugin
+                        plugin = pluginLoader.loadPlugin(entry.getPath());
+                        // Initialize with stored config
+                        plugin.initialize(entry.getConfig());
+                        plugin.start();
+                    }
+
                     // Track plugin
                     activePlugins.put(entry.getName(), plugin);
                     pluginStatuses.put(entry.getName(), PluginStatus.ACTIVE);
-                    
+
                     // Subscribe to events
                     subscribeToEvents(plugin);
-                    
+
                     logger.info("Loaded registered plugin: {}", entry.getName());
-                    
+
                 } catch (Exception e) {
                     logger.error("Failed to load registered plugin: " + entry.getName(), e);
                     pluginStatuses.put(entry.getName(), PluginStatus.ERROR);
                 }
             }
         }
+    }
+
+    /** An EXTERNAL entry is one with a gRPC runtime and a recorded endpoint (#392). */
+    private static boolean isExternalEntry(PluginRegistryEntry entry) {
+        return entry.getEndpoint() != null && !entry.getEndpoint().isBlank()
+            && ("GRPC".equalsIgnoreCase(entry.getRuntime())
+                || "EXTERNAL".equalsIgnoreCase(entry.getType()));
     }
     
     /**
