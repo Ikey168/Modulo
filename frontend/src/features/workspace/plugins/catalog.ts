@@ -6,6 +6,7 @@
 import {
   CALENDAR_PLUGIN_ID,
   CANVAS_PLUGIN_ID,
+  CHECKLISTS_PLUGIN_ID,
   DATABASE_PLUGIN_ID,
   FINDINGS_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
@@ -64,6 +65,10 @@ const RUNNABLE: Record<string, Runnable> = {
   },
   kanban: {
     load: () => import('./builtins/kanbanPlugin'),
+  },
+  [CHECKLISTS_PLUGIN_ID]: {
+    dependencies: [NOTES_PLUGIN_ID],
+    load: () => import('./builtins/checklistsPlugin'),
   },
 };
 
