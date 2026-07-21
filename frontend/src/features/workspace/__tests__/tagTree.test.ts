@@ -38,6 +38,16 @@ describe('tagTree', () => {
     expect(tree[0].count).toBe(1);
   });
 
+  it('includes registered vault tags no note carries, counting 0', () => {
+    const tree = buildTagTree([note(1, 'area/x')], ['area/unused', 'fresh']);
+    expect(tree.map((n) => n.key)).toEqual(['area', 'fresh']);
+    expect(tree.find((n) => n.key === 'fresh')!.count).toBe(0);
+    const area = tree.find((n) => n.key === 'area')!;
+    expect(area.count).toBe(1); // still only note 1
+    const unused = area.children.find((c) => c.key === 'area/unused')!;
+    expect(unused.count).toBe(0);
+  });
+
   it('matches a tag and its descendants but not siblings', () => {
     const n = note(1, 'area/topic/a');
     expect(noteMatchesTag(n, 'area')).toBe(true);

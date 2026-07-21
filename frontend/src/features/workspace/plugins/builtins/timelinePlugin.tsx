@@ -5,7 +5,7 @@ import { TimelineView } from '../../TimelineView';
 import type { PluginModule, WorkspaceViewProps } from '../types';
 
 function TimelineSurface(p: WorkspaceViewProps) {
-  return <TimelineView notes={p.data.notes} tags={p.data.tags} onOpenNote={p.onOpenNote} />;
+  return <TimelineView notes={p.data.notes} tags={p.data.tags} loading={p.data.loading} onOpenNote={p.onOpenNote} />;
 }
 
 const timelinePlugin: PluginModule = {

@@ -26,30 +26,32 @@ export function noteMatchesTag(note: CoreNote, tagKey: string): boolean {
   });
 }
 
-/** Build the nested tag tree from the tags on `notes`. */
-export function buildTagTree(notes: CoreNote[]): TagTreeNode[] {
+/** Build the nested tag tree from the tags on `notes`, plus any registered
+ *  vault tags in `extraTags` that no note carries yet (they count 0). */
+export function buildTagTree(notes: CoreNote[], extraTags: string[] = []): TagTreeNode[] {
   const ids = new Map<string, Set<number>>(); // full path -> note ids
   const kids = new Map<string, Set<string>>(); // full path -> child full paths
   const roots = new Set<string>();
 
-  for (const n of notes) {
-    for (const t of n.tags ?? []) {
-      const segs = normalizeTag(t.name).split('/').filter(Boolean);
-      let prefix = '';
-      for (let i = 0; i < segs.length; i++) {
-        const full = i === 0 ? segs[0] : `${prefix}/${segs[i]}`;
-        if (!ids.has(full)) ids.set(full, new Set());
-        ids.get(full)!.add(n.id);
-        if (i === 0) {
-          roots.add(full);
-        } else {
-          if (!kids.has(prefix)) kids.set(prefix, new Set());
-          kids.get(prefix)!.add(full);
-        }
-        prefix = full;
+  const addPath = (name: string, noteId: number | null) => {
+    const segs = normalizeTag(name).split('/').filter(Boolean);
+    let prefix = '';
+    for (let i = 0; i < segs.length; i++) {
+      const full = i === 0 ? segs[0] : `${prefix}/${segs[i]}`;
+      if (!ids.has(full)) ids.set(full, new Set());
+      if (noteId !== null) ids.get(full)!.add(noteId);
+      if (i === 0) {
+        roots.add(full);
+      } else {
+        if (!kids.has(prefix)) kids.set(prefix, new Set());
+        kids.get(prefix)!.add(full);
       }
+      prefix = full;
     }
-  }
+  };
+
+  for (const n of notes) for (const t of n.tags ?? []) addPath(t.name, n.id);
+  for (const name of extraTags) addPath(name, null);
 
   const build = (full: string): TagTreeNode => {
     const name = full.includes('/') ? full.slice(full.lastIndexOf('/') + 1) : full;

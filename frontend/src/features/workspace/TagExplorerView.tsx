@@ -4,17 +4,19 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, Hash, Tags, X } from 'lucide-react';
 import { EmptyState, ScrollArea, cn } from '@/ui';
-import type { CoreNote } from '@modulo/core';
+import type { CoreNote, CoreTag } from '@modulo/core';
 import { relativeTime } from './workspaceUtils';
 import { buildTagTree, noteMatchesTag, type TagTreeNode } from './tagTree';
 
 interface TagExplorerViewProps {
   notes: CoreNote[];
+  /** Registered vault tags; included in the tree even when no note carries them yet. */
+  tags?: CoreTag[];
   onOpenNote: (id: number) => void;
 }
 
-export function TagExplorerView({ notes, onOpenNote }: TagExplorerViewProps) {
-  const tree = useMemo(() => buildTagTree(notes), [notes]);
+export function TagExplorerView({ notes, tags = [], onOpenNote }: TagExplorerViewProps) {
+  const tree = useMemo(() => buildTagTree(notes, tags.map((t) => t.name)), [notes, tags]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
 
