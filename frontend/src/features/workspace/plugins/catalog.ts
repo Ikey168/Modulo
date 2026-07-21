@@ -106,6 +106,12 @@ const RUNNABLE: Record<string, Runnable> = {
   [TODO_PLUGIN_ID]: {
     load: () => import('./builtins/todoPlugin'),
   },
+  'webhook-trigger': {
+    load: () => import('./builtins/webhookTriggerPlugin'),
+  },
+  'scheduled-digest': {
+    load: () => import('./builtins/scheduledDigestPlugin'),
+  },
 };
 
 export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {
