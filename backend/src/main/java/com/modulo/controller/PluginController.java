@@ -85,6 +85,36 @@ public class PluginController {
     /**
      * Install a plugin from uploaded file
      */
+    /**
+     * Attach an EXTERNAL plugin workload by endpoint (#392/#394): the
+     * registration glue after the workload is deployed via the plugin chart —
+     * the in-cluster service DNS (e.g. modulo-plugin-script-sandbox:9090)
+     * becomes the registry endpoint.
+     */
+    @PostMapping("/install-external")
+    public ResponseEntity<Map<String, Object>> installExternalPlugin(
+            @RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+        Object endpoint = request.get("endpoint");
+        if (!(endpoint instanceof String) || ((String) endpoint).isBlank()) {
+            response.put("error", "endpoint is required (host:port or in-cluster service DNS)");
+            return ResponseEntity.badRequest().body(response);
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> config = request.get("config") instanceof Map
+                ? (Map<String, Object>) request.get("config") : new HashMap<>();
+            String pluginId = pluginManager.installExternalPlugin((String) endpoint, config);
+            response.put("success", true);
+            response.put("pluginId", pluginId);
+            response.put("message", "External plugin attached successfully");
+            return ResponseEntity.ok(response);
+        } catch (PluginException e) {
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
     @PostMapping("/install")
     public ResponseEntity<Map<String, Object>> installPlugin(
             @RequestParam("file") MultipartFile file,

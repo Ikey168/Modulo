@@ -36,12 +36,29 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
 
     private final ScriptSandbox engine;
     private final String engineName;
+    private final io.grpc.protobuf.services.HealthStatusManager healthManager;
     private final AtomicReference<PluginStatus> status =
         new AtomicReference<>(PluginStatus.INACTIVE);
 
     public SandboxPluginService(String engineName) {
+        this(engineName, null);
+    }
+
+    /** With a health manager, lifecycle state is mirrored into grpc.health.v1 for K8s probes (#394). */
+    public SandboxPluginService(String engineName,
+                                io.grpc.protobuf.services.HealthStatusManager healthManager) {
         this.engineName = engineName;
+        this.healthManager = healthManager;
         this.engine = "rhino".equals(engineName) ? new RhinoScriptSandbox() : new WasmScriptSandbox();
+        mirrorHealth(false);
+    }
+
+    private void mirrorHealth(boolean serving) {
+        if (healthManager != null) {
+            healthManager.setStatus("", serving
+                ? io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING
+                : io.grpc.health.v1.HealthCheckResponse.ServingStatus.NOT_SERVING);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -81,6 +98,7 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
     @Override
     public void start(StartRequest request, StreamObserver<StartResponse> observer) {
         status.set(PluginStatus.ACTIVE);
+        mirrorHealth(true);
         logger.info("script-sandbox started ({} engine)", engineName);
         observer.onNext(StartResponse.newBuilder()
             .setSuccess(true).setStatus(PluginStatus.ACTIVE).build());
@@ -90,6 +108,7 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
     @Override
     public void stop(StopRequest request, StreamObserver<StopResponse> observer) {
         status.set(PluginStatus.INACTIVE);
+        mirrorHealth(false);
         observer.onNext(StopResponse.newBuilder()
             .setSuccess(true).setStatus(PluginStatus.INACTIVE).build());
         observer.onCompleted();

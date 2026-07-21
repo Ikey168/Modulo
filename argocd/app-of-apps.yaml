@@ -9,6 +9,9 @@ spec:
     repoURL: https://github.com/Ikey168/Modulo.git
     targetRevision: main
     path: argocd/apps
+    directory:
+      # Pick up the plugins/ app family (#394) alongside the flat apps.
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: modulo

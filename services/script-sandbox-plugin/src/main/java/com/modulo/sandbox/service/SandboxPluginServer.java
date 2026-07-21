@@ -22,8 +22,11 @@ public final class SandboxPluginServer {
         int port = Integer.parseInt(env("PORT", "9090"));
         String engine = env("SANDBOX_ENGINE", "wasm");
 
+        io.grpc.protobuf.services.HealthStatusManager health =
+            new io.grpc.protobuf.services.HealthStatusManager();
         Server server = NettyServerBuilder.forPort(port)
-            .addService(new SandboxPluginService(engine))
+            .addService(new SandboxPluginService(engine, health))
+            .addService(health.getHealthService()) // grpc.health.v1 for K8s probes (#394)
             .build()
             .start();
         logger.info("script-sandbox plugin listening on :{} ({} engine)", port, engine);
