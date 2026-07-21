@@ -17,6 +17,7 @@ import {
   ListChecks,
   ListTree,
   Paperclip,
+  ReceiptText,
   ScanSearch,
   ScrollText,
   Sigma,
@@ -70,6 +71,8 @@ export const CHECKLISTS_PLUGIN_ID = 'audit-checklists';
 export const VULN_KB_PLUGIN_ID = 'vuln-kb';
 /** Plugin id for the audit report generator (compile, export, anchor). */
 export const REPORTS_PLUGIN_ID = 'audit-reports';
+/** Plugin id for German invoicing (invoice fence, list, ZUGFeRD export). */
+export const RECHNUNG_PLUGIN_ID = 'rechnung';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -82,6 +85,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: TAGS_PLUGIN_ID, name: 'Tag Explorer', desc: 'Browse nested tags as a tree with counts and filter notes by tag.', category: 'productivity', subcategory: 'Organizing', downloads: '8.1k', rating: '4.7', icon: Tags },
   { id: SAVED_SEARCHES_PLUGIN_ID, name: 'Saved Searches', desc: 'Save a query as a named smart folder that always reflects your notes.', category: 'productivity', subcategory: 'Search', downloads: '5.9k', rating: '4.6', icon: FolderSearch },
   { id: CHECKLISTS_PLUGIN_ID, name: 'Audit Checklists', desc: 'Methodology checklists per contract type (ERC-20, ERC-721, proxy, DeFi) with per-section progress in the note panel.', category: 'audit', subcategory: 'Methodology', downloads: '1.4k', rating: '4.8', icon: ListChecks },
+  { id: RECHNUNG_PLUGIN_ID, name: 'Rechnung (German Invoicing)', desc: 'Invoices as ```invoice fences: §14 UStG field checks, VAT modes incl. reverse charge and §19, sequential numbering, ZUGFeRD (EN 16931) export.', category: 'business', subcategory: 'Invoicing', downloads: '2.3k', rating: '4.9', icon: ReceiptText },
   { id: REPORTS_PLUGIN_ID, name: 'Audit Reports', desc: 'Compile an engagement’s scope and findings into a report note; export to PDF or markdown and anchor the report on-chain.', category: 'audit', subcategory: 'Reports', downloads: '1.6k', rating: '4.9', icon: ScrollText },
   { id: VULN_KB_PLUGIN_ID, name: 'Vulnerability Knowledge Base', desc: 'Clusters classified findings (class: vuln/…) across engagements, links each class to its writeup note, and surfaces related findings on every note.', category: 'audit', subcategory: 'Knowledge', downloads: '1.1k', rating: '4.8', icon: BookOpen },
   { id: FINDINGS_PLUGIN_ID, name: 'Findings Tracker', desc: 'Structured audit findings inside notes (```finding fences) plus a cross-engagement dashboard with severity and status filters.', category: 'audit', subcategory: 'Findings', downloads: '1.9k', rating: '4.9', icon: Bug },
