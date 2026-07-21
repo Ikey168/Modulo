@@ -16,6 +16,7 @@ import com.modulo.service.BlockchainService;
 import com.modulo.service.NoteService;
 import com.modulo.service.OpenAIService;
 import com.modulo.service.TagService;
+import com.modulo.service.ViesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private OpenAIService openAIService;
     @Autowired private BlockchainService blockchainService;
     @Autowired private SandboxedScriptService sandboxedScriptService;
+    @Autowired private ViesService viesService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
 
@@ -428,6 +430,83 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 digest = noteService.save(digest);
                 outputs.put("summary", summary);
                 outputs.put("note", digest);
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.tax.deadline.reminder": {
+                // Tax deadline reminder (#367): next USt-VA and ZM deadlines from
+                // configured cadence; one reminder note per deadline (deduped by title).
+                boolean quarterly = node.getConfig() != null
+                    && "quarterly".equals(node.getConfig().get("cadence"));
+                boolean dauerfrist = node.getConfig() != null
+                    && Boolean.TRUE.equals(node.getConfig().get("dauerfrist"));
+                java.time.LocalDate today = java.time.LocalDate.now();
+                TaxDeadlines.Deadline ustva = TaxDeadlines.nextUstVa(today, quarterly, dauerfrist);
+                TaxDeadlines.Deadline zm = TaxDeadlines.nextZm(today, false);
+                String deadlines = "USt-VA " + ustva.period() + " fällig " + ustva.due()
+                    + "; ZM " + zm.period() + " fällig " + zm.due();
+                String title = "Steuertermine — USt-VA " + ustva.period() + " fällig " + ustva.due();
+                Note reminder = null;
+                if (noteService.searchNotes(title, null, null, 1, 0).isEmpty()) {
+                    reminder = new Note();
+                    reminder.setTitle(title);
+                    reminder.setContent("## Steuertermine\n\n- USt-VA " + ustva.period() + ": fällig " + ustva.due()
+                        + (dauerfrist ? " (mit Dauerfristverlängerung)" : "")
+                        + "\n- Zusammenfassende Meldung " + zm.period() + ": fällig " + zm.due()
+                        + "\n\nMechanik, keine Steuerberatung — Termine mit dem Steuerberater abgleichen.\n");
+                    reminder.getTags().add(tagService.createOrGetTag("tax/deadline"));
+                    reminder = noteService.save(reminder);
+                }
+                outputs.put("deadlines", deadlines);
+                outputs.put("note", reminder);
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.invoice.chase": {
+                // Payment chase (#367): draft Zahlungserinnerungen for past-due
+                // invoices. Drafts only — nothing is ever sent automatically.
+                java.time.LocalDate today = java.time.LocalDate.now();
+                List<Note> allNotes = noteService.findAll(0, 500);
+                List<InvoiceFenceParser.ParsedInvoice> overdueInvoices =
+                    InvoiceFenceParser.overdue(allNotes, today);
+                int created = 0;
+                for (InvoiceFenceParser.ParsedInvoice invoice : overdueInvoices) {
+                    String title = "Zahlungserinnerung — Rechnung " + invoice.number();
+                    if (!noteService.searchNotes(title, null, null, 1, 0).isEmpty()) continue;
+                    Note draft = new Note();
+                    draft.setTitle(title);
+                    draft.setContent("## Zahlungserinnerung (Entwurf)\n\nRechnung " + invoice.number()
+                        + " an " + invoice.client() + " war am " + invoice.due()
+                        + " fällig und ist noch offen.\n\n"
+                        + "Sehr geehrte Damen und Herren,\n\n"
+                        + "auf unsere Rechnung " + invoice.number() + " vom Fälligkeitsdatum " + invoice.due()
+                        + " ist bisher kein Zahlungseingang zu verzeichnen. Wir bitten um Ausgleich "
+                        + "innerhalb von 7 Tagen. Sollte sich die Zahlung mit dieser Erinnerung "
+                        + "überschnitten haben, betrachten Sie dieses Schreiben als gegenstandslos.\n\n"
+                        + "Mit freundlichen Grüßen\n");
+                    draft.getTags().add(tagService.createOrGetTag("invoice/chase"));
+                    noteService.save(draft);
+                    created++;
+                }
+                outputs.put("overdueCount", String.valueOf(overdueInvoices.size()));
+                outputs.put("draftsCreated", String.valueOf(created));
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.vies.check": {
+                // VIES USt-IdNr validation (#367); degrades to 'unverified' when
+                // the service is unreachable — never blocks the flow.
+                String vatId = String.valueOf(inputs.getOrDefault("vatId", "")).trim();
+                ViesService.ViesResult result = viesService.check(vatId);
+                String status;
+                switch (result) {
+                    case VALID: status = "valid"; break;
+                    case INVALID: status = "invalid"; break;
+                    default: status = "unverified"; break;
+                }
+                outputs.put("valid", result == ViesService.ViesResult.VALID);
+                outputs.put("status", status);
+                outputs.put("checkedAt", LocalDateTime.now().toString());
                 return new NodeResult(outputs, "then");
             }
 
