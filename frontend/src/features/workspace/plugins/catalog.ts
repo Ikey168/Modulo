@@ -19,6 +19,7 @@ import {
   TAGS_PLUGIN_ID,
   TIMELINE_PLUGIN_ID,
   VULN_KB_PLUGIN_ID,
+  ZEITERFASSUNG_PLUGIN_ID,
 } from '../plugins';
 import type { PluginManifest, PluginModule } from './types';
 
@@ -84,6 +85,9 @@ const RUNNABLE: Record<string, Runnable> = {
   [RECHNUNG_PLUGIN_ID]: {
     dependencies: [NOTES_PLUGIN_ID],
     load: () => import('./builtins/rechnungPlugin'),
+  },
+  [ZEITERFASSUNG_PLUGIN_ID]: {
+    load: () => import('./builtins/zeiterfassungPlugin'),
   },
 };
 
