@@ -7,6 +7,7 @@ import {
   CALENDAR_PLUGIN_ID,
   CANVAS_PLUGIN_ID,
   DATABASE_PLUGIN_ID,
+  FINDINGS_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
   NOTES_PLUGIN_ID,
   OUTLINE_PLUGIN_ID,
@@ -56,6 +57,10 @@ const RUNNABLE: Record<string, Runnable> = {
   },
   [SAVED_SEARCHES_PLUGIN_ID]: {
     load: () => import('./builtins/savedSearchesPlugin'),
+  },
+  [FINDINGS_PLUGIN_ID]: {
+    dependencies: [NOTES_PLUGIN_ID],
+    load: () => import('./builtins/findingsPlugin'),
   },
 };
 
