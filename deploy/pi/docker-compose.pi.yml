@@ -1,0 +1,169 @@
+# Minimal Modulo deployment for a Raspberry Pi 5 home server (arm64), #386.
+#
+# Core stack only: Caddy (the single exposed service) → frontend / backend /
+# Keycloak, with Postgres and Neo4j internal to the compose network. No
+# observability sidecars, no IPFS node, no OPA — the backend runs with the
+# OTel SDK disabled and IPFS integration off. Memory limits total ~4 GB so an
+# 8 GB Pi keeps comfortable headroom.
+#
+# Usage (from deploy/pi/):
+#   cp .env.example .env   # then fill in every value
+#   docker compose -f docker-compose.pi.yml up -d --build
+#
+# All builds and images here are arm64-ready (Temurin, node:alpine, nginx,
+# postgres:16-alpine, neo4j:5.15, Keycloak 24, Caddy 2).
+
+name: modulo-pi
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # e.g. "modulo.lan:80" (plain HTTP on the LAN/tailnet) or a real domain
+      # for automatic HTTPS. See README for the options.
+      - MODULO_DOMAIN=${MODULO_DOMAIN:?set MODULO_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    mem_limit: 128m
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        # Same-origin API and auth, routed by Caddy — one public URL for everything.
+        - VITE_API_URL=${MODULO_URL:?set MODULO_URL in .env}
+        - VITE_KEYCLOAK_URL=${MODULO_URL}/auth/realms/modulo
+        - VITE_KEYCLOAK_CLIENT_ID=modulo-frontend
+    mem_limit: 128m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      # Root context so the controllers' own "/api/..." mappings resolve as
+      # written (same reasoning as the root docker-compose.yml).
+      - SERVER_SERVLET_CONTEXT_PATH=/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-modulo}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      - SPRING_NEO4J_URI=bolt://neo4j:7687
+      - SPRING_NEO4J_AUTHENTICATION_USERNAME=neo4j
+      - SPRING_NEO4J_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+      - MODULO_GRAPH_ENABLED=true
+      - MODULO_GRAPH_BACKFILL_ON_STARTUP=true
+      # Secrets — no working defaults on purpose; generate per README.
+      - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:?set MODULO_SECURITY_JWT_SECRET in .env}
+      - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:?set MODULO_SECURITY_API_KEY in .env}
+      - MODULO_SECURITY_ENCRYPTION_KEY=${MODULO_SECURITY_ENCRYPTION_KEY:?set MODULO_SECURITY_ENCRYPTION_KEY in .env}
+      # Keycloak sits behind Caddy at /auth: JWKS over the internal network,
+      # issuer validated against the browser-facing URL.
+      - MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/modulo/protocol/openid-connect/certs
+      - MODULO_SECURITY_KEYCLOAK_ISSUER_URI=${MODULO_URL}/auth/realms/modulo
+      # No collector / no IPFS node in this stack.
+      - OTEL_SDK_DISABLED=true
+      - MODULO_INTEGRATIONS_IPFS_ENABLED=false
+      # Optional on-chain anchoring via an external L2 RPC. Unset keeps the
+      # application.yml default (an unreachable localhost node) — anchoring
+      # calls then fail gracefully while everything else works.
+      - BLOCKCHAIN_RPC_URL=${BLOCKCHAIN_RPC_URL:-http://localhost:8545}
+      - BLOCKCHAIN_NETWORK=${BLOCKCHAIN_NETWORK:-mainnet}
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0
+    depends_on:
+      db:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    mem_limit: 1536m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8080/", "-o", "/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    # start-dev matches the existing stack; production-mode hardening is a
+    # documented follow-up. /auth relative path keeps everything same-origin
+    # behind Caddy; proxy headers make redirects use the public URL.
+    command: ["start-dev", "--import-realm", "--http-relative-path=/auth", "--proxy-headers=xforwarded"]
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:?set KEYCLOAK_ADMIN in .env}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+      - KC_HEALTH_ENABLED=true
+      - JAVA_OPTS_APPEND=-XX:MaxRAMPercentage=60.0
+    volumes:
+      - ../../keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro
+      - ../../keycloak/themes:/opt/keycloak/themes:ro
+    mem_limit: 768m
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
+      - POSTGRES_USER=${POSTGRES_USER:-modulo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../database/init:/docker-entrypoint-initdb.d:ro
+    mem_limit: 512m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-modulo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.15-community
+    # Remove a stale pid left by an unclean shutdown (power cut — it's a Pi)
+    # so the container doesn't crash-loop on restart.
+    command: ["bash", "-c", "rm -f /data/run/neo4j.pid /var/lib/neo4j/run/neo4j.pid 2>/dev/null || true; exec /startup/docker-entrypoint.sh neo4j"]
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+      # Tuned down for the Pi: the knowledge graph of a single vault is small.
+      - NEO4J_dbms_memory_heap_initial__size=256m
+      - NEO4J_dbms_memory_heap_max__size=512m
+      - NEO4J_dbms_memory_pagecache_size=128m
+      - NEO4J_dbms_default__listen__address=0.0.0.0
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    mem_limit: 1g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  caddy_data:
+  caddy_config:
