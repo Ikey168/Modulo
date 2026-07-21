@@ -21,6 +21,9 @@ public class PluginEventBus {
     private static final Logger logger = LoggerFactory.getLogger(PluginEventBus.class);
     
     private final Map<String, List<PluginEventListener<? extends PluginEvent>>> listeners = new ConcurrentHashMap<>();
+
+    /** Taps that see every event regardless of type — used by the broker bridge (#391). */
+    private final List<PluginEventListener<PluginEvent>> globalListeners = new CopyOnWriteArrayList<>();
     private final ExecutorService executorService = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "plugin-event-" + System.currentTimeMillis());
         t.setDaemon(true);
@@ -61,13 +64,39 @@ public class PluginEventBus {
     }
     
     /**
+     * Subscribe to every event regardless of type (#391 — bridge tap).
+     * @param listener Event listener
+     */
+    public void subscribeAll(PluginEventListener<PluginEvent> listener) {
+        globalListeners.add(listener);
+        logger.debug("Subscribed global event listener: {}", listener.getClass().getName());
+    }
+
+    /**
+     * Remove a global listener registered with {@link #subscribeAll}.
+     * @param listener Event listener to remove
+     */
+    public void unsubscribeAll(PluginEventListener<PluginEvent> listener) {
+        globalListeners.remove(listener);
+    }
+
+    /**
      * Publish an event synchronously
      * @param event Event to publish
      */
     public void publish(PluginEvent event) {
         String eventType = event.getType();
+
+        for (PluginEventListener<PluginEvent> tap : globalListeners) {
+            try {
+                tap.handleEvent(event);
+            } catch (Exception e) {
+                logger.error("Error in global event listener {}", tap.getClass().getName(), e);
+            }
+        }
+
         List<PluginEventListener<? extends PluginEvent>> eventListeners = listeners.get(eventType);
-        
+
         if (eventListeners != null && !eventListeners.isEmpty()) {
             logger.debug("Publishing event: {} to {} listeners", eventType, eventListeners.size());
             

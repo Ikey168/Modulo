@@ -81,6 +81,30 @@ public final class EventEnvelopeCodec {
             payload.toString());
     }
 
+    /** Serialize an envelope to its JSON wire form (the NATS message body, #391). */
+    public static byte[] toJsonBytes(Envelope envelope) {
+        ObjectNode node = JSON.createObjectNode();
+        node.put("id", envelope.id);
+        node.put("type", envelope.type);
+        node.put("schemaVersion", envelope.schemaVersion);
+        node.put("timestamp", envelope.timestamp);
+        node.put("origin", envelope.origin);
+        node.put("payload", envelope.jsonPayload);
+        return node.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** Parse the JSON wire form back into an envelope. Lenient: missing fields default. */
+    public static Envelope fromJsonBytes(byte[] bytes) throws java.io.IOException {
+        JsonNode node = JSON.readTree(bytes);
+        return new Envelope(
+            node.path("id").asText(""),
+            node.path("type").asText(""),
+            node.path("schemaVersion").asInt(SCHEMA_VERSION),
+            node.path("timestamp").asText(""),
+            node.path("origin").asText(""),
+            node.path("payload").asText("{}"));
+    }
+
     /**
      * Decode a wire envelope into a {@link RemotePluginEvent} for the in-JVM
      * bus. The payload's metadata object (if any) is restored; the entity

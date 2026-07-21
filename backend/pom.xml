@@ -425,6 +425,19 @@
             <artifactId>runtime</artifactId>
             <version>1.7.5</version>
         </dependency>
+
+        <!-- NATS: event-bus bridge for external plugin workloads (#391).
+             Only active when modulo.plugins.broker.enabled=true. -->
+        <dependency>
+            <groupId>io.nats</groupId>
+            <artifactId>jnats</artifactId>
+            <version>2.26.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

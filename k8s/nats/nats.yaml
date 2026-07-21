@@ -1,0 +1,91 @@
+# NATS broker for the plugin event bridge (#391, ADR 0004 §4).
+# Core NATS, single replica — at-most-once delivery, matching the bridge's
+# documented semantics. JetStream (durable delivery) is the recorded upgrade
+# path, not silently enabled here. Image publishes arm64.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+  namespace: modulo
+  labels:
+    app: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+        - name: nats
+          image: nats:2.10-alpine
+          args: ["--name", "modulo-nats"]
+          ports:
+            - name: client
+              containerPort: 4222
+            - name: monitor
+              containerPort: 8222
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: modulo
+  labels:
+    app: nats
+spec:
+  selector:
+    app: nats
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+---
+# Only the core API and plugin workloads may talk to the broker.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nats-ingress
+  namespace: modulo
+spec:
+  podSelector:
+    matchLabels:
+      app: nats
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: modulo-api
+        - podSelector:
+            matchLabels:
+              modulo.plugin/tier: external
+      ports:
+        - port: client
