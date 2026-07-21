@@ -20,6 +20,7 @@ import {
   SAVED_SEARCHES_PLUGIN_ID,
   TAGS_PLUGIN_ID,
   TIMELINE_PLUGIN_ID,
+  TODO_PLUGIN_ID,
   VULN_KB_PLUGIN_ID,
   ZEITERFASSUNG_PLUGIN_ID,
 } from '../plugins';
@@ -101,6 +102,9 @@ const RUNNABLE: Record<string, Runnable> = {
   'daily-notes': {
     dependencies: [NOTES_PLUGIN_ID],
     load: () => import('./builtins/plannerPlugin'),
+  },
+  [TODO_PLUGIN_ID]: {
+    load: () => import('./builtins/todoPlugin'),
   },
 };
 
