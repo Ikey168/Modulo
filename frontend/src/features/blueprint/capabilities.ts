@@ -32,6 +32,10 @@ export const CAPABILITY_LABELS: Record<string, { label: string; description: str
     label: 'AI — Invoke',
     description: 'Send note content to the AI service for summarisation.',
   },
+  'network:vies': {
+    label: 'Network — VIES lookup',
+    description: 'Validate VAT identification numbers against the EU VIES service.',
+  },
   'code:execute': {
     label: 'Custom Code — Execute',
     description:

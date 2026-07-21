@@ -109,6 +109,9 @@ const RUNNABLE: Record<string, Runnable> = {
   'webhook-trigger': {
     load: () => import('./builtins/webhookTriggerPlugin'),
   },
+  'tax-automation': {
+    load: () => import('./builtins/taxAutomationPlugin'),
+  },
   'scheduled-digest': {
     load: () => import('./builtins/scheduledDigestPlugin'),
   },
