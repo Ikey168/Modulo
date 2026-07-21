@@ -17,6 +17,7 @@ import {
   History,
   Link2,
   ListChecks,
+  ListTodo,
   ListTree,
   Paperclip,
   ReceiptText,
@@ -81,6 +82,8 @@ export const ZEITERFASSUNG_PLUGIN_ID = 'zeiterfassung';
 export const EUER_PLUGIN_ID = 'euer-datev';
 /** Plugin id for the GoBD document vault (retention + anchored integrity). */
 export const GOBD_PLUGIN_ID = 'gobd-vault';
+/** Plugin id for Todo lists (tasks with due dates, priorities, note links). */
+export const TODO_PLUGIN_ID = 'todo-lists';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -114,6 +117,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'scheduled-digest', name: 'Scheduled Digest', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', subcategory: 'Scheduled', downloads: '4.9k', rating: '4.4', icon: CalendarClock },
   { id: 'semantic-search', name: 'Semantic Search', desc: 'Vector search across your whole vault, powered by embeddings.', category: 'ai', subcategory: 'Search', downloads: '11.3k', rating: '4.7', icon: ScanSearch },
   { id: 'auto-linker', name: 'Auto-Linker', desc: 'Suggest [[wiki-links]] between notes from embedding similarity.', category: 'ai', subcategory: 'Writing', downloads: '8.2k', rating: '4.5', icon: Link2 },
+  { id: TODO_PLUGIN_ID, name: 'Todo Lists', desc: 'Tasks with due dates, priorities and lists, linkable to notes; filter by today, this week, or overdue.', category: 'productivity', subcategory: 'Tasks', downloads: '3.4k', rating: '4.7', icon: ListTodo },
   { id: 'daily-notes', name: 'Planner (Daily Notes)', desc: 'Dated journal notes grown into a planner: today view with carry-over of unfinished items, plus a week overview.', category: 'productivity', subcategory: 'Journaling', downloads: '10.4k', rating: '4.8', icon: CalendarDays },
   { id: 'kanban', name: 'Engagement Pipeline', desc: 'Drag-and-drop board: engagement notes move through configurable stages (Inquiry → Scoping → Audit → Report → Fix Review → Final).', category: 'audit', subcategory: 'Pipeline', downloads: '9.7k', rating: '4.6', icon: SquareKanban },
 ];
