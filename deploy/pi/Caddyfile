@@ -1,0 +1,22 @@
+# Single-origin routing for the Pi deployment (#386).
+# MODULO_DOMAIN comes from .env via the compose file:
+#   "modulo.lan:80"        → plain HTTP on the LAN / tailnet
+#   "modulo.example.com"   → automatic HTTPS via Let's Encrypt (needs public DNS + open 80/443)
+{$MODULO_DOMAIN} {
+	encode gzip
+
+	# API — the backend serves its controllers under /api at the root context.
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Keycloak — served under /auth (see --http-relative-path in the compose file).
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+
+	# Everything else — the built frontend.
+	handle {
+		reverse_proxy frontend:80
+	}
+}
