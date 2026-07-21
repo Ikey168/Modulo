@@ -54,6 +54,16 @@ import {
 } from './plugins';
 import { PluginProvider, usePlugins } from './plugins/PluginProvider';
 import { PluginErrorBoundary } from './plugins/PluginErrorBoundary';
+import { HubView } from './plugins/HubView';
+import {
+  activeModes,
+  hubTabs,
+  isHubMode,
+  modeInfo,
+  modeOfView,
+  resolveHubTab,
+  sidebarViews,
+} from './plugins/modes';
 import type { WorkspaceViewProps } from './plugins/types';
 import { useCoreWorkspace } from './useCoreWorkspace';
 
@@ -223,23 +233,41 @@ function WorkspaceShell() {
     }
   };
 
-  // Nav = built-in views + views contributed by active plugins, ordered.
+  // Nav = built-in views + mode-less contributed views + one entry per active
+  // hub mode (#369). Views contributed to a hub mode add no sidebar items of
+  // their own — they render as tabs inside the mode's hub.
   const contributedViews = plugins.contributions.views;
   const navItems = useMemo<NavEntry[]>(() => {
-    const contributed = contributedViews.map((v) => ({ id: v.id, label: v.label, icon: v.icon, order: v.order }));
-    return [...BUILTIN_VIEWS, ...contributed].sort((a, b) => a.order - b.order);
+    const contributed = sidebarViews(contributedViews).map((v) => ({ id: v.id, label: v.label, icon: v.icon, order: v.order }));
+    const modes = activeModes(contributedViews).map((m) => ({ id: m.id, label: m.label, icon: m.icon, order: m.order }));
+    return [...BUILTIN_VIEWS, ...contributed, ...modes].sort((a, b) => a.order - b.order);
   }, [contributedViews]);
 
-  // A view id from the URL is valid if it is built-in, contributed by an active
-  // plugin, or a known plugin-backed view we can offer to install.
+  // A view id from the URL is valid if it is built-in, a hub mode, contributed
+  // by an active plugin, or a known plugin-backed view we can offer to install.
   const isKnownPluginView = viewParam != null && viewParam in VIEW_PLUGIN;
   const view =
     viewParam &&
-    (BUILTIN_IDS.has(viewParam) || navItems.some((n) => n.id === viewParam) || isKnownPluginView)
+    (BUILTIN_IDS.has(viewParam) ||
+      isHubMode(viewParam) ||
+      contributedViews.some((v) => v.id === viewParam) ||
+      isKnownPluginView)
       ? viewParam
       : 'dashboard';
   const activeView = contributedViews.find((v) => v.id === view);
   const ActiveViewComponent = activeView?.component;
+
+  // Hub resolution (#369): `/app/<mode>` opens the mode's remembered (or first)
+  // tab; `/app/<tabView>` deep links open the tab's hub with that tab active.
+  const hubModeId = isHubMode(view) ? view : activeView?.mode;
+  const hubMode = hubModeId ? modeInfo(hubModeId) : undefined;
+  const hubViewTabs = hubModeId ? hubTabs(contributedViews, hubModeId) : [];
+  const activeHubTab = hubMode
+    ? (activeView?.mode ? activeView : resolveHubTab(hubViewTabs, hubMode.id))
+    : undefined;
+
+  // The nav entry to highlight: for a hub tab that's the mode's entry.
+  const activeNavId = modeOfView(contributedViews, view) ?? view;
 
   const viewProps: WorkspaceViewProps = {
     data,
@@ -290,7 +318,7 @@ function WorkspaceShell() {
                 return (
                   <NavItem
                     key={item.id}
-                    active={item.id === view}
+                    active={item.id === activeNavId}
                     onClick={() => goTo(item.id)}
                     icon={<Icon aria-hidden="true" />}
                     label={item.label}
@@ -317,7 +345,7 @@ function WorkspaceShell() {
           {navItems.map((item) => (
             <RailItem
               key={item.id}
-              active={item.id === view}
+              active={item.id === activeNavId}
               label={item.label}
               icon={item.icon}
               onClick={() => goTo(item.id)}
@@ -364,9 +392,17 @@ function WorkspaceShell() {
           </Suspense>
         )}
 
-        {/* Plugin-contributed views (Notes, Graph, …). */}
+        {/* Mode hubs (#369) and plugin-contributed views (Notes, Graph, …). */}
         {!BUILTIN_IDS.has(view) &&
-          (ActiveViewComponent ? (
+          (hubMode && activeHubTab ? (
+            <HubView
+              mode={hubMode}
+              tabs={hubViewTabs}
+              activeTab={activeHubTab}
+              viewProps={viewProps}
+              onSelectTab={goTo}
+            />
+          ) : ActiveViewComponent ? (
             <PluginErrorBoundary name={activeView?.label ?? view}>
               <ActiveViewComponent {...viewProps} />
             </PluginErrorBoundary>

@@ -11,7 +11,8 @@ function CalendarSurface(p: WorkspaceViewProps) {
 
 const calendarPlugin: PluginModule = {
   activate(ctx) {
-    ctx.addView({ id: 'calendar', label: 'Calendar', icon: CalendarDays, order: 70, component: CalendarSurface });
+    // Lives in the Productivity hub (#369) rather than the Workspace sidebar.
+    ctx.addView({ id: 'calendar', label: 'Calendar', icon: CalendarDays, order: 70, component: CalendarSurface, mode: 'productivity' });
   },
 };
 

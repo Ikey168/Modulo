@@ -61,6 +61,11 @@ export interface ViewContribution {
   icon: LucideIcon;
   order: number;
   component: ComponentType<WorkspaceViewProps>;
+  /** Workspace mode this view belongs to (#369). Undefined renders the view in
+   *  the classic Workspace sidebar; a hub mode id (`'productivity'`, `'audit'`,
+   *  `'business'`) renders it as a tab in that mode's hub instead — the view
+   *  then adds no sidebar item of its own. */
+  mode?: string;
 }
 
 export interface NotePanelContribution {
