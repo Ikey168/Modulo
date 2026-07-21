@@ -1,6 +1,7 @@
 // Sample marketplace catalogue. The plugin store is not yet wired to a backend
 // endpoint, so this list is static and install state is kept client-side.
 import {
+  Bug,
   CalendarClock,
   CalendarDays,
   ChartNetwork,
@@ -58,6 +59,8 @@ export const TIMELINE_PLUGIN_ID = 'timeline-view';
 export const TAGS_PLUGIN_ID = 'tag-explorer';
 /** Plugin id that adds Saved Searches (named smart folders). */
 export const SAVED_SEARCHES_PLUGIN_ID = 'saved-searches';
+/** Plugin id for the audit Findings Tracker (finding fence + dashboard). */
+export const FINDINGS_PLUGIN_ID = 'findings-tracker';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -69,6 +72,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: TIMELINE_PLUGIN_ID, name: 'Timeline', desc: 'Notes as a chronological stream grouped by day, week, or month.', category: 'analytics', subcategory: 'Visualization', downloads: '6.8k', rating: '4.6', icon: History },
   { id: TAGS_PLUGIN_ID, name: 'Tag Explorer', desc: 'Browse nested tags as a tree with counts and filter notes by tag.', category: 'productivity', subcategory: 'Organizing', downloads: '8.1k', rating: '4.7', icon: Tags },
   { id: SAVED_SEARCHES_PLUGIN_ID, name: 'Saved Searches', desc: 'Save a query as a named smart folder that always reflects your notes.', category: 'productivity', subcategory: 'Search', downloads: '5.9k', rating: '4.6', icon: FolderSearch },
+  { id: FINDINGS_PLUGIN_ID, name: 'Findings Tracker', desc: 'Structured audit findings inside notes (```finding fences) plus a cross-engagement dashboard with severity and status filters.', category: 'audit', subcategory: 'Findings', downloads: '1.9k', rating: '4.9', icon: Bug },
   { id: 'latex', name: 'LaTeX Math', desc: 'Render mathematical equations inline and in blocks using KaTeX.', category: 'render', subcategory: 'Math', downloads: '12.4k', rating: '4.8', icon: Sigma },
   { id: 'ai-summary', name: 'AI Summarizer', desc: 'Generate concise note summaries powered by GPT-4.', category: 'ai', subcategory: 'Writing', downloads: '8.9k', rating: '4.6', icon: Sparkles },
   { id: 'github-sync', name: 'GitHub Sync', desc: 'Automatically back up and sync your notes to a GitHub repository.', category: 'sync', downloads: '15.2k', rating: '4.9', icon: Github },
