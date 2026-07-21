@@ -43,6 +43,14 @@ export const CAPABILITY_LABELS: Record<string, { label: string; description: str
       'The script receives note fields (title, content) and returns a string. ' +
       'No Java, filesystem, or network access is available.',
   },
+  'wasm:execute': {
+    label: 'WASM Module — Execute',
+    description:
+      'Run a compiled WebAssembly module in this blueprint. ' +
+      'The module receives note fields (title, content) and returns a string. ' +
+      'Modules are pure compute: no imports, no filesystem or network access, ' +
+      'hard memory and CPU limits.',
+  },
 };
 
 export function capabilityLabel(cap: string): string {

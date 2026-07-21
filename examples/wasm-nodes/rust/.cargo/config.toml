@@ -1,0 +1,4 @@
+# action.wasm.execute modules must declare a memory maximum ≤ 512 pages
+# (32 MiB) — ADR 0003. lld's --max-memory takes bytes: 512 * 64 KiB.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--max-memory=33554432"]

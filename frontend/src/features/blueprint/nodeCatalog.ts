@@ -86,6 +86,22 @@ export const CORE_NODES: NodeDescriptor[] = [
     capability: 'code:execute',
   },
   {
+    type: 'action.wasm.execute',
+    version: 1,
+    category: 'action',
+    title: 'WASM Module',
+    description:
+      'Runs a compiled WebAssembly module (Rust, AssemblyScript, …) with the note as input. ' +
+      'The module must follow the ABI in docs/blueprint/wasm-nodes.md: exports memory/alloc/execute, ' +
+      'no imports, declared memory maximum ≤ 32 MiB, binary ≤ 512 KiB. ' +
+      'Same sandbox limits as Custom Code.',
+    execIn: true,
+    execOut: ['then'],
+    inputs: [{ id: 'note', name: 'Note', type: DataTypes.Note }],
+    outputs: [{ id: 'output', name: 'Output', type: DataTypes.String }],
+    capability: 'wasm:execute',
+  },
+  {
     type: 'logic.branch',
     version: 1,
     category: 'logic',

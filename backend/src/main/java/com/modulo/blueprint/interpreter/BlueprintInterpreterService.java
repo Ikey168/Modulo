@@ -5,6 +5,8 @@ import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
+import com.modulo.blueprint.wasm.WasmModuleValidator;
+import com.modulo.blueprint.wasm.WasmNodeExecutor;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.plugin.event.LinkEvent;
@@ -394,6 +396,30 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 return new NodeResult(outputs, "then");
             }
 
+            case "action.wasm.execute": {
+                String moduleB64 = node.getConfig() != null
+                    ? (String) node.getConfig().get("module") : null;
+                if (moduleB64 == null || moduleB64.isBlank()) {
+                    logger.warn("action.wasm.execute: node '{}' has no 'module' config", node.getId());
+                    outputs.put("output", "");
+                    return new NodeResult(outputs, "then");
+                }
+                Note wasmNote = (Note) inputs.get("note");
+                String wasmTitle   = wasmNote != null && wasmNote.getTitle()   != null ? wasmNote.getTitle()   : "";
+                String wasmContent = wasmNote != null && wasmNote.getContent() != null ? wasmNote.getContent() : "";
+                String wasmOutput;
+                try {
+                    wasmOutput = WasmNodeExecutor.execute(
+                        validatedWasmModule(moduleB64), wasmTitle, wasmContent);
+                } catch (WasmModuleValidator.WasmModuleValidationException
+                        | WasmNodeExecutor.WasmExecutionException | IllegalArgumentException e) {
+                    logger.warn("action.wasm.execute: node '{}' failed — {}", node.getId(), e.getMessage());
+                    wasmOutput = "";
+                }
+                outputs.put("output", wasmOutput);
+                return new NodeResult(outputs, "then");
+            }
+
             case "action.audit.reaudit": {
                 // Re-audit intake (#363): a fix-review note for the engagement,
                 // tagged so it lands in the pipeline's Fix Review column.
@@ -534,6 +560,25 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     // -------------------------------------------------------------------------
     // Execution logging
     // -------------------------------------------------------------------------
+
+    /**
+     * Decode, validate, and cache an action.wasm.execute module (#403).
+     * Re-validating and re-parsing on every trigger firing would dominate
+     * execution time for hot blueprints, so parsed modules are cached against
+     * the config's base64 string (already retained by the registered IR — the
+     * key adds no new memory). Bounded crudely: registered blueprints hold a
+     * handful of modules; a full cache means churn, so start over.
+     */
+    private com.dylibso.chicory.wasm.WasmModule validatedWasmModule(String moduleB64) {
+        if (wasmModuleCache.size() > 64) {
+            wasmModuleCache.clear();
+        }
+        return wasmModuleCache.computeIfAbsent(moduleB64,
+            b64 -> WasmModuleValidator.validate(java.util.Base64.getDecoder().decode(b64)).module());
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, com.dylibso.chicory.wasm.WasmModule>
+        wasmModuleCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     private void log(Long registryId, String execType, String status, String message, long durationMs) {
         try {

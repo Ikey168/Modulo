@@ -56,3 +56,40 @@ jobs:
     - name: Boundary lint — no workspace internals in feature-pack code
       working-directory: frontend
       run: npm run lint:boundary:ci
+
+  # #405 — action.wasm.execute ABI conformance.
+  # Rebuilds both example modules from source and fails if the rebuilt
+  # binaries drift from the checked-in test fixtures the backend suite
+  # (WasmNodeTest) validates and executes. A drift here means the ABI, the
+  # toolchain pin, or the fixtures changed without the others following.
+  wasm-node-examples:
+    name: WASM node examples (ADR 0003)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Build AssemblyScript example
+      working-directory: examples/wasm-nodes/assemblyscript
+      run: |
+        npm ci --no-audit --no-fund
+        npm run build
+
+    - name: Build Rust example
+      working-directory: examples/wasm-nodes/rust
+      # rust-toolchain.toml pins the compiler and target; the rustup shim
+      # installs both on first use, keeping the rebuild byte-reproducible.
+      run: cargo build --release --target wasm32-unknown-unknown
+
+    - name: Rebuilt binaries must match the backend test fixtures
+      run: |
+        cmp examples/wasm-nodes/assemblyscript/build/titlecase.wasm \
+            backend/src/test/resources/wasm/titlecase.wasm
+        cmp examples/wasm-nodes/rust/target/wasm32-unknown-unknown/release/modulo_wasm_node_wordstats.wasm \
+            backend/src/test/resources/wasm/wordstats.wasm

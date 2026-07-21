@@ -1,0 +1,6 @@
+# Pinned so CI's rebuild is byte-identical to the checked-in conformance
+# fixture (backend/src/test/resources/wasm/wordstats.wasm). Bumping this pin
+# means rebuilding and re-committing the fixture in the same change.
+[toolchain]
+channel = "1.94.1"
+targets = ["wasm32-unknown-unknown"]

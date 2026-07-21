@@ -217,6 +217,72 @@ class BlueprintInterpreterServiceTest {
         }
     }
 
+    /** action.wasm.execute: a validated module runs and its output feeds downstream nodes (#403). */
+    @Test
+    void wasmExecuteRunsModuleAndFeedsOutput() throws Exception {
+        String moduleB64;
+        try (java.io.InputStream in = getClass().getResourceAsStream("/wasm/titlecase.wasm")) {
+            moduleB64 = java.util.Base64.getEncoder().encodeToString(in.readAllBytes());
+        }
+
+        Map<String, Object> ir = Map.of(
+            "irVersion", 1,
+            "nodes", List.of(
+                node("t1", "trigger.note.saved", 1, null),
+                node("w1", "action.wasm.execute", 1, Map.of("module", moduleB64)),
+                node("tag", "action.tag.add", 1, null)
+            ),
+            "edges", List.of(
+                edge("e1", "exec", "t1", "then", "w1", "in"),
+                edge("e2", "data", "t1", "note", "w1", "note"),
+                edge("e3", "exec", "w1", "then", "tag", "in"),
+                edge("e4", "data", "t1", "note", "tag", "note"),
+                edge("e5", "data", "w1", "output", "tag", "tag")
+            )
+        );
+
+        interpreter.registerBlueprint(entry(ir));
+
+        Note note = new Note();
+        note.setId(9L);
+        note.setTitle("wasm module output");
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+
+        // titlecase.wasm title-cased the note title and fed it to the tag node.
+        verify(tagService, atLeastOnce()).createOrGetTag("Wasm Module Output");
+    }
+
+    /** An invalid module (undeclared imports) degrades to empty output, not a failed run (#403). */
+    @Test
+    void wasmExecuteWithInvalidModuleDegradesGracefully() throws Exception {
+        String moduleB64;
+        try (java.io.InputStream in = getClass().getResourceAsStream("/wasm/imports.wasm")) {
+            moduleB64 = java.util.Base64.getEncoder().encodeToString(in.readAllBytes());
+        }
+
+        Map<String, Object> ir = Map.of(
+            "irVersion", 1,
+            "nodes", List.of(
+                node("t1", "trigger.note.saved", 1, null),
+                node("w1", "action.wasm.execute", 1, Map.of("module", moduleB64))
+            ),
+            "edges", List.of(
+                edge("e1", "exec", "t1", "then", "w1", "in"),
+                edge("e2", "data", "t1", "note", "w1", "note")
+            )
+        );
+
+        interpreter.registerBlueprint(entry(ir));
+
+        Note note = new Note();
+        note.setId(9L);
+        note.setTitle("x");
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+
+        // The run completed (success log) despite the rejected module.
+        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("success"), anyString(), any(), any());
+    }
+
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---
 
     private static Map<String, Object> node(String id, String type, int version, Map<String, Object> config) {

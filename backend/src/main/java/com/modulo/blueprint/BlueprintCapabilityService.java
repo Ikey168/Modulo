@@ -32,17 +32,18 @@ public class BlueprintCapabilityService {
      * {@code capability} field declared on each NodeDescriptor in the frontend catalog.
      * Used by the backend to derive requirements without depending on the TS source.
      */
-    public static final Map<String, String> NODE_CAPABILITY_MAP = Map.of(
-        "action.note.create",          "notes:write",
-        "action.tag.add",              "notes:write",
-        "action.note.anchor",          "blockchain:anchor",
-        "action.ai.summarize",         "ai:invoke",
-        "action.code.execute",         "code:execute",
-        "action.audit.reaudit",        "notes:write",
-        "action.audit.digest",         "notes:write",
-        "action.tax.deadline.reminder", "notes:write",
-        "action.invoice.chase",        "notes:write",
-        "action.vies.check",           "network:vies"
+    public static final Map<String, String> NODE_CAPABILITY_MAP = Map.ofEntries(
+        Map.entry("action.note.create",          "notes:write"),
+        Map.entry("action.tag.add",              "notes:write"),
+        Map.entry("action.note.anchor",          "blockchain:anchor"),
+        Map.entry("action.ai.summarize",         "ai:invoke"),
+        Map.entry("action.code.execute",         "code:execute"),
+        Map.entry("action.wasm.execute",         "wasm:execute"),
+        Map.entry("action.audit.reaudit",        "notes:write"),
+        Map.entry("action.audit.digest",         "notes:write"),
+        Map.entry("action.tax.deadline.reminder", "notes:write"),
+        Map.entry("action.invoice.chase",        "notes:write"),
+        Map.entry("action.vies.check",           "network:vies")
     );
 
     @Autowired private JdbcTemplate jdbc;

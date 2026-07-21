@@ -417,6 +417,14 @@
             <artifactId>quickjs4j</artifactId>
             <version>0.1.0</version>
         </dependency>
+
+        <!-- Chicory: validates and interprets user-supplied action.wasm.execute
+             modules (#403, ADR 0003). Pure Java, no JNI. -->
+        <dependency>
+            <groupId>com.dylibso.chicory</groupId>
+            <artifactId>runtime</artifactId>
+            <version>1.7.5</version>
+        </dependency>
     </dependencies>
 
     <build>
