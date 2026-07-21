@@ -1,6 +1,7 @@
 // Sample marketplace catalogue. The plugin store is not yet wired to a backend
 // endpoint, so this list is static and install state is kept client-side.
 import {
+  Archive,
   BookOpen,
   BookText,
   Bug,
@@ -78,6 +79,8 @@ export const RECHNUNG_PLUGIN_ID = 'rechnung';
 export const ZEITERFASSUNG_PLUGIN_ID = 'zeiterfassung';
 /** Plugin id for EÜR bookkeeping + DATEV export. */
 export const EUER_PLUGIN_ID = 'euer-datev';
+/** Plugin id for the GoBD document vault (retention + anchored integrity). */
+export const GOBD_PLUGIN_ID = 'gobd-vault';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -101,6 +104,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'pdf-export', name: 'PDF Export', desc: 'Export individual notes or entire notebooks as formatted PDF documents.', category: 'export', downloads: '9.1k', rating: '4.3', icon: FileDown },
   { id: 'graph-stats', name: 'Graph Analytics', desc: 'Advanced graph analytics: centrality scores, cluster detection, and more.', category: 'analytics', subcategory: 'Metrics', downloads: '3.2k', rating: '4.7', icon: ChartNetwork },
   { id: 'web3-id', name: 'Web3 Identity', desc: 'Sign notes with your Ethereum wallet for verifiable on-chain authorship.', category: 'web3', subcategory: 'Identity', downloads: '4.5k', rating: '4.4', icon: Fingerprint },
+  { id: GOBD_PLUGIN_ID, name: 'GoBD Vault', desc: 'Retention tracking for notes tagged retain/<class> with configurable periods, anchored-integrity status, and a Verfahrensdokumentation template.', category: 'business', subcategory: 'Compliance', downloads: '1.2k', rating: '4.6', icon: Archive },
   { id: EUER_PLUGIN_ID, name: 'Books (EÜR + DATEV)', desc: 'Income from paid invoices, expenses by category, USt-VA period numbers, and DATEV Buchungsstapel CSV export for your Steuerberater.', category: 'business', subcategory: 'Bookkeeping', downloads: '1.8k', rating: '4.7', icon: BookText },
   { id: ZEITERFASSUNG_PLUGIN_ID, name: 'Zeiterfassung (Time Tracking)', desc: 'Timer and manual entries per engagement; unbilled billable time converts into ```invoice line items.', category: 'business', subcategory: 'Time', downloads: '2.1k', rating: '4.7', icon: Timer },
   { id: 'focus', name: 'Focus Timer', desc: 'Built-in Pomodoro timer that logs focus sessions linked to your notes.', category: 'productivity', subcategory: 'Focus', downloads: '7.8k', rating: '4.2', icon: Timer },

@@ -10,6 +10,7 @@ import {
   DATABASE_PLUGIN_ID,
   EUER_PLUGIN_ID,
   FINDINGS_PLUGIN_ID,
+  GOBD_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
   NOTES_PLUGIN_ID,
   OUTLINE_PLUGIN_ID,
@@ -93,6 +94,9 @@ const RUNNABLE: Record<string, Runnable> = {
   [EUER_PLUGIN_ID]: {
     dependencies: [RECHNUNG_PLUGIN_ID],
     load: () => import('./builtins/euerPlugin'),
+  },
+  [GOBD_PLUGIN_ID]: {
+    load: () => import('./builtins/gobdPlugin'),
   },
 };
 
