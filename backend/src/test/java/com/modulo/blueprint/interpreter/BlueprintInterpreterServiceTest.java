@@ -179,6 +179,44 @@ class BlueprintInterpreterServiceTest {
         verify(noteService, atMost(BlueprintExecutionContext.MAX_STEPS + 1)).save(any(Note.class));
     }
 
+    /** action.code.execute runs through whichever ScriptSandbox engine is configured (#397/#400). */
+    @Test
+    void codeExecuteRunsThroughConfiguredSandboxEngine() {
+        for (com.modulo.blueprint.sandbox.ScriptSandbox engine : List.of(
+                new com.modulo.blueprint.sandbox.RhinoScriptSandbox(),
+                new com.modulo.blueprint.sandbox.WasmScriptSandbox())) {
+            org.springframework.test.util.ReflectionTestUtils.setField(interpreter, "scriptSandbox", engine);
+
+            Map<String, Object> ir = Map.of(
+                "irVersion", 1,
+                "nodes", List.of(
+                    node("t1", "trigger.note.saved", 1, null),
+                    node("c1", "action.code.execute", 1,
+                        Map.of("code", "function(note) { return note.title.toUpperCase(); }")),
+                    node("tag", "action.tag.add", 1, null)
+                ),
+                "edges", List.of(
+                    edge("e1", "exec", "t1", "then", "c1", "in"),
+                    edge("e2", "data", "t1", "note", "c1", "note"),
+                    edge("e3", "exec", "c1", "then", "tag", "in"),
+                    edge("e4", "data", "t1", "note", "tag", "note"),
+                    edge("e5", "data", "c1", "output", "tag", "tag")
+                )
+            );
+
+            interpreter.registerBlueprint(entry(ir));
+
+            Note note = new Note();
+            note.setId(7L);
+            note.setTitle("hello " + engine.getClass().getSimpleName());
+            noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+
+            // The script's output fed the tag node — uppercased by the engine under test.
+            verify(tagService, atLeastOnce())
+                .createOrGetTag(("hello " + engine.getClass().getSimpleName()).toUpperCase());
+        }
+    }
+
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---
 
     private static Map<String, Object> node(String id, String type, int version, Map<String, Object> config) {

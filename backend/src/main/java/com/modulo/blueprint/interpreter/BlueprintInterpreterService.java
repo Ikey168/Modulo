@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
-import com.modulo.blueprint.sandbox.SandboxedScriptService;
+import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.plugin.event.LinkEvent;
@@ -58,7 +58,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private TagService tagService;
     @Autowired private OpenAIService openAIService;
     @Autowired private BlockchainService blockchainService;
-    @Autowired private SandboxedScriptService sandboxedScriptService;
+    @Autowired private ScriptSandbox scriptSandbox;
     @Autowired private ViesService viesService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
@@ -385,8 +385,8 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String content = note != null && note.getContent() != null ? note.getContent() : "";
                 String output;
                 try {
-                    output = sandboxedScriptService.execute(code, title, content);
-                } catch (SandboxedScriptService.ScriptExecutionException e) {
+                    output = scriptSandbox.execute(code, title, content);
+                } catch (ScriptSandbox.ScriptExecutionException e) {
                     logger.warn("action.code.execute: script error on node '{}' — {}", node.getId(), e.getMessage());
                     output = "";
                 }

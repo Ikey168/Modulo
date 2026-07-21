@@ -401,11 +401,21 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-        <!-- Rhino: sandboxed JS execution for action.code.execute (#279) -->
+        <!-- Rhino: sandboxed JS execution for action.code.execute (#279).
+             Legacy engine behind ScriptSandbox — removed after the WASM cutover (#401). -->
         <dependency>
             <groupId>org.mozilla</groupId>
             <artifactId>rhino</artifactId>
             <version>1.7.15</version>
+        </dependency>
+
+        <!-- QuickJS-on-WASM: sandboxed JS execution, wasm engine (#398).
+             Pure-Java runtime (Endive/Chicory family), no JNI — arm64-safe.
+             Provenance: docs/blueprint/wasm-sandbox.md -->
+        <dependency>
+            <groupId>io.roastedroot</groupId>
+            <artifactId>quickjs4j</artifactId>
+            <version>0.1.0</version>
         </dependency>
     </dependencies>
 
@@ -565,6 +575,11 @@
                              source; generated from .proto at build time) -->
                         <exclude>com/modulo/grpc/**/*</exclude>
                         <exclude>com/modulo/plugin/grpc/**/*</exclude>
+                        <!-- Exclude the AOT-compiled QuickJS wasm module (quickjs4j):
+                             its generated methods exceed JaCoCo's instrumentation
+                             size limit (MethodTooLargeException) -->
+                        <exclude>io/roastedroot/**/*</exclude>
+                        <exclude>run/endive/**/*</exclude>
                         <!-- Exclude configuration and main application classes -->
                         <exclude>com/modulo/ModuloApplication.class</exclude>
                         <exclude>com/modulo/config/**/*</exclude>
