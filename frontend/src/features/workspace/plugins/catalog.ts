@@ -8,6 +8,7 @@ import {
   CANVAS_PLUGIN_ID,
   CHECKLISTS_PLUGIN_ID,
   DATABASE_PLUGIN_ID,
+  EUER_PLUGIN_ID,
   FINDINGS_PLUGIN_ID,
   GRAPH_PLUGIN_ID,
   NOTES_PLUGIN_ID,
@@ -88,6 +89,10 @@ const RUNNABLE: Record<string, Runnable> = {
   },
   [ZEITERFASSUNG_PLUGIN_ID]: {
     load: () => import('./builtins/zeiterfassungPlugin'),
+  },
+  [EUER_PLUGIN_ID]: {
+    dependencies: [RECHNUNG_PLUGIN_ID],
+    load: () => import('./builtins/euerPlugin'),
   },
 };
 
