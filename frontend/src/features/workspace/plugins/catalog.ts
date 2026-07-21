@@ -62,6 +62,9 @@ const RUNNABLE: Record<string, Runnable> = {
     dependencies: [NOTES_PLUGIN_ID],
     load: () => import('./builtins/findingsPlugin'),
   },
+  kanban: {
+    load: () => import('./builtins/kanbanPlugin'),
+  },
 };
 
 export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {

@@ -88,5 +88,5 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'semantic-search', name: 'Semantic Search', desc: 'Vector search across your whole vault, powered by embeddings.', category: 'ai', subcategory: 'Search', downloads: '11.3k', rating: '4.7', icon: ScanSearch },
   { id: 'auto-linker', name: 'Auto-Linker', desc: 'Suggest [[wiki-links]] between notes from embedding similarity.', category: 'ai', subcategory: 'Writing', downloads: '8.2k', rating: '4.5', icon: Link2 },
   { id: 'daily-notes', name: 'Daily Notes', desc: 'Automatically create a dated journal note each day.', category: 'productivity', subcategory: 'Journaling', downloads: '10.4k', rating: '4.8', icon: CalendarDays },
-  { id: 'kanban', name: 'Kanban Board', desc: 'Turn note checklists into drag-and-drop task boards.', category: 'productivity', subcategory: 'Organizing', downloads: '9.7k', rating: '4.6', icon: SquareKanban },
+  { id: 'kanban', name: 'Engagement Pipeline', desc: 'Drag-and-drop board: engagement notes move through configurable stages (Inquiry → Scoping → Audit → Report → Fix Review → Final).', category: 'audit', subcategory: 'Pipeline', downloads: '9.7k', rating: '4.6', icon: SquareKanban },
 ];
