@@ -98,6 +98,10 @@ const RUNNABLE: Record<string, Runnable> = {
   [GOBD_PLUGIN_ID]: {
     load: () => import('./builtins/gobdPlugin'),
   },
+  'daily-notes': {
+    dependencies: [NOTES_PLUGIN_ID],
+    load: () => import('./builtins/plannerPlugin'),
+  },
 };
 
 export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {

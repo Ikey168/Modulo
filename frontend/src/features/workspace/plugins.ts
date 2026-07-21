@@ -114,6 +114,6 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'scheduled-digest', name: 'Scheduled Digest', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', subcategory: 'Scheduled', downloads: '4.9k', rating: '4.4', icon: CalendarClock },
   { id: 'semantic-search', name: 'Semantic Search', desc: 'Vector search across your whole vault, powered by embeddings.', category: 'ai', subcategory: 'Search', downloads: '11.3k', rating: '4.7', icon: ScanSearch },
   { id: 'auto-linker', name: 'Auto-Linker', desc: 'Suggest [[wiki-links]] between notes from embedding similarity.', category: 'ai', subcategory: 'Writing', downloads: '8.2k', rating: '4.5', icon: Link2 },
-  { id: 'daily-notes', name: 'Daily Notes', desc: 'Automatically create a dated journal note each day.', category: 'productivity', subcategory: 'Journaling', downloads: '10.4k', rating: '4.8', icon: CalendarDays },
+  { id: 'daily-notes', name: 'Planner (Daily Notes)', desc: 'Dated journal notes grown into a planner: today view with carry-over of unfinished items, plus a week overview.', category: 'productivity', subcategory: 'Journaling', downloads: '10.4k', rating: '4.8', icon: CalendarDays },
   { id: 'kanban', name: 'Engagement Pipeline', desc: 'Drag-and-drop board: engagement notes move through configurable stages (Inquiry → Scoping → Audit → Report → Fix Review → Final).', category: 'audit', subcategory: 'Pipeline', downloads: '9.7k', rating: '4.6', icon: SquareKanban },
 ];
