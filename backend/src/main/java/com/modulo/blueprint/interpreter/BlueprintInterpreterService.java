@@ -65,6 +65,11 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private final Map<String, List<ListenerRegistration>> registeredListeners = new ConcurrentHashMap<>();
     private final Map<String, List<ScheduledFuture<?>>> scheduledJobs = new ConcurrentHashMap<>();
 
+    // Webhook trigger registrations (#363): "<registryId>:<nodeId>" → registration,
+    // plus per-blueprint keys so unregister removes exactly its endpoints.
+    private final Map<String, WebhookRegistration> webhooks = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> webhookKeysByBlueprint = new ConcurrentHashMap<>();
+
     private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
 
     @PostConstruct
@@ -148,6 +153,21 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     }
                     break;
                 }
+                case "trigger.webhook": {
+                    String secret = node.getConfig() != null
+                        ? (String) node.getConfig().get("secret") : null;
+                    if (secret == null || secret.isBlank()) {
+                        logger.warn("Blueprint '{}': trigger.webhook node '{}' missing 'secret' config — endpoint not registered",
+                            entry.getName(), node.getId());
+                        break;
+                    }
+                    String key = registryId + ":" + node.getId();
+                    webhooks.put(key, new WebhookRegistration(graph, registryId, node.getId(), secret));
+                    webhookKeysByBlueprint.computeIfAbsent(entry.getName(), k -> new ArrayList<>()).add(key);
+                    logger.info("Blueprint '{}': webhook endpoint registered at /api/public/blueprints/webhook/{}/{}",
+                        entry.getName(), registryId, node.getId());
+                    break;
+                }
                 default:
                     logger.warn("Blueprint '{}': unrecognised trigger type '{}'", entry.getName(), node.getType());
             }
@@ -169,6 +189,35 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         if (futures != null) {
             futures.forEach(f -> f.cancel(false));
         }
+        List<String> webhookKeys = webhookKeysByBlueprint.remove(name);
+        if (webhookKeys != null) {
+            webhookKeys.forEach(webhooks::remove);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Webhook ingress (#363)
+    // -------------------------------------------------------------------------
+
+    public enum WebhookResult { ACCEPTED, REJECTED }
+
+    /**
+     * Fire a registered trigger.webhook node. The secret is compared in
+     * constant time; unknown endpoints and wrong secrets are indistinguishable
+     * to the caller.
+     */
+    public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload) {
+        WebhookRegistration reg = webhooks.get(registryId + ":" + nodeId);
+        if (reg == null || secret == null) return WebhookResult.REJECTED;
+        boolean valid = java.security.MessageDigest.isEqual(
+            reg.secret().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (!valid) {
+            logger.warn("Blueprint {}: webhook '{}' rejected — invalid secret", registryId, nodeId);
+            return WebhookResult.REJECTED;
+        }
+        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload));
+        return WebhookResult.ACCEPTED;
     }
 
     // -------------------------------------------------------------------------
@@ -343,6 +392,45 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 return new NodeResult(outputs, "then");
             }
 
+            case "action.audit.reaudit": {
+                // Re-audit intake (#363): a fix-review note for the engagement,
+                // tagged so it lands in the pipeline's Fix Review column.
+                String engagement = String.valueOf(inputs.getOrDefault("engagement", "")).trim();
+                Note note = new Note();
+                note.setTitle("Re-audit — " + engagement + " (" + java.time.LocalDate.now() + ")");
+                note.setContent("## Re-audit intake\n\nClient pushed fixes for `" + engagement
+                    + "`.\n\nWebhook payload:\n\n```\n"
+                    + String.valueOf(inputs.getOrDefault("payload", "")) + "\n```\n\n- [ ] Verify each fixed finding\n");
+                if (!engagement.isEmpty()) {
+                    note.getTags().add(tagService.createOrGetTag("engagement/" + engagement));
+                }
+                note.getTags().add(tagService.createOrGetTag("stage/fix-review"));
+                note = noteService.save(note);
+                outputs.put("note", note);
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.audit.digest": {
+                // Status digest (#363): finding counts by status for one engagement,
+                // written as a digest note (delivery beyond the vault is a follow-up).
+                String engagement = String.valueOf(inputs.getOrDefault("engagement", "")).trim();
+                List<Note> engagementNotes = engagement.isEmpty()
+                    ? Collections.emptyList()
+                    : noteService.findByTag("engagement/" + engagement);
+                Map<String, Integer> counts = AuditFenceParser.countByStatus(engagementNotes);
+                String summary = AuditFenceParser.digestMarkdown(engagement, counts);
+                Note digest = new Note();
+                digest.setTitle("Status digest — " + engagement + " (" + java.time.LocalDate.now() + ")");
+                digest.setContent(summary);
+                if (!engagement.isEmpty()) {
+                    digest.getTags().add(tagService.createOrGetTag("engagement/" + engagement));
+                }
+                digest = noteService.save(digest);
+                outputs.put("summary", summary);
+                outputs.put("note", digest);
+                return new NodeResult(outputs, "then");
+            }
+
             case "logic.branch": {
                 Boolean condition = (Boolean) inputs.getOrDefault("condition", Boolean.FALSE);
                 return new NodeResult(outputs, Boolean.TRUE.equals(condition) ? "true" : "false");
@@ -387,4 +475,6 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private record NodeResult(Map<String, Object> outputs, String nextExecOut) {}
 
     private record ListenerRegistration(String eventType, PluginEventListener<? extends PluginEvent> listener) {}
+
+    private record WebhookRegistration(BlueprintIRGraph graph, Long registryId, String triggerNodeId, String secret) {}
 }

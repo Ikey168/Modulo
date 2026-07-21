@@ -33,11 +33,13 @@ public class BlueprintCapabilityService {
      * Used by the backend to derive requirements without depending on the TS source.
      */
     public static final Map<String, String> NODE_CAPABILITY_MAP = Map.of(
-        "action.note.create",  "notes:write",
-        "action.tag.add",      "notes:write",
-        "action.note.anchor",  "blockchain:anchor",
-        "action.ai.summarize", "ai:invoke",
-        "action.code.execute", "code:execute"
+        "action.note.create",    "notes:write",
+        "action.tag.add",        "notes:write",
+        "action.note.anchor",    "blockchain:anchor",
+        "action.ai.summarize",   "ai:invoke",
+        "action.code.execute",   "code:execute",
+        "action.audit.reaudit",  "notes:write",
+        "action.audit.digest",   "notes:write"
     );
 
     @Autowired private JdbcTemplate jdbc;
