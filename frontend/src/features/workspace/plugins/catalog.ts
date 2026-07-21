@@ -13,6 +13,7 @@ import {
   NOTES_PLUGIN_ID,
   OUTLINE_PLUGIN_ID,
   PLUGINS,
+  REPORTS_PLUGIN_ID,
   SAVED_SEARCHES_PLUGIN_ID,
   TAGS_PLUGIN_ID,
   TIMELINE_PLUGIN_ID,
@@ -74,6 +75,10 @@ const RUNNABLE: Record<string, Runnable> = {
   [VULN_KB_PLUGIN_ID]: {
     dependencies: [FINDINGS_PLUGIN_ID],
     load: () => import('./builtins/vulnKbPlugin'),
+  },
+  [REPORTS_PLUGIN_ID]: {
+    dependencies: [FINDINGS_PLUGIN_ID],
+    load: () => import('./builtins/reportsPlugin'),
   },
 };
 
