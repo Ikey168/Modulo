@@ -16,6 +16,7 @@ import {
   SAVED_SEARCHES_PLUGIN_ID,
   TAGS_PLUGIN_ID,
   TIMELINE_PLUGIN_ID,
+  VULN_KB_PLUGIN_ID,
 } from '../plugins';
 import type { PluginManifest, PluginModule } from './types';
 
@@ -69,6 +70,10 @@ const RUNNABLE: Record<string, Runnable> = {
   [CHECKLISTS_PLUGIN_ID]: {
     dependencies: [NOTES_PLUGIN_ID],
     load: () => import('./builtins/checklistsPlugin'),
+  },
+  [VULN_KB_PLUGIN_ID]: {
+    dependencies: [FINDINGS_PLUGIN_ID],
+    load: () => import('./builtins/vulnKbPlugin'),
   },
 };
 
