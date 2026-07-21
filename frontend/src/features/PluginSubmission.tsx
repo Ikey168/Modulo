@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, FileArchive, Info, Upload, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ShieldCheck, X } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -13,6 +13,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Label,
   Progress,
@@ -27,6 +28,11 @@ import {
   useToast,
 } from '@/ui';
 import { submissionService, SubmissionFormData as ImportedSubmissionFormData } from '../services/SubmissionService';
+import {
+  KNOWN_PERMISSIONS,
+  validateImageDigest,
+  validateImageReference,
+} from './pluginImageValidation';
 
 type SubmissionFormData = ImportedSubmissionFormData;
 
@@ -36,7 +42,11 @@ interface SubmissionResponse {
   pluginName: string;
   version: string;
   submittedAt: string;
+  imageReference?: string;
 }
+
+const EXTERNAL_PLUGINS_DOC_URL =
+  'https://github.com/Ikey168/Modulo/blob/main/docs/deploying-external-plugins.md';
 
 const CATEGORIES = [
   'Development Tools',
@@ -94,10 +104,10 @@ const STEPS: Step[] = [
     fields: ['minPlatformVersion', 'maxPlatformVersion'],
   },
   {
-    id: 'file',
-    title: 'Plugin File',
-    description: 'Upload the plugin JAR for validation and review.',
-    fields: ['jarFile'],
+    id: 'image',
+    title: 'Container Image',
+    description: 'Where your plugin image lives and the exact digest to run.',
+    fields: ['imageReference', 'imageDigest'],
   },
 ];
 
@@ -122,13 +132,13 @@ export default function PluginSubmission() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if this is a resubmission
   const resubmitData = location.state as {
     resubmit?: boolean;
     submissionId?: string;
     formData?: Partial<SubmissionFormData>;
+    image?: { imageReference?: string; requiredPermissions?: string[] };
   } | null;
 
   const [formData, setFormData] = useState<SubmissionFormData>({
@@ -139,11 +149,16 @@ export default function PluginSubmission() {
   });
 
   const [step, setStep] = useState(0);
-  const [jarFile, setJarFile] = useState<File | null>(null);
+  const [imageReference, setImageReference] = useState(resubmitData?.image?.imageReference ?? '');
+  // The digest is never pre-filled: a resubmission must pin a fresh image build.
+  const [imageDigest, setImageDigest] = useState('');
+  const [requiredPermissions, setRequiredPermissions] = useState<string[]>(
+    resubmitData?.image?.requiredPermissions ?? [],
+  );
+  const [customPermission, setCustomPermission] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [dragActive, setDragActive] = useState(false);
 
   const clearFieldError = (name: string) => {
     setErrors((prev) => {
@@ -165,56 +180,21 @@ export default function PluginSubmission() {
     clearFieldError(name);
   };
 
-  const handleFileSelect = (file: File) => {
-    if (file.type !== 'application/java-archive' && !file.name.endsWith('.jar')) {
-      setErrors((prev) => ({ ...prev, jarFile: 'Please select a valid JAR file' }));
-      return;
-    }
-
-    if (file.size > 50 * 1024 * 1024) {
-      // 50MB limit
-      setErrors((prev) => ({ ...prev, jarFile: 'File size must be less than 50MB' }));
-      return;
-    }
-
-    setJarFile(file);
-    clearFieldError('jarFile');
+  const togglePermission = (permission: string) => {
+    setRequiredPermissions((prev) =>
+      prev.includes(permission) ? prev.filter((p) => p !== permission) : [...prev, permission],
+    );
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+  const addCustomPermission = () => {
+    const permission = customPermission.trim();
+    if (!permission) return;
+    setRequiredPermissions((prev) => (prev.includes(permission) ? prev : [...prev, permission]));
+    setCustomPermission('');
   };
 
-  const handleRemoveFile = () => {
-    setJarFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
+  /** Custom (free-entry) permissions are rendered as removable badges. */
+  const customPermissions = requiredPermissions.filter((p) => !KNOWN_PERMISSIONS.includes(p));
 
   /** Validation rules for a subset of fields; the union of all subsets is the full form check. */
   const validateFields = (fields: string[]): Record<string, string> => {
@@ -248,8 +228,14 @@ export default function PluginSubmission() {
       }
     }
 
-    if (fields.includes('jarFile') && !jarFile) {
-      newErrors.jarFile = 'JAR file is required';
+    if (fields.includes('imageReference')) {
+      const referenceError = validateImageReference(imageReference);
+      if (referenceError) newErrors.imageReference = referenceError;
+    }
+
+    if (fields.includes('imageDigest')) {
+      const digestError = validateImageDigest(imageDigest);
+      if (digestError) newErrors.imageDigest = digestError;
     }
 
     if (fields.includes('homepageUrl') && formData.homepageUrl && !formData.homepageUrl.match(/^https?:\/\/.+/)) {
@@ -295,23 +281,15 @@ export default function PluginSubmission() {
     setErrors({});
 
     try {
-      let result;
-
-      if (resubmitData?.resubmit && resubmitData.submissionId) {
-        // This is a resubmission
-        result = await submissionService.resubmitPlugin(
-          resubmitData.submissionId,
-          formData,
-          jarFile || undefined,
-        );
-      } else {
-        // This is a new submission
-        if (!jarFile) {
-          setErrors({ jarFile: 'JAR file is required for new submissions' });
-          return;
-        }
-        result = await submissionService.submitPlugin(formData, jarFile);
-      }
+      // EXTERNAL-only policy: every submission (including resubmissions of
+      // rejected plugins) goes through the container-image endpoint. JAR
+      // uploads are rejected by the backend.
+      const result = await submissionService.submitImagePlugin({
+        ...formData,
+        imageReference: imageReference.trim(),
+        imageDigest: imageDigest.trim(),
+        requiredPermissions,
+      });
 
       if (result.data) {
         setSubmissionResult(result.data);
@@ -358,12 +336,12 @@ export default function PluginSubmission() {
   const handleNewSubmission = () => {
     setSubmissionResult(null);
     setFormData({ ...EMPTY_FORM });
-    setJarFile(null);
+    setImageReference('');
+    setImageDigest('');
+    setRequiredPermissions([]);
+    setCustomPermission('');
     setErrors({});
     setStep(0);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const fieldError = (name: string) =>
@@ -415,6 +393,12 @@ export default function PluginSubmission() {
                     {new Date(submissionResult.submittedAt).toLocaleString()}
                   </dd>
                 </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-muted-foreground">Container Image</dt>
+                  <dd className="mt-0.5 break-all font-mono text-foreground">
+                    {submissionResult.imageReference ?? imageReference}
+                  </dd>
+                </div>
               </dl>
 
               <Separator />
@@ -422,7 +406,7 @@ export default function PluginSubmission() {
               <div>
                 <h3 className="mb-2 text-sm font-semibold text-foreground">What happens next?</h3>
                 <ol className="list-decimal space-y-1.5 pl-5 text-[13px] text-muted-foreground">
-                  <li>Your plugin will undergo automated security and compatibility validation</li>
+                  <li>Your container image will undergo automated security and compatibility validation</li>
                   <li>If validation passes, it will be queued for manual review</li>
                   <li>A reviewer will examine your plugin's functionality and code quality</li>
                   <li>You'll receive an email notification about the review outcome</li>
@@ -710,102 +694,136 @@ export default function PluginSubmission() {
                 </div>
               )}
 
-              {currentStep.id === 'file' && (
+              {currentStep.id === 'image' && (
                 <>
                   <div className="space-y-1.5">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label={
-                        jarFile
-                          ? `Selected file ${jarFile.name}. Activate to choose a different JAR file`
-                          : 'Upload plugin JAR file. Drop a file here or activate to browse'
-                      }
-                      aria-describedby={errors.jarFile ? 'jarFile-error' : undefined}
-                      onClick={() => fileInputRef.current?.click()}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          fileInputRef.current?.click();
-                        }
+                    <Label htmlFor="imageReference">Image Reference *</Label>
+                    <Input
+                      id="imageReference"
+                      name="imageReference"
+                      value={imageReference}
+                      onChange={(e) => {
+                        setImageReference(e.target.value);
+                        clearFieldError('imageReference');
                       }}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                      className={cn(
-                        'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                        dragActive
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border-strong bg-surface-2 hover:bg-surface-3',
-                        errors.jarFile && 'border-destructive/60',
-                      )}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".jar"
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                        tabIndex={-1}
-                        aria-hidden="true"
-                      />
-
-                      {jarFile ? (
-                        <>
-                          <FileArchive className="size-8 text-primary" aria-hidden="true" />
-                          <div className="flex items-center gap-2">
-                            <div className="text-left">
-                              <p className="break-all text-[13px] font-medium text-foreground">{jarFile.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(jarFile.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Remove selected file"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveFile();
-                              }}
-                            >
-                              <X aria-hidden="true" />
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="size-8 text-muted-foreground" aria-hidden="true" />
-                          <div>
-                            <p className="text-[13px] font-medium text-foreground">
-                              Drop your JAR file here or click to browse
-                            </p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">Maximum file size: 50MB</p>
-                          </div>
-                          <Button type="button" variant="outline" size="sm" tabIndex={-1} className="pointer-events-none">
-                            <Upload aria-hidden="true" />
-                            Browse files
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    {fieldError('jarFile')}
+                      placeholder="ghcr.io/acme/plugin"
+                      spellCheck={false}
+                      {...errorProps('imageReference')}
+                      className={cn('font-mono', errors.imageReference && 'border-destructive/60')}
+                      aria-describedby={
+                        errors.imageReference ? 'imageReference-error' : 'imageReference-hint'
+                      }
+                    />
+                    {fieldError('imageReference')}
+                    <p id="imageReference-hint" className="text-xs text-subtle-foreground">
+                      Registry repository (optionally with a tag). Do not include a digest here — it goes
+                      in the field below.
+                    </p>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <Label htmlFor="imageDigest">Image Digest *</Label>
+                    <Input
+                      id="imageDigest"
+                      name="imageDigest"
+                      value={imageDigest}
+                      onChange={(e) => {
+                        setImageDigest(e.target.value);
+                        clearFieldError('imageDigest');
+                      }}
+                      placeholder="sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+                      spellCheck={false}
+                      {...errorProps('imageDigest')}
+                      className={cn('font-mono', errors.imageDigest && 'border-destructive/60')}
+                      aria-describedby={errors.imageDigest ? 'imageDigest-error' : 'imageDigest-hint'}
+                    />
+                    {fieldError('imageDigest')}
+                    <p id="imageDigest-hint" className="text-xs text-subtle-foreground">
+                      Reviews and deployments are pinned to this exact digest, so a moving tag can never
+                      swap the reviewed code. Find yours with{' '}
+                      <code className="rounded bg-surface-3 px-1 py-0.5 font-mono">
+                        {"docker inspect --format='{{index .RepoDigests 0}}'"}
+                      </code>
+                    </p>
+                  </div>
+
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium text-foreground">Required Permissions</legend>
+                    <p className="text-xs text-subtle-foreground">
+                      Select every capability your plugin needs at runtime; anything not requested is
+                      denied.
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {KNOWN_PERMISSIONS.map((permission) => (
+                        <div key={permission} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`permission-${permission}`}
+                            checked={requiredPermissions.includes(permission)}
+                            onCheckedChange={() => togglePermission(permission)}
+                          />
+                          <Label
+                            htmlFor={`permission-${permission}`}
+                            className="font-mono text-xs font-normal"
+                          >
+                            {permission}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Input
+                        value={customPermission}
+                        onChange={(e) => setCustomPermission(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomPermission();
+                          }
+                        }}
+                        placeholder="other.permission"
+                        aria-label="Add a custom permission"
+                        className="font-mono"
+                        spellCheck={false}
+                      />
+                      <Button type="button" variant="secondary" onClick={addCustomPermission}>
+                        Add
+                      </Button>
+                    </div>
+
+                    {customPermissions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5" aria-label="Custom permissions">
+                        {customPermissions.map((permission) => (
+                          <Badge key={permission} variant="secondary" className="font-mono">
+                            {permission}
+                            <button
+                              type="button"
+                              aria-label={`Remove ${permission} permission`}
+                              onClick={() => togglePermission(permission)}
+                              className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <X className="size-3" aria-hidden="true" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </fieldset>
+
                   <Alert variant="info">
-                    <Info className="size-4" />
-                    <AlertTitle>File requirements</AlertTitle>
+                    <ShieldCheck className="size-4" />
+                    <AlertTitle>External-only plugin policy</AlertTitle>
                     <AlertDescription>
-                      <ul className="mt-1 list-disc space-y-1 pl-4">
-                        <li>Must be a valid JAR file with .jar extension</li>
-                        <li>Maximum file size: 50MB</li>
-                        <li>Must contain a valid MANIFEST.MF with required attributes</li>
-                        <li>Must include Plugin-Name, Plugin-Version, Plugin-Main-Class, and Plugin-API-Version</li>
-                        <li>Will undergo automated security and compatibility validation</li>
-                      </ul>
+                      Third-party plugins run as isolated workloads, never inside the core.{' '}
+                      <a
+                        href={EXTERNAL_PLUGINS_DOC_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium underline underline-offset-2"
+                      >
+                        Learn how external plugins are deployed
+                      </a>
+                      . JAR uploads are no longer accepted.
                     </AlertDescription>
                   </Alert>
                 </>

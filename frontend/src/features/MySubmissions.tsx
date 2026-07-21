@@ -50,8 +50,12 @@ interface StatusConfig {
 const STATUS_CONFIG: Record<string, StatusConfig> = {
   PENDING_REVIEW: { label: 'Pending Review', variant: 'warning', icon: Clock },
   IN_REVIEW: { label: 'In Review', variant: 'info', icon: Eye },
+  UNDER_REVIEW: { label: 'Under Review', variant: 'info', icon: Eye },
+  VALIDATION_FAILED: { label: 'Validation Failed', variant: 'destructive', icon: AlertTriangle },
+  CHANGES_REQUESTED: { label: 'Changes Requested', variant: 'warning', icon: AlertCircle },
   APPROVED: { label: 'Approved', variant: 'success', icon: CheckCircle2 },
   REJECTED: { label: 'Rejected', variant: 'destructive', icon: XCircle },
+  WITHDRAWN: { label: 'Withdrawn', variant: 'outline', icon: X },
   PUBLISHED: { label: 'Published', variant: 'secondary', icon: CheckCircle2 },
 };
 
@@ -84,6 +88,16 @@ const formatFileSize = (bytes: number) => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+/**
+ * What the submission ships as: the container image reference for image-based
+ * submissions, or the JAR file name for legacy uploads.
+ */
+const artifactLabelOf = (submission: PluginSubmission): string | null => {
+  if (submission.imageReference) return submission.imageReference;
+  if (submission.jarFilePath) return submission.jarFilePath.split(/[\\/]/).pop() ?? null;
+  return null;
 };
 
 /** Ordered list of lifecycle timestamps present on a submission. */
@@ -162,6 +176,14 @@ export default function MySubmissions() {
           developerName: submission.developerName,
           developerEmail: submission.developerEmail,
         },
+        // Pre-fill image coordinates (digest is intentionally omitted: a
+        // resubmission must pin a fresh build).
+        image: submission.imageReference
+          ? {
+              imageReference: submission.imageReference,
+              requiredPermissions: submission.requiredPermissions ?? [],
+            }
+          : undefined,
       },
     });
   };
@@ -264,7 +286,11 @@ export default function MySubmissions() {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{submission.category || 'Uncategorized'}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{formatFileSize(submission.fileSize)}</span>
+                      {artifactLabelOf(submission) ? (
+                        <span className="break-all font-mono">{artifactLabelOf(submission)}</span>
+                      ) : (
+                        <span>{formatFileSize(submission.fileSize)}</span>
+                      )}
                     </div>
                   </div>
                   <StatusBadge status={submission.status} />
@@ -317,7 +343,7 @@ export default function MySubmissions() {
                     View Details
                   </Button>
 
-                  {submission.status === 'REJECTED' && (
+                  {['REJECTED', 'VALIDATION_FAILED', 'CHANGES_REQUESTED'].includes(submission.status) && (
                     <Button variant="secondary" size="sm" onClick={() => handleResubmit(submission)}>
                       <Upload aria-hidden="true" />
                       Resubmit
