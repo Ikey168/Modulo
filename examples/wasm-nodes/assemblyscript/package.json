@@ -1,0 +1,13 @@
+{
+  "name": "modulo-wasm-node-titlecase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example action.wasm.execute module: title-cases the note title (AssemblyScript)",
+  "scripts": {
+    "build": "asc assembly/index.ts -o build/titlecase.wasm --optimizeLevel 3 --shrinkLevel 2 --runtime stub --use abort= --maximumMemory 512",
+    "asbuild": "npm run build"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.27.29"
+  }
+}

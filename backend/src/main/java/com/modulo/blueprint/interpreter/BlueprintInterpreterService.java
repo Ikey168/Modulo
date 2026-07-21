@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.BlueprintRepository;
-import com.modulo.blueprint.sandbox.SandboxedScriptService;
+import com.modulo.blueprint.sandbox.ScriptSandbox;
+import com.modulo.blueprint.wasm.WasmModuleValidator;
+import com.modulo.blueprint.wasm.WasmNodeExecutor;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
 import com.modulo.plugin.event.LinkEvent;
@@ -58,7 +60,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private TagService tagService;
     @Autowired private OpenAIService openAIService;
     @Autowired private BlockchainService blockchainService;
-    @Autowired private SandboxedScriptService sandboxedScriptService;
+    @Autowired private ScriptSandbox scriptSandbox;
     @Autowired private ViesService viesService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
@@ -385,12 +387,36 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String content = note != null && note.getContent() != null ? note.getContent() : "";
                 String output;
                 try {
-                    output = sandboxedScriptService.execute(code, title, content);
-                } catch (SandboxedScriptService.ScriptExecutionException e) {
+                    output = scriptSandbox.execute(code, title, content);
+                } catch (ScriptSandbox.ScriptExecutionException e) {
                     logger.warn("action.code.execute: script error on node '{}' — {}", node.getId(), e.getMessage());
                     output = "";
                 }
                 outputs.put("output", output);
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.wasm.execute": {
+                String moduleB64 = node.getConfig() != null
+                    ? (String) node.getConfig().get("module") : null;
+                if (moduleB64 == null || moduleB64.isBlank()) {
+                    logger.warn("action.wasm.execute: node '{}' has no 'module' config", node.getId());
+                    outputs.put("output", "");
+                    return new NodeResult(outputs, "then");
+                }
+                Note wasmNote = (Note) inputs.get("note");
+                String wasmTitle   = wasmNote != null && wasmNote.getTitle()   != null ? wasmNote.getTitle()   : "";
+                String wasmContent = wasmNote != null && wasmNote.getContent() != null ? wasmNote.getContent() : "";
+                String wasmOutput;
+                try {
+                    wasmOutput = WasmNodeExecutor.execute(
+                        validatedWasmModule(moduleB64), wasmTitle, wasmContent);
+                } catch (WasmModuleValidator.WasmModuleValidationException
+                        | WasmNodeExecutor.WasmExecutionException | IllegalArgumentException e) {
+                    logger.warn("action.wasm.execute: node '{}' failed — {}", node.getId(), e.getMessage());
+                    wasmOutput = "";
+                }
+                outputs.put("output", wasmOutput);
                 return new NodeResult(outputs, "then");
             }
 
@@ -534,6 +560,25 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     // -------------------------------------------------------------------------
     // Execution logging
     // -------------------------------------------------------------------------
+
+    /**
+     * Decode, validate, and cache an action.wasm.execute module (#403).
+     * Re-validating and re-parsing on every trigger firing would dominate
+     * execution time for hot blueprints, so parsed modules are cached against
+     * the config's base64 string (already retained by the registered IR — the
+     * key adds no new memory). Bounded crudely: registered blueprints hold a
+     * handful of modules; a full cache means churn, so start over.
+     */
+    private com.dylibso.chicory.wasm.WasmModule validatedWasmModule(String moduleB64) {
+        if (wasmModuleCache.size() > 64) {
+            wasmModuleCache.clear();
+        }
+        return wasmModuleCache.computeIfAbsent(moduleB64,
+            b64 -> WasmModuleValidator.validate(java.util.Base64.getDecoder().decode(b64)).module());
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, com.dylibso.chicory.wasm.WasmModule>
+        wasmModuleCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     private void log(Long registryId, String execType, String status, String message, long durationMs) {
         try {

@@ -3,10 +3,10 @@ package com.modulo.blueprint.sandbox;
 import org.mozilla.javascript.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 /**
- * Sandboxed JavaScript execution for action.code.execute (#279).
+ * Rhino implementation of {@link ScriptSandbox} — the original engine for
+ * action.code.execute (#279), extracted behind the interface in #397.
  *
  * Isolation model — security spike decision:
  *
@@ -14,11 +14,10 @@ import org.springframework.stereotype.Service;
  *   the GraalVM JDK or pulling in the full Truffle framework as a Maven artifact (~100 MB).
  *   Overkill given our standard JDK 17 baseline.
  *
- *   WASM runtime (Chicory / wasmtime-java): excellent process-level isolation, but forces
- *   users to compile their scripts to WASM — poor authoring experience.
- *
- *   Rhino (chosen): pure-Java interpreter, ships as a single ~1 MB JAR, and has built-in
- *   sandboxing primitives that are sufficient for our threat model:
+ *   Rhino (chosen at the time): pure-Java interpreter, ships as a single ~1 MB JAR, and
+ *   has built-in sandboxing primitives that are sufficient for our threat model. The WASM
+ *   successor ({@link WasmScriptSandbox}, #398) supersedes this engine; Rhino remains
+ *   selectable via {@code modulo.blueprint.sandbox=rhino} until the cutover (#401) completes.
  *
  * Threat model:
  *   - Host Java access: initSafeStandardObjects() removes Packages, java.*, JavaAdapter,
@@ -31,35 +30,16 @@ import org.springframework.stereotype.Service;
  *     as plain strings). The original Note entity is not passed in, preventing save/delete.
  *   - Memory: no hard heap cap, but the instruction limit bounds allocations to a safe range.
  *   - Output size: capped at MAX_OUTPUT_CHARS to prevent heap growth from huge return values.
- *
- * User-facing script contract:
- *   The config.code field must be a JS function expression that accepts a note object:
- *
- *     function(note) {
- *       // note.title: string, note.content: string (read-only)
- *       return note.title.toUpperCase();
- *     }
- *
- *   The return value is coerced to a string and emitted on the 'output' pin.
  */
-@Service
-public class SandboxedScriptService {
+public class RhinoScriptSandbox implements ScriptSandbox {
 
-    private static final Logger logger = LoggerFactory.getLogger(SandboxedScriptService.class);
+    private static final Logger logger = LoggerFactory.getLogger(RhinoScriptSandbox.class);
 
     static final int MAX_INSTRUCTIONS = 500_000;
-    static final long WALL_TIMEOUT_MS = 2_000;
-    static final int MAX_OUTPUT_CHARS = 65_536;
+    static final int MAX_STACK_DEPTH = 1_000;
     private static final int OBSERVER_THRESHOLD = 10_000;
 
-    /**
-     * Execute {@code code} (a JS function expression) in an isolated Rhino context.
-     * Injects {@code noteTitle} and {@code noteContent} as {@code note.title} /
-     * {@code note.content} in the global scope. Returns the string result of calling
-     * the function with {@code note}.
-     *
-     * @throws ScriptExecutionException if the script exceeds resource limits or has a syntax/runtime error
-     */
+    @Override
     public String execute(String code, String noteTitle, String noteContent) {
         long[] startMs = {System.currentTimeMillis()};
         int[] instructionsSeen = {0};
@@ -81,6 +61,9 @@ public class SandboxedScriptService {
         try {
             cx.setOptimizationLevel(-1); // interpreted mode — required for instruction counting
             cx.setInstructionObserverThreshold(OBSERVER_THRESHOLD);
+            // Unbounded recursion heap-OOMs the JVM before the instruction limit
+            // trips (frames are heap-allocated) — found by the #400 contract suite.
+            cx.setMaximumInterpreterStackDepth(MAX_STACK_DEPTH);
 
             ScriptableObject scope = cx.initSafeStandardObjects(); // no java.*, Packages, etc.
 
@@ -107,11 +90,5 @@ public class SandboxedScriptService {
         } finally {
             Context.exit();
         }
-    }
-
-    /** Thrown when the script violates a resource limit or has a syntax / runtime error. */
-    public static class ScriptExecutionException extends RuntimeException {
-        public ScriptExecutionException(String message) { super(message); }
-        public ScriptExecutionException(String message, Throwable cause) { super(message, cause); }
     }
 }

@@ -21,6 +21,32 @@ const CODE_EXECUTE_DEFAULT = `function(note) {
   return note.title;
 }`;
 
+/** ADR 0003: inline module cap (raw bytes). Mirrors WasmModuleValidator.MAX_MODULE_BYTES. */
+export const WASM_MODULE_MAX_BYTES = 512 * 1024;
+
+/** Client-side pre-checks for a .wasm file; the backend re-validates the full rule set. */
+export async function readWasmModuleFile(
+  file: File,
+): Promise<{ module: string; moduleName: string; moduleSha256: string; moduleSize: number }> {
+  if (file.size > WASM_MODULE_MAX_BYTES) {
+    throw new Error(
+      `Module is ${(file.size / 1024).toFixed(0)} KiB — the limit is ${WASM_MODULE_MAX_BYTES / 1024} KiB.`,
+    );
+  }
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 4 || bytes[0] !== 0x00 || bytes[1] !== 0x61 || bytes[2] !== 0x73 || bytes[3] !== 0x6d) {
+    throw new Error('Not a WebAssembly module (missing \\0asm magic bytes).');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  const moduleSha256 = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { module: btoa(binary), moduleName: file.name, moduleSha256, moduleSize: bytes.length };
+}
+
 function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
   const { descriptor } = data;
   const category = categoryMeta(descriptor.category);
@@ -29,6 +55,28 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
   const onCodeChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       updateNodeData(id, { ...data, config: { ...(data.config ?? {}), code: e.target.value } });
+    },
+    [id, data, updateNodeData],
+  );
+
+  const onModuleFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = ''; // allow re-selecting the same file
+      if (!file) return;
+      readWasmModuleFile(file)
+        .then((moduleConfig) =>
+          updateNodeData(id, {
+            ...data,
+            config: { ...(data.config ?? {}), ...moduleConfig, moduleError: undefined },
+          }),
+        )
+        .catch((err: Error) =>
+          updateNodeData(id, {
+            ...data,
+            config: { ...(data.config ?? {}), moduleError: err.message },
+          }),
+        );
     },
     [id, data, updateNodeData],
   );
@@ -134,6 +182,40 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
             spellCheck={false}
             aria-label="JavaScript function body"
           />
+        </div>
+      )}
+
+      {descriptor.type === 'action.wasm.execute' && (
+        <div className="bp-node__code" onMouseDown={(e) => e.stopPropagation()}>
+          {data.config?.module ? (
+            <div className="text-xs" data-testid="wasm-module-info">
+              <div className="font-medium truncate" title={data.config.moduleName as string}>
+                {(data.config.moduleName as string) ?? 'module.wasm'}
+              </div>
+              <div className="text-muted-foreground">
+                {Math.max(1, Math.round(((data.config.moduleSize as number) ?? 0) / 1024))} KiB
+                {' · sha256 '}
+                <code>{((data.config.moduleSha256 as string) ?? '').slice(0, 12)}</code>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">No module attached.</div>
+          )}
+          <label className="bp-wasm-attach text-xs underline cursor-pointer">
+            {data.config?.module ? 'Replace module…' : 'Attach .wasm module…'}
+            <input
+              type="file"
+              accept=".wasm,application/wasm"
+              onChange={onModuleFile}
+              className="hidden"
+              aria-label="WebAssembly module file"
+            />
+          </label>
+          {typeof data.config?.moduleError === 'string' && (
+            <div className="text-xs text-destructive" role="alert" data-testid="wasm-module-error">
+              {data.config.moduleError}
+            </div>
+          )}
         </div>
       )}
     </div>

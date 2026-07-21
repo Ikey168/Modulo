@@ -1,0 +1,14 @@
+[package]
+name = "modulo-wasm-node-wordstats"
+version = "1.0.0"
+edition = "2021"
+description = "Example action.wasm.execute module: word/char stats for the note (Rust)"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true
