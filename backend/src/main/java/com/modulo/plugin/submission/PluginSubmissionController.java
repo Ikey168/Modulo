@@ -32,6 +32,40 @@ public class PluginSubmissionController {
     private PluginSubmissionService submissionService;
     
     /**
+     * Submit an image-based (EXTERNAL) plugin (#395) — the accepted shape for
+     * third-party submissions: an OCI reference pinned by digest, no artifact
+     * upload.
+     */
+    @PostMapping("/image")
+    public ResponseEntity<?> submitImagePlugin(
+            @Valid @RequestBody PluginSubmissionRequest request,
+            BindingResult bindingResult) {
+
+        logger.info("Received external plugin submission: {} ({})",
+            request.getPluginName(), request.getImageReference());
+
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage()));
+            return ResponseEntity.badRequest().body(Map.of("errors", errors));
+        }
+        if (request.getImageReference() == null || request.getImageReference().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "imageReference is required — marketplace plugins run as EXTERNAL workloads"));
+        }
+
+        try {
+            PluginSubmission submission = submissionService.submitImagePlugin(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(submission);
+        } catch (Exception e) {
+            logger.error("Failed to process external plugin submission", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Submit a new plugin
      */
     @PostMapping

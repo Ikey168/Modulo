@@ -35,6 +35,39 @@ public class PluginRegistry {
      * @param config Plugin configuration
      * @return Registry entry ID
      */
+    /**
+     * Register an approved marketplace submission as an EXTERNAL entry with
+     * endpoint pending (#395): the workload machinery (#394) deploys the
+     * image, and install-external later records the endpoint. The image
+     * reference and pinned digest ride in the config column.
+     */
+    public Long registerExternalSubmission(com.modulo.plugin.submission.PluginSubmission submission) {
+        logger.info("Registering approved external plugin: {}", submission.getPluginName());
+
+        String sql = "INSERT INTO plugin_registry (name, version, description, author, type, runtime, status, config, created_at, updated_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?) RETURNING id";
+
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Object> config = new java.util.LinkedHashMap<>();
+        config.put("imageReference", submission.getImageReference());
+        config.put("imageDigest", submission.getImageDigest());
+
+        return jdbcTemplate.queryForObject(
+            sql,
+            Long.class,
+            submission.getPluginName(),
+            submission.getVersion(),
+            submission.getDescription(),
+            submission.getDeveloperName(),
+            "EXTERNAL",
+            "GRPC",
+            PluginStatus.INACTIVE.name(),
+            convertToJson(config),
+            now,
+            now
+        );
+    }
+
     public Long registerPlugin(Plugin plugin, Map<String, Object> config) {
         logger.info("Registering plugin: {}", plugin.getInfo().getName());
         

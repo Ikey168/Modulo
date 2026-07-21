@@ -117,13 +117,23 @@ public class PluginManager {
      * @return Plugin ID if successful
      * @throws PluginException if installation fails
      */
-    public String installRemotePlugin(Plugin plugin, String remoteUrl, Map<String, Object> config) 
+    public String installRemotePlugin(Plugin plugin, String remoteUrl, Map<String, Object> config)
             throws PluginException {
         PluginInfo info = plugin.getInfo();
         String pluginId = info.getName();
-        
+
         logger.info("Installing remote plugin: {} from URL: {}", pluginId, remoteUrl);
-        
+
+        // EXTERNAL-only policy (#395, ADR 0004): non-first-party code never
+        // runs in the core JVM. This is mechanical, not procedural — a
+        // third-party JAR that reaches this path is refused here regardless
+        // of how it arrived.
+        if (!isFirstPartyOrigin(remoteUrl)) {
+            throw new PluginException("Refusing in-process install from non-first-party origin '"
+                + remoteUrl + "' — third-party plugins run as EXTERNAL workloads (#395; "
+                + "see docs/deploying-external-plugins.md)");
+        }
+
         try {
             // Validate plugin
             validatePlugin(plugin);
@@ -186,8 +196,13 @@ public class PluginManager {
                 throw new PluginException("Insufficient permissions to install external plugin: " + pluginId);
             }
 
-            pluginRegistry.registerPlugin(proxy, config);
+            // A marketplace approval (#395) may have pre-registered this plugin
+            // with endpoint pending — complete that entry instead of duplicating.
+            if (pluginRegistry.getByName(pluginId).isEmpty()) {
+                pluginRegistry.registerPlugin(proxy, config);
+            }
             pluginRegistry.updatePluginRemoteInfo(pluginId, endpoint);
+            pluginRegistry.updatePluginStatus(pluginId, PluginStatus.ACTIVE);
 
             // Durable grants + the token the plugin authenticates host calls with.
             securityManager.grantPermissions(pluginId, proxy.getRequiredPermissions());
@@ -213,6 +228,27 @@ public class PluginManager {
             logger.error("Failed to install external plugin at {}", endpoint, e);
             throw new PluginException("Failed to install external plugin: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Origins whose JARs may still load in-process (first-party only, #395).
+     * Comma-separated URL prefixes; everything else is EXTERNAL-only.
+     */
+    @org.springframework.beans.factory.annotation.Value(
+        "${modulo.plugins.first-party-origins:https://github.com/Ikey168/Modulo}")
+    private String firstPartyOrigins;
+
+    boolean isFirstPartyOrigin(String remoteUrl) {
+        if (remoteUrl == null) {
+            return false;
+        }
+        for (String prefix : firstPartyOrigins.split(",")) {
+            String trimmed = prefix.trim();
+            if (!trimmed.isEmpty() && remoteUrl.startsWith(trimmed)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Factory seam so tests can inject proxies against in-process endpoints. */

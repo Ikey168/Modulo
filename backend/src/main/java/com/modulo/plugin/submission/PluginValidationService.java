@@ -67,19 +67,23 @@ public class PluginValidationService {
         try {
             // Basic metadata validation
             validateMetadata(submission, result);
-            
-            // File validation
-            if (submission.getJarFilePath() != null) {
+
+            // EXTERNAL-only policy (#395, ADR 0004): marketplace submissions
+            // are container images; the JAR path exists only for legacy rows.
+            if (submission.getImageReference() != null && !submission.getImageReference().isBlank()) {
+                validateImageSubmission(submission, result);
+            } else if (submission.getJarFilePath() != null) {
+                result.addError("[POLICY] Marketplace submissions run as EXTERNAL workloads and must be "
+                    + "container images — JAR submissions are no longer accepted. Submit an image "
+                    + "reference pinned by digest (see docs/deploying-external-plugins.md).");
+                // Legacy validation still runs so reviewers see the full picture on old rows.
                 validateJarFile(submission.getJarFilePath(), result);
-                
-                // Security validation
                 performSecurityCheck(submission.getJarFilePath(), result);
-                
-                // Compatibility validation
                 performCompatibilityCheck(submission.getJarFilePath(), result);
-                
-                // Calculate and verify checksum
                 validateChecksum(submission, result);
+            } else {
+                result.addError("[POLICY] An image reference (pinned by digest) is required — "
+                    + "marketplace plugins run as EXTERNAL workloads (#395).");
             }
             
             // Update submission with validation results
@@ -108,6 +112,67 @@ public class PluginValidationService {
     /**
      * Validate submission metadata
      */
+    /** OCI reference: registry[/repo]+ name, optionally :tag — but digest pinning is the law. */
+    private static final java.util.regex.Pattern IMAGE_REFERENCE_PATTERN =
+        java.util.regex.Pattern.compile("^[a-z0-9]+([._-][a-z0-9]+)*(([:/][a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*))+$");
+    private static final java.util.regex.Pattern IMAGE_DIGEST_PATTERN =
+        java.util.regex.Pattern.compile("^sha256:[0-9a-f]{64}$");
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.modulo.plugin.manager.PluginSecurityManager securityManager;
+
+    /**
+     * Image-based (EXTERNAL) submission validation (#395): digest pinning,
+     * declared permissions against the allowlist, contract compatibility,
+     * and signature/provenance hooks.
+     */
+    private void validateImageSubmission(PluginSubmission submission, ValidationResult result) {
+        String reference = submission.getImageReference().trim();
+        if (!IMAGE_REFERENCE_PATTERN.matcher(reference).matches()) {
+            result.addError("Image reference '" + reference + "' is not a valid OCI reference "
+                + "(expected e.g. ghcr.io/acme/my-plugin)");
+        }
+
+        String digest = submission.getImageDigest();
+        if (digest == null || digest.isBlank()) {
+            result.addError("Image digest is required — pin the exact image with sha256:<64 hex chars> "
+                + "(docker inspect --format='{{index .RepoDigests 0}}' <image>)");
+        } else if (!IMAGE_DIGEST_PATTERN.matcher(digest.trim()).matches()) {
+            result.addError("Image digest '" + digest + "' is not pinned — expected sha256:<64 hex chars>; "
+                + "tags are mutable and not accepted");
+        }
+
+        if (submission.getRequiredPermissions() != null && !submission.getRequiredPermissions().isBlank()) {
+            for (String permission : submission.getRequiredPermissions().split(",")) {
+                String trimmed = permission.trim();
+                if (!trimmed.isEmpty() && securityManager != null
+                        && !securityManager.isValidPermission(trimmed)) {
+                    result.addError("Declared permission '" + trimmed + "' is not in the allowlist");
+                }
+            }
+        }
+
+        // Contract compatibility: same rule the JAR path used, driven from metadata.
+        String minVersion = submission.getMinPlatformVersion();
+        if (minVersion != null && !minVersion.isBlank() && !minVersion.startsWith("1.")) {
+            result.addError("Unsupported minimum platform version '" + minVersion
+                + "' — the v1 plugin contract requires a 1.x platform");
+            result.setCompatibilityCheckPassed(false);
+        } else {
+            result.setCompatibilityCheckPassed(true);
+        }
+
+        // Signature/provenance hook (docs/CONTAINER_IMAGE_SIGNING.md): not
+        // enforced yet — recorded as a warning so reviewers see it, and so the
+        // enforcement point already exists when cosign verification lands.
+        result.addWarning("Image signature/provenance not verified (enforcement follows "
+            + "docs/CONTAINER_IMAGE_SIGNING.md; review manually until then)");
+
+        // The pod boundary is the security model for image submissions —
+        // there is no JAR to byte-scan.
+        result.setSecurityCheckPassed(result.getErrors().isEmpty());
+    }
+
     private void validateMetadata(PluginSubmission submission, ValidationResult result) {
         if (submission.getPluginName() == null || submission.getPluginName().trim().isEmpty()) {
             result.addError("Plugin name is required");

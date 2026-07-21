@@ -42,6 +42,17 @@ public class PluginSubmissionRequest {
     @Size(max = 500, message = "Tags must be 500 characters or less")
     private String tags;
     
+    /** OCI image reference for EXTERNAL-only submissions (#395). */
+    @Size(max = 500, message = "Image reference must be 500 characters or less")
+    private String imageReference;
+
+    /** Pinned digest (sha256:...) of the image (#395). */
+    @Pattern(regexp = "sha256:[0-9a-f]{64}", message = "Image digest must be sha256:<64 hex chars>")
+    private String imageDigest;
+
+    /** Permissions the plugin declares, validated against the allowlist (#395). */
+    private java.util.List<String> requiredPermissions;
+
     @Pattern(regexp = "\\d+\\.\\d+\\.\\d+", message = "Minimum platform version must follow semantic versioning")
     private String minPlatformVersion;
     
@@ -142,6 +153,15 @@ public class PluginSubmissionRequest {
         this.tags = tags;
     }
     
+    public String getImageReference() { return imageReference; }
+    public void setImageReference(String imageReference) { this.imageReference = imageReference; }
+
+    public String getImageDigest() { return imageDigest; }
+    public void setImageDigest(String imageDigest) { this.imageDigest = imageDigest; }
+
+    public java.util.List<String> getRequiredPermissions() { return requiredPermissions; }
+    public void setRequiredPermissions(java.util.List<String> requiredPermissions) { this.requiredPermissions = requiredPermissions; }
+
     public String getMinPlatformVersion() {
         return minPlatformVersion;
     }
