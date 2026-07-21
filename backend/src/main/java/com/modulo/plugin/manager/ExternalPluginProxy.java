@@ -182,6 +182,24 @@ public class ExternalPluginProxy implements Plugin, AutoCloseable {
         return new ArrayList<>();
     }
 
+    /**
+     * Invoke an operation on the workload (contract v1 Execute). No retry —
+     * operations may not be idempotent; callers own their fallback policy
+     * (e.g. RemoteScriptSandbox falls back to the in-process engine, #393).
+     *
+     * @throws StatusRuntimeException on transport failure
+     */
+    public ExecuteResponse execute(String operation, Map<String, String> parameters,
+                                   int timeoutSeconds) {
+        return stub.withDeadlineAfter(timeoutSeconds + 2L, TimeUnit.SECONDS)
+            .execute(ExecuteRequest.newBuilder()
+                .setPluginId(getInfo().getName())
+                .setOperation(operation)
+                .putAllParameters(parameters)
+                .setTimeoutSeconds(timeoutSeconds)
+                .build());
+    }
+
     @Override
     public void close() {
         channel.shutdown();
