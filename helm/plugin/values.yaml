@@ -1,0 +1,63 @@
+# Reusable EXTERNAL plugin workload base (#394).
+# A concrete plugin overrides pluginName + image (and env if needed);
+# the security posture below is the default, not an opt-in.
+
+# Registry/display name of the plugin; also the modulo.plugin/name label.
+pluginName: example-plugin
+
+replicaCount: 1
+
+image:
+  repository: modulo-plugin-example
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# gRPC port the plugin serves the contract on.
+grpcPort: 9090
+
+env: {}
+#  SANDBOX_ENGINE: wasm
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Enforced posture — override only with a documented reason.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+networkPolicy:
+  enabled: true
+  # Pods allowed to call this plugin's gRPC port (the core, under either
+  # label scheme in use: helm chart or raw k8s manifests).
+  ingressFrom:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: modulo-api
+    - podSelector:
+        matchLabels:
+          app: modulo-api
+  # Egress: core gRPC + broker only, plus DNS. Everything else denied.
+  egress:
+    corePort: 9090
+    natsPort: 4222
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+imagePullSecrets: []
+nodeSelector: {}
+tolerations: []
+affinity: {}

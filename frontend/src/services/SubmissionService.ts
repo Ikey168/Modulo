@@ -17,6 +17,19 @@ export interface SubmissionFormData {
   maxPlatformVersion?: string;
 }
 
+/**
+ * Payload for container-image submissions (EXTERNAL-only policy, #395).
+ * All the metadata of a classic submission plus the image coordinates.
+ */
+export interface ImagePluginSubmissionRequest extends SubmissionFormData {
+  /** Repository reference without digest, e.g. "ghcr.io/acme/plugin". */
+  imageReference: string;
+  /** Pinned digest: "sha256:" + 64 lowercase hex chars. */
+  imageDigest: string;
+  /** Marketplace permissions the plugin needs at runtime. */
+  requiredPermissions: string[];
+}
+
 export interface PluginSubmission {
   submissionId: string;
   pluginName: string;
@@ -45,6 +58,9 @@ export interface PluginSubmission {
   fileSize: number;
   checksum: string;
   jarFilePath?: string;
+  imageReference?: string;
+  imageDigest?: string;
+  requiredPermissions?: string[];
 }
 
 export interface SubmissionStatistics {
@@ -94,6 +110,33 @@ class SubmissionService {
       }
     } catch (error) {
       console.error('Submit plugin error:', error);
+      return { error: 'Network error occurred' };
+    }
+  }
+
+  /**
+   * Submit a new plugin as a container image (EXTERNAL-only policy).
+   * JAR uploads are rejected by policy; this is the supported path.
+   */
+  async submitImagePlugin(request: ImagePluginSubmissionRequest): Promise<ApiResponse<PluginSubmission>> {
+    try {
+      const response = await fetch(`${API_BASE}/image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        return { data: result };
+      } else {
+        return { error: result.error, errors: result.errors };
+      }
+    } catch (error) {
+      console.error('Submit image plugin error:', error);
       return { error: 'Network error occurred' };
     }
   }

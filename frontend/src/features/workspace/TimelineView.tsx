@@ -10,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Spinner,
 } from '@/ui';
 import type { CoreNote, CoreTag } from '@modulo/core';
 import { relativeTime } from './workspaceUtils';
@@ -19,6 +20,7 @@ import { groupByPeriod, noteDate, type DateField, type Period } from './noteDate
 interface TimelineViewProps {
   notes: CoreNote[];
   tags: CoreTag[];
+  loading?: boolean;
   onOpenNote: (id: number) => void;
 }
 
@@ -29,7 +31,7 @@ function snippetOf(n: CoreNote): string {
     .trim();
 }
 
-export function TimelineView({ notes, tags, onOpenNote }: TimelineViewProps) {
+export function TimelineView({ notes, tags, loading = false, onOpenNote }: TimelineViewProps) {
   const [field, setField] = useState<DateField>('updatedAt');
   const [period, setPeriod] = useState<Period>('day');
   const [tag, setTag] = useState<string>(''); // '' = all tags
@@ -81,11 +83,15 @@ export function TimelineView({ notes, tags, onOpenNote }: TimelineViewProps) {
 
       {groups.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
-          <EmptyState
-            icon={<History className="size-5" />}
-            title="Nothing on the timeline"
-            description={tag ? 'No notes carry this tag yet.' : 'Create notes to see them here in chronological order.'}
-          />
+          {loading ? (
+            <Spinner className="size-5 text-muted-foreground" />
+          ) : (
+            <EmptyState
+              icon={<History className="size-5" />}
+              title="Nothing on the timeline"
+              description={tag ? 'No notes carry this tag yet.' : 'Create notes to see them here in chronological order.'}
+            />
+          )}
         </div>
       ) : (
         <ScrollArea className="flex-1">

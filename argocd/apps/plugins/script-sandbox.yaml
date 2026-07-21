@@ -1,0 +1,36 @@
+# The sandbox pilot (#393) as the first EXTERNAL plugin workload, deployed
+# through the reusable plugin base (#394). A future plugin is a copy of this
+# file with a different pluginName/image — nothing else.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: modulo-plugin-script-sandbox
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ikey168/Modulo.git
+    targetRevision: main
+    path: helm/plugin
+    helm:
+      values: |
+        pluginName: script-sandbox
+        image:
+          repository: modulo-script-sandbox
+          tag: "latest"
+        env:
+          SANDBOX_ENGINE: wasm
+        resources:
+          requests:
+            cpu: 100m
+            memory: 192Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: modulo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

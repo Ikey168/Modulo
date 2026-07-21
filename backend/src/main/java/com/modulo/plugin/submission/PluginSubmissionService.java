@@ -73,6 +73,27 @@ public class PluginSubmissionService {
     }
     
     /**
+     * Submit an image-based (EXTERNAL) plugin for review (#395) — the only
+     * accepted shape for third-party submissions; no artifact is uploaded,
+     * the image reference + pinned digest are the submission.
+     */
+    public PluginSubmission submitImagePlugin(PluginSubmissionRequest request) throws PluginException {
+        logger.info("Processing external plugin submission: {} ({})",
+            request.getPluginName(), request.getImageReference());
+        try {
+            PluginSubmission submission = createSubmissionFromRequest(request);
+            submission.setStatus(SubmissionStatus.PENDING_REVIEW);
+            submission.setSubmittedAt(LocalDateTime.now());
+            submission = submissionRepository.save(submission);
+            performValidation(submission);
+            return submission;
+        } catch (Exception e) {
+            logger.error("Failed to submit external plugin: {}", request.getPluginName(), e);
+            throw new PluginException("Failed to submit plugin: " + e.getMessage());
+        }
+    }
+
+    /**
      * Get submission by ID
      */
     public Optional<PluginSubmission> getSubmission(String submissionId) {
@@ -103,6 +124,9 @@ public class PluginSubmissionService {
     /**
      * Update submission status
      */
+    @Autowired(required = false)
+    private com.modulo.plugin.registry.PluginRegistry pluginRegistry;
+
     public PluginSubmission updateSubmissionStatus(String submissionId, SubmissionStatus newStatus, String reviewNotes) throws PluginException {
         Optional<PluginSubmission> optionalSubmission = submissionRepository.findById(submissionId);
         
@@ -130,6 +154,20 @@ public class PluginSubmissionService {
                 break;
             case APPROVED:
                 submission.setApprovedAt(LocalDateTime.now());
+                // #395: approval of an image submission produces the EXTERNAL
+                // registry entry (endpoint pending) that the workload
+                // machinery consumes — see docs/deploying-external-plugins.md.
+                if (submission.getImageReference() != null && !submission.getImageReference().isBlank()
+                        && pluginRegistry != null) {
+                    try {
+                        pluginRegistry.registerExternalSubmission(submission);
+                        logger.info("Registered approved external plugin '{}' (endpoint pending)",
+                            submission.getPluginName());
+                    } catch (Exception e) {
+                        logger.error("Failed to register approved external plugin '{}': {}",
+                            submission.getPluginName(), e.getMessage());
+                    }
+                }
                 break;
             case REJECTED:
                 submission.setRejectedAt(LocalDateTime.now());
@@ -270,6 +308,11 @@ public class PluginSubmissionService {
         submission.setTags(request.getTags());
         submission.setMinPlatformVersion(request.getMinPlatformVersion());
         submission.setMaxPlatformVersion(request.getMaxPlatformVersion());
+        submission.setImageReference(request.getImageReference());
+        submission.setImageDigest(request.getImageDigest());
+        if (request.getRequiredPermissions() != null) {
+            submission.setRequiredPermissions(String.join(",", request.getRequiredPermissions()));
+        }
     }
     
     private String saveJarFile(MultipartFile jarFile, String submissionId) throws IOException {

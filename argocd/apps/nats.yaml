@@ -1,0 +1,22 @@
+# NATS broker for the plugin event bridge (#391). Plain-manifest app —
+# the broker has no values to template.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: modulo-nats
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ikey168/Modulo.git
+    targetRevision: main
+    path: k8s/nats
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: modulo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

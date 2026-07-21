@@ -23,7 +23,9 @@
     </properties>
 
     <modules>
+        <module>plugin-contract</module>
         <module>backend</module>
+        <module>services/script-sandbox-plugin</module>
         <!-- <module>frontend</module> Removed as frontend/pom.xml does not exist -->
         <module>smart-contracts</module>
         <!-- Add other modules if they exist at this level -->

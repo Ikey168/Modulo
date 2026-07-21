@@ -57,6 +57,14 @@ public class PluginSubmission {
     
     @Column(length = 1000)
     private String jarFilePath;
+
+    /** OCI image reference (EXTERNAL-only submissions, #395), e.g. ghcr.io/acme/plugin */
+    @Column(length = 500)
+    private String imageReference;
+
+    /** Pinned image digest (sha256:...) — required; tags are not accepted (#395). */
+    @Column(length = 80)
+    private String imageDigest;
     
     @Column(length = 500)
     private String iconFilePath;
@@ -145,6 +153,12 @@ public class PluginSubmission {
     public void setMaxPlatformVersion(String maxPlatformVersion) { this.maxPlatformVersion = maxPlatformVersion; }
     public String getJarFilePath() { return jarFilePath; }
     public void setJarFilePath(String jarFilePath) { this.jarFilePath = jarFilePath; }
+
+    public String getImageReference() { return imageReference; }
+    public void setImageReference(String imageReference) { this.imageReference = imageReference; }
+
+    public String getImageDigest() { return imageDigest; }
+    public void setImageDigest(String imageDigest) { this.imageDigest = imageDigest; }
     public String getIconFilePath() { return iconFilePath; }
     public void setIconFilePath(String iconFilePath) { this.iconFilePath = iconFilePath; }
     public String getScreenshotPaths() { return screenshotPaths; }

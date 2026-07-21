@@ -1,0 +1,11 @@
+apiVersion: v2
+name: modulo-plugin
+description: >-
+  Reusable base for EXTERNAL Modulo plugin workloads (#394, ADR 0004): a
+  Deployment with the enforced security posture (non-root, read-only root
+  filesystem, resource limits, deny-by-default NetworkPolicy), a Service,
+  a dedicated ServiceAccount, and gRPC health probes. A concrete plugin is
+  this chart plus an image and values — see argocd/apps/plugins/.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

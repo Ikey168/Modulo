@@ -5,7 +5,7 @@ import { TagExplorerView } from '../../TagExplorerView';
 import type { PluginModule, WorkspaceViewProps } from '../types';
 
 function TagExplorerSurface(p: WorkspaceViewProps) {
-  return <TagExplorerView notes={p.data.notes} onOpenNote={p.onOpenNote} />;
+  return <TagExplorerView notes={p.data.notes} tags={p.data.tags} onOpenNote={p.onOpenNote} />;
 }
 
 const tagExplorerPlugin: PluginModule = {

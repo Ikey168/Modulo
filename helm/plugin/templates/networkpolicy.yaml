@@ -1,0 +1,37 @@
+{{- if .Values.networkPolicy.enabled }}
+# Deny-by-default posture (#394, ADR 0004 §2): ingress only from the core
+# on the gRPC port; egress only to the core's gRPC surface, the broker,
+# and DNS.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "modulo-plugin.name" . }}
+  labels:
+    {{- include "modulo-plugin.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "modulo-plugin.selectorLabels" . | nindent 6 }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        {{- toYaml .Values.networkPolicy.ingressFrom | nindent 8 }}
+      ports:
+        - port: {{ .Values.grpcPort }}
+  egress:
+    - to:
+        {{- toYaml .Values.networkPolicy.ingressFrom | nindent 8 }}
+      ports:
+        - port: {{ .Values.networkPolicy.egress.corePort }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app: nats
+      ports:
+        - port: {{ .Values.networkPolicy.egress.natsPort }}
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+{{- end }}

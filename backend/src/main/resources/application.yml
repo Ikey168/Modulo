@@ -58,6 +58,13 @@ modulo:
     # 'wasm' runs user JS inside QuickJS-on-WASM (hard memory cap, deny-by-default
     # isolation). Canaried in the dev profile; default flips to wasm after the soak.
     sandbox: rhino
+  plugins:
+    broker:
+      # NATS bridge for external plugin workloads (#391). Off by default —
+      # the Pi/minimal path runs core-only; when on but NATS is unreachable
+      # the core degrades (bridging suspends, in-JVM events unaffected).
+      enabled: false
+      url: nats://nats:4222
   security:
     jwt-secret: dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==
     jwt-expiration-seconds: 3600
