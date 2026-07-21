@@ -73,6 +73,8 @@ export const VULN_KB_PLUGIN_ID = 'vuln-kb';
 export const REPORTS_PLUGIN_ID = 'audit-reports';
 /** Plugin id for German invoicing (invoice fence, list, ZUGFeRD export). */
 export const RECHNUNG_PLUGIN_ID = 'rechnung';
+/** Plugin id for billable time tracking (Zeiterfassung). */
+export const ZEITERFASSUNG_PLUGIN_ID = 'zeiterfassung';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -96,6 +98,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'pdf-export', name: 'PDF Export', desc: 'Export individual notes or entire notebooks as formatted PDF documents.', category: 'export', downloads: '9.1k', rating: '4.3', icon: FileDown },
   { id: 'graph-stats', name: 'Graph Analytics', desc: 'Advanced graph analytics: centrality scores, cluster detection, and more.', category: 'analytics', subcategory: 'Metrics', downloads: '3.2k', rating: '4.7', icon: ChartNetwork },
   { id: 'web3-id', name: 'Web3 Identity', desc: 'Sign notes with your Ethereum wallet for verifiable on-chain authorship.', category: 'web3', subcategory: 'Identity', downloads: '4.5k', rating: '4.4', icon: Fingerprint },
+  { id: ZEITERFASSUNG_PLUGIN_ID, name: 'Zeiterfassung (Time Tracking)', desc: 'Timer and manual entries per engagement; unbilled billable time converts into ```invoice line items.', category: 'business', subcategory: 'Time', downloads: '2.1k', rating: '4.7', icon: Timer },
   { id: 'focus', name: 'Focus Timer', desc: 'Built-in Pomodoro timer that logs focus sessions linked to your notes.', category: 'productivity', subcategory: 'Focus', downloads: '7.8k', rating: '4.2', icon: Timer },
   { id: 'ipfs-attach', name: 'IPFS Attachments', desc: 'Pin images and files to IPFS; notes reference content by CID.', category: 'web3', subcategory: 'Storage', downloads: '5.6k', rating: '4.5', icon: Paperclip },
   { id: 'timestamp-proofs', name: 'Timestamp Proofs', desc: 'OpenTimestamps proofs for notes without a full on-chain anchor.', category: 'web3', subcategory: 'Proofs', downloads: '2.4k', rating: '4.3', icon: Stamp },
