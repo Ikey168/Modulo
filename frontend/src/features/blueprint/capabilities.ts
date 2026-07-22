@@ -36,6 +36,10 @@ export const CAPABILITY_LABELS: Record<string, { label: string; description: str
     label: 'Network — VIES lookup',
     description: 'Validate VAT identification numbers against the EU VIES service.',
   },
+  'network:noesis': {
+    label: 'Noesis knowledge engine',
+    description: 'Fetch the daily knowledge brief from your configured Noesis instance.',
+  },
   'code:execute': {
     label: 'Custom Code — Execute',
     description:

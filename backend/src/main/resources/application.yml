@@ -290,3 +290,7 @@ spring:
 logging:
   level:
     org.springframework.security: DEBUG
+# Noesis knowledge-engine integration (action.noesis.brief blueprint node)
+noesis:
+  brief:
+    url: ${NOESIS_BRIEF_URL:http://localhost:8012}

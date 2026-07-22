@@ -115,6 +115,9 @@ const RUNNABLE: Record<string, Runnable> = {
   'scheduled-digest': {
     load: () => import('./builtins/scheduledDigestPlugin'),
   },
+  'noesis-brief': {
+    load: () => import('./builtins/noesisBriefPlugin'),
+  },
 };
 
 export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {
