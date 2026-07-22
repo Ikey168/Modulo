@@ -43,7 +43,8 @@ public class BlueprintCapabilityService {
         Map.entry("action.audit.digest",         "notes:write"),
         Map.entry("action.tax.deadline.reminder", "notes:write"),
         Map.entry("action.invoice.chase",        "notes:write"),
-        Map.entry("action.vies.check",           "network:vies")
+        Map.entry("action.vies.check",           "network:vies"),
+        Map.entry("action.noesis.brief",         "network:noesis")
     );
 
     @Autowired private JdbcTemplate jdbc;

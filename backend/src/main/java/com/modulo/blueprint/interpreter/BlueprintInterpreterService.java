@@ -15,6 +15,7 @@ import com.modulo.plugin.event.PluginEvent;
 import com.modulo.plugin.event.PluginEventBus;
 import com.modulo.plugin.event.PluginEventListener;
 import com.modulo.service.BlockchainService;
+import com.modulo.service.NoesisBriefService;
 import com.modulo.service.NoteService;
 import com.modulo.service.OpenAIService;
 import com.modulo.service.TagService;
@@ -62,6 +63,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private BlockchainService blockchainService;
     @Autowired private ScriptSandbox scriptSandbox;
     @Autowired private ViesService viesService;
+    @Autowired private NoesisBriefService noesisBriefService;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
 
@@ -533,6 +535,23 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 outputs.put("valid", result == ViesService.ViesResult.VALID);
                 outputs.put("status", status);
                 outputs.put("checkedAt", LocalDateTime.now().toString());
+                return new NodeResult(outputs, "then");
+            }
+
+            case "action.noesis.brief": {
+                // Daily knowledge brief from a Noesis instance (news, economics,
+                // tech, web3, research publications). Degrades to status
+                // "unavailable" with empty content when Noesis is unreachable —
+                // never blocks the flow.
+                String briefDomains = String.valueOf(inputs.getOrDefault("domains", "")).trim();
+                String briefSince = String.valueOf(inputs.getOrDefault("since", "")).trim();
+                NoesisBriefService.Brief brief = noesisBriefService.fetchBrief(
+                    briefDomains.isEmpty() ? null : briefDomains,
+                    briefSince.isEmpty() ? null : briefSince);
+                outputs.put("title", brief.title());
+                outputs.put("markdown", brief.markdown());
+                outputs.put("status", brief.status());
+                outputs.put("itemCount", String.valueOf(brief.itemCount()));
                 return new NodeResult(outputs, "then");
             }
 

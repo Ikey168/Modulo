@@ -10,6 +10,7 @@ import com.modulo.plugin.event.NoteEvent;
 import com.modulo.plugin.event.PluginEventBus;
 import com.modulo.plugin.event.PluginEventListener;
 import com.modulo.service.BlockchainService;
+import com.modulo.service.NoesisBriefService;
 import com.modulo.service.NoteService;
 import com.modulo.service.OpenAIService;
 import com.modulo.service.TagService;
@@ -48,6 +49,7 @@ class BlueprintInterpreterServiceTest {
     @Mock private OpenAIService openAIService;
     @Mock private BlockchainService blockchainService;
     @Mock private JdbcTemplate jdbc;
+    @Mock private NoesisBriefService noesisBriefService;
 
     // Capture listeners registered against the event bus so we can fire them.
     private final Map<String, PluginEventListener<NoteEvent>> noteListeners = new HashMap<>();
@@ -284,6 +286,45 @@ class BlueprintInterpreterServiceTest {
     }
 
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---
+
+
+    /** The Noesis brief node fetches Markdown and feeds note creation. */
+    @Test
+    void noesisBriefFeedsNoteCreate() {
+        when(noesisBriefService.fetchBrief(any(), any())).thenReturn(
+            new NoesisBriefService.Brief("ok", "Noesis Brief — 2026-07-22",
+                "# Noesis daily brief\n- item", 3));
+
+        Map<String, Object> ir = Map.of(
+            "irVersion", 1,
+            "nodes", List.of(
+                node("t1", "trigger.note.saved", 1, null),
+                node("nb", "action.noesis.brief", 1, null),
+                node("mk", "action.note.create", 1, null)
+            ),
+            "edges", List.of(
+                edge("e1", "exec", "t1", "then", "nb", "in"),
+                edge("e2", "exec", "nb", "then", "mk", "in"),
+                edge("e3", "data", "nb", "title", "mk", "title"),
+                edge("e4", "data", "nb", "markdown", "mk", "content")
+            )
+        );
+
+        interpreter.registerBlueprint(entry(ir));
+
+        Note note = new Note();
+        note.setId(9L);
+        note.setTitle("anything");
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+
+        verify(noesisBriefService).fetchBrief(isNull(), isNull());
+        org.mockito.ArgumentCaptor<Note> saved = org.mockito.ArgumentCaptor.forClass(Note.class);
+        verify(noteService, atLeastOnce()).save(saved.capture());
+        Note created = saved.getAllValues().get(saved.getAllValues().size() - 1);
+        org.junit.jupiter.api.Assertions.assertEquals("Noesis Brief — 2026-07-22", created.getTitle());
+        org.junit.jupiter.api.Assertions.assertTrue(
+            String.valueOf(created.getContent()).contains("Noesis daily brief"));
+    }
 
     private static Map<String, Object> node(String id, String type, int version, Map<String, Object> config) {
         Map<String, Object> m = new HashMap<>();
