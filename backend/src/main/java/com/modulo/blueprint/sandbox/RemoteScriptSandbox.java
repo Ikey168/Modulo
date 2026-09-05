@@ -59,8 +59,7 @@ public class RemoteScriptSandbox implements ScriptSandbox {
                 "content", noteContent != null ? noteContent : ""),
                 (int) (WALL_TIMEOUT_MS / 1000) + 1);
         } catch (Exception e) {
-            logger.warn("Remote script-sandbox call failed ({}); falling back in-process",
-                e.getMessage());
+            logger.warn("Remote script-sandbox transport failure; falling back in-process");
             return fallback.execute(code, noteTitle, noteContent);
         }
         if (response.getSuccess()) {
@@ -70,8 +69,7 @@ public class RemoteScriptSandbox implements ScriptSandbox {
             // The script genuinely failed — same meaning as a local failure.
             throw new ScriptExecutionException(response.getMessage());
         }
-        logger.warn("Remote script-sandbox returned {} ({}); falling back in-process",
-            response.getErrorCode(), response.getMessage());
+        logger.warn("Remote script-sandbox unavailable; falling back in-process");
         return fallback.execute(code, noteTitle, noteContent);
     }
 
@@ -87,7 +85,7 @@ public class RemoteScriptSandbox implements ScriptSandbox {
                 return (ExternalPluginProxy) plugin;
             }
         } catch (Exception e) {
-            logger.debug("Remote sandbox lookup failed: {}", e.getMessage());
+            logger.debug("Remote sandbox lookup failed");
         }
         return null;
     }

@@ -159,6 +159,8 @@ message ExecuteRequest {
   map<string, string> parameters = 3;
   bytes payload = 4;
   int32 timeout_seconds = 5;
+  string correlation_id = 6; // Server-generated workflow run UUID, when invoked by a workflow.
+  string step_id = 7; // Server-generated node-attempt UUID.
 }
 
 message ExecuteResponse {

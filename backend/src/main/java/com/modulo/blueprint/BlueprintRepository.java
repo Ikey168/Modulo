@@ -219,7 +219,7 @@ public class BlueprintRepository {
         try {
             return objectMapper.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
-            logger.warn("Failed to parse blueprint config JSON", e);
+            logger.warn("Failed to parse blueprint config JSON");
             return Map.of();
         }
     }
@@ -240,7 +240,7 @@ public class BlueprintRepository {
         try {
             return objectMapper.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
-            logger.warn("Failed to serialize blueprint IR to JSON", e);
+            logger.warn("Failed to serialize blueprint IR to JSON");
             return "{}";
         }
     }

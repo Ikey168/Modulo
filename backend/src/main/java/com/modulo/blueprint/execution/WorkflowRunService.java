@@ -1,6 +1,6 @@
 package com.modulo.blueprint.execution;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.modulo.observability.ExecutionTraceContext;
 import com.modulo.repository.jpa.UserRepository;
 import java.util.*;
 import java.util.function.Supplier;
@@ -23,8 +23,20 @@ public class WorkflowRunService {
   private final TransactionTemplate transactions;
   private final UserRepository users;
 
+  private final TracePolicy tracePolicy;
+
   public WorkflowRunService(
       JdbcTemplate jdbc, PlatformTransactionManager manager, UserRepository users) {
+    this(jdbc, manager, users, new TracePolicy(""));
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public WorkflowRunService(
+      JdbcTemplate jdbc,
+      PlatformTransactionManager manager,
+      UserRepository users,
+      TracePolicy tracePolicy) {
+    this.tracePolicy = tracePolicy;
     this.jdbc = jdbc;
     this.transactions = new TransactionTemplate(manager);
     this.transactions.setPropagationBehavior(
@@ -69,8 +81,8 @@ public class WorkflowRunService {
                   UUID.class,
                   expectedOwner,
                   blueprintId,
-                  triggerNode,
-                  triggerKey);
+                  tracePolicy.identifier(triggerNode),
+                  tracePolicy.identifier(triggerKey));
           if (!previous.isEmpty()) return new Lease(previous.get(0), expectedOwner, false);
           if (jdbc.queryForObject(
                   "SELECT count(*) FROM workflow_runs WHERE owner_id=?", Long.class, expectedOwner)
@@ -84,11 +96,11 @@ public class WorkflowRunService {
               id,
               expectedOwner,
               blueprintId,
-              version,
+              tracePolicy.identifier(version),
               digest,
-              triggerNode,
-              triggerType,
-              triggerKey);
+              tracePolicy.identifier(triggerNode),
+              tracePolicy.identifier(triggerType),
+              tracePolicy.identifier(triggerKey));
           return new Lease(id, expectedOwner, true);
         });
   }
@@ -137,7 +149,11 @@ public class WorkflowRunService {
                   lease.owner());
           if (state.size() != 1 || !state.get(0).equals("RUNNING"))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "WORKFLOW_NOT_RUNNING");
-          UUID id = UUID.randomUUID();
+          var trace = ExecutionTraceContext.current();
+          UUID id =
+              trace != null && trace.runId().equals(lease.id())
+                  ? trace.stepId()
+                  : UUID.randomUUID();
           int attempt =
               jdbc.queryForObject(
                   "SELECT attempt FROM workflow_runs WHERE id=?", Integer.class, lease.id());
@@ -149,8 +165,8 @@ public class WorkflowRunService {
               lease.id(),
               sequence,
               attempt,
-              nodeId,
-              nodeType,
+              tracePolicy.identifier(nodeId),
+              tracePolicy.identifier(nodeType),
               metadata(lease.owner(), inputs));
           return id;
         });
@@ -158,6 +174,17 @@ public class WorkflowRunService {
 
   public void finishStep(
       Lease lease, UUID step, String next, Map<String, ?> outputs, String errorClass) {
+    finishStep(lease, step, next, outputs, errorClass, null);
+  }
+
+  public void finishStep(
+      Lease lease,
+      UUID step,
+      String next,
+      Map<String, ?> outputs,
+      String errorClass,
+      Long durationMs) {
+    if (durationMs != null && durationMs < 0) throw invalid();
     if (!Set.of("SUCCEEDED", "FAILED", "SKIPPED", "WAITING", "RETRY_WAIT", "CANCELLED")
         .contains(next)) throw invalid();
     classification(errorClass);
@@ -166,13 +193,14 @@ public class WorkflowRunService {
                 jdbc.update(
                     "UPDATE workflow_steps SET state=?,finished_at=CASE WHEN ? IN"
                         + " ('WAITING','RETRY_WAIT') THEN NULL ELSE CURRENT_TIMESTAMP"
-                        + " END,output_metadata=CAST(? AS jsonb),error_class=? WHERE id=? AND"
-                        + " state='RUNNING' AND run_id IN (SELECT id FROM workflow_runs WHERE id=?"
-                        + " AND owner_id=?)",
+                        + " END,output_metadata=CAST(? AS jsonb),error_class=?,duration_ms=? WHERE"
+                        + " id=? AND state='RUNNING' AND run_id IN (SELECT id FROM workflow_runs"
+                        + " WHERE id=? AND owner_id=?)",
                     next,
                     next,
                     metadata(lease.owner(), outputs),
                     errorClass,
+                    durationMs,
                     step,
                     lease.id(),
                     lease.owner()))
@@ -200,37 +228,9 @@ public class WorkflowRunService {
    * Type/count metadata only. Arbitrary values, names, note contents and exception messages are
    * excluded.
    */
-  static String metadata(long owner, Map<String, ?> values) {
-    if (values == null) return "{}";
-    Map<String, Integer> counts = new TreeMap<>();
-    List<Map<String, Object>> references = new ArrayList<>();
-    for (Object value : values.values()) {
-      String type =
-          value == null
-              ? "null"
-              : value instanceof Number
-                  ? "number"
-                  : value instanceof Boolean
-                      ? "boolean"
-                      : value instanceof CharSequence
-                          ? "text"
-                          : value instanceof Collection<?>
-                              ? "collection"
-                              : value instanceof Map<?, ?> ? "object" : "reference";
-      counts.merge(type, 1, Integer::sum);
-      if (value instanceof com.modulo.entity.Note note
-          && note.getId() != null
-          && note.getId() > 0
-          && java.util.Objects.equals(note.getUserId(), owner)
-          && references.size() < 16) references.add(Map.of("kind", "note", "id", note.getId()));
-    }
-    try {
-      return new ObjectMapper()
-          .writeValueAsString(
-              Map.of("fields", values.size(), "types", counts, "references", references));
-    } catch (Exception impossible) {
-      throw new IllegalStateException(impossible);
-    }
+  private String metadata(long owner, Map<String, ?> values) {
+    var trace = ExecutionTraceContext.current();
+    return tracePolicy.summarize(owner, values, trace != null && trace.noteReferencesAllowed());
   }
 
   public int pruneExpired() {

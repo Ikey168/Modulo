@@ -191,13 +191,14 @@ public class ExternalPluginProxy implements Plugin, AutoCloseable {
      */
     public ExecuteResponse execute(String operation, Map<String, String> parameters,
                                    int timeoutSeconds) {
-        return stub.withDeadlineAfter(timeoutSeconds + 2L, TimeUnit.SECONDS)
-            .execute(ExecuteRequest.newBuilder()
+        var trace=com.modulo.observability.ExecutionTraceContext.current();
+        var request=ExecuteRequest.newBuilder()
                 .setPluginId(getInfo().getName())
                 .setOperation(operation)
                 .putAllParameters(parameters)
-                .setTimeoutSeconds(timeoutSeconds)
-                .build());
+                .setTimeoutSeconds(timeoutSeconds);
+        if(trace!=null) request.setCorrelationId(trace.runId().toString()).setStepId(trace.stepId().toString());
+        return stub.withDeadlineAfter(timeoutSeconds + 2L, TimeUnit.SECONDS).execute(request.build());
     }
 
     @Override
@@ -224,8 +225,8 @@ public class ExternalPluginProxy implements Plugin, AutoCloseable {
                 return call.call();
             } catch (StatusRuntimeException e) {
                 last = e;
-                logger.warn("{} on external plugin at {} failed (attempt {}/{}): {}",
-                    operation, endpoint, attempt, MAX_ATTEMPTS, e.getStatus());
+                logger.warn("External plugin transport failed (attempt {}/{}): {}",
+                    attempt, MAX_ATTEMPTS, e.getStatus().getCode());
                 if (attempt < MAX_ATTEMPTS) {
                     try {
                         Thread.sleep(BACKOFF_BASE_MS * (1L << (attempt - 1)));

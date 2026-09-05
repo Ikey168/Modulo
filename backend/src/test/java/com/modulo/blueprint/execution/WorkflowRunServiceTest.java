@@ -54,6 +54,7 @@ class WorkflowRunServiceTest {
                       .getInputStream()
                       .readAllBytes(),
                   java.nio.charset.StandardCharsets.UTF_8));
+      c.createStatement().execute("ALTER TABLE workflow_steps ADD COLUMN duration_ms BIGINT CHECK(duration_ms>=0)");
     }
   }
 

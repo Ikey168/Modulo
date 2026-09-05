@@ -63,3 +63,32 @@ transitions, retry attempts, retention/cascades and unchanged legacy-log access.
 Existing interpreter tests verify normal actions, capability denial and loop
 bounds against structured run completion. Flyway tests cover fresh migration and
 adoption of an existing baseline.
+
+## Node diagnostics (#425)
+
+Each executed node, including the trigger, has a generated step UUID, monotonic
+`duration_ms`, and terminal state. Capability denial records `SKIPPED`; rejected
+WASM modules, script errors, and failed AI/blockchain calls fail the step and run.
+Execution stops at that failure. An unselected branch has no executed step.
+
+`TracePolicy` persists field counts and bounded type counts, never arbitrary
+input/output keys, values, note contents, or exception messages. It inspects at
+most 256 values and emits at most 16 owned note references when the current
+execution context permits references. Default identifier redaction recognizes
+credential markers and email addresses. Operators can add semicolon-separated
+literal markers with `modulo.workflow.trace.redact-patterns` (16 markers, 128
+characters each, 2048 total); these are literal case-insensitive matches, not
+regular expressions. Matching identifiers become stable SHA-256-derived labels.
+
+`ExecutionTraceContext` scopes generated run/step IDs and restores MDC on exit.
+The backward-compatible gRPC Execute fields `correlation_id` and `step_id` carry
+these IDs to external plugins. The script sandbox echoes valid UUIDs in response
+metadata. Calls outside a workflow omit correlation fields. Runtime diagnostics
+exclude raw script/transport exception messages; authorized script error responses
+are separate from persisted traces and application logs.
+
+The focused suite includes real PostgreSQL migrations, failed WASM execution,
+owned reference redaction, nested context cleanup, and real localhost gRPC
+correlation. A bounded summary benchmark reports time per operation for a
+10,000-field input with only 256 inspected fields; database and network latency
+are additional costs.

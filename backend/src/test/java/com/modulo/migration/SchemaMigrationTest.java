@@ -26,7 +26,7 @@ class SchemaMigrationTest {
     }
     @Test void freshDatabaseMatchesAllCurrentEntitiesAndJdbcTables() throws Exception {
         String name = database();
-        assertEquals(7, flyway(name).migrate().migrationsExecuted);
+        assertEquals(8, flyway(name).migrate().migrationsExecuted);
         SchemaMigrationTool.validateSchema(url(name), DB.getUsername(), DB.getPassword());
         execute(name, "INSERT INTO application.notes(note_id,title,content,version) VALUES (nextval('hibernate_sequence'),'fresh','body',0)");
         assertEquals(0, flyway(name).migrate().migrationsExecuted);
@@ -43,7 +43,7 @@ class SchemaMigrationTest {
         assertEquals(0, restore.getExitCode(), restore.getStderr());
         assertThrows(Exception.class, () -> flyway(destination).migrate());
         SchemaMigrationTool.adopt(url(destination), DB.getUsername(), DB.getPassword());
-        assertEquals(6, flyway(destination).migrate().migrationsExecuted);
+        assertEquals(7, flyway(destination).migrate().migrationsExecuted);
         SchemaMigrationTool.validateSchema(url(destination), DB.getUsername(), DB.getPassword());
         try (var c = DriverManager.getConnection(url(destination), DB.getUsername(), DB.getPassword()); var s = c.createStatement(); var r = s.executeQuery("SELECT title,content FROM application.notes")) {
             assertTrue(r.next()); assertEquals("keep me", r.getString(1)); assertEquals("saved content", r.getString(2)); assertFalse(r.next());

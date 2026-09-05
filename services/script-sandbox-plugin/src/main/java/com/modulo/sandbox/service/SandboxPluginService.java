@@ -137,7 +137,7 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
     @Override
     public void execute(ExecuteRequest request, StreamObserver<ExecuteResponse> observer) {
         if (!OPERATION.equals(request.getOperation())) {
-            observer.onNext(ExecuteResponse.newBuilder()
+            observer.onNext(correlatedResponse(request)
                 .setSuccess(false)
                 .setErrorCode("UNSUPPORTED_OPERATION")
                 .setMessage("script-sandbox supports only '" + OPERATION + "'")
@@ -150,24 +150,33 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
         String content = request.getParametersOrDefault("content", "");
         try {
             String output = engine.execute(code, title, content);
-            observer.onNext(ExecuteResponse.newBuilder()
+            observer.onNext(correlatedResponse(request)
                 .setSuccess(true)
                 .setResultPayload(ByteString.copyFrom(output, StandardCharsets.UTF_8))
                 .build());
         } catch (ScriptSandbox.ScriptExecutionException e) {
-            observer.onNext(ExecuteResponse.newBuilder()
+            observer.onNext(correlatedResponse(request)
                 .setSuccess(false)
                 .setErrorCode("SCRIPT_ERROR")
                 .setMessage(e.getMessage())
                 .build());
         } catch (Exception e) {
-            logger.error("Unexpected sandbox failure", e);
-            observer.onNext(ExecuteResponse.newBuilder()
+            logger.error("Unexpected sandbox failure");
+            observer.onNext(correlatedResponse(request)
                 .setSuccess(false)
                 .setErrorCode("INTERNAL")
-                .setMessage(e.getMessage() != null ? e.getMessage() : "internal error")
+                .setMessage("internal error")
                 .build());
         }
         observer.onCompleted();
     }
+    private static ExecuteResponse.Builder correlatedResponse(ExecuteRequest request) {
+        var response = ExecuteResponse.newBuilder();
+        try {
+            response.putResultMetadata("correlation_id", java.util.UUID.fromString(request.getCorrelationId()).toString());
+            response.putResultMetadata("step_id", java.util.UUID.fromString(request.getStepId()).toString());
+        } catch (IllegalArgumentException ignored) { /* Old clients omit correlation fields. */ }
+        return response;
+    }
+
 }
