@@ -39,7 +39,7 @@ test('retry requires an explicit user acknowledgement and carries an idempotency
     : {ok:true,json:async () => ({run,steps:[],nodeIds:[],stepPage:0,stepTotal:0,checkpoints:[0,2]})});
   vi.stubGlobal('fetch',fetcher);
   render(<MemoryRouter initialEntries={['/app/executions?run=run-1']}><ExecutionCenter /></MemoryRouter>);
-  const consent=await screen.findByRole('checkbox');
+  const consent=await screen.findByRole('checkbox',{name:/I understand that replayed actions/});
   expect(consent).not.toBeChecked();
   fireEvent.click(consent);
   fireEvent.click(screen.getByRole('button',{name:'Retry with a new attempt'}));

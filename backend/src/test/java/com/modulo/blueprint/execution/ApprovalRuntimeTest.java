@@ -49,7 +49,7 @@ class ApprovalRuntimeTest {
   @BeforeEach
   void setup() {
     jdbc = new JdbcTemplate(source);
-    jdbc.execute("TRUNCATE users,plugin_registry CASCADE");
+    jdbc.execute("TRUNCATE users,plugin_registry,approval_signing_keys CASCADE");
     jdbc.update("INSERT INTO users(id,username) VALUES(1,'owner'),(2,'reviewer'),(3,'other')");
     var users = mock(UserRepository.class);
     when(users.findById(anyLong()))
@@ -185,6 +185,63 @@ class ApprovalRuntimeTest {
             notes,
             signing);
     return signing;
+  }
+
+  @Test
+  void referenceWorkflowExportsDeterministicVerifiableBundle() throws Exception {
+    var signing = configureSigning("bundle");
+    UUID request = pending();
+    var bundles =
+        new com.modulo.blueprint.approval.EvidenceBundleService(
+            jdbc, json, signing, new DataSourceTransactionManager(source));
+    var options =
+        new com.modulo.blueprint.approval.EvidenceBundleService.Options(false, false, false);
+    assertThrows(ResponseStatusException.class, () -> bundles.export(run(), 1, options));
+    approvals.decide(request, 2, decision("APPROVE"));
+    int checkpoint =
+        jdbc.queryForObject(
+            "SELECT resume_checkpoint FROM workflow_runs WHERE id=?", Integer.class, run());
+    interpreter().resumeWaiting(run(), 1, checkpoint);
+    var first = bundles.export(run(), 1, options);
+    var second = bundles.export(run(), 1, options);
+    assertEquals(first.rootHash(), second.rootHash());
+    assertArrayEquals(first.bytes(), second.bytes());
+    assertThrows(ResponseStatusException.class, () -> bundles.export(run(), 2, options));
+    var archive = keyDirectory.resolve("audit.zip");
+    java.nio.file.Files.write(archive, first.bytes());
+    var process =
+        new ProcessBuilder(
+                "python3",
+                "../scripts/verify-evidence-bundle.py",
+                archive.toString(),
+                first.rootHash())
+            .redirectErrorStream(true)
+            .start();
+    assertTrue(process.waitFor(30, TimeUnit.SECONDS));
+    String output =
+        new String(
+            process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    assertEquals(0, process.exitValue(), output);
+    var result = json.readTree(output);
+    assertEquals("VALID", result.path("integrity").asText());
+    assertEquals("INCOMPLETE_REDACTED", result.path("status").asText());
+    assertEquals("VALID", result.path("signatures").get(0).path("status").asText());
+    var redacted =
+        bundles.export(
+            run(),
+            1,
+            new com.modulo.blueprint.approval.EvidenceBundleService.Options(true, true, true));
+    assertNotEquals(first.rootHash(), redacted.rootHash());
+    try (var zip =
+        new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(redacted.bytes()))) {
+      java.util.zip.ZipEntry file;
+      while ((file = zip.getNextEntry()) != null) {
+        assertFalse(file.getName().startsWith("signatures/"));
+        assertFalse(
+            new String(zip.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                .contains("Reviewed."));
+      }
+    }
   }
 
   @Test

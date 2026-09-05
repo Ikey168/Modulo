@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { EvidenceExport } from './EvidenceExport';
 import { WorkflowAlerts, WorkflowPolicy } from './WorkflowOperations';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cancelRun, retryRun, editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
@@ -65,6 +66,7 @@ export function ExecutionCenter() {
     {detail && <>
       <h2 className="text-lg font-semibold">{detail.run.blueprint_name ?? 'Deleted Blueprint'} · {detail.run.state}</h2>
       <p className="my-2 break-all text-sm">Run {detail.run.id} · version {detail.run.blueprint_version} · attempt {detail.run.attempt}</p>
+      {['SUCCEEDED','FAILED','CANCELLED','DEAD_LETTER'].includes(detail.run.state) && <EvidenceExport key={detail.run.id} runId={detail.run.id} />}
       {detail.run.blueprint_name && <Link className="underline" to={editorRunLink(detail.run)}>Open executed path in editor</Link>}
       <p className="my-2 text-sm">Automatic retry policy: at most {detail.run.max_auto_attempts ?? 1} attempts; initial backoff {detail.run.retry_backoff_seconds ?? 30} seconds. Potentially repeated side effects require manual review.</p>
       {detail.run.blueprint_id != null && <WorkflowPolicy blueprint={detail.run.blueprint_id} />}
