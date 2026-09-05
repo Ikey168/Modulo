@@ -14,7 +14,7 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 |---|---|---|
 | [#388](https://github.com/Ikey168/Modulo/issues/388) | External plugins as Kubernetes workloads around the core (tracking) | Implemented in merged PR #407; closed. |
 | [#401](https://github.com/Ikey168/Modulo/issues/401) | WASM sandbox W5: canary rollout, flip default, retire Rhino | Partial existing WASM implementation; release-cycle soak and subsequent retirement still required. |
-| [#409](https://github.com/Ikey168/Modulo/issues/409) | EPIC: Trustworthy synchronized workspace state and tenant isolation | Open epic; child acceptance criteria remain incomplete. |
+| [#409](https://github.com/Ikey168/Modulo/issues/409) | EPIC: Trustworthy synchronized workspace state and tenant isolation | Completed and closed after all child issues #415–423 merged; [acceptance evidence](../operations/state-acceptance.md). |
 | [#410](https://github.com/Ikey168/Modulo/issues/410) | EPIC: Blueprint Execution Center and durable workflow controls | Open epic; child acceptance criteria remain incomplete. |
 | [#411](https://github.com/Ikey168/Modulo/issues/411) | EPIC: Human approval, signed decisions, and evidence bundles for Blueprints | Open epic; child acceptance criteria remain incomplete. |
 | [#412](https://github.com/Ikey168/Modulo/issues/412) | EPIC: Pack Studio and complete installable workspace experiences | Open epic; child acceptance criteria remain incomplete. |
@@ -28,8 +28,8 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 | [#420](https://github.com/Ikey168/Modulo/issues/420) | State P6: migrate Canvas boards to synchronized plugin state | Published per-board synchronization, lossless create-only migration and recovery export; eight focused Canvas synchronization tests pass. Closed. |
 | [#421](https://github.com/Ikey168/Modulo/issues/421) | State P7: migrate embedded Database records to synchronized plugin state | Published in c1fdfd4e: per-fence persistence, migration, view settings and retention policy. Full isolated frontend suite passes (479 tests); closed. |
 | [#422](https://github.com/Ikey168/Modulo/issues/422) | State P8: migrate Todos, time tracking, and business plugin records to durable storage | Implemented: per-record tasks/time/expenses, synchronized business settings and note panels, explicit stable-ID imports, owner validation, offline/account-switch/conflict tests and deterministic exports. See [inventory](../architecture/operational-state.md). Merged in [PR #454](https://github.com/Ikey168/Modulo/pull/454); closed. |
-| [#423](https://github.com/Ikey168/Modulo/issues/423) | State P9: cross-client, offline, backup, and tenant-isolation acceptance suite | Implemented locally: signed HTTP tenant tests, PostgreSQL backup/restore/restart, storage-generation fencing and offline client recovery; CI publication in progress. See [acceptance runbook](../operations/state-acceptance.md). |
-| [#424](https://github.com/Ikey168/Modulo/issues/424) | Execution P1: structured workflow-run and node-step persistence model | Not implemented in this pass; retains original acceptance criteria and dependencies. |
+| [#423](https://github.com/Ikey168/Modulo/issues/423) | State P9: cross-client, offline, backup, and tenant-isolation acceptance suite | Merged in [PR #455](https://github.com/Ikey168/Modulo/pull/455); closed. Signed HTTP, backup/restore/restart and client generation recovery passed all CI checks. See [acceptance runbook](../operations/state-acceptance.md). |
+| [#424](https://github.com/Ikey168/Modulo/issues/424) | Execution P1: structured workflow-run and node-step persistence model | Implemented locally: owned Blueprint registration, deduplicated runs, ordered node attempts, database-enforced transitions, bounded metadata, retention and legacy history. See [model](../architecture/workflow-runs.md). Publication in progress. |
 | [#425](https://github.com/Ikey168/Modulo/issues/425) | Execution P2: instrument Blueprint nodes with traces, timing, and redaction | Not implemented in this pass; retains original acceptance criteria and dependencies. |
 | [#426](https://github.com/Ikey168/Modulo/issues/426) | Execution P3: searchable Execution Center UI and real Dashboard activity | Not implemented in this pass; retains original acceptance criteria and dependencies. |
 | [#427](https://github.com/Ikey168/Modulo/issues/427) | Execution P4: safe retry, cancellation, idempotency, and duplicate-trigger controls | Not implemented in this pass; retains original acceptance criteria and dependencies. |
@@ -61,7 +61,7 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 ## Next implementation dependencies
 
 1. #415 is merged and closed. Full Java 17 `mvn verify` passed: 699 backend tests, no failures/errors, three existing skips.
-2. Finish #422 operational-record migrations; run #423 before closing #409. Client and consumer migrations #418–421 are published.
+2. #409 and all State children #415–423 are closed. Restore-aware acceptance is published in PR #455.
 3. Deliver #424–429, then #430–434, followed by the dependent Pack Studio, Trust Center and knowledge work in the [roadmap order](feature-ideas.md).
 4. Keep #401 open until actual staging soak, release and Pi evidence satisfies its operational criteria.
 5. Publish verified changes and close individual issues; update this ledger and roadmap with the acceptance evidence. Do not close epics based on foundational components alone.

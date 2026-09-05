@@ -3,6 +3,8 @@
 CREATE TABLE IF NOT EXISTS plugin_registry (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
+    owner_id BIGINT,
+    blueprint_name VARCHAR(128),
     display_name VARCHAR(255) NOT NULL,
     description TEXT,
     version VARCHAR(50) NOT NULL,
