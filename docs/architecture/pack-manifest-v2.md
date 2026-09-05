@@ -100,9 +100,9 @@ by a plugin resource; arbitrary executable node descriptors cannot be smuggled
 through the v2 legacy arrays.
 
 `POST /api/packs/validate` returns `ok`, a classified failure reason, and the
-resource order. It performs no mutation. Until a v2 workspace install plan is
-available, the legacy installer rejects v2 with `V2_REQUIRES_WORKSPACE_INSTALL_PLAN`
-instead of installing only a subset. The transactional engine is tracked in #436.
+resource order. It performs no mutation. The legacy installer rejects v2 with `V2_REQUIRES_WORKSPACE_INSTALL_PLAN`
+instead of installing only a subset. Use the workspace pack plan/apply API
+documented in [transactional installation](../operations/workspace-packs.md).
 
 The backend and frontend tests load the same examples, reject malformed and
 unknown fields (including prototype-named properties), test missing/cyclic

@@ -1,3 +1,5 @@
+import browserSchema from '../pack-manifest-v2.schema.json';
+import serverSchema from '../../../../../../backend/src/main/resources/pack-manifest-v2.schema.json';
 import {expect,test} from 'vitest';
 import knowledge from '../../../../../../shared/packs/knowledge-base.v2.json';
 import audit from '../../../../../../shared/packs/security-audit.v2.json';
@@ -20,3 +22,5 @@ test('owner injection, unsafe removal, invalid schema refs and prototype fields 
   expect(validatePackV2({...knowledge,resources:[{...knowledge.resources[1],spec:{title:'x',markdown:'',schemaRef:'missing'}}]}).ok).toBe(false);
   expect(validatePackV2(JSON.parse(JSON.stringify(knowledge).replace('"manifestVersion":2','"__proto__":{},"manifestVersion":2'))).ok).toBe(false);
 });
+
+test('browser schema mirror matches the authoritative backend schema',()=>{expect(browserSchema).toEqual(serverSchema);});

@@ -41,6 +41,7 @@ import {
   useToast,
 } from '@/ui';
 import { NavItem, UserPill } from './atoms';
+import { WorkspacePacks } from '../packs/WorkspacePacks';
 import { ApprovalInbox } from '../approvals/ApprovalInbox';
 import { ExecutionCenter } from '../executions/ExecutionCenter';
 import { DashboardView } from './DashboardView';
@@ -84,6 +85,7 @@ interface NavEntry {
 const BUILTIN_VIEWS: NavEntry[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, order: 10 },
   { id: 'marketplace', label: 'Marketplace', icon: Store, order: 20 },
+  { id: 'packs', label: 'Packs', icon: Store, order: 37 },
   { id: 'approvals', label: 'Approvals', icon: Workflow, order: 36 },
   { id: 'executions', label: 'Executions', icon: Workflow, order: 35 },
   { id: 'blueprints', label: 'Blueprints', icon: Workflow, order: 30 },
@@ -392,6 +394,7 @@ function WorkspaceShell() {
         )}
         {view === 'executions' && <ExecutionCenter />}
         {view === 'approvals' && <ApprovalInbox />}
+        {view === 'packs' && <WorkspacePacks />}
         {view === 'marketplace' && <MarketplaceView />}
         {view === 'blueprints' && (
           <Suspense fallback={<div className="flex flex-1 items-center justify-center text-muted-foreground">Loading editor…</div>}>

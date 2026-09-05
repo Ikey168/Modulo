@@ -20,6 +20,15 @@ export function deriveRequiredCapabilities(nodes: FlowNode[]): string[] {
 
 /** Human-readable labels for known capabilities. */
 export const CAPABILITY_LABELS: Record<string, { label: string; description: string }> = {
+  'plugins:install': {label:'Install plugins',description:'Use the pack’s pinned, provisioned plugins.'},
+  'blueprints:write': {label:'Add workflow Blueprints',description:'Install workflow definitions and their triggers.'},
+  'templates:write': {label:'Add note templates',description:'Install reusable note templates.'},
+  'properties:schema': {label:'Add property schemas',description:'Install typed note-property definitions.'},
+  'queries:write': {label:'Add saved queries',description:'Install property queries for workspace views.'},
+  'workspace:configure': {label:'Add workspace views',description:'Install views and workspace modes.'},
+  'dashboard:configure': {label:'Add dashboards',description:'Install dashboards composed from pack views.'},
+  'permissions:request': {label:'Request permissions',description:'Present the pack’s permission presets for explicit consent.'},
+
   'approval:request': {label:'Human approval',description:'Request accountable decisions from the configured reviewer, sharing only the approval projection.'},
   'notes:write': {
     label: 'Notes — Write',

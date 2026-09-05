@@ -1,4 +1,4 @@
-import schema from '../../../../../backend/src/main/resources/pack-manifest-v2.schema.json';
+import schema from './pack-manifest-v2.schema.json';
 export interface PackResource {id:string;kind:'plugin'|'blueprint'|'propertySchema'|'template'|'savedQuery'|'view'|'dashboard'|'workspaceMode'|'permissionPreset'|'demoData';title:string;requires:string[];capabilities:string[];spec:Record<string,unknown>}
 export const resourceCapabilities:Record<PackResource['kind'],string>={plugin:'plugins:install',blueprint:'blueprints:write',propertySchema:'properties:schema',template:'templates:write',savedQuery:'queries:write',view:'workspace:configure',dashboard:'dashboard:configure',workspaceMode:'workspace:configure',permissionPreset:'permissions:request',demoData:'notes:write'};
 type Schema={oneOf?:Schema[];enum?:unknown[];type?:string|string[];minLength?:number;maxLength?:number;pattern?:string;minItems?:number;maxItems?:number;uniqueItems?:boolean;items?:Schema;required?:string[];properties?:Record<string,Schema>;additionalProperties?:boolean};
