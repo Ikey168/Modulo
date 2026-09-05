@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // EÜR bookkeeping + DATEV export (#366). Income derives from paid invoices
 // (Rechnung plugin); expenses are recorded here. The module produces the
 // period summary behind a USt-Voranmeldung and a DATEV-Buchungsstapel-style
@@ -193,7 +194,7 @@ export function datevCsv(invoices: NoteInvoice[], expenses: ExpenseRecord[], per
       .join(';'),
   );
 
-  for (const { invoice } of invoices) {
+  for (const { invoice } of [...invoices].sort((a, b) => a.invoice.number < b.invoice.number ? -1 : a.invoice.number > b.invoice.number ? 1 : a.noteId - b.noteId)) {
     if (invoice.status !== 'paid' || !inPeriod(invoice.date, period)) continue;
     const totals = computeTotals(invoice);
     rows.push(
@@ -209,7 +210,7 @@ export function datevCsv(invoices: NoteInvoice[], expenses: ExpenseRecord[], per
     );
   }
 
-  for (const e of expenses) {
+  for (const e of [...expenses].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)) {
     if (!inPeriod(e.date, period)) continue;
     rows.push(
       [

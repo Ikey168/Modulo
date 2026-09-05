@@ -221,6 +221,7 @@ public class PluginStateStore {
                   "SELECT count(*) FROM plugin_state_events WHERE owner_id=?", Long.class, owner)
               >= 100_000) throw error(HttpStatus.TOO_MANY_REQUESTS, "STATE_EVENT_QUOTA_EXCEEDED");
           schemas.validate(owner, namespace, schemaId, schemaVersion, value);
+          OperationalSchemas.validate(schemaId, key, value);
           StateRecord current = find(owner, workspace, namespace, key);
           compare(current, expectedVersion, workspace, namespace);
           if (current != null

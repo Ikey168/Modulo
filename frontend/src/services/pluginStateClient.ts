@@ -31,7 +31,7 @@ export interface StateEntry {
   key: string;
   remote?: StateRecord;
   pending?: StateMutation;
-  conflict?: { base?: StateRecord; remote?: StateRecord };
+  conflict?: { base?: StateRecord; remote?: StateRecord; displayed?: StateJson; cached?: StateJson };
 }
 export interface StateSnapshot {
   format: 1;
@@ -176,7 +176,7 @@ export class PluginStateClient {
     return () => { this.listeners.delete(listener); };
   }
 
-  async set(key: string, value: StateJson, schemaId: string, schemaVersion: number): Promise<void> {
+  async set(key: string, value: StateJson, schemaId: string, schemaVersion: number, expected?: { value: StateJson | undefined }): Promise<void> {
     if (!segment.test(key) || !schemaId || !Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
       throw new Error('Invalid state record');
     }
@@ -184,6 +184,13 @@ export class PluginStateClient {
     if (new TextEncoder().encode(JSON.stringify(value)).length > 1_048_576) throw new Error('State record is too large');
     await this.change(snapshot => {
       const entry = this.entry(snapshot, key);
+      const displayed = entry.pending ?? entry.remote;
+      const existing = displayed && !displayed.deleted ? displayed.value : undefined;
+      if (expected && (existing === undefined ? expected.value !== undefined
+        : expected.value === undefined || canonical(existing) !== canonical(expected.value))
+        && !(existing !== undefined && canonical(existing) === canonical(value))) {
+        entry.conflict = { base: entry.pending?.base, remote: entry.remote, displayed: expected.value, cached: existing };
+      }
       entry.pending = { sequence: ++snapshot.sequence, base: entry.pending ? entry.pending.base : entry.remote,
         value: copy(value), schemaId, schemaVersion, deleted: false };
     });
@@ -204,13 +211,16 @@ export class PluginStateClient {
     this.scheduleSync();
   }
 
-  async delete(key: string): Promise<void> {
+  async delete(key: string, expected?: { value: StateJson | undefined }): Promise<void> {
     if (!segment.test(key)) throw new Error('Invalid state key');
     await this.change(snapshot => {
       const entry = snapshot.entries.find(item => item.key === key);
       if (!entry) return;
       const source = entry.pending ?? entry.remote;
       if (!source) return;
+      if (expected && !source.deleted && (expected.value === undefined || canonical(source.value) !== canonical(expected.value))) {
+        entry.conflict = { base: entry.pending?.base, remote: entry.remote, displayed: expected.value, cached: source.value };
+      }
       entry.pending = { sequence: ++snapshot.sequence, base: entry.pending ? entry.pending.base : entry.remote,
         value: null, schemaId: source.schemaId, schemaVersion: source.schemaVersion, deleted: true };
     });

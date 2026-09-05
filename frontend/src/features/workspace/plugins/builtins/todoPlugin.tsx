@@ -1,3 +1,6 @@
+import { useOperationalCollection } from '../../useOperationalCollection';
+import { TODO_COLLECTION } from '../../operationalSchemas';
+import { OperationalStateNotice } from '../OperationalStateNotice';
 // Todo lists (#371) — tasks with due dates, priorities, lists, and note
 // links; Productivity hub tab plus a note panel showing (and adding) the
 // current note's tasks. Client-side persistence; the record shape mirrors the
@@ -9,9 +12,7 @@ import { TodoView } from '../../TodoView';
 import {
   DEFAULT_LIST,
   newTodoId,
-  readTodos,
   todosForNote,
-  writeTodos,
 } from '../../todos';
 import type { NotePanelProps, PluginModule, WorkspaceViewProps } from '../types';
 
@@ -20,29 +21,28 @@ function TodoSurface(p: WorkspaceViewProps) {
 }
 
 function NoteTasksPanel({ note }: NotePanelProps) {
-  const [version, bump] = useState(0);
+  const synced = useOperationalCollection(TODO_COLLECTION);
   const [title, setTitle] = useState('');
-  void version;
-  const todos = readTodos();
+  const todos = synced.value;
   const linked = todosForNote(todos, note.id);
 
   const add = () => {
+    if (!synced.ready) return;
     if (!title.trim()) return;
-    writeTodos([
+    synced.set([
       { id: newTodoId(), title: title.trim(), priority: 'MEDIUM', done: false, list: DEFAULT_LIST, noteId: note.id },
       ...todos,
     ]);
     setTitle('');
-    bump((v) => v + 1);
   };
 
   const toggle = (id: string) => {
-    writeTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-    bump((v) => v + 1);
+    synced.set(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
   };
 
   return (
     <div className="flex flex-col gap-1.5 py-1">
+      <OperationalStateNotice label="Tasks" {...synced} />
       {linked.length === 0 && <p className="px-0.5 text-xs text-muted-foreground">No tasks for this note.</p>}
       {linked.map((t) => (
         <label key={t.id} className="flex items-center gap-1.5 text-xs">

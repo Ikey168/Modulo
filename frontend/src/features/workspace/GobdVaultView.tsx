@@ -1,3 +1,5 @@
+import { useRetentionSettings } from './useBusinessSettings';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // GoBD vault view (#368): all retained documents (notes tagged retain/…) with
 // class, document date, retention end, and anchor status; un-anchored retained
 // records are flagged and can be anchored in place. Retention classes are
@@ -8,9 +10,7 @@ import { Anchor, Archive, Settings2, ShieldCheck, TriangleAlert } from 'lucide-r
 import { Button, EmptyState, Input, useToast } from '@/ui';
 import type { WorkspaceViewProps } from './plugins/types';
 import {
-  readRetentionClasses,
   vaultEntries,
-  writeRetentionClasses,
   type RetentionClass,
 } from './gobd';
 
@@ -46,7 +46,8 @@ function ClassesEditor({ classes, onChange }: { classes: RetentionClass[]; onCha
 
 export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
-  const [classes, setClasses] = useState<RetentionClass[]>(() => readRetentionClasses());
+  const synced = useRetentionSettings();
+  const classes = synced.value; const setClasses = synced.set;
   const [showConfig, setShowConfig] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -66,6 +67,7 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <OperationalStateNotice label="Retention settings" {...synced} />
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold">Document vault</h2>
@@ -83,7 +85,6 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
               classes={classes}
               onChange={(next) => {
                 setClasses(next);
-                writeRetentionClasses(next);
               }}
             />
           </div>

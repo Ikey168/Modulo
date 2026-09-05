@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // GoBD document vault (#368) — retention tracking and anchoring status for
 // business records. Convention: tagging a note `retain/<class>` puts it in the
 // vault; its retention runs from the document date to the end of the calendar

@@ -1,3 +1,4 @@
+import { useSellerSettings } from './useBusinessSettings';
 // Renders one ```invoice fence as a formatted invoice card (#364): parties,
 // line-item table, totals with the correct VAT treatment and clause, status,
 // and §14 UStG completeness warnings. Malformed source renders an error card.
@@ -8,7 +9,6 @@ import {
   formatEur,
   isInvoiceError,
   parseInvoice,
-  readSellerProfile,
   validateInvoice,
   VAT_MODES,
   type InvoiceStatus,
@@ -36,6 +36,7 @@ export function InvoiceStatusChip({ status, className }: { status: InvoiceStatus
 }
 
 export function InvoiceCard({ source }: { source: string }) {
+  const sellerState = useSellerSettings();
   const parsed = parseInvoice(source);
 
   if (isInvoiceError(parsed)) {
@@ -50,7 +51,7 @@ export function InvoiceCard({ source }: { source: string }) {
     );
   }
 
-  const seller = readSellerProfile();
+  const seller = sellerState.value;
   const totals = computeTotals(parsed);
   const info = VAT_MODES[parsed.vatMode];
   const missing = validateInvoice(parsed, seller);

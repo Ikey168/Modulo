@@ -358,4 +358,60 @@ class PluginStateContractTest {
     assertEquals("STATE_EVENT_QUOTA_EXCEEDED", events.getReason());
     assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM plugin_state", Long.class));
   }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.MethodSource("operationalDocuments")
+  void operationalDocumentsAreValidatedAndOwnerScoped(
+      String namespace, String schema, String key, String payload) {
+    store.put("personal", namespace, key, 0, schema, 1, payload);
+    assertEquals(1, store.list("personal", namespace, null, 100).records().size());
+    when(users.requireUserId()).thenReturn(2L);
+    assertTrue(store.list("personal", namespace, null, 100).records().isEmpty());
+    assertThrows(ResponseStatusException.class, () -> store.get("personal", namespace, key));
+    assertThrows(ResponseStatusException.class, () -> store.delete("personal", namespace, key, 1));
+    store.put("personal", namespace, key, 0, schema, 1, payload);
+    assertEquals(2L, jdbc.queryForObject("SELECT count(*) FROM plugin_state", Long.class));
+    assertThrows(
+        ResponseStatusException.class,
+        () -> store.put("personal", "foreign", key, 0, schema, 1, payload));
+    assertThrows(
+        ResponseStatusException.class,
+        () -> store.put("personal", namespace, "invalid", 0, schema, 1, "42"));
+  }
+
+  static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments>
+      operationalDocuments() {
+    return java.util.stream.Stream.of(
+        org.junit.jupiter.params.provider.Arguments.of(
+            "todo-lists",
+            "modulo.todo",
+            "record.todo",
+            "{\"id\":\"todo\",\"title\":\"Review\",\"priority\":\"HIGH\",\"done\":false,\"list\":\"Inbox\"}"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "zeiterfassung",
+            "modulo.time-entry",
+            "record.time",
+            "{\"id\":\"time\",\"date\":\"2026-09-05\",\"engagement\":\"Audit\",\"description\":\"Review\",\"minutes\":90,\"rateEur\":150,\"billable\":true,\"billed\":false}"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "euer-datev",
+            "modulo.expense",
+            "record.expense",
+            "{\"id\":\"expense\",\"date\":\"2026-09-05\",\"vendor\":\"Vendor\",\"description\":\"Tools\",\"netEur\":100,\"vatRate\":19,\"category\":\"IT\"}"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "euer-datev", "modulo.expense.categories", "categories", "[\"IT\"]"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "euer-datev", "modulo.expense.exported-periods", "exported-periods", "[\"2026-09\"]"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "rechnung",
+            "modulo.invoice.seller",
+            "seller",
+            "{\"name\":\"Seller\",\"address\":\"Berlin\"}"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "gobd-vault",
+            "modulo.retention.classes",
+            "classes",
+            "[{\"id\":\"belege\",\"label\":\"Receipts\",\"years\":8}]"),
+        org.junit.jupiter.params.provider.Arguments.of(
+            "kanban", "modulo.pipeline.stages", "stages", "[\"inquiry\",\"audit\"]"));
+  }
 }

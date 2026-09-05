@@ -1,3 +1,7 @@
+import { useOperationalCollection } from './useOperationalCollection';
+import { EXPENSE_COLLECTION } from './operationalSchemas';
+import { useExpenseCategories, useExportedPeriods } from './useBusinessSettings';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Books (EÜR) view (#366): per-month income from paid invoices, manually
 // recorded expenses by category, the USt-VA summary numbers, and the DATEV
 // Buchungsstapel CSV export with a double-export guard. Business hub tab.
@@ -10,16 +14,10 @@ import {
   datevCsv,
   expenseGross,
   inPeriod,
-  markExported,
   newExpenseId,
   periodKey,
-  readCategories,
-  readExpenses,
-  readExportedPeriods,
   shiftPeriod,
   summarizePeriod,
-  writeCategories,
-  writeExpenses,
   type ExpenseRecord,
 } from './euer';
 
@@ -37,24 +35,26 @@ const EMPTY_FORM = { date: '', vendor: '', description: '', net: '', vatRate: '1
 export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
   const [period, setPeriod] = useState(() => periodKey(new Date().toISOString().slice(0, 10)));
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>(() => readExpenses());
-  const [categories, setCategories] = useState<string[]>(() => readCategories());
+  const synced = useOperationalCollection(EXPENSE_COLLECTION);
+  const expenses = synced.value; const setExpenses = synced.set;
+  const categoryState = useExpenseCategories();
+  const categories = categoryState.value; const setCategories = categoryState.set;
   const [form, setForm] = useState({ ...EMPTY_FORM, date: new Date().toISOString().slice(0, 10), category: '' });
-  const [exportedVersion, bumpExported] = useState(0);
+  const exportState = useExportedPeriods();
 
   const invoices = useMemo(() => extractInvoices(data.notes), [data.notes]);
   const summary = useMemo(() => summarizePeriod(invoices, expenses, period), [invoices, expenses, period]);
-  const exported = useMemo(() => readExportedPeriods(), [exportedVersion]);
+  const exported = new Set(exportState.value);
 
   const periodIncome = invoices.filter((i) => i.invoice.status === 'paid' && inPeriod(i.invoice.date, period));
   const periodExpenses = expenses.filter((e) => inPeriod(e.date, period));
 
   const persistExpenses = (next: ExpenseRecord[]) => {
     setExpenses(next);
-    writeExpenses(next);
   };
 
   const addExpense = () => {
+    if (!synced.ready || !categoryState.ready) return;
     const net = Number(form.net.replace(',', '.'));
     if (!form.date || !form.vendor || !Number.isFinite(net) || net <= 0) {
       toast({ variant: 'destructive', title: 'Expense incomplete', description: 'Date, vendor and a net amount are required.' });
@@ -64,7 +64,6 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
     if (!categories.includes(category)) {
       const next = [...categories, category];
       setCategories(next);
-      writeCategories(next);
     }
     persistExpenses([
       { id: newExpenseId(), date: form.date, vendor: form.vendor, description: form.description, netEur: net, vatRate: Number(form.vatRate), category },
@@ -82,12 +81,14 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
       toast({ title: `${period} was already exported`, description: 'Exporting again — tell your Steuerberater to replace the earlier file.' });
     }
     download(`DATEV-Buchungsstapel-${period}.csv`, datevCsv(invoices, expenses, period), 'text/csv');
-    markExported(period);
-    bumpExported((v) => v + 1);
+    exportState.set(previous => [...new Set([...previous, period])].sort());
   };
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <OperationalStateNotice label="Expenses" {...synced} />
+      <OperationalStateNotice label="Expense categories" {...categoryState} />
+      <OperationalStateNotice label="Export markers" {...exportState} />
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold">Books</h2>
         <div className="flex items-center gap-1">

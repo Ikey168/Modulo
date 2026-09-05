@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // Todo lists (#371) — task records with due dates, priorities, and note
 // links. The model mirrors the orphaned features/tasks backend shape
 // (priority values match its TaskPriority) so a later backend store can adopt

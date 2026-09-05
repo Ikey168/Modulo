@@ -1,3 +1,5 @@
+import { useSellerSettings } from './useBusinessSettings';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Invoices tab in the Business hub (#364): every ```invoice fence across the
 // vault with status and totals, a seller-profile editor (the §14 issuer data),
 // per-invoice ZUGFeRD (EN 16931 CII) XML export, and a "new invoice note"
@@ -14,9 +16,7 @@ import {
   invoiceTemplate,
   INVOICE_STATUSES,
   nextInvoiceNumber,
-  readSellerProfile,
   validateInvoice,
-  writeSellerProfile,
   zugferdXml,
   type InvoiceStatus,
   type SellerProfile,
@@ -33,8 +33,8 @@ function download(filename: string, text: string, type: string) {
 
 const EMPTY_PROFILE: SellerProfile = { name: '', address: '', taxNumber: '', vatId: '', iban: '', email: '' };
 
-function SellerProfileForm({ onSaved }: { onSaved: () => void }) {
-  const [profile, setProfile] = useState<SellerProfile>(() => readSellerProfile() ?? EMPTY_PROFILE);
+function SellerProfileForm({ initial, onSaved }: { initial: SellerProfile | null; onSaved: (value: SellerProfile) => void }) {
+  const [profile, setProfile] = useState<SellerProfile>(() => initial ?? EMPTY_PROFILE);
   const set = (key: keyof SellerProfile) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setProfile((p) => ({ ...p, [key]: e.target.value }));
 
@@ -59,8 +59,7 @@ function SellerProfileForm({ onSaved }: { onSaved: () => void }) {
         <Button
           size="sm"
           onClick={() => {
-            writeSellerProfile(profile);
-            onSaved();
+            onSaved(profile);
           }}
         >
           Save seller profile
@@ -74,9 +73,9 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
   const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
   const [showProfile, setShowProfile] = useState(false);
-  const [profileVersion, bumpProfile] = useState(0);
+  const synced = useSellerSettings();
 
-  const seller = useMemo(() => readSellerProfile(), [profileVersion]);
+  const seller = synced.value;
   const invoices = useMemo(() => extractInvoices(data.notes), [data.notes]);
   const filtered = invoices.filter((i) => status === 'all' || i.invoice.status === status);
 
@@ -119,6 +118,7 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <OperationalStateNotice label="Seller details" {...synced} />
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="mr-2 text-sm font-semibold">Invoices</h2>
@@ -153,9 +153,11 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
         </div>
         {showProfile && (
           <div className="mt-3">
-            <SellerProfileForm
-              onSaved={() => {
-                bumpProfile((v) => v + 1);
+            <SellerProfileForm key={synced.sessionKey}
+              initial={seller}
+              onSaved={value => {
+                if (!synced.ready) return;
+                synced.set(value);
                 setShowProfile(false);
                 toast({ title: 'Seller profile saved' });
               }}

@@ -1,3 +1,5 @@
+import { usePipelineSettings } from './useBusinessSettings';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Engagement pipeline board (#361): a Kanban of engagement notes moving
 // through configurable stages. The stage lives as a `stage/…` tag on the note
 // (visible outside the board); dragging a card between columns rewrites that
@@ -13,11 +15,9 @@ import { SEVERITY_BADGE } from './FindingCard';
 import {
   engagementLabel,
   groupByStage,
-  readStages,
   stageTag,
   STAGE_TAG_PREFIX,
   toStageId,
-  writeStages,
 } from './pipeline';
 
 function openFindingsFor(all: NoteFinding[], engagement: string | null): NoteFinding[] {
@@ -72,7 +72,8 @@ function Card({
 }
 
 export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
-  const [stages, setStages] = useState<string[]>(() => readStages());
+  const synced = usePipelineSettings();
+  const stages = synced.value; const setStages = synced.set;
   const [adding, setAdding] = useState(false);
   const [newColumn, setNewColumn] = useState('');
   const [dragOver, setDragOver] = useState<string | null>(null);
@@ -98,11 +99,11 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
   };
 
   const addColumn = () => {
+    if (!synced.ready) return;
     const id = toStageId(newColumn);
     if (!id || stages.includes(id)) return;
     const next = [...stages, id];
     setStages(next);
-    writeStages(next);
     setNewColumn('');
     setAdding(false);
   };
@@ -112,22 +113,26 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
     if ((groups[stage] ?? []).length > 0 || stages.length <= 1) return;
     const next = stages.filter((s) => s !== stage);
     setStages(next);
-    writeStages(next);
   };
 
   if (total === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8">
+      <div className="flex flex-1 flex-col">
+        <OperationalStateNotice label="Pipeline stages" {...synced} />
+        <div className="flex flex-1 items-center justify-center p-8">
         <EmptyState
           icon={<SquareKanban className="size-5" />}
           title="No engagements on the board"
           description="Tag a note with engagement/<client>-<project> and it appears here. Its column is the note's stage/… tag."
         />
+        </div>
       </div>
     );
   }
 
   return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <OperationalStateNotice label="Pipeline stages" {...synced} />
     <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-3">
       {stages.map((stage) => (
         <div
@@ -195,6 +200,6 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
           </Button>
         )}
       </div>
-    </div>
+    </div></div>
   );
 }

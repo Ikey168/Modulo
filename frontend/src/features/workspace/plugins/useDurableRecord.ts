@@ -67,7 +67,7 @@ export function useDurableRecord<T>(pluginId: string, key: string, schemaId: str
       }
     } catch (reason) { if (token === generation.current) setError(String(reason)); }
   };
-  return { value, set: save, ready: !!active && !invalid, error, legacy,
+  return { value: active ? value : initial, sessionKey: plugins.stateSessionKey, set: save, ready: !!active && !invalid, error, legacy,
     status: error ? 'error' : active?.status ?? 'loading', conflict: active?.get(key)?.conflict,
     retry: () => action(async () => {
       if (!active) throw new Error('Sign in to synchronize.');
