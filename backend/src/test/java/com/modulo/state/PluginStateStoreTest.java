@@ -38,6 +38,7 @@ class PluginStateStoreTest {
             connection.createStatement().execute("CREATE TABLE users(id BIGINT PRIMARY KEY)");
             ScriptUtils.executeSqlScript(connection,
                     new ClassPathResource("db/postgresql/V3__Versioned_plugin_state.sql"));
+            ScriptUtils.executeSqlScript(connection,new ClassPathResource("db/postgresql/V5__Plugin_state_grants_and_delivery.sql"));
         }
     }
     @BeforeEach void setup() {
@@ -47,6 +48,12 @@ class PluginStateStoreTest {
         users = mock(AuthenticatedUserService.class);
         when(users.requireUserId()).thenAnswer(call -> owner.get());
         store = store(PluginStateStore.Limits.defaults());
+        for(long id:List.of(1L,2L)) {
+            owner.set(id);
+            store.registerSchema("personal","canvas","test",1,"{}");
+            store.registerSchema("personal","other","test",1,"{}");
+        }
+        owner.set(1L);
     }
     @AfterEach void cleanup() { owner.remove(); }
     private PluginStateStore store(PluginStateStore.Limits limits) {
@@ -54,7 +61,7 @@ class PluginStateStoreTest {
                 new ObjectMapper(), limits);
     }
     private PluginStateStore.StateRecord put(String key, long version, String value) {
-        return store.put("personal", "canvas", key, version, "modulo.canvas.board", 1, value);
+        return store.put("personal", "canvas", key, version, "test", 1, value);
     }
 
     @Test void roundTripCreateUpdateDeleteAndRecreatePreservesMonotonicVersion() {

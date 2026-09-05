@@ -53,7 +53,7 @@ public class OwnedSocketInterceptor implements ChannelInterceptor {
     }
     private boolean allowed(OwnedSocketPrincipal principal, String destination, boolean send) {
         if (principal == null || principal.expired() || destination == null) return false;
-        if (!send && (destination.equals("/user/queue/notes") || destination.equals("/user/queue/notifications"))) return true;
+        if (!send && (destination.equals("/user/queue/state") || destination.equals("/user/queue/notes") || destination.equals("/user/queue/notifications"))) return true;
         if (!send && destination.equals("/topic/users/" + principal.getName() + "/notifications")) return true;
         var match = NOTE_DESTINATION.matcher(destination);
         if (!match.matches() || (send && (!destination.startsWith("/app/") || destination.endsWith("/comments")))) return false;
@@ -67,7 +67,7 @@ public class OwnedSocketInterceptor implements ChannelInterceptor {
                 if (frame.getMessageType() != org.springframework.messaging.simp.SimpMessageType.MESSAGE) return message;
                 var principal = sessions.get(frame.getSessionId());
                 String destination = frame.getDestination();
-                if (destination != null && (destination.startsWith("/queue/notes-user") || destination.startsWith("/queue/notifications-user"))) return principal != null && !principal.expired() ? message : null;
+                if (destination != null && (destination.startsWith("/queue/state-user") || destination.startsWith("/queue/notes-user") || destination.startsWith("/queue/notifications-user"))) return principal != null && !principal.expired() ? message : null;
                 return allowed(principal, destination, false) ? message : null;
             }
         };
