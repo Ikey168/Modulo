@@ -90,7 +90,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         List<BlueprintEntry> blueprints = blueprintRepository.findRunnable();
         blueprints.forEach(this::registerBlueprint);
-        logger.info("Blueprint interpreter started: {} blueprint(s) registered", blueprints.size());
+        logger.info("Blueprint interpreter started");
     }
 
     /**
@@ -108,7 +108,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             graph = objectMapper.convertValue(entry.getIr(), BlueprintIRGraph.class);
             if(graph.getNodes()==null || graph.getEdges()==null || graph.getNodes().size()>1000 || graph.getEdges().size()>5000) throw new IllegalArgumentException("Invalid Blueprint graph");
         } catch (Exception e) {
-            logger.error("Blueprint '{}': failed to parse IR — {}", entry.getName(), e.getMessage());
+            logger.error("Blueprint IR rejected");
             return;
         }
 
@@ -143,8 +143,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     String cron = node.getConfig() != null
                         ? (String) node.getConfig().get("cron") : null;
                     if (cron == null || cron.isBlank()) {
-                        logger.warn("Blueprint '{}': trigger.schedule node '{}' missing 'cron' config",
-                            entry.getName(), node.getId());
+                        logger.warn("Blueprint schedule missing cron configuration");
                         break;
                     }
                     String triggerId = node.getId();
@@ -155,7 +154,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         }, new CronTrigger(cron));
                         futures.add(future);
                     } catch (IllegalArgumentException e) {
-                        logger.error("Blueprint '{}': invalid cron '{}' — {}", entry.getName(), cron, e.getMessage());
+                        logger.error("Blueprint schedule rejected invalid cron");
                     }
                     break;
                 }
@@ -163,26 +162,23 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     String secret = node.getConfig() != null
                         ? (String) node.getConfig().get("secret") : null;
                     if (secret == null || secret.isBlank()) {
-                        logger.warn("Blueprint '{}': trigger.webhook node '{}' missing 'secret' config — endpoint not registered",
-                            entry.getName(), node.getId());
+                        logger.warn("Blueprint webhook missing secret configuration");
                         break;
                     }
                     String key = registryId + ":" + node.getId();
                     webhooks.put(key, new WebhookRegistration(graph, registryId, node.getId(), secret));
                     webhookKeysByBlueprint.computeIfAbsent(Long.toString(entry.getId()), k -> new ArrayList<>()).add(key);
-                    logger.info("Blueprint '{}': webhook endpoint registered at /api/public/blueprints/webhook/{}/{}",
-                        entry.getName(), registryId, node.getId());
+                    logger.info("Blueprint webhook registered");
                     break;
                 }
                 default:
-                    logger.warn("Blueprint '{}': unrecognised trigger type '{}'", entry.getName(), node.getType());
+                    logger.warn("Blueprint trigger type unsupported");
             }
         }
 
         registeredListeners.put(Long.toString(entry.getId()), listeners);
         if (!futures.isEmpty()) scheduledJobs.put(Long.toString(entry.getId()), futures);
-        logger.info("Blueprint '{}' registered ({} event listener(s), {} schedule(s))",
-            entry.getName(), listeners.size(), futures.size());
+        logger.info("Blueprint registered");
     }
 
     /** Unregister a blueprint: unsubscribe listeners and cancel scheduled jobs. */
@@ -220,7 +216,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             reg.secret().getBytes(java.nio.charset.StandardCharsets.UTF_8),
             secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         if (!valid) {
-            logger.warn("Blueprint {}: webhook '{}' rejected — invalid secret", registryId, nodeId);
+            logger.warn("Blueprint webhook authentication rejected");
             return WebhookResult.REJECTED;
         }
         executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload),java.util.UUID.randomUUID().toString());
@@ -252,10 +248,13 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         ctx.setRegistryId(registryId);
         try {
             workflowRuns.asOwner(lease,()->{
+                try (var trace = com.modulo.observability.ExecutionTraceContext.open(lease.id(), java.util.UUID.randomUUID(), true)) {
+                long started = System.nanoTime();
                 var step=workflowRuns.startStep(lease,1,triggerNodeId,trigger.getType(),Map.of());
                 triggerOutputs.forEach((pin,value)->ctx.setPinValue(triggerNodeId,pin,value));
                 ctx.recordExecutedNode(triggerNodeId);
-                workflowRuns.finishStep(lease,step,"SUCCEEDED",triggerOutputs,null);
+                workflowRuns.finishStep(lease,step,"SUCCEEDED",triggerOutputs,null,elapsed(started));
+                }
                 executeExecFlow(graph,ctx,triggerNodeId,"then");
                 return null;
             });
@@ -290,14 +289,19 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         ctx.recordExecutedNode(targetId);
 
         Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
-        var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
         NodeResult result;
-        try {
-            result = executeNode(target, inputs, ctx.getRegistryId());
-            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",result.outputs(),null);
-        } catch(Exception failure) {
-            workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),"NODE_FAILURE");
-            throw failure;
+        String capability = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(target.getType());
+        boolean allowed = capability == null || capabilityService.isGranted(ctx.getRegistryId(), capability);
+        try (var trace = com.modulo.observability.ExecutionTraceContext.open(ctx.getLease().id(), java.util.UUID.randomUUID(), allowed)) {
+            var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
+            long started = System.nanoTime();
+            try {
+                result = executeNode(target, inputs, ctx.getRegistryId());
+            } catch(Exception failure) {
+                workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),"NODE_FAILURE",elapsed(started));
+                throw failure;
+            }
+            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
         }
         result.outputs().forEach((pinId, value) -> ctx.setPinValue(targetId, pinId, value));
 
@@ -330,8 +334,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         // Enforce capability grant before running any action node.
         String requiredCap = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
         if (requiredCap != null && !capabilityService.isGranted(registryId, requiredCap)) {
-            logger.warn("Blueprint {}: node '{}' skipped — capability '{}' not granted",
-                registryId, node.getId(), requiredCap);
+            logger.warn("Workflow node skipped: capability denied");
             return new NodeResult(outputs, "then", true);
         }
 
@@ -371,7 +374,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         Object hash = result.get("transactionHash");
                         txHash = hash != null ? hash.toString() : "";
                     } catch (Exception e) {
-                        logger.warn("action.note.anchor: blockchain call failed — {}", e.getMessage());
+                        throw new IllegalStateException("BLOCKCHAIN_FAILURE");
                     }
                 }
                 outputs.put("txHash", txHash);
@@ -387,7 +390,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         OpenAIService.SummaryResponse resp = openAIService.generateSummary(note.getContent(), opts);
                         summary = resp.getSummary() != null ? resp.getSummary() : "";
                     } catch (Exception e) {
-                        logger.warn("action.ai.summarize: AI call failed — {}", e.getMessage());
+                        throw new IllegalStateException("AI_FAILURE");
                     }
                 }
                 outputs.put("summary", summary);
@@ -398,9 +401,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String code = node.getConfig() != null
                     ? (String) node.getConfig().get("code") : null;
                 if (code == null || code.isBlank()) {
-                    logger.warn("action.code.execute: node '{}' has no 'code' config", node.getId());
-                    outputs.put("output", "");
-                    return new NodeResult(outputs, "then");
+                    throw new IllegalArgumentException("INVALID_SCRIPT_CONFIG");
                 }
                 Note note = (Note) inputs.get("note");
                 String title   = note != null && note.getTitle()   != null ? note.getTitle()   : "";
@@ -409,8 +410,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 try {
                     output = scriptSandbox.execute(code, title, content);
                 } catch (ScriptSandbox.ScriptExecutionException e) {
-                    logger.warn("action.code.execute: script error on node '{}' — {}", node.getId(), e.getMessage());
-                    output = "";
+                    throw new IllegalStateException("SCRIPT_FAILURE");
                 }
                 outputs.put("output", output);
                 return new NodeResult(outputs, "then");
@@ -420,9 +420,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String moduleB64 = node.getConfig() != null
                     ? (String) node.getConfig().get("module") : null;
                 if (moduleB64 == null || moduleB64.isBlank()) {
-                    logger.warn("action.wasm.execute: node '{}' has no 'module' config", node.getId());
-                    outputs.put("output", "");
-                    return new NodeResult(outputs, "then");
+                    throw new IllegalArgumentException("INVALID_WASM_CONFIG");
                 }
                 Note wasmNote = (Note) inputs.get("note");
                 String wasmTitle   = wasmNote != null && wasmNote.getTitle()   != null ? wasmNote.getTitle()   : "";
@@ -433,8 +431,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         validatedWasmModule(moduleB64), wasmTitle, wasmContent);
                 } catch (WasmModuleValidator.WasmModuleValidationException
                         | WasmNodeExecutor.WasmExecutionException | IllegalArgumentException e) {
-                    logger.warn("action.wasm.execute: node '{}' failed — {}", node.getId(), e.getMessage());
-                    wasmOutput = "";
+                    throw new IllegalStateException("WASM_FAILURE");
                 }
                 outputs.put("output", wasmOutput);
                 return new NodeResult(outputs, "then");
@@ -620,6 +617,8 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     // -------------------------------------------------------------------------
     // Support types
     // -------------------------------------------------------------------------
+
+    private static long elapsed(long started) { return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started); }
 
     private record NodeResult(Map<String, Object> outputs, String nextExecOut, boolean skipped) {
         NodeResult(Map<String,Object> outputs,String nextExecOut) { this(outputs,nextExecOut,false); }

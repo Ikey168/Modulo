@@ -265,7 +265,7 @@ class BlueprintInterpreterServiceTest {
 
     /** An invalid module (undeclared imports) degrades to empty output, not a failed run (#403). */
     @Test
-    void wasmExecuteWithInvalidModuleDegradesGracefully() throws Exception {
+    void wasmExecuteWithInvalidModuleRecordsFailure() throws Exception {
         String moduleB64;
         try (java.io.InputStream in = getClass().getResourceAsStream("/wasm/imports.wasm")) {
             moduleB64 = java.util.Base64.getEncoder().encodeToString(in.readAllBytes());
@@ -290,8 +290,8 @@ class BlueprintInterpreterServiceTest {
         note.setTitle("x");
         noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
-        // The run completed (success log) despite the rejected module.
-        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("SUCCEEDED"),isNull());
+        // Rejected modules must produce a failed trace and run.
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("FAILED"),eq("NODE_FAILURE"));
     }
 
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---

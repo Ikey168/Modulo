@@ -37,6 +37,12 @@ class ExternalPluginRuntimeTest {
         final Map<String, String> receivedInitConfig = new ConcurrentHashMap<>();
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean stopped = new AtomicBoolean();
+        volatile ExecuteRequest execution;
+        @Override public void execute(ExecuteRequest request, StreamObserver<ExecuteResponse> observer) {
+            execution = request;
+            observer.onNext(ExecuteResponse.newBuilder().setSuccess(true).build());
+            observer.onCompleted();
+        }
         volatile HealthStatus health = HealthStatus.HEALTHY;
 
         @Override
@@ -121,6 +127,22 @@ class ExternalPluginRuntimeTest {
     }
 
     // ------------------------------------------------------------------
+
+    @Test
+    void executionCarriesCorrelationOnlyWithinItsScope() throws Exception {
+        String id = manager.installExternalPlugin(endpoint, Map.of());
+        var proxy = (ExternalPluginProxy) manager.getActivePlugins().get(id);
+        var run = java.util.UUID.randomUUID();
+        var step = java.util.UUID.randomUUID();
+        try (var trace = com.modulo.observability.ExecutionTraceContext.open(run, step, false)) {
+            proxy.execute("stub.op", Map.of(), 1);
+            assertThat(stub.execution.getCorrelationId()).isEqualTo(run.toString());
+            assertThat(stub.execution.getStepId()).isEqualTo(step.toString());
+        }
+        proxy.execute("stub.op", Map.of(), 1);
+        assertThat(stub.execution.getCorrelationId()).isEmpty();
+        assertThat(stub.execution.getStepId()).isEmpty();
+    }
 
     @Test
     void installAttachesStartsAndTracksTheWorkload() throws Exception {
