@@ -1,10 +1,11 @@
 // Hub container for a workspace mode (#369): a tab strip across the top of the
 // content area, one tab per view contributed to the mode. The active tab id is
 // the route's view id, so `/app/:view` URLs keep working unchanged.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { usePlugins } from './PluginProvider';
 import { cn } from '@/ui';
 import { PluginErrorBoundary } from './PluginErrorBoundary';
-import { writeLastTab, type ModeInfo } from './modes';
+import { type ModeInfo } from './modes';
 import type { ViewContribution, WorkspaceViewProps } from './types';
 
 export function HubView({
@@ -20,16 +21,24 @@ export function HubView({
   viewProps: WorkspaceViewProps;
   onSelectTab: (viewId: string) => void;
 }) {
-  // Remember the tab so reopening the mode restores it.
+  const { preferences } = usePlugins();
+  const [syncError, setSyncError] = useState<string>();
+  // Remember the tab in the current account's settings namespace.
   useEffect(() => {
-    writeLastTab(mode.id, activeTab.id);
-  }, [mode.id, activeTab.id]);
+    let disposed = false;
+    if (preferences && preferences.status !== 'closed' && preferences.get(`tab.${mode.id}`)?.value !== activeTab.id) {
+      void preferences.set(`tab.${mode.id}`, activeTab.id, 'modulo.workspace.hub-tab', 1)
+        .catch(reason => { if (!disposed) setSyncError(String(reason)); });
+    }
+    return () => { disposed = true; };
+  }, [mode.id, activeTab.id, preferences]);
 
   const ActiveComponent = activeTab.component;
   const ModeIcon = mode.icon;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {syncError && <span role="alert">{syncError}</span>}
       <div className="flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-3">
         <span className="mr-2 flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <ModeIcon className="size-3.5" aria-hidden="true" />

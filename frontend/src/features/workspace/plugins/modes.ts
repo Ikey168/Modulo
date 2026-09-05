@@ -82,7 +82,6 @@ export function writeLastTab(mode: string, tab: string): void {
 }
 
 /** The tab a hub should open on: last active if still present, else first. */
-export function resolveHubTab(tabs: ViewContribution[], mode: string): ViewContribution | undefined {
-  const last = readLastTab(mode);
+export function resolveHubTab(tabs: ViewContribution[], mode: string, last: string | null = readLastTab(mode)): ViewContribution | undefined {
   return tabs.find((t) => t.id === last) ?? tabs[0];
 }

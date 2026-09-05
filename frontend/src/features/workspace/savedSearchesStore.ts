@@ -81,3 +81,12 @@ export function matchNotes(notes: CoreNote[], search: Pick<SavedSearch, 'text' |
     return okText && okTags;
   });
 }
+
+/** Validate the complete document: malformed entries must remain recoverable, not disappear. */
+export function validateSavedSearches(value: unknown): SavedSearch[] {
+  if (!Array.isArray(value) || value.some(item => !item || typeof item.id !== 'string'
+    || !item.id || typeof item.name !== 'string' || typeof item.text !== 'string'
+    || !Array.isArray(item.tags) || item.tags.some((tag: unknown) => typeof tag !== 'string'))
+    || new Set(value.map(item => item.id)).size !== value.length) throw new Error('Invalid saved searches. Export the source for recovery.');
+  return value as SavedSearch[];
+}

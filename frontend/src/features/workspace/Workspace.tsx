@@ -263,7 +263,8 @@ function WorkspaceShell() {
   const hubMode = hubModeId ? modeInfo(hubModeId) : undefined;
   const hubViewTabs = hubModeId ? hubTabs(contributedViews, hubModeId) : [];
   const activeHubTab = hubMode
-    ? (activeView?.mode ? activeView : resolveHubTab(hubViewTabs, hubMode.id))
+    ? (activeView?.mode ? activeView : resolveHubTab(hubViewTabs, hubMode.id, typeof plugins.preferences?.get(`tab.${hubMode.id}`)?.value === 'string'
+        ? plugins.preferences.get(`tab.${hubMode.id}`)!.value as string : null))
     : undefined;
 
   // The nav entry to highlight: for a hub tab that's the mode's entry.

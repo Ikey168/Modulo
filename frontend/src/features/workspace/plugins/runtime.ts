@@ -39,7 +39,13 @@ interface ActiveEntry {
   deactivate?: () => void | Promise<void>;
 }
 
+export interface InstallationStorage {
+  load: () => InstalledRecord[];
+  save: (records: InstalledRecord[]) => Promise<void>;
+}
+
 export class PluginRuntime {
+  private disposed = false;
   private readonly catalog = new Map<string, PluginManifest>();
   private readonly installed = new Map<string, InstalledRecord>();
   private readonly active = new Map<string, ActiveEntry>();
@@ -47,7 +53,7 @@ export class PluginRuntime {
   private readonly errors = new Map<string, string>();
   private readonly listeners = new Set<() => void>();
 
-  constructor(catalog: PluginManifest[], private stateHost?: WorkspaceStateHost) {
+  constructor(catalog: PluginManifest[], private stateHost?: WorkspaceStateHost, private installationStorage?: InstallationStorage) {
     for (const m of catalog) this.catalog.set(m.id, m);
     this.restoreInstalled();
   }
@@ -55,9 +61,29 @@ export class PluginRuntime {
   setStateHost(host: WorkspaceStateHost | undefined): void { this.stateHost = host; this.emit(); }
 
   state(id: string): Promise<PluginStateClient> {
-    if (!this.isInstalled(id) || !this.isEnabled(id)) return Promise.reject(new Error('Plugin is not enabled'));
+    if (this.disposed || !this.isInstalled(id) || !this.isEnabled(id)) return Promise.reject(new Error('Plugin is not enabled'));
     if (!this.stateHost) return Promise.reject(new Error('Workspace synchronization is unavailable'));
     return this.stateHost.open(id);
+  }
+
+  installationRecords(): InstalledRecord[] { return [...this.installed.values()].map(record => ({ ...record })); }
+
+  async applyInstallations(records: InstalledRecord[]): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
+    if (JSON.stringify(records) === JSON.stringify(this.installationRecords())) return;
+    for (const id of this.installed.keys()) {
+      const next = records.find(record => record.id === id);
+      if (!next?.enabled) await this.deactivate(id);
+    }
+    this.installed.clear();
+    for (const record of records) this.installed.set(record.id, { ...record });
+    await this.init();
+  }
+
+  async dispose(): Promise<void> {
+    this.disposed = true;
+    for (const id of [...this.active.keys()]) await this.deactivate(id);
+    this.listeners.clear();
   }
 
   // ── Subscription ───────────────────────────────────────────────────────────
@@ -134,6 +160,7 @@ export class PluginRuntime {
   }
 
   private loadRecords(): InstalledRecord[] {
+    if (this.installationStorage) return this.installationStorage.load();
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) return JSON.parse(raw) as InstalledRecord[];
@@ -159,7 +186,8 @@ export class PluginRuntime {
       .map((m) => ({ id: m.id, enabled: true }));
   }
 
-  private persist() {
+  private async persist(): Promise<void> {
+    if (this.installationStorage) { await this.installationStorage.save([...this.installed.values()]); return; }
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify([...this.installed.values()]));
     } catch {
@@ -171,6 +199,7 @@ export class PluginRuntime {
 
   /** Activate every installed + enabled plugin. Call once on boot. */
   async init(): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     await Promise.all(
       [...this.installed.values()]
         .filter((r) => r.enabled)
@@ -180,6 +209,7 @@ export class PluginRuntime {
   }
 
   private async activate(id: string): Promise<void> {
+    if (this.disposed) return;
     if (this.active.has(id)) return;
     const manifest = this.catalog.get(id);
     if (!manifest?.load) return;
@@ -196,8 +226,10 @@ export class PluginRuntime {
 
     try {
       const mod = await manifest.load();
+      if (this.disposed) return;
       const plugin: PluginModule = 'default' in mod ? mod.default : mod;
       await plugin.activate(ctx);
+      if (this.disposed) { await plugin.deactivate?.(); return; }
       entry.deactivate = plugin.deactivate;
       this.active.set(id, entry);
       this.errors.delete(id);
@@ -233,6 +265,7 @@ export class PluginRuntime {
    * install record, then activate it. Idempotent for already-installed plugins.
    */
   async install(id: string): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     const manifest = this.catalog.get(id);
     if (!manifest) throw new Error(`Unknown plugin '${id}'`);
     if (!isRunnable(manifest)) throw new Error(`Plugin '${id}' is not installable`);
@@ -244,12 +277,12 @@ export class PluginRuntime {
         if (!this.installed.has(depId)) await this.install(depId);
       }
       this.installed.set(id, { id, enabled: true });
-      this.persist();
+      await this.persist();
       await this.activate(id);
       this.setPhase(id, this.errors.has(id) ? 'error' : 'idle');
     } catch (err) {
       this.installed.delete(id);
-      this.persist();
+      if (!this.installationStorage) await this.persist();
       this.errors.set(id, err instanceof Error ? err.message : 'Install failed');
       this.setPhase(id, 'error');
       throw err;
@@ -261,6 +294,7 @@ export class PluginRuntime {
    * the dependency graph never breaks underneath an active plugin.
    */
   async uninstall(id: string): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     if (!this.installed.has(id)) return;
     const blockers = this.dependents(id);
     if (blockers.length > 0) {
@@ -268,19 +302,21 @@ export class PluginRuntime {
       throw new Error(`Uninstall ${names} first — ${names} depend${blockers.length > 1 ? '' : 's'} on this plugin.`);
     }
     this.setPhase(id, 'uninstalling');
-    await this.deactivate(id);
+    const previous = this.installed.get(id)!;
     this.installed.delete(id);
+    try { await this.persist(); } catch (error) { this.installed.set(id, previous); this.setPhase(id, 'error'); throw error; }
+    await this.deactivate(id);
     this.errors.delete(id);
-    this.persist();
     this.setPhase(id, 'idle');
   }
 
   /** Enable/disable without uninstalling (keeps the install record). */
   async setEnabled(id: string, enabled: boolean): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     const rec = this.installed.get(id);
     if (!rec || rec.enabled === enabled) return;
     rec.enabled = enabled;
-    this.persist();
+    try { await this.persist(); } catch (error) { rec.enabled = !enabled; throw error; }
     if (enabled) await this.activate(id);
     else await this.deactivate(id);
     this.emit();

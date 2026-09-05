@@ -78,14 +78,14 @@ The host must provide a recovery path for a replica whose tab was abandoned.
 - Host recovery after a database restore and discovery of queues belonging to abandoned
   tabs remain follow-up hardening. Open tabs hold exclusive Web Locks; cloned tabs
   receive a separate replica. Browser session storage retains the replica on reload.
-- #419, #421–422: migrate existing consumer stores using explicit legacy-data claiming,
+- #421–422: migrate existing consumer stores using explicit legacy-data claiming,
   stable IDs and create-only imports.
 - #420: Canvas uses one schema-versioned record per board, shared sync controls and
   explicit legacy import. Unknown schemas retain their raw cache for recovery export.
   Existing note navigation is preserved; full offline browser acceptance remains in #423.
 - #423: run the full browser/Electron two-client, offline, backup and tenant suite.
 
-Database, Todos, business records and plugin installations still use their existing stores.
+Database, Todos and business records still use their existing stores.
 
 ## Validation
 
@@ -130,3 +130,22 @@ migration and existing Canvas/runtime behavior. Canvas import retains the legacy
 source until every board and migration marker synchronize. Conflicting server data
 is never overwritten by import. Pointer mutations persist locally and debounce
 network writes. TypeScript checks pass for the integrated workspace.
+
+## Workspace preferences and saved searches
+
+The host stores installation records in `workspace-settings/installed` and hub tabs
+in `workspace-settings/tab.{mode}`. Installation writes await durable cache saves;
+failed enable/uninstall saves retain the previous runtime state. Remote installation
+updates and local lifecycle operations serialize through one queue. Account changes
+dispose the old runtime and load safe built-in defaults until the new cache opens.
+
+Saved searches use `saved-searches/queries`, with schema checks and explicit conflict
+resolution. Browser-global installation, tab and search data requires an explicit
+import into the signed-in account. Import uses create-only records and removes the
+source only after the synchronization marker is acknowledged. Different remote data
+stops migration and remains available alongside the legacy source for recovery export.
+
+The isolated publishable frontend tree passes TypeScript and 74 focused tests,
+including runtime dependencies, failed persistence rollback, migration idempotency,
+provider account switching and offline installation. Full cross-client browser/Electron
+and backup acceptance remains tracked by #423.

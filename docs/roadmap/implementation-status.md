@@ -4,7 +4,7 @@ Objective: implement the open issues from the 2026-09-05 inventory and close eac
 
 ## Current delivery state
 
-The working GitHub CLI credential has repository write access. The restricted environment token was overriding it; publishing now uses the CLI credential without exposing token values. Commits 4199432b and 1e25aedd have been published. Issues #388, #416 and #451 are closed after verification.
+The working GitHub CLI credential has repository write access. The restricted environment token was overriding it; publishing now uses the CLI credential without exposing token values. Commits 4199432b and 1e25aedd have been published. Issues #388, #416, #418, #420 and #451 are closed after verification. State host and Canvas integration is published in d56ac6a8.
 
 The state API, offline queue, authentication lifecycle, namespace-bound plugin context and Canvas migration are being integrated and tested. The PostgreSQL migration prerequisite is committed in 098b4d2c. Most epics remain incomplete; individual acceptance criteria below govern closure.
 
@@ -23,9 +23,9 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 | [#415](https://github.com/Ikey168/Modulo/issues/415) | State P1: enforce authenticated ownership on notes, tags, links, attachments, and tasks | Partial local foundation: canonical principal resolver; existing resource and WebSocket paths still need enforcement. |
 | [#416](https://github.com/Ikey168/Modulo/issues/416) | State P2: ADR and contract for namespaced plugin state | ADR 0008 published; closed. |
 | [#417](https://github.com/Ikey168/Modulo/issues/417) | State P3: implement versioned plugin-state persistence and REST API | Partial local implementation: PostgreSQL store, migration and host REST API; external permissions, schema registry and event delivery remain. |
-| [#418](https://github.com/Ikey168/Modulo/issues/418) | State P4: frontend plugin-state client with offline queue and conflict handling | Client, plugin context, auth lifecycle and remote discovery implemented locally; recovery and integration verification ongoing. |
-| [#419](https://github.com/Ikey168/Modulo/issues/419) | State P5: migrate plugin installs, hub preferences, and saved searches off localStorage | Not implemented in this pass; retains original acceptance criteria and dependencies. |
-| [#420](https://github.com/Ikey168/Modulo/issues/420) | State P6: migrate Canvas boards to synchronized plugin state | Not implemented in this pass; retains original acceptance criteria and dependencies. |
+| [#418](https://github.com/Ikey168/Modulo/issues/418) | State P4: frontend plugin-state client with offline queue and conflict handling | Published client, plugin context, authentication lifecycle and remote discovery; 61 isolated-tree tests and typecheck pass. Closed. |
+| [#419](https://github.com/Ikey168/Modulo/issues/419) | State P5: migrate plugin installs, hub preferences, and saved searches off localStorage | Account-scoped installs, hub tabs and saved searches implemented; migration, offline provider, dependency and account-switch tests pass in the isolated publishable tree (74 tests total). Publication/closure pending. |
+| [#420](https://github.com/Ikey168/Modulo/issues/420) | State P6: migrate Canvas boards to synchronized plugin state | Published per-board synchronization, lossless create-only migration and recovery export; eight focused Canvas synchronization tests pass. Closed. |
 | [#421](https://github.com/Ikey168/Modulo/issues/421) | State P7: migrate embedded Database records to synchronized plugin state | Not implemented in this pass; retains original acceptance criteria and dependencies. |
 | [#422](https://github.com/Ikey168/Modulo/issues/422) | State P8: migrate Todos, time tracking, and business plugin records to durable storage | Not implemented in this pass; retains original acceptance criteria and dependencies. |
 | [#423](https://github.com/Ikey168/Modulo/issues/423) | State P9: cross-client, offline, backup, and tenant-isolation acceptance suite | Not implemented in this pass; retains original acceptance criteria and dependencies. |
