@@ -343,79 +343,87 @@ public class NotePropertyService {
     return false;
   }
 
+  public record QueryPredicate(String sql, List<Object> arguments) {}
+
+  public QueryPredicate predicate(long owner, List<Filter> filters) {
+    if (filters == null || filters.size() > 10) throw bad("INVALID_PROPERTY_QUERY");
+    StringBuilder sql = new StringBuilder(" FROM application.notes n WHERE n.user_id=?");
+    var args = new ArrayList<Object>(List.of(owner));
+    for (var filter : filters) {
+      if (filter == null
+          || filter.key() == null
+          || filter.operator() == null
+          || !Set.of("eq", "gt", "gte", "lt", "lte", "contains", "exists", "missing")
+              .contains(filter.operator())) throw bad("INVALID_PROPERTY_FILTER");
+      var defs =
+          jdbc.queryForList(
+              "SELECT value_type,options::text FROM note_property_definitions WHERE"
+                  + " owner_id=? AND property_key=?",
+              owner,
+              filter.key());
+      if (defs.isEmpty()) throw bad("UNKNOWN_PROPERTY");
+      boolean missing = "missing".equals(filter.operator());
+      sql.append(missing ? " AND NOT EXISTS (" : " AND EXISTS (")
+          .append(
+              "SELECT 1 FROM note_property_values p WHERE p.owner_id=n.user_id AND"
+                  + " p.note_id=n.note_id AND p.property_key=?");
+      args.add(filter.key());
+      if (!Set.of("exists", "missing").contains(filter.operator())) {
+        String type = defs.get(0).get("value_type").toString();
+        JsonNode value = filter.value();
+        if ("contains".equals(filter.operator())) {
+          if (!"multiSelect".equals(type)
+              || value == null
+              || !value.isTextual()
+              || !contains(parse(defs.get(0).get("options").toString()), value))
+            throw bad("INVALID_PROPERTY_FILTER");
+          sql.append(" AND p.value @> ?::jsonb");
+          args.add(encode(List.of(value)));
+        } else {
+          value = validateValue(owner, defs.get(0), value);
+          if (!"eq".equals(filter.operator())
+              && (!Set.of("number", "date", "datetime").contains(type) || value.isNull()))
+            throw bad("INVALID_PROPERTY_FILTER");
+          if (!"eq".equals(filter.operator()))
+            sql.append(" AND octet_length(p.value::text)<=1024 AND p.value <> 'null'::jsonb");
+          else if (Set.of("number", "date", "datetime", "boolean", "noteReference").contains(type))
+            sql.append(" AND octet_length(p.value::text)<=1024");
+          else {
+            sql.append(" AND md5(p.value::text)=md5((?::jsonb)::text)");
+            args.add(encode(value));
+          }
+          String operator =
+              switch (filter.operator()) {
+                case "gt" -> ">";
+                case "gte" -> ">=";
+                case "lt" -> "<";
+                case "lte" -> "<=";
+                default -> "=";
+              };
+          sql.append(" AND p.value ").append(operator).append(" ?::jsonb");
+          args.add(encode(value));
+        }
+      }
+      sql.append(')');
+    }
+    return new QueryPredicate(sql.toString(), args);
+  }
+
   public List<Map<String, Object>> query(long owner, List<Filter> filters, long after, int limit) {
-    if (filters == null
-        || filters.isEmpty()
-        || filters.size() > 10
-        || after < 0
-        || limit < 1
-        || limit > 100) throw bad("INVALID_PROPERTY_QUERY");
+    if (after < 0 || limit < 1 || limit > 100) throw bad("INVALID_PROPERTY_QUERY");
     return tx.execute(
         status -> {
-          StringBuilder sql =
-              new StringBuilder(
-                  "SELECT n.note_id FROM application.notes n WHERE n.user_id=? AND n.note_id>?");
-          var args = new ArrayList<Object>(List.of(owner, after));
-          for (var filter : filters) {
-            if (filter == null
-                || filter.key() == null
-                || filter.operator() == null
-                || !Set.of("eq", "gt", "gte", "lt", "lte", "contains", "exists", "missing")
-                    .contains(filter.operator())) throw bad("INVALID_PROPERTY_FILTER");
-            var defs =
-                jdbc.queryForList(
-                    "SELECT value_type,options::text FROM note_property_definitions WHERE"
-                        + " owner_id=? AND property_key=?",
-                    owner,
-                    filter.key());
-            if (defs.isEmpty()) throw bad("UNKNOWN_PROPERTY");
-            boolean missing = "missing".equals(filter.operator());
-            sql.append(missing ? " AND NOT EXISTS (" : " AND EXISTS (")
-                .append(
-                    "SELECT 1 FROM note_property_values p WHERE p.owner_id=n.user_id AND"
-                        + " p.note_id=n.note_id AND p.property_key=?");
-            args.add(filter.key());
-            if (!Set.of("exists", "missing").contains(filter.operator())) {
-              String type = defs.get(0).get("value_type").toString();
-              JsonNode value = filter.value();
-              if ("contains".equals(filter.operator())) {
-                if (!"multiSelect".equals(type)
-                    || value == null
-                    || !value.isTextual()
-                    || !contains(parse(defs.get(0).get("options").toString()), value))
-                  throw bad("INVALID_PROPERTY_FILTER");
-                sql.append(" AND p.value @> ?::jsonb");
-                args.add(encode(List.of(value)));
-              } else {
-                value = validateValue(owner, defs.get(0), value);
-                if (!"eq".equals(filter.operator())
-                    && (!Set.of("number", "date", "datetime").contains(type) || value.isNull()))
-                  throw bad("INVALID_PROPERTY_FILTER");
-                if (!"eq".equals(filter.operator()))
-                  sql.append(" AND octet_length(p.value::text)<=1024 AND p.value <> 'null'::jsonb");
-                else if (Set.of("number", "date", "datetime", "boolean", "noteReference")
-                    .contains(type)) sql.append(" AND octet_length(p.value::text)<=1024");
-                else {
-                  sql.append(" AND md5(p.value::text)=md5((?::jsonb)::text)");
-                  args.add(encode(value));
-                }
-                String operator =
-                    switch (filter.operator()) {
-                      case "gt" -> ">";
-                      case "gte" -> ">=";
-                      case "lt" -> "<";
-                      case "lte" -> "<=";
-                      default -> "=";
-                    };
-                sql.append(" AND p.value ").append(operator).append(" ?::jsonb");
-                args.add(encode(value));
-              }
-            }
-            sql.append(')');
-          }
-          sql.append(" ORDER BY n.note_id LIMIT ?");
+          var predicate = predicate(owner, filters);
+          var args = new ArrayList<>(predicate.arguments());
+          args.add(after);
           args.add(limit);
-          List<Long> ids = jdbc.queryForList(sql.toString(), Long.class, args.toArray());
+          var ids =
+              jdbc.queryForList(
+                  "SELECT n.note_id"
+                      + predicate.sql()
+                      + " AND n.note_id>? ORDER BY n.note_id LIMIT ?",
+                  Long.class,
+                  args.toArray());
           audit(owner, null, "PROPERTY_QUERY");
           return ids.isEmpty() ? List.of() : read(owner, ids);
         });

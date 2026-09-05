@@ -66,6 +66,8 @@ export function useCoreWorkspace(): WorkspaceData {
     void refresh();
   }, [refresh]);
 
+  useEffect(()=>{const changed=()=>void refresh();window.addEventListener("modulo:properties-changed",changed);return()=>window.removeEventListener("modulo:properties-changed",changed);},[refresh]);
+
   const upsertNote = useCallback((note: CoreNote) => {
     setNotes((prev) => {
       const idx = prev.findIndex((n) => n.id === note.id);
