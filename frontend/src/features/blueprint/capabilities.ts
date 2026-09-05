@@ -20,6 +20,7 @@ export function deriveRequiredCapabilities(nodes: FlowNode[]): string[] {
 
 /** Human-readable labels for known capabilities. */
 export const CAPABILITY_LABELS: Record<string, { label: string; description: string }> = {
+  'approval:request': {label:'Human approval',description:'Request accountable decisions from the configured reviewer, sharing only the approval projection.'},
   'notes:write': {
     label: 'Notes — Write',
     description: 'Create and modify notes in your workspace.',

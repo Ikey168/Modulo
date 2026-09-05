@@ -136,9 +136,9 @@ describe('NodeCatalog', () => {
   it('lists core primitives by category (note nodes now live in a plugin)', () => {
     const catalog = createCoreCatalog();
     expect(catalog.listByCategory('trigger').length).toBe(1);
-    // Custom Code + WASM Module (#404)
-    expect(catalog.listByCategory('action').length).toBe(2);
-    expect(catalog.listByCategory('logic').length).toBe(2);
+    // Custom Code, WASM Module, and human approval
+    expect(catalog.listByCategory('action').length).toBe(3);
+    expect(catalog.listByCategory('logic').length).toBe(4);
   });
 
   it('resolves the latest version by default and exact version on request', () => {

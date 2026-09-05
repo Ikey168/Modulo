@@ -131,6 +131,13 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
         </div>
       </div>
 
+      {descriptor.type === 'action.approval.request' && <div className="nodrag space-y-2 border-t border-border p-3 text-xs">
+        <label className="flex flex-col gap-1">Reviewer user ID<input inputMode="numeric" value={String(data.config?.approverUserId ?? '')} onChange={event => updateNodeData(id,{...data,config:{...data.config,approverUserId:event.target.value}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Expiry seconds<input type="number" min={60} max={604800} value={Number(data.config?.expirySeconds ?? 86400)} onChange={event => updateNodeData(id,{...data,config:{...data.config,expirySeconds:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Reminders<input type="number" min={0} max={3} value={Number(data.config?.reminders ?? 0)} onChange={event => updateNodeData(id,{...data,config:{...data.config,reminders:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Reviewer message<textarea maxLength={255} value={String(data.config?.message ?? '')} onChange={event => updateNodeData(id,{...data,config:{...data.config,message:event.target.value}})} className="rounded border border-border bg-background p-1" /></label>
+        <p>The reviewer must be a different user. Raw context values are omitted.</p>
+      </div>}
       {descriptor.type === 'logic.wait' && <label className="nodrag flex flex-col gap-1 border-t border-border p-3 text-xs">Wait seconds<input aria-label="Wait seconds" type="number" min={1} max={86400} value={Number(data.config?.seconds ?? 60)} onChange={event => updateNodeData(id,{...data,config:{...data.config,seconds:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>}
       {descriptor.type === 'trigger.schedule' && <div className="nodrag space-y-2 border-t border-border p-3 text-xs">
         <label className="flex flex-col gap-1">Cron (six fields)<input value={String(data.config?.cron ?? '')} onChange={event => updateNodeData(id,{...data,config:{...data.config,cron:event.target.value}})} className="rounded border border-border bg-background p-1" /></label>

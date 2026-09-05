@@ -22,6 +22,8 @@ export const DataTypes = {
   Tag: 'tag',
   Link: 'link',
   User: 'user',
+  ApprovalRequest: 'approvalRequest',
+  ApprovalDecision: 'approvalDecision',
   /** Accepts/provides any type (escape hatch, like a wildcard). */
   Any: 'any',
 } as const;
