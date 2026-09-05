@@ -1,0 +1,43 @@
+rule_files:
+  - ../rules/workflow-alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'modulo_workflow_run_rate{state="FAILED"}'
+        values: '0.02x20'
+      - series: 'modulo_workflow_runs{state="DEAD_LETTER"}'
+        values: '1x20'
+      - series: modulo_workflow_schedule_lag_seconds
+        values: '120x20'
+      - series: modulo_workflow_queue_depth
+        values: '101x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: WorkflowFailureBurst
+        exp_alerts:
+          - exp_labels: {state: FAILED, severity: warning}
+            exp_annotations:
+              summary: Workflow failures exceed three per five-minute window
+              description: Inspect the Execution Center failure filter and the recorded error class.
+      - eval_time: 6m
+        alertname: WorkflowDeadLetters
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: Workflow work requires manual recovery
+              description: Review side effects before replaying a dead-letter checkpoint.
+      - eval_time: 6m
+        alertname: WorkflowScheduleLag
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: Workflow schedules are more than a minute late
+              description: Check dispatcher health, database connectivity and long-running actions.
+      - eval_time: 6m
+        alertname: WorkflowQueueBacklog
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: Workflow delivery backlog persists
+              description: Review hot schedules and dispatcher capacity before increasing traffic.

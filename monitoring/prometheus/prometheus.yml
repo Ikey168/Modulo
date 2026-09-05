@@ -47,7 +47,7 @@ scrape_configs:
   # Backend application metrics
   - job_name: 'modulo-backend'
     static_configs:
-      - targets: ['backend:8080']
+      - targets: ['backend:8081']
     metrics_path: '/actuator/prometheus'
     scrape_interval: 30s
 
