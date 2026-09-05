@@ -4,6 +4,8 @@
 // that highlights the executed path (static trace, or the last real run from
 // plugin_execution_logs).
 
+import { useSearchParams } from 'react-router-dom';
+import { getRun } from '../../executions/runService';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -66,6 +68,9 @@ interface Status {
 }
 
 function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
+  const [searchParams] = useSearchParams();
+  const linkedRun = searchParams.get('run');
+  const linkedNode = searchParams.get('node');
   // Core primitives plus any nodes contributed by installed plugins. Rebuilds
   // when the plugin set changes, so installing a plugin adds its nodes.
   const catalog = useMemo(() => {
@@ -237,6 +242,23 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
     },
     [catalog, setNodes, setEdges],
   );
+
+  useEffect(() => {
+    if (!linkedRun) return;
+    const controller = new AbortController();
+    getRun(linkedRun, controller.signal).then(async detail => {
+      if (!detail.run.blueprint_name) throw new Error('This Blueprint has been deleted.');
+      const bp = await loadBlueprint(detail.run.blueprint_name);
+      if (controller.signal.aborted) return;
+      if (bp.id !== detail.run.blueprint_id) throw new Error('The original Blueprint is unavailable.');
+      const flow = irToFlow(bp.ir, catalog);
+      setNodes(flow.nodes.map(node => ({...node, selected: node.id === linkedNode})));
+      setEdges(flow.edges); setName(bp.name); setDescription(bp.description ?? ''); setLoadedName(bp.name);
+      setHighlighted(new Set(detail.nodeIds));
+      setStatus({kind:'info',text:`Run ${detail.run.id}: ${detail.run.state}. Showing the current graph; nodes changed since version ${detail.run.blueprint_version} may be absent.`});
+    }).catch((error: Error) => { if (!controller.signal.aborted) setStatus({kind:'error',text:error.message}); });
+    return () => controller.abort();
+  }, [linkedRun,linkedNode,catalog,setNodes,setEdges]);
 
   const handleNew = useCallback(() => {
     setNodes([]);

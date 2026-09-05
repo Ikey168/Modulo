@@ -89,6 +89,25 @@ class WorkflowRunServiceTest {
   }
 
   @Test
+  void executionQueriesFilterAndDenyOtherOwners() {
+    long id = blueprint("daily").getId();
+    var lease = create(id,"event");
+    runs.begin(lease);
+    var step = runs.startStep(lease,1,"node","logic.branch",Map.of("token","NEVER"));
+    runs.finishStep(lease,step,"SUCCEEDED",Map.of(),null,12L);
+    runs.transition(lease,"RUNNING","SUCCEEDED",null);
+    var controller = new WorkflowQueryController(jdbc,owner);
+    assertEquals(1L, controller.list("daily","SUCCEEDED",id,"trigger.note.saved",null,null,0,0,25).get("total"));
+    assertEquals(0L, controller.list("daily","FAILED",null,"",null,null,0,0,25).get("total"));
+    assertEquals(1L, controller.detail(lease.id(),0).get("stepTotal"));
+    assertEquals(List.of("node"),controller.detail(lease.id(),0).get("nodeIds"));
+    when(owner.requireUserId()).thenReturn(2L);
+    assertEquals(0L,controller.list("","",null,"",null,null,0,0,25).get("total"));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.detail(lease.id(),0));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.list("","",null,"",null,null,0,-1,25));
+  }
+
+  @Test
   void duplicateTriggerCreatesExactlyOneRunUnderConcurrency() throws Exception {
     long id = blueprint("same").getId();
     var pool = Executors.newFixedThreadPool(4);
