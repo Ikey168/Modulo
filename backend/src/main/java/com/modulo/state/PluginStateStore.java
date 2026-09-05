@@ -130,6 +130,41 @@ public class PluginStateStore {
     this.schemas = new StateSchemaRegistry(jdbc, this.json);
   }
 
+  private boolean generationRequired;
+  private String expectedGeneration;
+
+  PluginStateStore forGeneration(String expected) {
+    PluginStateStore guarded = delegated(access);
+    guarded.generationRequired = true;
+    guarded.expectedGeneration = expected;
+    return guarded;
+  }
+
+  public record StorageGeneration(String generation) {}
+
+  public StorageGeneration generation(String workspace, String namespace) {
+    try {
+      scope(workspace, namespace, null);
+    } catch (ResponseStatusException denied) {
+      scope(workspace, namespace, null, true);
+    }
+    return new StorageGeneration(
+        jdbc.queryForObject(
+            "SELECT generation::text FROM plugin_state_storage WHERE singleton=1", String.class));
+  }
+
+  private void checkGeneration() {
+    if (!generationRequired) return; // Trusted in-process mutations do not replay browser queues.
+    if (expectedGeneration == null)
+      throw error(HttpStatus.PRECONDITION_REQUIRED, "STATE_STORAGE_GENERATION_REQUIRED");
+    String current =
+        jdbc.queryForObject(
+            "SELECT generation::text FROM plugin_state_storage WHERE singleton=1 FOR SHARE",
+            String.class);
+    if (!current.equals(expectedGeneration))
+      throw error(HttpStatus.PRECONDITION_FAILED, "STATE_STORAGE_GENERATION_CHANGED");
+  }
+
   public StateRecord get(String workspace, String namespace, String key) {
     long owner = scope(workspace, namespace, key);
     StateRecord current = find(owner, workspace, namespace, key);
@@ -215,6 +250,7 @@ public class PluginStateStore {
     return transactions.execute(
         status -> {
           lockOwner(owner);
+          checkGeneration();
           if (scope(workspace, namespace, key, true) != owner)
             throw error(HttpStatus.NOT_FOUND, "STATE_ACCESS_REVOKED");
           if (jdbc.queryForObject(
@@ -306,6 +342,7 @@ public class PluginStateStore {
     return transactions.execute(
         status -> {
           lockOwner(owner);
+          checkGeneration();
           if (scope(workspace, namespace, key, true) != owner)
             throw error(HttpStatus.NOT_FOUND, "STATE_ACCESS_REVOKED");
           if (jdbc.queryForObject(

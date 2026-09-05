@@ -41,7 +41,7 @@ response method types expose the record, page and change models.
 
 ```json
 {"expectedVersion":0,"schemaId":"modulo.canvas.board","schemaVersion":1,
- "value":{"cards":[],"edges":[]}}
+ "value":{"id":"board","name":"Board","cards":[],"connections":[]}}
 ```
 
 Stale writes return 409 with `STATE_VERSION_CONFLICT`, expected/actual versions
@@ -65,28 +65,19 @@ queue with a new user's token. A pending queue is never silently reassigned.
 server record store. Storage exhaustion and corrupt cache data surface as errors.
 The host must provide a recovery path for a replica whose tab was abandoned.
 
-## Remaining acceptance work — issues stay open
+## Completed delivery and acceptance
 
-- #415: wire canonical ownership through all note/tag/link/task/attachment, graph,
-  import/export, collaboration and audit paths; migrate legacy ownership and
-  replace shared WebSocket broadcasts. The new resolver alone does not establish
-  tenant isolation for those existing endpoints.
-- #417: bind EXTERNAL workload callbacks to installed-plugin permissions and
-  consent; register/validate plugin document schemas; dispatch the durable audit
-  outbox to plugin events with retention/expiry behavior. The host API currently
-  authorizes user-owned state; it is not an EXTERNAL plugin callback API.
-- Host recovery after a database restore and discovery of queues belonging to abandoned
-  tabs remain follow-up hardening. Open tabs hold exclusive Web Locks; cloned tabs
-  receive a separate replica. Browser session storage retains the replica on reload.
-- #422: migrate remaining operational consumer stores using explicit legacy-data claiming,
-  stable IDs and create-only imports.
-- #420: Canvas uses one schema-versioned record per board, shared sync controls and
-  explicit legacy import. Unknown schemas retain their raw cache for recovery export.
-  Existing note navigation is preserved; full offline browser acceptance remains in #423.
-- #423: run the full browser/Electron two-client, offline, backup and tenant suite.
+Ownership (#415), external state permissions/schema/outbox (#417), client and
+consumer migrations (#418–422) are published. See the [operational inventory](../architecture/operational-state.md)
+and [state API contract](../architecture/plugin-state-api.md).
 
-Todos and business records still use their existing stores. Embedded databases now
-use versioned records; see [database state and retention](../plugins/embedded-database-state.md).
+The [state acceptance and restore runbook](state-acceptance.md) describes #423's
+CI-safe HTTP, PostgreSQL backup/restart and offline-client tests. Restore must
+rotate the storage generation before traffic resumes; API writes include the
+`X-Modulo-State-Generation` header obtained from `GET ?generation`.
+
+Embedded databases retain their existing versioned documents; see
+[database state and retention](../plugins/embedded-database-state.md).
 
 ## Validation
 

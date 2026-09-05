@@ -33,7 +33,7 @@ public class PluginStateController {
     return store;
   }
 
-  @GetMapping(params = "!changesAfter")
+  @GetMapping(params = {"!changesAfter", "!generation"})
   public ResponseEntity<PluginStateStore.Page> list(
       @PathVariable String workspace,
       @PathVariable String namespace,
@@ -42,6 +42,14 @@ public class PluginStateController {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(store().list(workspace, namespace, cursor, limit));
+  }
+
+  @GetMapping(params = "generation")
+  public ResponseEntity<PluginStateStore.StorageGeneration> generation(
+      @PathVariable String workspace, @PathVariable String namespace) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(store().generation(workspace, namespace));
   }
 
   // A query selector avoids reserving an otherwise valid state key named "changes".
@@ -92,7 +100,10 @@ public class PluginStateController {
     } catch (CharacterCodingException e) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "STATE_INVALID_UTF8");
     }
-    return response(store().putJson(workspace, namespace, key, body));
+    return response(
+        store()
+            .forGeneration(request.getHeader("X-Modulo-State-Generation"))
+            .putJson(workspace, namespace, key, body));
   }
 
   @DeleteMapping("/{key}")
@@ -100,8 +111,10 @@ public class PluginStateController {
       @PathVariable String workspace,
       @PathVariable String namespace,
       @PathVariable String key,
-      @RequestParam long expectedVersion) {
-    return response(store().delete(workspace, namespace, key, expectedVersion));
+      @RequestParam long expectedVersion,
+      @RequestHeader(value = "X-Modulo-State-Generation", required = false) String generation) {
+    return response(
+        store().forGeneration(generation).delete(workspace, namespace, key, expectedVersion));
   }
 
   public record StateError(
