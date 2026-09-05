@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
+import { cancelRun, retryRun, editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
 
 const states = ['QUEUED','RUNNING','WAITING','RETRY_WAIT','SUCCEEDED','FAILED','CANCELLED'];
 const inputClass = 'rounded border border-border bg-background p-2 text-sm';
@@ -10,13 +10,18 @@ export function ExecutionCenter() {
   const [detail,setDetail] = useState<RunDetail | null>(null);
   const [error,setError] = useState('');
   const [revision,setRevision] = useState(0);
+  const [busy,setBusy] = useState(false);
+  const [confirmed,setConfirmed] = useState(false);
+  const [checkpoint,setCheckpoint] = useState(0);
+  const retryRequest = useRef<string | null>(null);
   const selected = params.get('run');
+  useEffect(() => {setConfirmed(false);setCheckpoint(0);retryRequest.current=null;},[selected]);
   const query = params.toString();
   useEffect(() => {
     const controller = new AbortController();
     setError(''); setPage(null); setDetail(null);
     const filters = new URLSearchParams(query); filters.delete('run'); filters.delete('stepPage');
-    const request = selected ? getRun(selected, controller.signal, Number(new URLSearchParams(query).get('stepPage') ?? 0)).then(setDetail) : listRuns(filters,controller.signal).then(setPage);
+    const request = selected ? getRun(selected, controller.signal, Number(new URLSearchParams(query).get('stepPage') ?? 0)).then(value => {if (!controller.signal.aborted) {setDetail(value);setCheckpoint(previous => value.checkpoints?.includes(previous) ? previous : (value.checkpoints?.[0] ?? 0));}}) : listRuns(filters,controller.signal).then(value => {if(!controller.signal.aborted) setPage(value);});
     request.catch((reason: Error) => { if (!controller.signal.aborted) setError(reason.message); });
     return () => controller.abort();
   },[query,selected,revision]);
@@ -26,6 +31,14 @@ export function ExecutionCenter() {
     setParams(next,{replace:true});
   }
   function openRun(id?: string) { const next = new URLSearchParams(params); if(id) next.set('run',id); else next.delete('run'); next.delete('stepPage'); setParams(next); }
+  async function recover(kind: 'cancel' | 'retry') {
+    if(!selected) return;
+    setBusy(true);setError('');
+    try {
+      if(kind === 'cancel') {await cancelRun(selected);setRevision(value => value+1);}
+      else {retryRequest.current ??= crypto.randomUUID(); const id=await retryRun(selected,retryRequest.current,checkpoint,confirmed);openRun(id);}
+    } catch(reason) {setError((reason as Error).message);} finally {setBusy(false);}
+  }
   return <main className="flex-1 overflow-y-auto p-5 md:p-8">
     <h1 className="mb-5 text-2xl font-semibold">Execution Center</h1>
     {selected ? <button className="mb-4 underline" onClick={() => openRun()}>Back to runs</button> : <form className="mb-6 flex flex-wrap gap-3" onSubmit={event => event.preventDefault()}>
@@ -51,6 +64,16 @@ export function ExecutionCenter() {
       <h2 className="text-lg font-semibold">{detail.run.blueprint_name ?? 'Deleted Blueprint'} · {detail.run.state}</h2>
       <p className="my-2 break-all text-sm">Run {detail.run.id} · version {detail.run.blueprint_version} · attempt {detail.run.attempt}</p>
       {detail.run.blueprint_name && <Link className="underline" to={editorRunLink(detail.run)}>Open executed path in editor</Link>}
+      {detail.run.parent_run_id && <p className="my-2"><button className="underline" onClick={() => openRun(detail.run.parent_run_id)}>View original run</button></p>}
+      {['QUEUED','RUNNING','WAITING','RETRY_WAIT'].includes(detail.run.state) && <div className="my-4"><button className={inputClass} disabled={busy || Boolean(detail.run.cancel_requested_at)} onClick={() => recover('cancel')}>{detail.run.cancel_requested_at ? 'Cancellation requested' : 'Request cancellation'}</button><p className="mt-1 text-sm">The current action can finish. Cancellation stops execution at the next step boundary.</p></div>}
+      {['FAILED','CANCELLED'].includes(detail.run.state) && <fieldset className="my-4 space-y-3 border border-border p-4" disabled={busy}>
+        <legend>Retry run</legend>
+        {(detail.checkpoints?.length ?? 0) === 0 ? <p>No replay checkpoint is available for this run.</p> : <>
+          <label className="flex flex-col gap-1">Resume checkpoint<select className={inputClass} value={checkpoint} onChange={event => {setCheckpoint(Number(event.target.value));retryRequest.current=null;}}>{detail.checkpoints?.map(value => <option key={value} value={value}>{value === 0 ? 'From start' : `Before action ${value}`}</option>)}</select></label>
+          <label className="flex items-start gap-2"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I understand that replayed actions may duplicate note writes, remote calls, or irreversible effects, including actions that timed out.</span></label>
+          <button className={inputClass} disabled={busy || !detail.checkpoints?.includes(checkpoint)} onClick={() => recover('retry')}>Retry with a new attempt</button>
+        </>}
+      </fieldset>}
       <ol className="mt-5 divide-y divide-border">{detail.steps.map(step => <li key={step.id} className="py-4">
         <div className="flex flex-wrap gap-3"><strong>{step.sequence}. {step.node_type}</strong><span>{step.state}</span><span>Attempt {step.attempt} · {step.duration_ms == null ? 'Duration unavailable' : `${step.duration_ms} ms`}</span></div>
         <p className="break-all text-sm">{step.node_id}{step.error_class ? ` · ${step.error_class}` : ''}</p>

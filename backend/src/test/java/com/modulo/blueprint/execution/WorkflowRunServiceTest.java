@@ -54,6 +54,7 @@ class WorkflowRunServiceTest {
                       .getInputStream()
                       .readAllBytes(),
                   java.nio.charset.StandardCharsets.UTF_8));
+      c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V9__Workflow_recovery.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute("ALTER TABLE workflow_steps ADD COLUMN duration_ms BIGINT CHECK(duration_ms>=0)");
     }
   }
@@ -105,6 +106,93 @@ class WorkflowRunServiceTest {
     assertEquals(0L,controller.list("","",null,"",null,null,0,0,25).get("total"));
     assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.detail(lease.id(),0));
     assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.list("","",null,"",null,null,0,-1,25));
+  }
+
+  @Test
+  void cancellationStopsAtBoundaryAndWinsCompletionRace() {
+    var lease=create(blueprint("cancel").getId(),"event");runs.begin(lease);
+    var step=runs.startStep(lease,1,"write","action.note.create",Map.of());
+    runs.requestCancellation(lease.id(),1);
+    // In-flight work finishes; the next boundary and final transition see cancellation.
+    runs.finishStep(lease,step,"SUCCEEDED",Map.of(),null,10L);
+    assertThrows(WorkflowCancelledException.class,()->runs.checkCancellation(lease));
+    runs.transition(lease,"RUNNING","SUCCEEDED",null);
+    assertEquals("CANCELLED",jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?",String.class,lease.id()));
+    assertEquals(1L,jdbc.queryForObject("SELECT cancelled_by FROM workflow_runs WHERE id=?",Long.class,lease.id()));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->runs.requestCancellation(lease.id(),2));
+  }
+
+  @Test
+  void retryRequiresConsentPreservesLineageAndDeduplicatesRequests() {
+    var original=create(blueprint("retry").getId(),"event");runs.begin(original);
+    var step=runs.startStep(original,1,"write","action.note.create",Map.of());
+    runs.finishStep(original,step,"SUCCEEDED",Map.of(),null);
+    runs.transition(original,"RUNNING","FAILED","NODE_FAILURE");
+    UUID request=UUID.randomUUID();
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->runs.createRetry(original.id(),1,request,0,false));
+    var retry=runs.createRetry(original.id(),1,request,0,true);
+    assertTrue(retry.created());
+    assertEquals(retry.id(),runs.createRetry(original.id(),1,request,0,true).id());
+    assertEquals(original.id(),jdbc.queryForObject("SELECT parent_run_id FROM workflow_runs WHERE id=?",UUID.class,retry.id()));
+    assertEquals(2,jdbc.queryForObject("SELECT attempt FROM workflow_runs WHERE id=?",Integer.class,retry.id()));
+    assertEquals("FAILED",jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?",String.class,original.id()));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->runs.createRetry(original.id(),2,UUID.randomUUID(),0,true));
+  }
+
+  @Test
+  void checkpointsRejectChangedNotesAndDoNotExposePrivatePayloads() {
+    var notes=mock(com.modulo.service.NoteService.class);
+    var checkpoints=new WorkflowCheckpointService(jdbc,new ObjectMapper(),notes);
+    var lease=create(blueprint("checkpoint").getId(),"event");runs.begin(lease);
+    var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);note.setVersion(3L);
+    when(notes.findById(10L)).thenReturn(Optional.of(note));
+    checkpoints.save(lease,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("trigger:note",note,"trigger:payload","PRIVATE_WEBHOOK"));
+    assertSame(note,checkpoints.load(lease.id(),1,0).pins().get("trigger:note"));
+    assertFalse(new WorkflowQueryController(jdbc,owner).detail(lease.id(),0).toString().contains("PRIVATE_WEBHOOK"));
+    note.setVersion(4L);
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->checkpoints.load(lease.id(),1,0));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->checkpoints.load(lease.id(),2,0));
+  }
+
+  @Test
+  void webhookRedeliveryAndSafeRetryDoNotRepeatCompletedNoteWrite() throws Exception {
+    var request=new BlueprintSaveRequest();request.setName("webhook-recovery");
+    request.setIr(Map.of("irVersion",1,"nodes",List.of(
+      Map.of("id","trigger","type","trigger.webhook","config",Map.of("secret","TEST_SECRET")),
+      Map.of("id","write","type","action.note.create"),
+      Map.of("id","script","type","action.code.execute","config",Map.of("code","return output;"))),
+      "edges",List.of(
+      Map.of("kind","exec","fromNode","trigger","fromPin","then","toNode","write","toPin","in"),
+      Map.of("kind","exec","fromNode","write","fromPin","then","toNode","script","toPin","in"))));
+    var entry=blueprints.create(request,"ignored");
+    var interpreter=new com.modulo.blueprint.interpreter.BlueprintInterpreterService();
+    var notes=mock(com.modulo.service.NoteService.class);
+    var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);note.setVersion(1L);
+    when(notes.save(any())).thenReturn(note);when(notes.findById(10L)).thenReturn(Optional.of(note));
+    var sandbox=mock(com.modulo.blueprint.sandbox.ScriptSandbox.class);
+    when(sandbox.execute(anyString(),anyString(),anyString())).thenThrow(new com.modulo.blueprint.sandbox.ScriptSandbox.ScriptExecutionException("private failure")).thenReturn("recovered");
+    var capabilities=mock(com.modulo.blueprint.BlueprintCapabilityService.class);
+    when(capabilities.isGranted(anyLong(),anyString())).thenReturn(true);
+    ReflectionTestUtils.setField(interpreter,"workflowRuns",runs);
+    ReflectionTestUtils.setField(interpreter,"checkpoints",new WorkflowCheckpointService(jdbc,new ObjectMapper(),notes));
+    ReflectionTestUtils.setField(interpreter,"objectMapper",new ObjectMapper());
+    ReflectionTestUtils.setField(interpreter,"eventBus",mock(com.modulo.plugin.event.PluginEventBus.class));
+    ReflectionTestUtils.setField(interpreter,"noteService",notes);
+    ReflectionTestUtils.setField(interpreter,"scriptSandbox",sandbox);
+    ReflectionTestUtils.setField(interpreter,"capabilityService",capabilities);
+    interpreter.registerBlueprint(entry);
+    interpreter.fireWebhook(entry.getId(),"trigger","TEST_SECRET","private payload","delivery-1");
+    interpreter.fireWebhook(entry.getId(),"trigger","TEST_SECRET","private payload","delivery-1");
+    verify(notes,times(1)).save(any());
+    UUID original=jdbc.queryForObject("SELECT id FROM workflow_runs",UUID.class);
+    assertEquals("FAILED",jdbc.queryForObject("SELECT state FROM workflow_runs",String.class));
+    UUID key=UUID.randomUUID();
+    UUID retry=interpreter.retryRun(original,1,key,2,true);
+    assertEquals(retry,interpreter.retryRun(original,1,key,2,true));
+    verify(notes,times(1)).save(any());
+    verify(sandbox,times(2)).execute(anyString(),anyString(),anyString());
+    assertEquals("SUCCEEDED",jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?",String.class,retry));
+    assertEquals(List.of("script"),jdbc.queryForList("SELECT node_id FROM workflow_steps WHERE run_id=?",String.class,retry));
   }
 
   @Test

@@ -118,11 +118,13 @@ public class WorkflowRunService {
             status ->
                 jdbc.update(
                     "UPDATE workflow_runs SET attempt=CASE WHEN state='RETRY_WAIT' AND ?='RUNNING'"
-                        + " THEN attempt+1 ELSE attempt END,state=?,error_class=?,started_at=CASE"
-                        + " WHEN ?='RUNNING' THEN COALESCE(started_at,CURRENT_TIMESTAMP) ELSE"
-                        + " started_at END,finished_at=CASE WHEN ? IN"
-                        + " ('SUCCEEDED','FAILED','CANCELLED') THEN CURRENT_TIMESTAMP ELSE NULL END"
-                        + " WHERE id=? AND owner_id=? AND state=?",
+                        + " THEN attempt+1 ELSE attempt END,state=CASE WHEN ?='SUCCEEDED' AND"
+                        + " cancel_requested_at IS NOT NULL THEN 'CANCELLED' ELSE ?"
+                        + " END,error_class=?,started_at=CASE WHEN ?='RUNNING' THEN"
+                        + " COALESCE(started_at,CURRENT_TIMESTAMP) ELSE started_at"
+                        + " END,finished_at=CASE WHEN ? IN ('SUCCEEDED','FAILED','CANCELLED') THEN"
+                        + " CURRENT_TIMESTAMP ELSE NULL END WHERE id=? AND owner_id=? AND state=?",
+                    next,
                     next,
                     next,
                     errorClass,
@@ -149,6 +151,7 @@ public class WorkflowRunService {
                   lease.owner());
           if (state.size() != 1 || !state.get(0).equals("RUNNING"))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "WORKFLOW_NOT_RUNNING");
+          checkCancellation(lease);
           var trace = ExecutionTraceContext.current();
           UUID id =
               trace != null && trace.runId().equals(lease.id())
@@ -231,6 +234,113 @@ public class WorkflowRunService {
   private String metadata(long owner, Map<String, ?> values) {
     var trace = ExecutionTraceContext.current();
     return tracePolicy.summarize(owner, values, trace != null && trace.noteReferencesAllowed());
+  }
+
+  public Long registryId(UUID run, long owner) {
+    var ids =
+        jdbc.queryForList(
+            "SELECT blueprint_id FROM workflow_runs WHERE id=? AND owner_id=?",
+            Long.class,
+            run,
+            owner);
+    if (ids.isEmpty() || ids.get(0) == null) throw denied();
+    return ids.get(0);
+  }
+
+  public Lease createRetry(
+      UUID parent, long owner, UUID requestId, int sequence, boolean confirmed) {
+    return transactions.execute(
+        status -> {
+          jdbc.queryForList("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, owner);
+          var original =
+              jdbc.queryForList(
+                  "SELECT * FROM workflow_runs WHERE id=? AND owner_id=? AND state IN"
+                      + " ('FAILED','CANCELLED')",
+                  parent,
+                  owner);
+          if (original.isEmpty())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "RUN_NOT_RETRYABLE");
+          var row = original.get(0);
+          String key = "retry:" + parent + ":" + requestId;
+          var previous =
+              jdbc.queryForList(
+                  "SELECT id,retry_from_sequence FROM workflow_runs WHERE parent_run_id=? AND"
+                      + " owner_id=? AND trigger_key=?",
+                  parent,
+                  owner,
+                  key);
+          if (!previous.isEmpty()) {
+            if (((Number) previous.get(0).get("retry_from_sequence")).intValue() != sequence)
+              throw new ResponseStatusException(HttpStatus.CONFLICT, "RETRY_REQUEST_MISMATCH");
+            return new Lease((UUID) previous.get(0).get("id"), owner, false);
+          }
+          if (((Number) row.get("attempt")).intValue() >= 100)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "RETRY_LIMIT");
+          if (jdbc.queryForObject(
+                      "SELECT count(*) FROM workflow_steps WHERE run_id=? AND sequence>=? AND"
+                          + " node_type NOT LIKE 'logic.%' AND node_type NOT LIKE 'trigger.%' AND"
+                          + " state NOT IN ('SKIPPED','CANCELLED')",
+                      Long.class, parent, sequence + 1)
+                  > 0
+              && !confirmed)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "RETRY_CONFIRMATION_REQUIRED");
+          var active =
+              jdbc.queryForList(
+                  "SELECT id FROM plugin_registry WHERE id=? AND owner_id=? AND status='ACTIVE' AND"
+                      + " runtime='BLUEPRINT' FOR SHARE",
+                  Long.class,
+                  row.get("blueprint_id"),
+                  owner);
+          if (active.isEmpty()) throw denied();
+          if (jdbc.queryForObject(
+                  "SELECT count(*) FROM workflow_runs WHERE owner_id=?", Long.class, owner)
+              >= 10000)
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "WORKFLOW_RUN_QUOTA");
+          UUID id = UUID.randomUUID();
+          jdbc.update(
+              "INSERT INTO"
+                  + " workflow_runs(id,owner_id,blueprint_id,blueprint_version,blueprint_digest,trigger_node_id,trigger_type,trigger_key,state,attempt,parent_run_id,retry_requested_by,retry_confirmed,retry_from_sequence)"
+                  + " VALUES (?,?,?,?,?,?,?,?,'QUEUED',?,?,?,?,?)",
+              id,
+              owner,
+              row.get("blueprint_id"),
+              row.get("blueprint_version"),
+              row.get("blueprint_digest"),
+              row.get("trigger_node_id"),
+              row.get("trigger_type"),
+              key,
+              ((Number) row.get("attempt")).intValue() + 1,
+              parent,
+              owner,
+              confirmed,
+              sequence);
+          return new Lease(id, owner, true);
+        });
+  }
+
+  public void requestCancellation(UUID run, long owner) {
+    int changed =
+        jdbc.update(
+            "UPDATE workflow_runs SET"
+                + " cancel_requested_at=COALESCE(cancel_requested_at,CURRENT_TIMESTAMP),cancelled_by=COALESCE(cancelled_by,?),finished_at=CASE"
+                + " WHEN state='RUNNING' THEN finished_at ELSE CURRENT_TIMESTAMP END,state=CASE"
+                + " WHEN state='RUNNING' THEN state ELSE 'CANCELLED' END WHERE id=? AND owner_id=?"
+                + " AND state IN ('QUEUED','RUNNING','WAITING','RETRY_WAIT')",
+            owner,
+            run,
+            owner);
+    if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "RUN_NOT_CANCELLABLE");
+  }
+
+  public void checkCancellation(Lease lease) {
+    var requested =
+        jdbc.queryForList(
+            "SELECT cancel_requested_at IS NOT NULL FROM workflow_runs WHERE id=? AND owner_id=?",
+            Boolean.class,
+            lease.id(),
+            lease.owner());
+    if (requested.size() != 1) throw denied();
+    if (requested.get(0)) throw new WorkflowCancelledException();
   }
 
   public int pruneExpired() {
