@@ -197,7 +197,7 @@ public class IpfsService {
         HttpPost request = new HttpPost(ipfsNodeUrl + "/api/v0/add");
         HttpEntity entity = MultipartEntityBuilder.create()
                 .addPart("file", new StringBody(ciphertext,
-                        org.apache.http.entity.ContentType.create("application/octet-stream")))
+                        org.apache.http.entity.ContentType.create("application/octet-stream", java.nio.charset.StandardCharsets.UTF_8)))
                 .build();
         request.setEntity(entity);
 
@@ -212,12 +212,26 @@ public class IpfsService {
             JsonNode responseJson = objectMapper.readTree(responseBody);
             String cid = responseJson.get("Hash").asText();
 
-            logger.info("Successfully uploaded encrypted content to IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
+            logger.info("Successfully uploaded content to IPFS with CID: {}", LogSanitizer.sanitizeCid(cid));
             return cid;
 
         } catch (Exception e) {
             logger.error("Failed to upload encrypted content to IPFS: {}", LogSanitizer.sanitizeMessage(e.getMessage()));
             throw new IOException("Failed to upload to IPFS: " + e.getMessage(), e);
+        }
+    }
+
+    /** Publish already-reviewed public pack source using the existing IPFS transport. */
+    public String uploadPublicContent(String source) throws IOException { return uploadEncryptedContent(source); }
+
+    /** Bounded UTF-8 retrieval for reproducible public manifest verification. */
+    public String retrievePublicContent(String cid, int maxBytes) throws IOException {
+        if(!ipfsEnabled || maxBytes<1 || maxBytes>2097152)throw new IOException("IPFS public retrieval unavailable");
+        HttpResponse response=httpClient.execute(new HttpGet(ipfsNodeUrl+"/api/v0/cat?arg="+cid));
+        try(var stream=response.getEntity().getContent()){
+            if(response.getStatusLine().getStatusCode()!=200)throw new IOException("IPFS public retrieval failed");
+            byte[] bytes=stream.readNBytes(maxBytes+1);if(bytes.length>maxBytes)throw new IOException("IPFS public content exceeds limit");
+            return new String(bytes,java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 
