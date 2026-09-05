@@ -50,6 +50,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private static final long ACTION_TIMEOUT_SECS = 30;
 
     @Autowired private com.modulo.blueprint.execution.WorkflowCheckpointService checkpoints;
+    @Autowired private com.modulo.blueprint.approval.ApprovalService approvals;
     @Autowired(required=false) private com.modulo.blueprint.execution.WorkflowScheduler workflowScheduler;
     @Autowired private BlueprintRepository blueprintRepository;
     @Autowired private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
@@ -251,7 +252,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
             logger.info("Workflow run {} cancelled",lease.id());
         } catch(Exception failure) {
-            String classification=failure instanceof BlueprintLoopGuardException?"LOOP_GUARD":"NODE_FAILURE";
+            String classification=failure instanceof BlueprintLoopGuardException?"LOOP_GUARD":failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
             workflowRuns.transition(lease,"RUNNING","FAILED",classification);
             logger.warn("Workflow run {} failed: {}",lease.id(),classification);
         }
@@ -297,6 +298,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         if(!workflowRuns.resumeWaiting(lease)) return;
         try {
             workflowRuns.asOwner(lease,()->{
+                if(approvals!=null) approvals.verifyResume(lease);
                 var snapshot=checkpoints.load(run,owner,checkpoint);
                 var ctx=new BlueprintExecutionContext(lease);
                 ctx.setRegistryId(workflowRuns.registryId(run,owner));
@@ -346,26 +348,41 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
             long started = System.nanoTime();
             try {
-                result = executeNode(target, inputs, ctx.getRegistryId());
+                result = executeNode(target, inputs, ctx.getRegistryId(),ctx.getLease());
             } catch(Exception failure) {
-                workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),"NODE_FAILURE",elapsed(started));
+                workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE",elapsed(started));
                 throw failure;
+            }
+            if("logic.approval.wait".equals(target.getType())) {
+                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
+                int checkpoint=ctx.getStepCount()+1;
+                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
+                try {approvals.waitFor(ctx.getLease(),step,java.util.UUID.fromString((String)result.outputs().get("request")),checkpoint,elapsed(started));}
+                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
+                throw new com.modulo.blueprint.execution.WorkflowPausedException();
             }
             if("logic.wait".equals(target.getType())) {
                 int seconds=((Number)(target.getConfig()==null?60:target.getConfig().getOrDefault("seconds",60))).intValue();
                 result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
                 int checkpoint=ctx.getStepCount()+1;
                 checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
-                workflowRuns.pause(ctx.getLease(),step,checkpoint,seconds,elapsed(started));
+                try {workflowRuns.pause(ctx.getLease(),step,checkpoint,seconds,elapsed(started));}
+                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
                 throw new com.modulo.blueprint.execution.WorkflowPausedException();
             }
-            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
+            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",target.getType().contains(".approval.")?approvals.traceOutputs(ctx.getLease(),result.outputs()):result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
         }
         result.outputs().forEach((pinId, value) -> ctx.setPinValue(targetId, pinId, value));
 
         if (result.nextExecOut() != null) {
             executeExecFlow(graph, ctx, targetId, result.nextExecOut());
         }
+    }
+
+    private void finishPauseFailure(com.modulo.blueprint.execution.WorkflowRunService.Lease lease,java.util.UUID step,Exception failure,long started) {
+        boolean cancelled=failure instanceof com.modulo.blueprint.execution.WorkflowCancelledException;
+        String code=cancelled?null:failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
+        workflowRuns.finishStep(lease,step,cancelled?"CANCELLED":"FAILED",Map.of(),code,elapsed(started));
     }
 
     /** Collect values for all data edges flowing INTO the given node. */
@@ -386,7 +403,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * Capability checks (#275): if the node declares a required capability and the blueprint does
      * not have a grant for it, execution is skipped (empty outputs, flow continues via 'then').
      */
-    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId) {
+    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
         Map<String, Object> outputs = new HashMap<>();
 
         // Enforce capability grant before running any action node.
@@ -626,6 +643,21 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 outputs.put("status", brief.status());
                 outputs.put("itemCount", String.valueOf(brief.itemCount()));
                 return new NodeResult(outputs, "then");
+            }
+
+            case "action.approval.request": {
+                var trace=com.modulo.observability.ExecutionTraceContext.current();
+                var request=approvals.request(lease,trace.stepId(),node.getId(),node.getConfig()==null?Map.of():node.getConfig(),inputs);
+                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
+            }
+            case "logic.approval.wait": {
+                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
+                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
+            }
+            case "logic.approval.result": {
+                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
+                outputs.putAll(approvals.result(lease,request));
+                return new NodeResult(outputs,outputs.get("outcome").toString().toLowerCase(java.util.Locale.ROOT));
             }
 
             case "logic.wait": {

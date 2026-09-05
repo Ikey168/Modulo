@@ -50,6 +50,8 @@ public class TracePolicy {
     return bounded;
   }
 
+  public record SafeReference(long owner,String kind,String id) {}
+
   public String summarize(long owner, Map<String, ?> values, boolean referencesAllowed) {
     if (values == null) return "{}";
     Map<String, Integer> counts = new TreeMap<>();
@@ -70,6 +72,8 @@ public class TracePolicy {
                               ? "collection"
                               : value instanceof Map<?, ?> ? "object" : "reference";
       counts.merge(type, 1, Integer::sum);
+      if(referencesAllowed && value instanceof SafeReference reference && reference.owner()==owner && Set.of("approval-request","approval-decision").contains(reference.kind()) && references.size()<16)
+        references.add(Map.of("kind",reference.kind(),"id",UUID.fromString(reference.id()).toString()));
       if (referencesAllowed
           && value instanceof Note note
           && note.getId() != null

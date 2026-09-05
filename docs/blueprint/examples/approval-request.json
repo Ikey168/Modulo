@@ -1,0 +1,90 @@
+{
+  "irVersion": 1,
+  "metadata": {
+    "name": "Human approval sample",
+    "description": "Replace the reviewer ID, then connect business actions to the result branches.",
+    "createdAt": "2026-09-05T00:00:00.000Z",
+    "updatedAt": "2026-09-05T00:00:00.000Z"
+  },
+  "nodes": [
+    {
+      "id": "schedule",
+      "type": "trigger.schedule",
+      "nodeVersion": 1,
+      "config": {
+        "cron": "0 0 9 * * MON",
+        "zone": "UTC"
+      }
+    },
+    {
+      "id": "request",
+      "type": "action.approval.request",
+      "nodeVersion": 1,
+      "config": {
+        "approverUserId": "2",
+        "expirySeconds": 86400,
+        "message": "Review this scheduled workflow request."
+      }
+    },
+    {
+      "id": "wait",
+      "type": "logic.approval.wait",
+      "nodeVersion": 1
+    },
+    {
+      "id": "result",
+      "type": "logic.approval.result",
+      "nodeVersion": 1
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "kind": "exec",
+      "fromNode": "schedule",
+      "fromPin": "then",
+      "toNode": "request",
+      "toPin": "in"
+    },
+    {
+      "id": "edge-2",
+      "kind": "exec",
+      "fromNode": "request",
+      "fromPin": "then",
+      "toNode": "wait",
+      "toPin": "in"
+    },
+    {
+      "id": "edge-3",
+      "kind": "exec",
+      "fromNode": "wait",
+      "fromPin": "then",
+      "toNode": "result",
+      "toPin": "in"
+    },
+    {
+      "id": "edge-4",
+      "kind": "data",
+      "fromNode": "schedule",
+      "fromPin": "firedAt",
+      "toNode": "request",
+      "toPin": "context"
+    },
+    {
+      "id": "edge-5",
+      "kind": "data",
+      "fromNode": "request",
+      "fromPin": "request",
+      "toNode": "wait",
+      "toPin": "request"
+    },
+    {
+      "id": "edge-6",
+      "kind": "data",
+      "fromNode": "wait",
+      "fromPin": "request",
+      "toNode": "result",
+      "toPin": "request"
+    }
+  ]
+}

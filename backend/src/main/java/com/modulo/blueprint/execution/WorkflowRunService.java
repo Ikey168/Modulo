@@ -325,6 +325,7 @@ public class WorkflowRunService {
           if (original.isEmpty())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "RUN_NOT_RETRYABLE");
           var row = original.get(0);
+          if(sequence!=0 && jdbc.queryForObject("SELECT count(*) FROM approval_requests WHERE run_ref=?",Long.class,parent)>0) throw new ResponseStatusException(HttpStatus.CONFLICT,"APPROVAL_REISSUE_REQUIRED");
           String key = "retry:" + parent + ":" + requestId;
           var previous =
               jdbc.queryForList(

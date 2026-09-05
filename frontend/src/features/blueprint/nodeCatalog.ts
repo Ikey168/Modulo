@@ -102,6 +102,24 @@ export const CORE_NODES: NodeDescriptor[] = [
     capability: 'wasm:execute',
   },
   {
+    type: 'action.approval.request', version: 1, category: 'action', title: 'Request Approval',
+    description: 'Request a decision from a different, configured reviewer. Connect its request to Wait for Approval.',
+    execIn: true, execOut: ['then'], inputs: [{id:'context',name:'Context',type:DataTypes.Any}],
+    outputs: [{id:'request',name:'Approval request',type:DataTypes.ApprovalRequest}], capability: 'approval:request',
+  },
+  {
+    type: 'logic.approval.wait', version: 1, category: 'logic', title: 'Wait for Approval',
+    description: 'Pause durably until this request is decided or expires.',
+    execIn: true, execOut: ['then'], inputs: [{id:'request',name:'Approval request',type:DataTypes.ApprovalRequest}],
+    outputs: [{id:'request',name:'Approval request',type:DataTypes.ApprovalRequest}],
+  },
+  {
+    type: 'logic.approval.result', version: 1, category: 'logic', title: 'Approval Result',
+    description: 'Branch on an authorized approval, rejection, or expiry from this run.',
+    execIn: true, execOut: ['approved','rejected','expired'], inputs: [{id:'request',name:'Approval request',type:DataTypes.ApprovalRequest}],
+    outputs: [{id:'decision',name:'Decision reference',type:DataTypes.ApprovalDecision},{id:'approved',name:'Approved',type:DataTypes.Boolean},{id:'outcome',name:'Outcome',type:DataTypes.String}],
+  },
+  {
     type: 'logic.wait', version: 1, category: 'logic', title: 'Wait',
     description: 'Pause durably for 1–86400 seconds, then resume at the next step.',
     execIn: true, execOut: ['then'], inputs: [], outputs: [],

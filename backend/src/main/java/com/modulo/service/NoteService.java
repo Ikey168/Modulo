@@ -57,6 +57,14 @@ public class NoteService {
         }
     }
     
+    /** Hold the owned evidence row stable while an approval decision commits. */
+    public Optional<Note> findByIdForApproval(Long id) {
+        return entityManager.createQuery("SELECT n FROM Note n WHERE n.id=:id AND n.userId=:owner", Note.class)
+            .setParameter("id",id).setParameter("owner",users.requireUserId())
+            .setLockMode(javax.persistence.LockModeType.PESSIMISTIC_READ)
+            .getResultStream().findFirst();
+    }
+
     /**
      * Save note (create or update)
      */
