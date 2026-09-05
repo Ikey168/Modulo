@@ -1,0 +1,179 @@
+{
+  "manifestVersion": 2,
+  "id": "org.modulo.knowledge-base",
+  "version": "1.0.0",
+  "name": "Knowledge Base",
+  "minIrVersion": 1,
+  "minCatalogVersion": "1.0.0",
+  "contributes": {},
+  "capabilities": [
+    "dashboard:configure",
+    "notes:write",
+    "properties:schema",
+    "queries:write",
+    "templates:write",
+    "workspace:configure"
+  ],
+  "policies": {
+    "upgrade": "preserve-user-content",
+    "removal": "preserve-user-content",
+    "demoData": "opt-in"
+  },
+  "resources": [
+    {
+      "id": "record-schema",
+      "kind": "propertySchema",
+      "title": "Record properties",
+      "spec": {
+        "fields": [
+          {
+            "id": "status",
+            "title": "Status",
+            "type": "select",
+            "options": [
+              "Open",
+              "In review",
+              "Closed"
+            ]
+          },
+          {
+            "id": "owner",
+            "title": "Owner",
+            "type": "text"
+          }
+        ]
+      },
+      "requires": [],
+      "capabilities": [
+        "properties:schema"
+      ]
+    },
+    {
+      "id": "record-template",
+      "kind": "template",
+      "title": "Record template",
+      "spec": {
+        "title": "New record",
+        "markdown": "# Record\n\n## Evidence\n",
+        "schemaRef": "record-schema"
+      },
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ]
+    },
+    {
+      "id": "open-records",
+      "kind": "savedQuery",
+      "title": "Open records",
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "status",
+            "operator": "eq",
+            "value": "Open"
+          }
+        ]
+      },
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ]
+    },
+    {
+      "id": "records-table",
+      "kind": "view",
+      "title": "Records",
+      "spec": {
+        "queryRef": "open-records",
+        "layout": "table"
+      },
+      "requires": [
+        "open-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "records-board",
+      "kind": "view",
+      "title": "Status board",
+      "spec": {
+        "queryRef": "open-records",
+        "layout": "board",
+        "groupBy": "status"
+      },
+      "requires": [
+        "open-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "overview",
+      "kind": "dashboard",
+      "title": "Overview",
+      "spec": {
+        "viewRefs": [
+          "records-table",
+          "records-board"
+        ]
+      },
+      "requires": [
+        "records-table",
+        "records-board"
+      ],
+      "capabilities": [
+        "dashboard:configure"
+      ]
+    },
+    {
+      "id": "workspace",
+      "kind": "workspaceMode",
+      "title": "Knowledge Base",
+      "spec": {
+        "viewRefs": [
+          "records-table",
+          "records-board"
+        ],
+        "dashboardRef": "overview"
+      },
+      "requires": [
+        "records-table",
+        "records-board",
+        "overview"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "demo",
+      "kind": "demoData",
+      "title": "Optional demo records",
+      "spec": {
+        "templateRef": "record-template",
+        "notes": [
+          {
+            "id": "sample",
+            "title": "Example knowledge record",
+            "markdown": "Demo content. Replace with your own evidence."
+          }
+        ]
+      },
+      "requires": [
+        "record-template"
+      ],
+      "capabilities": [
+        "notes:write"
+      ]
+    }
+  ]
+}

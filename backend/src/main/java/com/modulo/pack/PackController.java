@@ -23,6 +23,10 @@ public class PackController {
     @Autowired private PackIpfsService packIpfsService;
     @Autowired private PackProvenanceService packProvenanceService;
 
+    @PostMapping("/validate")
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    public PackManifestValidator.Validation validate(@RequestBody PackManifest manifest) {return PackManifestValidator.validate(manifest);}
+
     /** POST /api/packs/install — install or upgrade a pack from its manifest JSON. */
     @PostMapping("/install")
     public ResponseEntity<Map<String, Object>> install(@RequestBody PackManifest manifest) {
