@@ -171,10 +171,11 @@ public class BlueprintController {
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteBlueprint(@PathVariable String name) {
         try {
-            if (!blueprintRepository.delete(name)) {
+            var existing=blueprintRepository.findByName(name);
+            if (existing.isEmpty() || !blueprintRepository.delete(name)) {
                 return ResponseEntity.notFound().build();
             }
-            interpreterService.unregisterBlueprint(name);
+            interpreterService.unregisterBlueprint(Long.toString(existing.get().getId()));
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             logger.error("Error deleting blueprint: {}", LogSanitizer.sanitize(name), e);

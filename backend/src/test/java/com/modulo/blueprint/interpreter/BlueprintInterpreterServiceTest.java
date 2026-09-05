@@ -43,6 +43,7 @@ class BlueprintInterpreterServiceTest {
 
     @Mock private BlueprintRepository blueprintRepository;
     @Mock private BlueprintCapabilityService capabilityService;
+    @Mock private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
     @Mock private PluginEventBus eventBus;
     @Mock private NoteService noteService;
     @Mock private TagService tagService;
@@ -61,6 +62,9 @@ class BlueprintInterpreterServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(
             interpreter, "objectMapper", new ObjectMapper());
         interpreter.initScheduler();
+        when(workflowRuns.create(anyLong(),anyLong(),anyString(),anyString(),anyString(),anyString(),anyString()))
+            .thenAnswer(call -> new com.modulo.blueprint.execution.WorkflowRunService.Lease(java.util.UUID.randomUUID(),1L,true));
+        when(workflowRuns.asOwner(any(),any())).thenAnswer(call -> ((java.util.function.Supplier<?>)call.getArgument(1)).get());
 
         // Record note.created / note.updated subscriptions.
         doAnswer(inv -> {
@@ -82,9 +86,14 @@ class BlueprintInterpreterServiceTest {
         when(capabilityService.isGranted(anyLong(), any())).thenReturn(true);
     }
 
+    private Note owned(Note note) {
+        note.setUserId(1L); return note;
+    }
+
     private BlueprintEntry entry(Map<String, Object> ir) {
         BlueprintEntry e = new BlueprintEntry();
         e.setId(1L);
+        e.setOwnerId(1L);
         e.setName("test-bp");
         e.setIr(ir);
         return e;
@@ -109,12 +118,12 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(7L);
         note.setTitle("Hello");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // The action.note.create node executed (a new note was saved) ...
         verify(noteService, atLeastOnce()).save(any(Note.class));
         // ... and a success execution log was written.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("success"), anyString(), any(), any());
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("SUCCEEDED"),isNull());
     }
 
     /** AI summary feeds the tag value of action.tag.add. */
@@ -144,7 +153,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(7L);
         note.setContent("Some long content to summarize.");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // The summary "short-summary" should have become a tag.
         verify(tagService).createOrGetTag("short-summary");
@@ -173,10 +182,10 @@ class BlueprintInterpreterServiceTest {
 
         Note note = new Note();
         note.setId(7L);
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
-        // Loop guard fires → an error log is written.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("error"), contains("Loop guard"), any(), any());
+        // Loop guard has a structured terminal classification.
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("FAILED"),eq("LOOP_GUARD"));
         // noteService.save was called many times but bounded (≤ MAX_STEPS).
         verify(noteService, atMost(BlueprintExecutionContext.MAX_STEPS + 1)).save(any(Note.class));
     }
@@ -211,7 +220,7 @@ class BlueprintInterpreterServiceTest {
             Note note = new Note();
             note.setId(7L);
             note.setTitle("hello " + engine.getClass().getSimpleName());
-            noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+            noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
             // The script's output fed the tag node — uppercased by the engine under test.
             verify(tagService, atLeastOnce())
@@ -248,7 +257,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("wasm module output");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // titlecase.wasm title-cased the note title and fed it to the tag node.
         verify(tagService, atLeastOnce()).createOrGetTag("Wasm Module Output");
@@ -279,10 +288,10 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("x");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // The run completed (success log) despite the rejected module.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("success"), anyString(), any(), any());
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("SUCCEEDED"),isNull());
     }
 
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---
@@ -315,7 +324,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("anything");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         verify(noesisBriefService).fetchBrief(isNull(), isNull());
         org.mockito.ArgumentCaptor<Note> saved = org.mockito.ArgumentCaptor.forClass(Note.class);
