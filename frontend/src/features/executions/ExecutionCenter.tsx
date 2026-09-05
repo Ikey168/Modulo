@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { WorkflowAlerts, WorkflowPolicy } from './WorkflowOperations';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cancelRun, retryRun, editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
 
@@ -41,6 +42,7 @@ export function ExecutionCenter() {
   }
   return <main className="flex-1 overflow-y-auto p-5 md:p-8">
     <h1 className="mb-5 text-2xl font-semibold">Execution Center</h1>
+    {!selected && <WorkflowAlerts />}
     {selected ? <button className="mb-4 underline" onClick={() => openRun()}>Back to runs</button> : <form className="mb-6 flex flex-wrap gap-3" onSubmit={event => event.preventDefault()}>
       <label className="flex flex-col gap-1">Search<input className={inputClass} value={params.get('q') ?? ''} maxLength={128} onChange={event => filter('q',event.target.value)} placeholder="Blueprint, run ID, or error" /></label>
       <label className="flex flex-col gap-1">Status<select className={inputClass} value={params.get('state') ?? ''} onChange={event => filter('state',event.target.value)}><option value="">All statuses</option>{states.map(state => <option key={state}>{state}</option>)}</select></label>
@@ -65,6 +67,7 @@ export function ExecutionCenter() {
       <p className="my-2 break-all text-sm">Run {detail.run.id} · version {detail.run.blueprint_version} · attempt {detail.run.attempt}</p>
       {detail.run.blueprint_name && <Link className="underline" to={editorRunLink(detail.run)}>Open executed path in editor</Link>}
       <p className="my-2 text-sm">Automatic retry policy: at most {detail.run.max_auto_attempts ?? 1} attempts; initial backoff {detail.run.retry_backoff_seconds ?? 30} seconds. Potentially repeated side effects require manual review.</p>
+      {detail.run.blueprint_id != null && <WorkflowPolicy blueprint={detail.run.blueprint_id} />}
       {detail.run.parent_run_id && <p className="my-2"><button className="underline" onClick={() => openRun(detail.run.parent_run_id)}>View original run</button></p>}
       {['QUEUED','RUNNING','WAITING','RETRY_WAIT'].includes(detail.run.state) && <div className="my-4"><button className={inputClass} disabled={busy || Boolean(detail.run.cancel_requested_at)} onClick={() => recover('cancel')}>{detail.run.cancel_requested_at ? 'Cancellation requested' : 'Request cancellation'}</button><p className="mt-1 text-sm">The current action can finish. Cancellation stops execution at the next step boundary.</p></div>}
       {['FAILED','CANCELLED','DEAD_LETTER'].includes(detail.run.state) && <fieldset className="my-4 space-y-3 border border-border p-4" disabled={busy}>

@@ -56,6 +56,8 @@ class WorkflowRunServiceTest {
                   java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V9__Workflow_recovery.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V10__Durable_workflow_scheduling.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+      c.createStatement().execute("CREATE TABLE notifications(id BIGSERIAL PRIMARY KEY,user_id TEXT,type TEXT,message TEXT,is_read BOOLEAN,created_at TIMESTAMP)");
+      c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V11__Workflow_operations.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute("ALTER TABLE workflow_steps ADD COLUMN duration_ms BIGINT CHECK(duration_ms>=0)");
     }
   }
@@ -274,6 +276,59 @@ class WorkflowRunServiceTest {
     var replay=runs.createRetry(dead,1,UUID.randomUUID(),0,false);
     assertEquals(dead,jdbc.queryForObject("SELECT parent_run_id FROM workflow_runs WHERE id=?",UUID.class,replay.id()));
     assertEquals(3,jdbc.queryForObject("SELECT attempt FROM workflow_runs WHERE id=?",Integer.class,replay.id()));
+  }
+
+  @Test
+  void operationAlertsAreOwnedDeduplicatedAndRoutedToInbox() {
+    var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+    var operations=new WorkflowOperationsService(jdbc,new DataSourceTransactionManager(source),registry);
+    long id=blueprint("alerted").getId();
+    operations.policy(1,id,new WorkflowOperationsService.Policy(7,24,2,15,"INBOX"));
+    for(int i=0;i<3;i++) {var lease=create(id,"fail"+i);runs.begin(lease);runs.transition(lease,"RUNNING","FAILED","NODE_FAILURE");}
+    assertEquals(1,operations.evaluateAlerts());assertEquals(0,operations.evaluateAlerts());
+    assertEquals(1L,jdbc.queryForObject("SELECT count(*) FROM notifications WHERE user_id='1'",Long.class));
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->operations.policy(2,id,new WorkflowOperationsService.Policy(7,24,1,15,"INBOX")));
+    operations.refreshMetrics();assertEquals(3.0,registry.get("modulo.workflow.runs").tag("state","FAILED").gauge().value());
+    jdbc.update("UPDATE notifications SET is_read=true WHERE user_id='1'");operations.refreshMetrics();assertEquals(0.0,registry.get("modulo.workflow.alerts.unread").gauge().value());
+    when(owner.requireUserId()).thenReturn(2L);
+    assertThrows(org.springframework.web.server.ResponseStatusException.class,()->new WorkflowOperationsController(operations,owner,jdbc).read(jdbc.queryForObject("SELECT id FROM workflow_alerts",UUID.class)));
+    assertTrue(new WorkflowOperationsController(operations,owner,jdbc).alerts().isEmpty());
+  }
+
+  @Test
+  void retentionPurgesTerminalPayloadsAndKeepsRetryReferencesAndActiveCheckpoints() {
+    var operations=new WorkflowOperationsService(jdbc,new DataSourceTransactionManager(source),new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    var checkpoints=new WorkflowCheckpointService(jdbc,new ObjectMapper(),mock(com.modulo.service.NoteService.class));
+    long id=blueprint("retained").getId();operations.policy(1,id,new WorkflowOperationsService.Policy(7,1,2,15,"NONE"));
+    var parent=create(id,"parent");runs.begin(parent);checkpoints.save(parent,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("payload","private"));runs.transition(parent,"RUNNING","FAILED","NODE_FAILURE");
+    var child=runs.createRetry(parent.id(),1,UUID.randomUUID(),0,false);runs.begin(child);checkpoints.save(child,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("payload","active"));
+    jdbc.update("UPDATE workflow_runs SET created_at=CURRENT_TIMESTAMP-INTERVAL '10 days',finished_at=CURRENT_TIMESTAMP-INTERVAL '10 days' WHERE id=?",parent.id());
+    var recent=create(id,"recent");runs.begin(recent);checkpoints.save(recent,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("payload","expired"));runs.transition(recent,"RUNNING","SUCCEEDED",null);jdbc.update("UPDATE workflow_runs SET finished_at=CURRENT_TIMESTAMP-INTERVAL '2 days' WHERE id=?",recent.id());
+    var result=operations.prune();assertEquals(2,result.get("payloads"));assertEquals(1,result.get("runs"));
+    assertNull(jdbc.queryForObject("SELECT parent_run_id FROM workflow_runs WHERE id=?",UUID.class,child.id()));
+    assertEquals(parent.id(),jdbc.queryForObject("SELECT parent_run_ref FROM workflow_runs WHERE id=?",UUID.class,child.id()));
+    assertEquals(1L,jdbc.queryForObject("SELECT count(*) FROM workflow_checkpoints WHERE run_id=?",Long.class,child.id()));
+    assertEquals(1L,jdbc.queryForObject("SELECT count(*) FROM workflow_runs WHERE id=?",Long.class,recent.id()));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void operationsLoadRemainsBoundedAtTenThousandTraces() {
+    long id=blueprint("load").getId();
+    jdbc.update("INSERT INTO workflow_runs(id,owner_id,blueprint_id,blueprint_version,blueprint_digest,trigger_node_id,trigger_type,trigger_key,state,started_at,finished_at) SELECT gen_random_uuid(),1,?,'1',repeat('a',64),'trigger','trigger.schedule','event-'||g,'SUCCEEDED',CURRENT_TIMESTAMP-INTERVAL '1 second',CURRENT_TIMESTAMP FROM generate_series(1,10000) g",id);
+    jdbc.update("INSERT INTO workflow_steps(id,run_id,sequence,node_id,node_type,state,finished_at,duration_ms) SELECT gen_random_uuid(),id,1,'node-'||id,'logic.branch','SUCCEEDED',CURRENT_TIMESTAMP,1000 FROM workflow_runs");
+    jdbc.update("INSERT INTO workflow_schedules(blueprint_id,owner_id,node_id,cron,zone,next_fire) SELECT ?,1,'timer-'||g,'* * * * * *','UTC',CURRENT_TIMESTAMP-INTERVAL '30 seconds' FROM generate_series(1,100) g",id);
+    var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();var operations=new WorkflowOperationsService(jdbc,new DataSourceTransactionManager(source),registry);
+    var provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+    var scheduler=new WorkflowScheduler(jdbc,source,new DataSourceTransactionManager(source),new ObjectMapper(),provider);
+    long started=System.nanoTime();var now=java.time.Instant.now();scheduler.enqueueDue(now);scheduler.enqueueDue(now);operations.refreshMetrics();
+    long millis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started);
+    assertEquals(23,registry.getMeters().size());
+    assertTrue(registry.getMeters().stream().flatMap(meter->meter.getId().getTags().stream()).allMatch(tag->Set.of("state","quantile").contains(tag.getKey())));
+    assertEquals(10000.0,registry.get("modulo.workflow.runs").tag("state","SUCCEEDED").gauge().value());
+    assertEquals(100.0,registry.get("modulo.workflow.queue.depth").gauge().value());
+    assertTrue(millis<30000,"10k-trace metrics and 100-schedule enqueue budget exceeded");
+    System.out.println("WORKFLOW_LOAD traces=10000 schedules=100 elapsed_ms="+millis+" meters="+registry.getMeters().size());
   }
 
   @Test

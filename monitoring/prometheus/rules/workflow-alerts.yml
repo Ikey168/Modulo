@@ -1,0 +1,35 @@
+groups:
+  - name: workflow-health
+    rules:
+      - alert: WorkflowFailureBurst
+        expr: max by (state) (modulo_workflow_run_rate{state=~"FAILED|DEAD_LETTER"}) > 0.01
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Workflow failures exceed three per five-minute window
+          description: Inspect the Execution Center failure filter and the recorded error class.
+      - alert: WorkflowDeadLetters
+        expr: max(modulo_workflow_runs{state="DEAD_LETTER"}) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Workflow work requires manual recovery
+          description: Review side effects before replaying a dead-letter checkpoint.
+      - alert: WorkflowScheduleLag
+        expr: max(modulo_workflow_schedule_lag_seconds) > 60
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Workflow schedules are more than a minute late
+          description: Check dispatcher health, database connectivity and long-running actions.
+      - alert: WorkflowQueueBacklog
+        expr: max(modulo_workflow_queue_depth) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Workflow delivery backlog persists
+          description: Review hot schedules and dispatcher capacity before increasing traffic.

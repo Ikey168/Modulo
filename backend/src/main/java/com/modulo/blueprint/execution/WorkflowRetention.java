@@ -7,15 +7,15 @@ package com.modulo.blueprint.execution;
     havingValue = "true",
     matchIfMissing = true)
 public class WorkflowRetention {
-  private final WorkflowRunService runs;
+  private final WorkflowOperationsService operations;
 
-  public WorkflowRetention(WorkflowRunService runs) {
-    this.runs = runs;
+  public WorkflowRetention(WorkflowOperationsService operations) {
+    this.operations = operations;
   }
 
   @org.springframework.scheduling.annotation.Scheduled(
       fixedDelayString = "${modulo.workflow.retention.interval-ms:3600000}")
   public void prune() {
-    runs.pruneExpired();
+    operations.prune();
   }
 }

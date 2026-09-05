@@ -1,0 +1,19 @@
+name: Workflow observability rules
+on:
+  pull_request:
+    paths:
+      - 'monitoring/prometheus/rules/workflow-alerts.yml'
+      - 'monitoring/prometheus/tests/workflow-alerts.test.yml'
+      - '.github/workflows/workflow-observability.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'monitoring/prometheus/rules/workflow-alerts.yml'
+      - 'monitoring/prometheus/tests/workflow-alerts.test.yml'
+jobs:
+  alert-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate rules and injected failures
+        run: docker run --rm -v "$PWD/monitoring/prometheus:/prom:ro" -w /prom/tests --entrypoint /bin/promtool prom/prometheus:v2.54.1 test rules workflow-alerts.test.yml
