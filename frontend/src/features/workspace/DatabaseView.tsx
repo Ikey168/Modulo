@@ -1,9 +1,10 @@
 // Renders a ```database fence as an interactive, Notion-style embedded database.
 // Two views over the same rows: a typed table and a board grouped by a select
 // column. All editing goes through the useDatabase hook, which persists to
-// localStorage (see database.ts) — the note markdown only carries the id/title.
+// synchronized plugin state (see database.ts) — the note markdown only carries the id/title.
 
 import { useState, type DragEvent } from 'react';
+import { PluginStateNotice } from './plugins/PluginStateNotice';
 import { Check, ChevronDown, GripVertical, LayoutGrid, Plus, Table as TableIcon, Trash2, X } from 'lucide-react';
 import {
   Button,
@@ -68,11 +69,19 @@ const CELL_INPUT =
 
 export function DatabaseView({ source }: { source: string }) {
   const api = useDatabase(source);
-  const [view, setView] = useState<'table' | 'board'>('table');
+  const view = api.db.view ?? 'table';
+  const setView = api.setView;
   const { db } = api;
 
   return (
     <div className="my-5 overflow-hidden rounded-lg border border-border bg-surface">
+      <PluginStateNotice {...api.sync} />
+      {api.sync.legacy && <div className="flex flex-wrap items-center gap-3 border-b px-3 py-2 text-sm">
+        <span>Embedded databases are saved in this browser.</span>
+        <Button size="sm" variant="outline" disabled={!api.sync.ready} onClick={() => void api.sync.importLegacy()}>Import into this account</Button>
+        <Button size="sm" variant="ghost" onClick={api.sync.exportRecovery}>Export recovery data</Button>
+      </div>}
+      {api.sync.error && !api.sync.legacy && <Button variant="ghost" onClick={api.sync.exportRecovery}>Export recovery data</Button>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="truncate text-[13px] font-semibold text-foreground">{db.title}</span>

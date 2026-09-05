@@ -5,7 +5,7 @@ import { importLegacyState } from '../../../services/legacyStateImport';
 
 /** A schema-checked record with optimistic edits and explicit browser-data claiming. */
 export function useDurableRecord<T>(pluginId: string, key: string, schemaId: string,
-  initial: T, validate: (value: unknown) => T, legacyKey?: string) {
+  initial: T, validate: (value: unknown) => T, legacyKey?: string, legacyImporter?: (client: PluginStateClient) => Promise<void>) {
   const plugins = usePlugins();
   const [client, setClient] = useState<PluginStateClient>();
   const [value, setValue] = useState(initial);
@@ -80,7 +80,8 @@ export function useDurableRecord<T>(pluginId: string, key: string, schemaId: str
     importLegacy: () => action(async () => {
       if (!active || !legacyKey) throw new Error('Sign in to import browser data.');
       const token = generation.current;
-      await importLegacyState(active, localStorage, legacyKey, key, schemaId, raw => JSON.parse(JSON.stringify(validate(raw))) as StateJson);
+      if (legacyImporter) await legacyImporter(active);
+      else await importLegacyState(active, localStorage, legacyKey, key, schemaId, raw => JSON.parse(JSON.stringify(validate(raw))) as StateJson);
       if (token === generation.current) setLegacy(localStorage.getItem(legacyKey) !== null);
     }),
     exportRecovery: () => {
