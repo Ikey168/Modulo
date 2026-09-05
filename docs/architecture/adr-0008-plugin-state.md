@@ -72,13 +72,14 @@ from a plugin callback when constructing an authenticated host request.
 - `GET /{key}` returns a record and ETag containing its numeric version; absent or
   deleted returns 404. A conflict response may include an authorized tombstone.
 - `GET ?cursor=...&limit=100` returns a stable key-ordered page, maximum 200;
-  cursors are opaque and bound to owner, workspace, namespace and filters.
+  the cursor is the last returned key, and every page repeats owner, workspace,
+  namespace and filter predicates; possessing a cursor never grants access.
 - `PUT /{key}` includes `expectedVersion`, schema metadata, and `value`.
   `expectedVersion: 0` is create-only; updates require the last observed version.
 - `DELETE /{key}?expectedVersion=7` creates a tombstone at version 8. Repeated
   requests with the old version conflict; callers reconcile a lost response by
   reading changes rather than blindly deleting a subsequently recreated record.
-- `GET /changes?cursor=...` includes tombstones for incremental refresh. The
+- `GET ?changesAfter=...` includes tombstones for incremental refresh. The
   implementation must use a commit-ordered change sequence or snapshot protocol;
   wall-clock timestamps alone are not safe cursors under concurrent transactions.
 - The public plugin client exposes typed `get/list/set/delete/watch`, exposes
