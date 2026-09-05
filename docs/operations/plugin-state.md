@@ -18,8 +18,8 @@ this service does not automatically adopt existing single-user records.
 versions (including tombstones), tenant predicates, per-owner write serialization,
 record/byte quotas and atomic metadata-only audit rows. V3 adds its tables. Apply
 it using the existing PostgreSQL migration workflow before enabling consumers.
-The baseline/Flyway integration was already present as local, uncommitted work;
-it is a delivery dependency and must be published with its own validation.
+The baseline/Flyway integration is committed separately in 098b4d2c and validated
+by the migration tests.
 
 The host REST API is:
 
@@ -57,7 +57,7 @@ backoff. A save is acknowledged locally only after persistence succeeds. Pending
 work and conflict bases survive restart. Each replica partitions its cache by
 origin, issuer, subject, workspace, namespace and replica ID. A replica ID must be
 stable across that replica's recovery and distinct between concurrent tabs.
-The host must call `close()` on logout/account change. Transport also checks the
+The workspace host calls `close()` on logout/account change. Transport also checks the
 current subject and issuer before sending each request; it cannot replay an old
 queue with a new user's token. A pending queue is never silently reassigned.
 
@@ -75,16 +75,17 @@ The host must provide a recovery path for a replica whose tab was abandoned.
   consent; register/validate plugin document schemas; dispatch the durable audit
   outbox to plugin events with retention/expiry behavior. The host API currently
   authorizes user-owned state; it is not an EXTERNAL plugin callback API.
-- #418: connect the client to the public plugin context and real authentication
-  lifecycle; add remote list/change ingestion, host-driven reconnect refresh,
-  shared hooks/status UI, storage-generation handling after restore, and abandoned
-  replica recovery. Cached `list()` currently lists known records only.
-- #419–422: migrate existing consumer stores using explicit legacy-data claiming,
-  stable IDs and create-only imports. No existing localStorage key has been removed.
+- Host recovery after a database restore and discovery of queues belonging to abandoned
+  tabs remain follow-up hardening. Open tabs hold exclusive Web Locks; cloned tabs
+  receive a separate replica. Browser session storage retains the replica on reload.
+- #419, #421–422: migrate existing consumer stores using explicit legacy-data claiming,
+  stable IDs and create-only imports.
+- #420: Canvas uses one schema-versioned record per board, shared sync controls and
+  explicit legacy import. Unknown schemas retain their raw cache for recovery export.
+  Existing note navigation is preserved; full offline browser acceptance remains in #423.
 - #423: run the full browser/Electron two-client, offline, backup and tenant suite.
 
-Do not interpret this storage foundation as completed synchronization of Canvas,
-Database, Todos, business records or plugin installations.
+Database, Todos, business records and plugin installations still use their existing stores.
 
 ## Validation
 
@@ -115,3 +116,17 @@ loaded, and the complete frontend `npm run typecheck` passes. The local JDK is
 25; JaCoCo 0.8.11 reports unsupported JDK class instrumentation during the
 controller regression run, so these results establish assertions, not complete
 coverage measurement. Use the project's Java 17 toolchain for coverage gates.
+
+## Frontend host integration
+
+The public plugin context exposes `state()` bound to the installed, enabled plugin's
+namespace. `usePluginState` provides React subscriptions and `PluginStateNotice`
+provides retry and conflict actions. The host discovers remote records on open,
+focus, reconnect and every 30 seconds. Token renewal retains the partition; account
+changes close clients and abort requests before exposing the next account.
+
+The focused frontend suite has 62 passing tests covering the client, host, Canvas
+migration and existing Canvas/runtime behavior. Canvas import retains the legacy
+source until every board and migration marker synchronize. Conflicting server data
+is never overwritten by import. Pointer mutations persist locally and debounce
+network writes. TypeScript checks pass for the integrated workspace.

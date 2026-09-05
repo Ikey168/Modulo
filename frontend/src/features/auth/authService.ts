@@ -1,5 +1,6 @@
 import { UserManager, User, WebStorageStateStore } from 'oidc-client-ts';
 import { oidcConfig, ROLE_MAPPINGS, UserRole } from './oidcConfig';
+import type { StateSession } from '../../services/pluginStateTransport';
 
 export interface AuthUser {
   id: string;
@@ -16,6 +17,21 @@ class AuthService {
   private userManager: UserManager;
   private user: User | null = null;
   private refreshTimer: NodeJS.Timeout | null = null;
+  private readonly sessionListeners = new Set<() => void>();
+
+  stateSession(): StateSession | null {
+    return this.user && !this.user.expired ? { issuer: oidcConfig.authority,
+      subject: this.user.profile.sub, accessToken: this.user.access_token } : null;
+  }
+
+  subscribeSession(listener: () => void): () => void {
+    this.sessionListeners.add(listener);
+    return () => { this.sessionListeners.delete(listener); };
+  }
+
+  private notifySession(): void {
+    for (const listener of this.sessionListeners) { try { listener(); } catch { /* observer isolation */ } }
+  }
 
   constructor() {
     // Use sessionStorage for state store (more secure than localStorage)
@@ -33,12 +49,14 @@ class AuthService {
   private setupEventHandlers() {
     this.userManager.events.addUserLoaded((user) => {
       this.user = user;
+      this.notifySession();
       this.scheduleTokenRefresh(user);
       console.log('User loaded:', user.profile);
     });
 
     this.userManager.events.addUserUnloaded(() => {
       this.user = null;
+      this.notifySession();
       this.clearRefreshTimer();
       console.log('User unloaded');
     });
@@ -51,6 +69,7 @@ class AuthService {
     this.userManager.events.addAccessTokenExpired(() => {
       console.log('Access token expired');
       this.user = null;
+      this.notifySession();
       this.clearRefreshTimer();
     });
 
@@ -64,6 +83,7 @@ class AuthService {
     try {
       // Check if user is already authenticated
       this.user = await this.userManager.getUser();
+      this.notifySession();
       if (this.user && !this.user.expired) {
         this.scheduleTokenRefresh(this.user);
       }
@@ -105,6 +125,7 @@ class AuthService {
     try {
       const user = await this.userManager.signinRedirectCallback();
       this.user = user;
+      this.notifySession();
       return this.mapUserToAuthUser(user);
     } catch (error) {
       console.error('Callback handling failed:', error);
@@ -116,6 +137,7 @@ class AuthService {
     try {
       const user = await this.userManager.signinSilent();
       this.user = user;
+      this.notifySession();
       if (user) {
         this.scheduleTokenRefresh(user);
       }
@@ -126,6 +148,8 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
+    this.user = null;
+    this.notifySession();
     try {
       this.clearRefreshTimer();
       await this.userManager.signoutRedirect();

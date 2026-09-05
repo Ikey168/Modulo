@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { CoreLink, CoreNote } from '@modulo/core';
 import type { NodeDescriptor } from '../../blueprint/nodeModel';
 import type { WorkspaceData } from '../useCoreWorkspace';
+import type { PluginStateClient } from '../../../services/pluginStateClient';
 
 // ── Props passed to contributed surfaces ─────────────────────────────────────
 
@@ -105,6 +106,8 @@ export interface Contributions {
  *  registration is tracked so uninstalling disposes exactly this plugin's
  *  contributions with no residue. */
 export interface PluginContext {
+  /** Bound to this plugin's namespace and the current authenticated account. */
+  state: () => Promise<PluginStateClient>;
   addView: (v: ViewContribution) => void;
   addNotePanel: (p: NotePanelContribution) => void;
   addNoteFence: (f: NoteFenceContribution) => void;

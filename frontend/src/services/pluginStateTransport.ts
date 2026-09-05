@@ -22,15 +22,15 @@ export function createStateTransport(scope: StateScope,
   session: () => Promise<StateSession | null>, fetcher: typeof fetch = fetch): StateTransport {
   const base = `${scope.origin.replace(/\/$/, '')}/api/workspaces/${encodeURIComponent(scope.workspace)}`
     + `/plugin-state/${encodeURIComponent(scope.namespace)}`;
-  const request = async (key: string, method: string, signal: AbortSignal, body?: unknown,
-    expectedVersion?: number): Promise<StateRecord | undefined> => {
+  const request = async (key: string | undefined, method: string, signal: AbortSignal, body?: unknown,
+    expectedVersion?: number, cursor?: string): Promise<unknown> => {
     const current = await session();
     if (signal.aborted) throw new DOMException('State request aborted', 'AbortError');
     if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject || !current.accessToken) {
       throw new StateRequestError(401, 'STATE_SESSION_CHANGED');
     }
-    const url = `${base}/${encodeURIComponent(key)}`
-      + (expectedVersion === undefined ? '' : `?expectedVersion=${expectedVersion}`);
+    const url = key === undefined ? `${base}?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+      : `${base}/${encodeURIComponent(key)}` + (expectedVersion === undefined ? '' : `?expectedVersion=${expectedVersion}`);
     const response = await fetcher(url, { method, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json',
         Authorization: `Bearer ${current.accessToken}` }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -41,11 +41,13 @@ export function createStateTransport(scope: StateScope,
       };
       throw new StateRequestError(response.status, error.code ?? `STATE_HTTP_${response.status}`, error.current ?? undefined);
     }
-    return response.json() as Promise<StateRecord>;
+    return response.json();
   };
   return {
-    get: (key, signal) => request(key, 'GET', signal),
-    put: async (key, body, signal) => (await request(key, 'PUT', signal, body))!,
-    delete: async (key, version, signal) => (await request(key, 'DELETE', signal, undefined, version))!,
+    list: async (cursor, signal) => (await request(undefined, 'GET', signal, undefined, undefined, cursor)) as
+      { records: StateRecord[]; nextCursor?: string },
+    get: async (key, signal) => await request(key, 'GET', signal) as StateRecord | undefined,
+    put: async (key, body, signal) => await request(key, 'PUT', signal, body) as StateRecord,
+    delete: async (key, version, signal) => await request(key, 'DELETE', signal, undefined, version) as StateRecord,
   };
 }

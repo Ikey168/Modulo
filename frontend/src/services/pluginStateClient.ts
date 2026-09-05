@@ -44,6 +44,7 @@ export interface StatePersistence {
   save(partition: string, snapshot: StateSnapshot): Promise<void>;
 }
 export interface StateTransport {
+  list?(cursor: string | undefined, signal: AbortSignal): Promise<{ records: StateRecord[]; nextCursor?: string | null }>;
   get(key: string, signal: AbortSignal): Promise<StateRecord | undefined>;
   put(key: string, request: { expectedVersion: number; schemaId: string; schemaVersion: number; value: StateJson },
     signal: AbortSignal): Promise<StateRecord>;
@@ -56,6 +57,8 @@ export class StateRequestError extends Error {
 export type StateSyncStatus = 'idle' | 'syncing' | 'offline' | 'conflict' | 'error' | 'closed';
 export interface StateView {
   key: string;
+  schemaId?: string;
+  schemaVersion?: number;
   value?: StateJson;
   deleted: boolean;
   pending: boolean;
@@ -93,7 +96,7 @@ function validRecord(record: StateRecord | undefined, key: string): boolean {
   return record === undefined || (!!record && record.key === key && typeof record.schemaId === 'string'
     && Number.isSafeInteger(record.version) && record.version > 0
     && Number.isSafeInteger(record.schemaVersion) && record.schemaVersion > 0
-    && typeof record.deleted === 'boolean' && Object.hasOwn(record, 'value'));
+    && typeof record.deleted === 'boolean' && Object.prototype.hasOwnProperty.call(record, 'value'));
 }
 
 /** A single replica's durable queue. The host supplies authenticated transport and closes it on logout. */
@@ -104,6 +107,7 @@ export class PluginStateClient {
   private readonly abort = new AbortController();
   private writes: Promise<void> = Promise.resolve();
   private flushing?: Promise<void>;
+  private refreshing?: Promise<void>;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private failures = 0;
   private _status: StateSyncStatus = 'idle';
@@ -129,7 +133,7 @@ export class PluginStateClient {
           || !validRecord(entry.remote, entry.key)
           || (entry.pending && (!Number.isSafeInteger(entry.pending.sequence) || entry.pending.sequence < 1
             || entry.pending.sequence > stored.sequence || !validRecord(entry.pending.base, entry.key)
-            || !Object.hasOwn(entry.pending, 'value') || typeof entry.pending.deleted !== 'boolean'))
+            || !Object.prototype.hasOwnProperty.call(entry.pending, 'value') || typeof entry.pending.deleted !== 'boolean'))
           || (entry.conflict && (!validRecord(entry.conflict.base, entry.key)
             || !validRecord(entry.conflict.remote, entry.key))))
         || new Set(stored.entries.map(entry => entry.key)).size !== stored.entries.length) {
@@ -151,6 +155,7 @@ export class PluginStateClient {
     if (!entry) return undefined;
     const current = entry.pending ?? entry.remote;
     return copy({ key, value: current?.value, deleted: current?.deleted ?? true,
+      schemaId: current?.schemaId, schemaVersion: current?.schemaVersion,
       pending: !!entry.pending, conflict: entry.conflict });
   }
 
@@ -159,6 +164,12 @@ export class PluginStateClient {
     this.ensureOpen();
     return this.snapshot.entries.map(entry => this.get(entry.key)!).filter(entry => !entry.deleted);
   }
+
+  conflicts(): StateView[] {
+    this.ensureOpen(); return this.snapshot.entries.filter(entry => entry.conflict).map(entry => this.get(entry.key)!);
+  }
+
+  recoverySnapshot(): StateSnapshot { this.ensureOpen(); return copy(this.snapshot); }
 
   watch(listener: () => void): () => void {
     this.ensureOpen(); this.listeners.add(listener);
@@ -175,6 +186,20 @@ export class PluginStateClient {
       const entry = this.entry(snapshot, key);
       entry.pending = { sequence: ++snapshot.sequence, base: entry.pending ? entry.pending.base : entry.remote,
         value: copy(value), schemaId, schemaVersion, deleted: false };
+    });
+    this.scheduleSync();
+  }
+
+  async create(key: string, value: StateJson, schemaId: string, schemaVersion: number): Promise<void> {
+    if (!segment.test(key) || !schemaId || !Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
+      throw new Error('Invalid state record');
+    }
+    validateJson(value);
+    if (new TextEncoder().encode(JSON.stringify(value)).length > 1_048_576) throw new Error('State record is too large');
+    await this.change(snapshot => {
+      const entry = this.entry(snapshot, key);
+      if (entry.pending || entry.remote) throw new StateRequestError(409, 'STATE_ALREADY_EXISTS', entry.remote);
+      entry.pending = { sequence: ++snapshot.sequence, value: copy(value), schemaId, schemaVersion, deleted: false };
     });
     this.scheduleSync();
   }
@@ -202,6 +227,51 @@ export class PluginStateClient {
       // A refresh must not change the base of a pending local edit.
       entry.remote = remote;
     });
+  }
+
+  /** Discover server records without replacing pending edits or acknowledgements newer than this refresh. */
+  refreshAll(): Promise<void> {
+    this.ensureOpen();
+    if (!this.transport.list) return Promise.resolve();
+    if (!this.refreshing) this.refreshing = this.pull().finally(() => { this.refreshing = undefined; });
+    return this.refreshing;
+  }
+
+  private async pull(): Promise<void> {
+    const before = new Map(this.snapshot.entries.map(entry => [entry.key, entry.remote?.version]));
+    const records = new Map<string, StateRecord>();
+    let cursor: string | undefined;
+    const cursors = new Set<string>();
+    try {
+      do {
+        const page = await this.transport.list!(cursor, this.abort.signal);
+        this.ensureOpen();
+        if (!Array.isArray(page.records) || page.records.some(record => !validRecord(record, record.key))) {
+          throw new StateRequestError(502, 'STATE_INVALID_SERVER_RESPONSE');
+        }
+        for (const record of page.records) records.set(record.key, record);
+        cursor = page.nextCursor ?? undefined;
+        if (cursor && (cursors.has(cursor) || cursors.size >= 100)) {
+          throw new StateRequestError(502, 'STATE_INVALID_SERVER_CURSOR');
+        }
+        if (cursor) cursors.add(cursor);
+      } while (cursor);
+      await this.change(snapshot => {
+        for (const record of records.values()) {
+          const entry = this.entry(snapshot, record.key);
+          if (!entry.remote || entry.remote.version <= record.version) entry.remote = record;
+        }
+        for (const entry of snapshot.entries) {
+          if (!records.has(entry.key) && !entry.pending && entry.remote?.version === before.get(entry.key)) {
+            delete entry.remote;
+          }
+        }
+      });
+    } catch (error) {
+      if (!this.abort.signal.aborted) this.setStatus(error instanceof StateRequestError && error.status < 500 ? 'error' : 'offline',
+        error instanceof Error ? error.message : 'State refresh failed');
+      throw error;
+    }
   }
 
   async resolve(key: string, choice: 'remote' | 'local'): Promise<void> {

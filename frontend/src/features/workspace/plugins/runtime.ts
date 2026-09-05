@@ -24,6 +24,8 @@ import type {
   ViewContribution,
 } from './types';
 import { isRunnable } from './types';
+import type { PluginStateClient } from '../../../services/pluginStateClient';
+import type { WorkspaceStateHost } from '../../../services/workspaceStateHost';
 
 const STORE_KEY = 'modulo-plugins-installed';
 const LEGACY_KEY = 'modulo-plugins';
@@ -45,9 +47,17 @@ export class PluginRuntime {
   private readonly errors = new Map<string, string>();
   private readonly listeners = new Set<() => void>();
 
-  constructor(catalog: PluginManifest[]) {
+  constructor(catalog: PluginManifest[], private stateHost?: WorkspaceStateHost) {
     for (const m of catalog) this.catalog.set(m.id, m);
     this.restoreInstalled();
+  }
+
+  setStateHost(host: WorkspaceStateHost | undefined): void { this.stateHost = host; this.emit(); }
+
+  state(id: string): Promise<PluginStateClient> {
+    if (!this.isInstalled(id) || !this.isEnabled(id)) return Promise.reject(new Error('Plugin is not enabled'));
+    if (!this.stateHost) return Promise.reject(new Error('Workspace synchronization is unavailable'));
+    return this.stateHost.open(id);
   }
 
   // ── Subscription ───────────────────────────────────────────────────────────
@@ -176,6 +186,7 @@ export class PluginRuntime {
 
     const entry: ActiveEntry = { views: [], notePanels: [], noteFences: [], editorActions: [], blueprintNodes: [] };
     const ctx: PluginContext = {
+      state: () => this.state(id),
       addView: (v) => entry.views.push(v),
       addNotePanel: (p) => entry.notePanels.push(p),
       addNoteFence: (f) => entry.noteFences.push(f),
@@ -198,6 +209,7 @@ export class PluginRuntime {
   }
 
   private async deactivate(id: string): Promise<void> {
+    this.stateHost?.revoke(id);
     const entry = this.active.get(id);
     if (!entry) return;
     this.active.delete(id);
