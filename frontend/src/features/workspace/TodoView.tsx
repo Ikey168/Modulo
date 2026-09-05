@@ -1,8 +1,11 @@
+import { useOperationalCollection } from './useOperationalCollection';
+import { TODO_COLLECTION } from './operationalSchemas';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Todo view (#371): quick-add tasks with due date, priority and list; filter
 // by due window; group by list; link tasks to notes. A tab in the
 // Productivity hub. Persistence is client-side (backend adoption is the
 // documented follow-up — the record shape mirrors the tasks backend).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CircleCheckBig, ListTodo, Plus, Trash2 } from 'lucide-react';
 import { Button, Checkbox, cn, EmptyState, Input, useToast } from '@/ui';
 import type { WorkspaceViewProps } from './plugins/types';
@@ -12,10 +15,8 @@ import {
   isOverdue,
   listsOf,
   newTodoId,
-  readTodos,
   sortTodos,
   TODO_PRIORITIES,
-  writeTodos,
   type DueFilter,
   type TodoItem,
   type TodoPriority,
@@ -38,22 +39,24 @@ const FILTERS: Array<{ id: DueFilter; label: string }> = [
 
 export function TodoView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
-  const [todos, setTodos] = useState<TodoItem[]>(() => readTodos());
+  const synced = useOperationalCollection(TODO_COLLECTION);
+  const todos = synced.value; const setTodos = synced.set;
   const [filter, setFilter] = useState<DueFilter>('all');
   const [title, setTitle] = useState('');
   const [due, setDue] = useState('');
   const [priority, setPriority] = useState<TodoPriority>('MEDIUM');
   const [list, setList] = useState(DEFAULT_LIST);
   const [noteId, setNoteId] = useState('');
+  useEffect(() => { setTitle(''); setDue(''); setPriority('MEDIUM'); setList(DEFAULT_LIST); setNoteId(''); }, [synced.sessionKey]);
 
   const today = new Date().toISOString().slice(0, 10);
 
   const persist = (next: TodoItem[]) => {
     setTodos(next);
-    writeTodos(next);
   };
 
   const add = () => {
+    if (!synced.ready) return;
     if (!title.trim()) return;
     const linkedNote = noteId ? Number(noteId) : undefined;
     persist([
@@ -84,6 +87,7 @@ export function TodoView({ data, onOpenNote }: WorkspaceViewProps) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <OperationalStateNotice label="Tasks" {...synced} />
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold">Todo</h2>

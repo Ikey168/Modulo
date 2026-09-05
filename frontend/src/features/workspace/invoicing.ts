@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // Rechnung — German invoicing (#364). Pure module: fence parsing, VAT-mode
 // logic, §14 UStG field validation, sequential numbering, totals, and the
 // EN 16931 (ZUGFeRD/Factur-X CII) XML payload. Kept free of React so the tax

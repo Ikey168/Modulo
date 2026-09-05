@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // Engagement pipeline (#361) — pure helpers for the Kanban board. Engagements
 // are notes tagged `engagement/…`; their pipeline stage is a `stage/…` tag so
 // the stage is visible on the note itself, not hidden in board state. The

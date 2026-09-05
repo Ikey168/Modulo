@@ -1,3 +1,6 @@
+import { useOperationalCollection } from './useOperationalCollection';
+import { TIME_COLLECTION } from './operationalSchemas';
+import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Zeiterfassung view (#365): a running timer bound to an engagement, manual
 // entries, per-engagement billable totals, and the handoff that copies
 // unbilled entries as ```invoice line rows and marks them billed. A tab in
@@ -13,11 +16,9 @@ import {
   formatMinutes,
   markBilled,
   newEntryId,
-  readEntries,
   summarizeByEngagement,
   toInvoiceLines,
   unbilledFor,
-  writeEntries,
   type TimeEntry,
 } from './timeTracking';
 
@@ -27,10 +28,10 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
   const { toast } = useToast();
   const engagements = useMemo(() => engagementsIn(data.notes), [data.notes]);
 
-  const [entries, setEntries] = useState<TimeEntry[]>(() => readEntries());
+  const synced = useOperationalCollection(TIME_COLLECTION);
+  const entries = synced.value; const setEntries = synced.set;
   const persist = (next: TimeEntry[]) => {
     setEntries(next);
-    writeEntries(next);
   };
 
   // ── Timer ──────────────────────────────────────────────────────────────────
@@ -40,6 +41,9 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [, forceTick] = useState(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    setStartedAt(null); setEngagement(''); setDescription(''); setRate(String(DEFAULT_RATE));
+  }, [synced.sessionKey]);
 
   useEffect(() => {
     if (startedAt != null) {
@@ -51,6 +55,7 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
   }, [startedAt]);
 
   const stopTimer = () => {
+    if (!synced.ready) return;
     if (startedAt == null) return;
     const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60_000));
     persist([
@@ -71,6 +76,7 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
   };
 
   const addManual = (minutes: number) => {
+    if (!synced.ready) return;
     if (!Number.isFinite(minutes) || minutes <= 0) return;
     persist([
       {
@@ -113,6 +119,7 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <OperationalStateNotice label="Time entries" {...synced} />
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="mr-2 text-sm font-semibold">Time</h2>

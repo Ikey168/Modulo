@@ -1,10 +1,10 @@
+import { useRetentionSettings } from '../../useBusinessSettings';
 // GoBD document vault (#368) — retention tracking with anchored-integrity
 // status for notes tagged retain/<class>, a retention/anchor note panel, and
 // the Verfahrensdokumentation template. Business hub tab.
 import { Archive, ShieldCheck } from 'lucide-react';
 import { GobdVaultView } from '../../GobdVaultView';
 import {
-  readRetentionClasses,
   retentionEnd,
   RETAIN_TAG_PREFIX,
   VERFAHRENSDOKUMENTATION_TEMPLATE,
@@ -16,6 +16,7 @@ function VaultSurface(p: WorkspaceViewProps) {
 }
 
 function RetentionPanel({ note }: NotePanelProps) {
+  const synced = useRetentionSettings();
   const retainTags = note.tags.filter((t) => t.name.startsWith(RETAIN_TAG_PREFIX));
   if (retainTags.length === 0) {
     return (
@@ -24,7 +25,7 @@ function RetentionPanel({ note }: NotePanelProps) {
       </p>
     );
   }
-  const classes = readRetentionClasses();
+  const classes = synced.value;
   const docDate = (note.createdAt ?? note.updatedAt ?? '').slice(0, 10);
   return (
     <div className="flex flex-col gap-1 py-1 text-xs">

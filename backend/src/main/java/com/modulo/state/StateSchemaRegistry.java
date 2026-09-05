@@ -117,7 +117,7 @@ final class StateSchemaRegistry {
               namespace.equals("workspace-settings")
                   ? "{\"type\":\"string\",\"maxLength\":128}"
                   : null;
-          default -> null;
+          default -> OperationalSchemas.definition(namespace, id);
         };
     return definition == null ? null : read(definition);
   }

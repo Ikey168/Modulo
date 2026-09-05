@@ -1,3 +1,4 @@
+// Legacy storage adapters below support recovery and compatibility tests. Active views use synchronized operational state.
 // Zeiterfassung (#365) — billable time per engagement, feeding invoice line
 // items. Entries persist client-side (consistent with plugin install state and
 // canvas layout); a backend store can replace this later. Pure module so
@@ -93,7 +94,7 @@ export function unbilledFor(entries: TimeEntry[], engagement: string): TimeEntry
 
 /** `line:` rows for an ```invoice fence — hours with 2 decimals, net rate. */
 export function toInvoiceLines(entries: TimeEntry[]): string {
-  return entries
+  return [...entries].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     .map((e) => `line: ${e.description} (${e.date}) | ${(e.minutes / 60).toFixed(2)} | ${e.rateEur}`)
     .join('\n');
 }
