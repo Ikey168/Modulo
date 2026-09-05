@@ -259,6 +259,13 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         return lease.id();
     }
 
+    public java.util.UUID fireManual(BlueprintEntry entry,String nodeId,Note note,java.util.UUID requestId) {
+        if(!ownedNote(note,entry.getOwnerId())||requestId==null)throw new IllegalArgumentException("INVALID_MANUAL_INPUT");
+        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
+        if(graph.getNodes().stream().noneMatch(node->nodeId.equals(node.getId())&&"trigger.manual".equals(node.getType())))throw new IllegalArgumentException("MANUAL_TRIGGER_UNAVAILABLE");
+        return executeBlueprint(graph,entry,nodeId,Map.of("note",note),"manual:"+requestId);
+    }
+
     public java.util.UUID fireScheduled(BlueprintEntry entry,String nodeId,String key,String firedAt) {
         var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
         if(graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.schedule".equals(node.getType()))) throw new IllegalArgumentException("SCHEDULE_REMOVED");

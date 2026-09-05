@@ -346,14 +346,14 @@ public class NotePropertyService {
   public record QueryPredicate(String sql, List<Object> arguments) {}
 
   public QueryPredicate predicate(long owner, List<Filter> filters) {
-    if (filters == null || filters.size() > 10) throw bad("INVALID_PROPERTY_QUERY");
+    if (filters == null || filters.size() > 32) throw bad("INVALID_PROPERTY_QUERY");
     StringBuilder sql = new StringBuilder(" FROM application.notes n WHERE n.user_id=?");
     var args = new ArrayList<Object>(List.of(owner));
     for (var filter : filters) {
       if (filter == null
           || filter.key() == null
           || filter.operator() == null
-          || !Set.of("eq", "gt", "gte", "lt", "lte", "contains", "exists", "missing")
+          || !Set.of("eq", "gt", "gte", "lt", "lte", "contains", "exists", "missing", "isEmpty")
               .contains(filter.operator())) throw bad("INVALID_PROPERTY_FILTER");
       var defs =
           jdbc.queryForList(
@@ -362,23 +362,33 @@ public class NotePropertyService {
               owner,
               filter.key());
       if (defs.isEmpty()) throw bad("UNKNOWN_PROPERTY");
-      boolean missing = "missing".equals(filter.operator());
+      boolean missing = "missing".equals(filter.operator()) || "isEmpty".equals(filter.operator());
       sql.append(missing ? " AND NOT EXISTS (" : " AND EXISTS (")
           .append(
               "SELECT 1 FROM note_property_values p WHERE p.owner_id=n.user_id AND"
                   + " p.note_id=n.note_id AND p.property_key=?");
       args.add(filter.key());
-      if (!Set.of("exists", "missing").contains(filter.operator())) {
+      if ("isEmpty".equals(filter.operator()))
+        sql.append(" AND p.value NOT IN ('null'::jsonb,'\"\"'::jsonb,'[]'::jsonb)");
+      if (!Set.of("exists", "missing", "isEmpty").contains(filter.operator())) {
         String type = defs.get(0).get("value_type").toString();
         JsonNode value = filter.value();
         if ("contains".equals(filter.operator())) {
-          if (!"multiSelect".equals(type)
-              || value == null
-              || !value.isTextual()
-              || !contains(parse(defs.get(0).get("options").toString()), value))
-            throw bad("INVALID_PROPERTY_FILTER");
-          sql.append(" AND p.value @> ?::jsonb");
-          args.add(encode(List.of(value)));
+          if ("text".equals(type)
+              && value != null
+              && value.isTextual()
+              && value.asText().length() <= 4096) {
+            sql.append(" AND strpos(p.value #>> '{}',?)>0");
+            args.add(value.asText());
+          } else {
+            if (!"multiSelect".equals(type)
+                || value == null
+                || !value.isTextual()
+                || !contains(parse(defs.get(0).get("options").toString()), value))
+              throw bad("INVALID_PROPERTY_FILTER");
+            sql.append(" AND p.value @> ?::jsonb");
+            args.add(encode(List.of(value)));
+          }
         } else {
           value = validateValue(owner, defs.get(0), value);
           if (!"eq".equals(filter.operator())

@@ -59,6 +59,7 @@ function key(type: string, version: number): string {
 
 /** Generic workflow primitives — always available, independent of any plugin. */
 export const CORE_NODES: NodeDescriptor[] = [
+  {type:'trigger.manual',version:1,category:'trigger',title:'On Manual Review',description:'Starts when the owner submits a note for this workflow.',execIn:false,execOut:['then'],inputs:[],outputs:[{id:'note',name:'Submitted note',type:DataTypes.Note}]},
   {
     type: 'trigger.schedule',
     version: 1,

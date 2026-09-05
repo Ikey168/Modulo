@@ -58,6 +58,8 @@ public class ApprovalSigningService {
     return Files.readAllBytes(Path.of(path));
   }
 
+  public boolean configured() { return privateKey!=null; }
+
   public String signDecision(UUID decision) {
     if (privateKey == null) return "UNSIGNED";
     try {

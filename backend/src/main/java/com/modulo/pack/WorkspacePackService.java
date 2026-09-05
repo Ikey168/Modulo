@@ -15,9 +15,20 @@ public class WorkspacePackService {
   private final JdbcTemplate jdbc;
   private final ObjectMapper json;
   private final TransactionTemplate tx;
+  private final PackKnowledgeResources knowledge;
 
   public WorkspacePackService(
       JdbcTemplate jdbc, ObjectMapper json, PlatformTransactionManager manager) {
+    this(jdbc, json, manager, new PackKnowledgeResources(jdbc, json, manager));
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public WorkspacePackService(
+      JdbcTemplate jdbc,
+      ObjectMapper json,
+      PlatformTransactionManager manager,
+      PackKnowledgeResources knowledge) {
+    this.knowledge = knowledge;
     this.jdbc = jdbc;
     this.json = json.copy().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     tx = new TransactionTemplate(manager);
@@ -444,6 +455,7 @@ public class WorkspacePackService {
         encode(spec),
         digest,
         registry);
+    knowledge.materialize(owner, manifest, resource, resourceId);
     if (kind.equals("demoData") && demo)
       for (var note : maps(spec.get("notes"))) {
         String demoKey = note.get("id").toString();
@@ -500,12 +512,14 @@ public class WorkspacePackService {
           jdbc.update("DELETE FROM plugin_registry WHERE id=? AND owner_id=?", registry, owner);
           refresh(installation, registry);
         }
+        knowledge.remove(old);
         jdbc.update("DELETE FROM workspace_pack_resources WHERE id=?", old.get("id"));
       }
   }
 
   private boolean modified(Map<String, Object> resource) {
-    if (Boolean.TRUE.equals(resource.get("user_modified"))
+    if (knowledge.modified(resource)
+        || Boolean.TRUE.equals(resource.get("user_modified"))
         || "blueprint".equals(resource.get("kind")) && resource.get("registry_id") == null)
       return true;
     if ("blueprint".equals(resource.get("kind")) && resource.get("registry_id") != null) {
@@ -621,7 +635,7 @@ public class WorkspacePackService {
   public List<Map<String, Object>> resources(long owner) {
     return jdbc.queryForList(
         "SELECT"
-            + " r.id,r.resource_key,r.kind,r.title,r.spec::text,r.registry_id,r.user_modified,r.detached,i.pack_key"
+            + " r.id,r.resource_key,r.kind,r.title,r.spec::text,r.registry_id,r.knowledge_id,r.knowledge_revision,r.user_modified,r.detached,i.pack_key"
             + " FROM workspace_pack_resources r JOIN workspace_pack_installations i ON"
             + " i.id=r.installation_id WHERE r.owner_id=? AND (i.state='ACTIVE' OR r.detached)"
             + " ORDER BY i.pack_key,r.resource_key",

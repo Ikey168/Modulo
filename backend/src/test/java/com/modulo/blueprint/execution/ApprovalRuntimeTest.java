@@ -188,6 +188,142 @@ class ApprovalRuntimeTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  void flagshipAuditEngagementReachesSignedReportAndVerifiedBundle() throws Exception {
+    jdbc.execute("TRUNCATE application.notes CASCADE");
+    jdbc.execute("SELECT setval('hibernate_sequence',1000)");
+    var signing = configureSigning("audit-pack");
+    when(notes.findById(anyLong())).thenAnswer(call -> loadAuditNote(call.getArgument(0)));
+    when(notes.findByIdForApproval(anyLong()))
+        .thenAnswer(call -> loadAuditNote(call.getArgument(0)));
+    var owner = mock(AuthenticatedUserService.class);
+    when(owner.requireUserId()).thenReturn(1L);
+    var repository = new BlueprintRepository();
+    ReflectionTestUtils.setField(repository, "jdbc", jdbc);
+    ReflectionTestUtils.setField(repository, "objectMapper", json);
+    ReflectionTestUtils.setField(repository, "users", owner);
+    var manager = new DataSourceTransactionManager(source);
+    var properties = new com.modulo.knowledge.NotePropertyService(jdbc, json, manager);
+    var audit =
+        new com.modulo.pack.AuditPackService(
+            jdbc, json, manager, properties, repository, interpreter(), notes, approvals, signing);
+    var packs = new com.modulo.pack.WorkspacePackService(jdbc, json, manager);
+    var manifest = audit.manifest(1, 2);
+    var plan = packs.plan(1, manifest, false);
+    packs.apply(
+        (UUID) plan.get("id"),
+        1,
+        plan.get("manifest_digest").toString(),
+        json.convertValue(
+            ((com.fasterxml.jackson.databind.JsonNode) plan.get("plan"))
+                .get("requiredCapabilities"),
+            List.class));
+    assertTrue((Boolean) audit.status(1).get("installed"));
+    assertTrue(
+        jdbc.queryForObject(
+                "SELECT count(*) FROM saved_property_queries WHERE owner_id=1", Integer.class)
+            >= 5);
+    UUID engagement = UUID.randomUUID();
+    audit.create(
+        1,
+        new com.modulo.pack.AuditPackService.Intake(
+            engagement, "Sample access review", "Review vault access control."));
+    audit.finding(
+        1,
+        engagement,
+        new com.modulo.pack.AuditPackService.Finding(
+            UUID.randomUUID(),
+            "Missing role check",
+            "high",
+            "Withdraw lacks an authorization check.",
+            "Require the withdrawal role.",
+            "access-control"));
+    var generated = audit.report(1, engagement);
+    assertNotNull(generated.get("report_note"));
+    assertThrows(ResponseStatusException.class, () -> audit.engagement(3, engagement));
+    var submitted = audit.submit(1, engagement, UUID.randomUUID(), true,((Number)generated.get("report_note")).longValue(),1L);
+    UUID request = (UUID) submitted.get("requestId");
+    UUID run = (UUID) submitted.get("runId");
+    assertEquals(
+        "WAITING",
+        jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?", String.class, run));
+    assertTrue(
+        audit.reviewedReport(2, request).get("markdown").toString().contains("Missing role check"));
+    assertThrows(ResponseStatusException.class, () -> audit.reviewedReport(3, request));
+    approvals.decide(request, 2, decision("APPROVE"));
+    int checkpoint =
+        jdbc.queryForObject(
+            "SELECT resume_checkpoint FROM workflow_runs WHERE id=?", Integer.class, run);
+    interpreter().resumeWaiting(run, 1, checkpoint);
+    assertEquals(
+        "SUCCEEDED",
+        jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?", String.class, run));
+    var receipt = keyDirectory.resolve("audit-report-receipt.json");
+    json.writeValue(receipt.toFile(), audit.reviewedReport(1, request));
+    var verifyReport =
+        new ProcessBuilder("node", "../scripts/verify-audit-report.mjs", receipt.toString())
+            .redirectErrorStream(true)
+            .start();
+    assertTrue(verifyReport.waitFor(30, TimeUnit.SECONDS));
+    String reportOutput =
+        new String(
+            verifyReport.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    assertEquals(0, verifyReport.exitValue(), reportOutput);
+    assertEquals("APPROVE", json.readTree(reportOutput).path("outcome").asText());
+    var bundles =
+        new com.modulo.blueprint.approval.EvidenceBundleService(jdbc, json, signing, manager);
+    var bundle =
+        bundles.export(
+            run,
+            1,
+            new com.modulo.blueprint.approval.EvidenceBundleService.Options(false, false, false));
+    var archive = keyDirectory.resolve("audit-engagement.zip");
+    java.nio.file.Files.write(archive, bundle.bytes());
+    var verifyBundle =
+        new ProcessBuilder(
+                "python3",
+                "../scripts/verify-evidence-bundle.py",
+                archive.toString(),
+                bundle.rootHash())
+            .redirectErrorStream(true)
+            .start();
+    assertTrue(verifyBundle.waitFor(30, TimeUnit.SECONDS));
+    String bundleOutput =
+        new String(
+            verifyBundle.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    assertEquals(0, verifyBundle.exitValue(), bundleOutput);
+    long count =
+        jdbc.queryForObject("SELECT count(*) FROM application.notes WHERE user_id=1", Long.class);
+    var uninstall = packs.planUninstall(1, manifest.getId());
+    packs.apply(
+        (UUID) uninstall.get("id"),
+        1,
+        uninstall.get("manifest_digest").toString(),
+        json.convertValue(
+            ((com.fasterxml.jackson.databind.JsonNode) uninstall.get("plan"))
+                .get("requiredCapabilities"),
+            List.class));
+    assertEquals(
+        count,
+        jdbc.queryForObject("SELECT count(*) FROM application.notes WHERE user_id=1", Long.class));
+  }
+
+  private Optional<Note> loadAuditNote(Long id) {
+    var rows =
+        jdbc.queryForList("SELECT * FROM application.notes WHERE note_id=? AND user_id=1", id);
+    if (rows.isEmpty()) return Optional.empty();
+    var row = rows.get(0);
+    var note = new Note();
+    note.setId(id);
+    note.setUserId(1L);
+    note.setVersion(((Number) row.get("version")).longValue());
+    note.setTitle((String) row.get("title"));
+    note.setContent((String) row.get("content"));
+    note.setMarkdownContent((String) row.get("markdown_content"));
+    return Optional.of(note);
+  }
+
+  @Test
   void referenceWorkflowExportsDeterministicVerifiableBundle() throws Exception {
     var signing = configureSigning("bundle");
     UUID request = pending();

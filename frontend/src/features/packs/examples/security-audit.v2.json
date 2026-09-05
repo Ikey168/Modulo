@@ -1,7 +1,7 @@
 {
   "manifestVersion": 2,
   "id": "org.modulo.security-audit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Security Audit",
   "minIrVersion": 1,
   "minCatalogVersion": "1.0.0",
@@ -54,6 +54,28 @@
               "High",
               "Critical"
             ]
+          },
+          {
+            "id": "record-kind",
+            "title": "Record kind",
+            "type": "select",
+            "options": [
+              "engagement",
+              "checklist",
+              "finding",
+              "knowledge",
+              "report"
+            ]
+          },
+          {
+            "id": "engagement",
+            "title": "Engagement",
+            "type": "text"
+          },
+          {
+            "id": "evidence",
+            "title": "Evidence note",
+            "type": "relation"
           }
         ]
       },
@@ -65,10 +87,10 @@
     {
       "id": "record-template",
       "kind": "template",
-      "title": "Record template",
+      "title": "Finding template",
       "spec": {
         "title": "New record",
-        "markdown": "# Record\n\n## Evidence\n",
+        "markdown": "# Finding\n\n## Evidence\n\n## Recommendation\n",
         "schemaRef": "record-schema"
       },
       "requires": [
@@ -81,7 +103,7 @@
     {
       "id": "open-records",
       "kind": "savedQuery",
-      "title": "Open records",
+      "title": "Open findings",
       "spec": {
         "schemaRef": "record-schema",
         "filters": [
@@ -89,6 +111,11 @@
             "property": "status",
             "operator": "eq",
             "value": "Open"
+          },
+          {
+            "property": "record-kind",
+            "operator": "eq",
+            "value": "finding"
           }
         ]
       },
@@ -102,7 +129,7 @@
     {
       "id": "records-table",
       "kind": "view",
-      "title": "Records",
+      "title": "Findings",
       "spec": {
         "queryRef": "open-records",
         "layout": "table"
@@ -117,7 +144,7 @@
     {
       "id": "records-board",
       "kind": "view",
-      "title": "Status board",
+      "title": "Finding status board",
       "spec": {
         "queryRef": "open-records",
         "layout": "board",
@@ -155,14 +182,30 @@
       "spec": {
         "viewRefs": [
           "records-table",
-          "records-board"
+          "records-board",
+          "engagement-view",
+          "checklist-view",
+          "knowledge-view",
+          "report-view"
         ],
-        "dashboardRef": "overview"
+        "dashboardRef": "overview",
+        "builtinPlugins": [
+          "notes-editor",
+          "findings-tracker",
+          "kanban",
+          "audit-checklists",
+          "vuln-kb",
+          "audit-reports"
+        ]
       },
       "requires": [
         "records-table",
         "records-board",
-        "overview"
+        "overview",
+        "engagement-view",
+        "checklist-view",
+        "knowledge-view",
+        "report-view"
       ],
       "capabilities": [
         "workspace:configure"
@@ -192,34 +235,30 @@
     {
       "id": "review",
       "kind": "blueprint",
-      "title": "Human review",
+      "title": "Report approval",
       "spec": {
         "ir": {
           "irVersion": 1,
           "metadata": {
-            "name": "Human approval sample",
-            "description": "Replace the reviewer ID, then connect business actions to the result branches.",
+            "name": "Audit report approval",
+            "description": "Submit a report explicitly. A different reviewer approves its exact evidence digest.",
             "createdAt": "2026-09-05T00:00:00.000Z",
             "updatedAt": "2026-09-05T00:00:00.000Z"
           },
           "nodes": [
             {
-              "id": "schedule",
-              "type": "trigger.schedule",
-              "nodeVersion": 1,
-              "config": {
-                "cron": "0 0 9 * * MON",
-                "zone": "UTC"
-              }
+              "id": "manual-review",
+              "type": "trigger.manual",
+              "nodeVersion": 1
             },
             {
-              "id": "request",
+              "id": "report-approval",
               "type": "action.approval.request",
               "nodeVersion": 1,
               "config": {
                 "approverUserId": "2",
                 "expirySeconds": 86400,
-                "message": "Review this scheduled workflow request."
+                "message": "Review the attached audit report. Approval binds this exact report version."
               }
             },
             {
@@ -237,15 +276,15 @@
             {
               "id": "edge-1",
               "kind": "exec",
-              "fromNode": "schedule",
+              "fromNode": "manual-review",
               "fromPin": "then",
-              "toNode": "request",
+              "toNode": "report-approval",
               "toPin": "in"
             },
             {
               "id": "edge-2",
               "kind": "exec",
-              "fromNode": "request",
+              "fromNode": "report-approval",
               "fromPin": "then",
               "toNode": "wait",
               "toPin": "in"
@@ -261,15 +300,15 @@
             {
               "id": "edge-4",
               "kind": "data",
-              "fromNode": "schedule",
-              "fromPin": "firedAt",
-              "toNode": "request",
+              "fromNode": "manual-review",
+              "fromPin": "note",
+              "toNode": "report-approval",
               "toPin": "context"
             },
             {
               "id": "edge-5",
               "kind": "data",
-              "fromNode": "request",
+              "fromNode": "report-approval",
               "fromPin": "request",
               "toNode": "wait",
               "toPin": "request"
@@ -307,6 +346,215 @@
         "permissions:request",
         "approval:request"
       ]
+    },
+    {
+      "id": "engagement-template",
+      "kind": "template",
+      "title": "Engagement intake",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ],
+      "spec": {
+        "title": "Engagement intake",
+        "schemaRef": "record-schema",
+        "markdown": "# Scope\n\n## Assets\n\n## Constraints\n"
+      }
+    },
+    {
+      "id": "engagement-records",
+      "kind": "savedQuery",
+      "title": "Engagement intake",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ],
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "record-kind",
+            "operator": "eq",
+            "value": "engagement"
+          }
+        ]
+      }
+    },
+    {
+      "id": "engagement-view",
+      "kind": "view",
+      "title": "Engagement intake",
+      "requires": [
+        "engagement-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ],
+      "spec": {
+        "queryRef": "engagement-records",
+        "layout": "table"
+      }
+    },
+    {
+      "id": "checklist-template",
+      "kind": "template",
+      "title": "Audit checklist",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ],
+      "spec": {
+        "title": "Audit checklist",
+        "schemaRef": "record-schema",
+        "markdown": "# Audit checklist\n\n- [ ] Confirm scope\n- [ ] Review access control\n- [ ] Validate findings and evidence\n- [ ] Review final report\n"
+      }
+    },
+    {
+      "id": "checklist-records",
+      "kind": "savedQuery",
+      "title": "Audit checklist",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ],
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "record-kind",
+            "operator": "eq",
+            "value": "checklist"
+          }
+        ]
+      }
+    },
+    {
+      "id": "checklist-view",
+      "kind": "view",
+      "title": "Audit checklist",
+      "requires": [
+        "checklist-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ],
+      "spec": {
+        "queryRef": "checklist-records",
+        "layout": "table"
+      }
+    },
+    {
+      "id": "knowledge-template",
+      "kind": "template",
+      "title": "Vulnerability knowledge",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ],
+      "spec": {
+        "title": "Vulnerability knowledge",
+        "schemaRef": "record-schema",
+        "markdown": "# Vulnerability knowledge\n\n## References\n\n## Recommendation\n"
+      }
+    },
+    {
+      "id": "knowledge-records",
+      "kind": "savedQuery",
+      "title": "Vulnerability knowledge",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ],
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "record-kind",
+            "operator": "eq",
+            "value": "knowledge"
+          }
+        ]
+      }
+    },
+    {
+      "id": "knowledge-view",
+      "kind": "view",
+      "title": "Vulnerability knowledge",
+      "requires": [
+        "knowledge-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ],
+      "spec": {
+        "queryRef": "knowledge-records",
+        "layout": "table"
+      }
+    },
+    {
+      "id": "report-template",
+      "kind": "template",
+      "title": "Audit report",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ],
+      "spec": {
+        "title": "Audit report",
+        "schemaRef": "record-schema",
+        "markdown": "# Audit report\n\n## Scope\n\n## Findings\n\n## Reviewer decision\n"
+      }
+    },
+    {
+      "id": "report-records",
+      "kind": "savedQuery",
+      "title": "Audit report",
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ],
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "record-kind",
+            "operator": "eq",
+            "value": "report"
+          }
+        ]
+      }
+    },
+    {
+      "id": "report-view",
+      "kind": "view",
+      "title": "Audit report",
+      "requires": [
+        "report-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ],
+      "spec": {
+        "queryRef": "report-records",
+        "layout": "table"
+      }
     }
-  ]
+  ],
+  "description": "Engagement intake, checklists, findings, vulnerability knowledge, manual report review and verifiable exports."
 }

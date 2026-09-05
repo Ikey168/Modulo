@@ -1,6 +1,6 @@
 import { authenticatedRequest } from '../../services/authenticatedRequest';
 export interface Approval {
-  id: string; runState?: string; revision: number; state: string; requester: string; reviewer: string;
+  id: string; hasReport?:boolean; runState?: string; revision: number; state: string; requester: string; reviewer: string;
   blueprintName: string; expiresAt: string; createdAt: string; evidenceDigest: string;
   summary: { message?: string; omissions?: string[] }; canDecide: boolean; runId?: string;
   decisions: { id: string; outcome: string; actor_ref: string; comment_text: string; decided_at: string; signature_state: string }[];

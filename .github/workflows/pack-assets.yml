@@ -4,6 +4,7 @@ on:
     paths:
       - 'backend/src/main/resources/pack-manifest-v2.schema.json'
       - 'shared/packs/**'
+      - 'backend/src/main/resources/packs/**'
       - 'frontend/src/features/blueprint/pack/pack-manifest-v2.schema.json'
       - 'frontend/src/features/packs/examples/**'
       - 'scripts/sync-pack-assets.py'

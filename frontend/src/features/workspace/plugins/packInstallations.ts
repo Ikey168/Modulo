@@ -1,0 +1,6 @@
+import type {InstallationStorage} from './runtime';
+import type {PluginManifest,InstalledRecord} from './types';
+export function packInstallations(base:InstallationStorage,catalog:PluginManifest[],requested:string[]):InstallationStorage {
+ const managed=new Set<string>();const include=(id:string)=>{if(managed.has(id))return;const manifest=catalog.find(item=>item.id===id);if(!manifest?.load)throw new Error(`Pack plugin unavailable: ${id}`);managed.add(id);for(const dependency of manifest.dependencies??[])include(dependency);};for(const id of requested)include(id);
+ return {load:()=>{const records=base.load();return [...records,...[...managed].filter(id=>!records.some(record=>record.id===id)).map(id=>({id,enabled:true}))];},save:async(records:InstalledRecord[])=>{const existing=new Set(base.load().map(record=>record.id));const personal=new Map(records.filter(record=>!managed.has(record.id)||existing.has(record.id)||!record.enabled).map(record=>[record.id,record]));const preserveDependencies=(id:string)=>{for(const dependency of catalog.find(item=>item.id===id)?.dependencies??[]){if(personal.has(dependency))continue;const record=records.find(item=>item.id===dependency);if(record){personal.set(dependency,record);preserveDependencies(dependency);}}};for(const id of [...personal.keys()])preserveDependencies(id);await base.save([...personal.values()]);}};
+}

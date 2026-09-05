@@ -1,3 +1,5 @@
+import {authenticatedRequest} from '../../../services/authenticatedRequest';
+import {packInstallations} from './packInstallations';
 import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
 import { PluginRuntime } from './runtime';
 import { CATALOG } from './catalog';
@@ -38,6 +40,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
   const [settingsError, setSettingsError] = useState<string>();
   const [version, bump] = useReducer((n: number) => n + 1, 0);
   const [ready, setReady] = useState(false);
+  const [packPlugins,setPackPlugins]=useState<string[]>([]);
 
   useEffect(() => {
     const lease = navigator.locks ? acquireStateReplica(sessionStorage, navigator.locks) : {
@@ -65,15 +68,16 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     return () => { disposed = true; };
   }, [stateHost, identity]);
 
+  useEffect(()=>{let active=true;setPackPlugins([]);if(!identity)return;const refresh=()=>{authenticatedRequest('/api/workspace-packs/resources').then(async response=>{if(!response.ok)throw new Error('Pack resources unavailable.');return response.json();}).then((rows:{kind:string;detached:boolean;spec:string}[])=>{if(!active)return;const ids=[...new Set(rows.filter(row=>row.kind==='workspaceMode'&&!row.detached).flatMap(row=>{const spec=typeof row.spec==='string'?JSON.parse(row.spec):row.spec;return Array.isArray(spec.builtinPlugins)?spec.builtinPlugins as string[]:[];}))].sort();setPackPlugins(previous=>JSON.stringify(previous)===JSON.stringify(ids)?previous:ids);}).catch(()=>{/* Keep the last confirmed pack activations during a network outage. */});};refresh();const timer=setInterval(refresh,15000);window.addEventListener('modulo:packs-changed',refresh);return()=>{active=false;clearInterval(timer);window.removeEventListener('modulo:packs-changed',refresh);};},[identity]);
   const activePreferences = preferences?.status !== 'closed' ? preferences : undefined;
   const runtime = useMemo(() => {
-    const storage = installationStorage(activePreferences, CATALOG);
+    const storage = packInstallations(installationStorage(activePreferences, CATALOG), CATALOG, packPlugins);
     try { return new PluginRuntime(CATALOG, undefined, storage); }
     catch { return new PluginRuntime(CATALOG, undefined, {
       load: () => installationStorage(undefined, CATALOG).load(),
       save: async () => { throw new Error('Plugin settings require recovery before editing.'); },
     }); }
-  }, [activePreferences]);
+  }, [activePreferences,packPlugins]);
 
   const runOperation = useMemo(() => {
     let queue = Promise.resolve();
@@ -94,12 +98,12 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const refresh = () => {
       queued = queued.then(async () => {
         if (disposed || activePreferences.status === 'closed') return;
-        await runOperation(() => runtime.applyInstallations(installationStorage(activePreferences, CATALOG).load()));
+        await runOperation(() => runtime.applyInstallations(packInstallations(installationStorage(activePreferences, CATALOG),CATALOG,packPlugins).load()));
       }).catch(reason => { if (!disposed) setSettingsError(String(reason)); });
     };
     const stop = activePreferences.watch(refresh); refresh();
     return () => { disposed = true; stop(); };
-  }, [runtime, activePreferences, runOperation]);
+  }, [runtime, activePreferences, runOperation,packPlugins]);
 
   useEffect(() => {
     const unsub = runtime.subscribe(bump);
@@ -124,12 +128,12 @@ export function PluginProvider({ children }: { children: ReactNode }) {
       dependents: (id) => runtime.dependents(id),
       manifest: (id) => runtime.getManifest(id),
       install: (id) => runOperation(() => runtime.install(id)),
-      uninstall: (id) => runOperation(() => runtime.uninstall(id)),
+      uninstall: (id) => runOperation(() => packPlugins.includes(id)?Promise.reject(new Error("This plugin is included by an installed workspace pack. Disable it or remove the pack first.")):runtime.uninstall(id)),
       setEnabled: (id, enabled) => runOperation(() => runtime.setEnabled(id, enabled)),
     }),
     // `version` bumps on every runtime change so derived values recompute.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [runtime, ready, version, stateHost, activePreferences, runOperation],
+    [runtime, ready, version, stateHost, activePreferences, runOperation,packPlugins],
   );
 
   return <PluginsContext.Provider value={value}>

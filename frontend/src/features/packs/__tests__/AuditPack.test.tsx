@@ -1,0 +1,12 @@
+import {afterEach,beforeEach,expect,test,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
+import {AuditPack,AuditReportArtifact} from '../AuditPack';
+import {authenticatedRequest} from '../../../services/authenticatedRequest';
+import * as packs from '../workspacePackService';
+vi.mock('../../../services/authenticatedRequest',()=>({authenticatedRequest:vi.fn()}));
+vi.mock('../workspacePackService',()=>({createPackPlan:vi.fn(),applyPackPlan:vi.fn()}));
+beforeEach(()=>{vi.mocked(authenticatedRequest).mockImplementation(async path=>new Response(JSON.stringify(String(path).endsWith('/api/audit-pack')?{installed:false,signingConfigured:false}:[]),{status:200}));});
+afterEach(()=>{cleanup();vi.clearAllMocks();});
+test('reviews capabilities and requires consent before one pack installation',async()=>{vi.mocked(packs.createPackPlan).mockResolvedValue({id:'plan',plan:{requiredCapabilities:['approval:request']}} as packs.PackPlan);render(<MemoryRouter><AuditPack/></MemoryRouter>);fireEvent.change(await screen.findByLabelText('Reviewer account ID'),{target:{value:'2'}});fireEvent.click(screen.getByRole('button',{name:'Review Audit Pack installation'}));const install=await screen.findByRole('button',{name:'Install Security Audit Pack'});expect(install).toBeDisabled();expect(packs.applyPackPlan).not.toHaveBeenCalled();fireEvent.click(screen.getByLabelText('I approve this installation and its requested capabilities.'));fireEvent.click(install);await waitFor(()=>expect(packs.applyPackPlan).toHaveBeenCalled());});
+test('shared reports load only after an explicit reviewer action and render as text',async()=>{vi.mocked(authenticatedRequest).mockResolvedValue(new Response(JSON.stringify({title:'Report',markdown:'<script>unsafe()</script>',format:'modulo.audit-report.v1'}),{status:200}));render(<AuditReportArtifact requestId="request"/>);expect(authenticatedRequest).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Read shared report snapshot'}));expect(await screen.findByText('<script>unsafe()</script>')).toBeTruthy();expect(document.querySelector('script')).toBeNull();});

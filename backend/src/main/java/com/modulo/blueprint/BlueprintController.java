@@ -32,6 +32,7 @@ public class BlueprintController {
     @Autowired private BlueprintRepository blueprintRepository;
     @Autowired private BlueprintInterpreterService interpreterService;
     @Autowired private BlueprintCapabilityService capabilityService;
+    @Autowired private com.modulo.service.NoteService notes;
 
     @GetMapping
     public ResponseEntity<List<BlueprintEntry>> listBlueprints() {
@@ -148,6 +149,15 @@ public class BlueprintController {
     // -------------------------------------------------------------------------
     // Executions
     // -------------------------------------------------------------------------
+
+    public record ManualRun(String nodeId,Long noteId,java.util.UUID requestId) {}
+    @PostMapping("/{name}/run")
+    public Map<String,Object> run(@PathVariable String name,@RequestBody ManualRun input) {
+        var entry=blueprintRepository.findByName(name).orElseThrow(()->new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND,"BLUEPRINT_UNAVAILABLE"));
+        if(input.noteId()==null||input.nodeId()==null||input.requestId()==null)throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"INVALID_MANUAL_INPUT");
+        var note=notes.findById(input.noteId()).orElseThrow(()->new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND,"NOTE_UNAVAILABLE"));
+        return Map.of("runId",interpreterService.fireManual(entry,input.nodeId(),note,input.requestId()));
+    }
 
     @GetMapping("/{name}/executions")
     public ResponseEntity<List<BlueprintExecution>> getExecutions(
