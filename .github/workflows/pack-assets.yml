@@ -1,0 +1,16 @@
+name: Pack asset parity
+on:
+  pull_request:
+    paths:
+      - 'backend/src/main/resources/pack-manifest-v2.schema.json'
+      - 'shared/packs/**'
+      - 'frontend/src/features/blueprint/pack/pack-manifest-v2.schema.json'
+      - 'frontend/src/features/packs/examples/**'
+      - 'scripts/sync-pack-assets.py'
+      - '.github/workflows/pack-assets.yml'
+jobs:
+  shared-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/sync-pack-assets.py --check
