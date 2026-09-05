@@ -14,7 +14,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class NoteLinkService {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
+    private Note requireNote(Long id) {
+        return noteRepository.findByIdAndUserId(id, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found"));
+    }
+
 
     private final NoteLinkRepository noteLinkRepository;
     private final NoteRepository noteRepository;
@@ -32,8 +39,8 @@ public class NoteLinkService {
      * Create a new link between two notes
      */
     public NoteLink createLink(Long sourceNoteId, Long targetNoteId, String linkType) {
-        Optional<Note> sourceNote = noteRepository.findById(sourceNoteId);
-        Optional<Note> targetNote = noteRepository.findById(targetNoteId);
+        Optional<Note> sourceNote = Optional.of(requireNote(sourceNoteId));
+        Optional<Note> targetNote = Optional.of(requireNote(targetNoteId));
 
         if (!sourceNote.isPresent() || !targetNote.isPresent()) {
             throw new IllegalArgumentException("Source or target note not found");
@@ -53,7 +60,7 @@ public class NoteLinkService {
      * Get all links for a specific note (both incoming and outgoing)
      */
     public List<NoteLink> getLinksForNote(Long noteId) {
-        Optional<Note> note = noteRepository.findById(noteId);
+        Optional<Note> note = Optional.of(requireNote(noteId));
         if (!note.isPresent()) {
             throw new IllegalArgumentException("Note not found");
         }
@@ -64,6 +71,7 @@ public class NoteLinkService {
      * Get outgoing links from a note
      */
     public List<NoteLink> getOutgoingLinks(Long noteId) {
+        requireNote(noteId);
         return noteLinkRepository.findBySourceNoteId(noteId);
     }
 
@@ -71,6 +79,7 @@ public class NoteLinkService {
      * Get incoming links to a note
      */
     public List<NoteLink> getIncomingLinks(Long noteId) {
+        requireNote(noteId);
         return noteLinkRepository.findByTargetNoteId(noteId);
     }
 
@@ -86,7 +95,8 @@ public class NoteLinkService {
      */
     public void deleteLink(UUID linkId) {
         Optional<NoteLink> linkOpt = noteLinkRepository.findById(linkId);
-        noteLinkRepository.deleteById(linkId);
+        if (linkOpt.isEmpty()) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Link not found");
+        noteLinkRepository.delete(linkOpt.get());
         linkOpt.ifPresent(link -> eventBus.publishAsync(
             new LinkEvent.LinkDeleted(link.getSourceNote().getId(), link.getTargetNote().getId())));
     }
@@ -95,6 +105,7 @@ public class NoteLinkService {
      * Delete all links between two specific notes
      */
     public void deleteAllLinksBetweenNotes(Long sourceNoteId, Long targetNoteId) {
+        requireNote(sourceNoteId); requireNote(targetNoteId);
         List<NoteLink> links = noteLinkRepository.findBySourceNoteIdAndTargetNoteId(sourceNoteId, targetNoteId);
         noteLinkRepository.deleteAll(links);
         eventBus.publishAsync(new LinkEvent.LinkDeleted(sourceNoteId, targetNoteId));
@@ -104,6 +115,7 @@ public class NoteLinkService {
      * Check if a link exists between two notes
      */
     public boolean linkExists(Long sourceNoteId, Long targetNoteId) {
+        requireNote(sourceNoteId); requireNote(targetNoteId);
         return !noteLinkRepository.findBySourceNoteIdAndTargetNoteId(sourceNoteId, targetNoteId).isEmpty();
     }
 

@@ -12,6 +12,10 @@ import java.util.Set;
 @Entity
 @Table(name = "offline_notes")
 public class OfflineNote {
+    @Column(name = "user_id") private Long userId;
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

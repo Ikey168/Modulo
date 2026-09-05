@@ -54,10 +54,14 @@ class NoteControllerTest {
     @MockBean
     private IpfsService ipfsService;
 
+    @MockBean private com.modulo.security.AuthenticatedUserService users;
+
     private Note note;
 
     @BeforeEach
     void setUp() {
+        when(users.requireUserId()).thenReturn(1L);
+        when(users.actor()).thenReturn("1");
         note = new Note("Title", "Content");
         note.setId(1L);
     }

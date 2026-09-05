@@ -22,7 +22,10 @@ public class YDocController {
      * The server is a dumb relay; Yjs CRDT merge happens entirely on clients.
      */
     @MessageMapping("/notes/{noteId}/ydoc")
-    public void relay(@DestinationVariable Long noteId, @Payload YDocMessage message) {
+    public void relay(@DestinationVariable Long noteId, @Payload YDocMessage message, java.security.Principal principal) {
+        if (!(principal instanceof com.modulo.security.OwnedSocketPrincipal) || ((com.modulo.security.OwnedSocketPrincipal) principal).expired())
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated socket required");
+        message.setUserId(principal.getName());
         message.setNoteId(noteId);
         String destination = "/topic/notes/" + noteId + "/ydoc";
         try {

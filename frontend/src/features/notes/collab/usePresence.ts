@@ -1,3 +1,4 @@
+import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -54,7 +55,7 @@ export function usePresence(noteId: number | undefined, userId: string, userName
   useEffect(() => {
     if (!noteId) return;
 
-    const client = new Client({
+    const client = authenticatedStomp({
       webSocketFactory: () => new SockJS('/ws'),
       onConnect: () => {
         client.subscribe(`/topic/notes/${noteId}/presence`, (frame) => {

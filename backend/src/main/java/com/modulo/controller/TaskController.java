@@ -1,6 +1,7 @@
 package com.modulo.controller;
 
 import com.modulo.entity.Task;
+import org.springframework.web.server.ResponseStatusException;
 import com.modulo.entity.Task.TaskStatus;
 import com.modulo.entity.Task.TaskPriority;
 import com.modulo.service.TaskService;
@@ -34,7 +35,7 @@ public class TaskController {
      */
     @GetMapping
     public ResponseEntity<List<Task>> getAllTasks(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) TaskStatus status,
             @RequestParam(required = false) TaskPriority priority) {
         try {
@@ -50,6 +51,7 @@ public class TaskController {
             
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -64,6 +66,7 @@ public class TaskController {
             return task.map(ResponseEntity::ok)
                       .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -77,6 +80,7 @@ public class TaskController {
             Task savedTask = taskService.createTask(task);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedTask);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -91,6 +95,7 @@ public class TaskController {
             Task updatedTask = taskService.updateTask(task);
             return ResponseEntity.ok(updatedTask);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -107,6 +112,7 @@ public class TaskController {
             response.put("message", "Task deleted successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("error", e.getMessage());
@@ -123,6 +129,7 @@ public class TaskController {
             Task completedTask = taskService.completeTask(id);
             return ResponseEntity.ok(completedTask);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -141,6 +148,7 @@ public class TaskController {
             Task updatedTask = taskService.updateProgress(id, progressPercentage);
             return ResponseEntity.ok(updatedTask);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -149,11 +157,12 @@ public class TaskController {
      * Get overdue tasks for a user
      */
     @GetMapping("/overdue")
-    public ResponseEntity<List<Task>> getOverdueTasks(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getOverdueTasks(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findOverdueTasksByUserId(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -162,11 +171,12 @@ public class TaskController {
      * Get tasks due today for a user
      */
     @GetMapping("/due-today")
-    public ResponseEntity<List<Task>> getTasksDueToday(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getTasksDueToday(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findTasksDueTodayByUserId(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -175,11 +185,12 @@ public class TaskController {
      * Get tasks due this week for a user
      */
     @GetMapping("/due-this-week")
-    public ResponseEntity<List<Task>> getTasksDueThisWeek(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getTasksDueThisWeek(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findTasksDueThisWeekByUserId(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -198,6 +209,7 @@ public class TaskController {
             response.put("message", "Task linked to note successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("error", e.getMessage());
@@ -219,6 +231,7 @@ public class TaskController {
             response.put("message", "Task unlinked from note successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("error", e.getMessage());
@@ -235,6 +248,7 @@ public class TaskController {
             List<Task> tasks = taskService.findTasksLinkedToNote(noteId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -244,12 +258,13 @@ public class TaskController {
      */
     @GetMapping("/search")
     public ResponseEntity<List<Task>> searchTasks(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam String query) {
         try {
             List<Task> tasks = taskService.searchTasks(userId, query);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -258,11 +273,12 @@ public class TaskController {
      * Get recurring tasks
      */
     @GetMapping("/recurring")
-    public ResponseEntity<List<Task>> getRecurringTasks(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getRecurringTasks(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findRecurringTasks(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -276,6 +292,7 @@ public class TaskController {
             List<Task> tasks = taskService.findSubtasks(parentId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -284,11 +301,12 @@ public class TaskController {
      * Get root tasks (no parent) for a user
      */
     @GetMapping("/root")
-    public ResponseEntity<List<Task>> getRootTasks(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getRootTasks(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findRootTasks(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -297,11 +315,12 @@ public class TaskController {
      * Get task statistics for a user
      */
     @GetMapping("/statistics")
-    public ResponseEntity<TaskStatistics> getTaskStatistics(@RequestParam Long userId) {
+    public ResponseEntity<TaskStatistics> getTaskStatistics(@RequestParam(required = false) Long userId) {
         try {
             TaskStatistics stats = taskService.getTaskStatistics(userId);
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -311,7 +330,7 @@ public class TaskController {
      */
     @GetMapping("/calendar")
     public ResponseEntity<List<Task>> getTasksForCalendar(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam String startDate,
             @RequestParam String endDate) {
         try {
@@ -322,6 +341,7 @@ public class TaskController {
             List<Task> tasks = taskService.findTasksByDateRange(userId, start, end);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -331,12 +351,13 @@ public class TaskController {
      */
     @GetMapping("/recently-completed")
     public ResponseEntity<List<Task>> getRecentlyCompletedTasks(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "7") int days) {
         try {
             List<Task> tasks = taskService.findRecentlyCompletedTasks(userId, days);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -345,11 +366,12 @@ public class TaskController {
      * Get high priority incomplete tasks
      */
     @GetMapping("/high-priority")
-    public ResponseEntity<List<Task>> getHighPriorityTasks(@RequestParam Long userId) {
+    public ResponseEntity<List<Task>> getHighPriorityTasks(@RequestParam(required = false) Long userId) {
         try {
             List<Task> tasks = taskService.findHighPriorityIncompleteTasks(userId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -359,12 +381,13 @@ public class TaskController {
      */
     @GetMapping("/tag/{tag}")
     public ResponseEntity<List<Task>> getTasksByTag(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @PathVariable String tag) {
         try {
             List<Task> tasks = taskService.findTasksByTag(userId, tag);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -381,6 +404,7 @@ public class TaskController {
             Task updatedTask = taskService.setGoogleCalendarEventId(id, eventId);
             return ResponseEntity.ok(updatedTask);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -395,6 +419,7 @@ public class TaskController {
             return task.map(ResponseEntity::ok)
                       .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

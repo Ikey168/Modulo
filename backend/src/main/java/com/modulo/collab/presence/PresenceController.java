@@ -20,7 +20,12 @@ public class PresenceController {
     private final SimpMessagingTemplate messaging;
 
     @MessageMapping("/notes/{noteId}/presence")
-    public void relay(@DestinationVariable Long noteId, @Payload PresenceMessage message) {
+    public void relay(@DestinationVariable Long noteId, @Payload PresenceMessage message, java.security.Principal principal) {
+        if (!(principal instanceof com.modulo.security.OwnedSocketPrincipal) || ((com.modulo.security.OwnedSocketPrincipal) principal).expired())
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated socket required");
+        message.setUserId(principal.getName());
+        message.setUserName(principal.getName());
+        message.setTimestamp(Instant.now().toString());
         message.setNoteId(noteId);
         if (message.getTimestamp() == null) {
             message.setTimestamp(Instant.now().toString());

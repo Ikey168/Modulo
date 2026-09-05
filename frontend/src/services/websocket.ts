@@ -1,3 +1,5 @@
+import { authService } from '../features/auth/authService';
+import { authenticatedStomp } from './authenticatedStomp';
 import { Client, StompSubscription, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
@@ -26,61 +28,62 @@ class WebSocketService {
   private isConnected = false;
   private callbacks: Set<NoteUpdateCallback> = new Set();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000; // Start with 1 second
+
+
 
   constructor() {
-    this.initializeClient();
+    let identity = this.account();
+    authService.subscribeSession(() => {
+      const next = this.account();
+      if (next === identity) return;
+      identity = next;
+      this.disconnect();
+      if (next) void this.connect();
+    });
+  }
+
+  private account(): string {
+    const session = authService.stateSession();
+    return session ? JSON.stringify([session.issuer, session.subject]) : '';
   }
 
   private initializeClient() {
-    this.client = new Client({
+    const client = authenticatedStomp({
       webSocketFactory: () => new SockJS('/ws'),
-      debug: (str) => {
-        console.log('WebSocket Debug:', str);
-      },
+      reconnectDelay: 1000,
+      debug: () => {},
       onConnect: () => {
+        if (this.client !== client) return;
         console.log('WebSocket connected');
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        this.reconnectDelay = 1000;
+
         this.subscribeToNotes();
       },
       onDisconnect: () => {
+        if (this.client !== client) return;
         console.log('WebSocket disconnected');
         this.isConnected = false;
         this.subscription = null;
       },
       onStompError: (frame) => {
+        if (this.client !== client) return;
         console.error('WebSocket STOMP error:', frame);
-        this.handleReconnect();
+        this.reconnectAttempts++;
       },
       onWebSocketClose: () => {
+        if (this.client !== client) return;
         console.log('WebSocket connection closed');
         this.isConnected = false;
-        this.handleReconnect();
+        this.reconnectAttempts++;
       },
       onWebSocketError: (error) => {
+        if (this.client !== client) return;
         console.error('WebSocket error:', error);
-        this.handleReconnect();
+        this.reconnectAttempts++;
       }
     });
-  }
-
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`Attempting to reconnect WebSocket (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectDelay}ms`);
-      
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay);
-      
-      // Exponential backoff
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
-    } else {
-      console.error('Max WebSocket reconnection attempts reached');
-    }
+    this.client = client;
   }
 
   private subscribeToNotes() {
@@ -88,10 +91,10 @@ class WebSocketService {
       return;
     }
 
-    this.subscription = this.client.subscribe('/topic/notes', (message: IMessage) => {
+    this.subscription = this.client.subscribe('/user/queue/notes', (message: IMessage) => {
       try {
         const noteUpdate: NoteUpdateMessage = JSON.parse(message.body);
-        console.log('Received note update:', noteUpdate);
+
         
         // Notify all registered callbacks
         this.callbacks.forEach(callback => {
@@ -107,35 +110,10 @@ class WebSocketService {
     });
   }
 
-  public connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected || !this.client) {
-        resolve();
-        return;
-      }
-
-      const originalOnConnect = this.client.onConnect;
-      const originalOnError = this.client.onStompError;
-
-      const onConnect = () => {
-        this.client!.onConnect = originalOnConnect;
-        resolve();
-      };
-
-      const onError = (error: any) => {
-        this.client!.onStompError = originalOnError;
-        reject(error);
-      };
-
-      this.client.onConnect = onConnect;
-      this.client.onStompError = onError;
-
-      try {
-        this.client.activate();
-      } catch (error) {
-        reject(error);
-      }
-    });
+  public async connect(): Promise<void> {
+    if (!this.account() || this.isConnected) return;
+    if (!this.client) this.initializeClient();
+    this.client!.activate();
   }
 
   public disconnect() {
@@ -145,7 +123,8 @@ class WebSocketService {
     }
 
     if (this.client) {
-      this.client.deactivate();
+      void this.client.deactivate();
+      this.client = null;
     }
 
     this.isConnected = false;
@@ -169,7 +148,7 @@ class WebSocketService {
     if (this.isConnected) {
       return 'Connected';
     } else if (this.reconnectAttempts > 0) {
-      return `Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
+      return `Reconnecting... (${this.reconnectAttempts})`;
     } else {
       return 'Disconnected';
     }

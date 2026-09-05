@@ -25,6 +25,8 @@ public class SecurityConfig {
         
         http
             .authorizeRequests(authz -> authz
+                // The STOMP interceptor authenticates CONNECT; public shares validate their stored grant.
+                .antMatchers("/ws", "/ws/**", "/api/s/**").permitAll()
                 .antMatchers("/api/simple-health", "/api/simple-health/**").permitAll()
                 .antMatchers("/api/health", "/api/health/**").permitAll()
                 .antMatchers("/actuator/**", "/api/actuator/**").permitAll()

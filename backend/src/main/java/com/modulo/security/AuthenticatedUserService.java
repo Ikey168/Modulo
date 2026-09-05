@@ -28,7 +28,10 @@ public class AuthenticatedUserService {
     }
 
     public User requireUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return requireUser(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    public User requireUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
@@ -63,4 +66,14 @@ public class AuthenticatedUserService {
     public long requireUserId() {
         return requireUser().getId();
     }
+    public long requireOwner(Long claimedOwner) {
+        long owner = requireUserId();
+        if (claimedOwner != null && claimedOwner != owner) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
+        }
+        return owner;
+    }
+
+    public String actor() { return Long.toString(requireUserId()); }
+
 }

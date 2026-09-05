@@ -31,6 +31,12 @@ import java.util.Optional;
  */
 @Service
 public class GraphProjectionService {
+    @org.springframework.beans.factory.annotation.Autowired private com.modulo.repository.NoteRepository notes;
+    private List<Long> ownedIds(Long center) {
+        if (center != null && notes.findById(center).isEmpty()) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found");
+        return notes.findAll().stream().map(com.modulo.entity.Note::getId).collect(java.util.stream.Collectors.toList());
+    }
+
 
     private static final Logger logger = LoggerFactory.getLogger(GraphProjectionService.class);
 
@@ -114,6 +120,7 @@ public class GraphProjectionService {
      * @return source node ids/titles ordered by title.
      */
     public List<GraphNode> getBacklinks(Long noteId) {
+        List<Long> owned = ownedIds(noteId);
         if (!isAvailable() || noteId == null) {
             return Collections.emptyList();
         }
@@ -121,8 +128,8 @@ public class GraphProjectionService {
             return session.readTransaction(tx -> {
                 List<GraphNode> result = new ArrayList<>();
                 tx.run("MATCH (src:Note)-[:LINKS_TO]->(n:Note {id: $id}) " +
-                       "RETURN src.id AS id, src.title AS title ORDER BY toLower(coalesce(src.title, '')), src.id",
-                       Values.parameters("id", noteId))
+                       "WHERE src.id IN $owned AND n.id IN $owned RETURN src.id AS id, src.title AS title ORDER BY toLower(coalesce(src.title, '')), src.id",
+                       Values.parameters("id", noteId, "owned", owned))
                   .forEachRemaining(rec -> result.add(
                       new GraphNode(rec.get("id").asLong(), nullableStr(rec.get("title")))));
                 return result;
@@ -140,6 +147,7 @@ public class GraphProjectionService {
      * @return related notes ranked by number of shared neighbors.
      */
     public List<RelatedNote> getRelatedNotes(Long noteId, int limit) {
+        List<Long> owned = ownedIds(noteId);
         if (!isAvailable() || noteId == null) {
             return Collections.emptyList();
         }
@@ -147,12 +155,12 @@ public class GraphProjectionService {
             return session.readTransaction(tx -> {
                 List<RelatedNote> result = new ArrayList<>();
                 tx.run("MATCH (n:Note {id: $id})-[:LINKS_TO]-(neighbor:Note)-[:LINKS_TO]-(related:Note) " +
-                       "WHERE related.id <> $id AND NOT (n)-[:LINKS_TO]-(related) " +
+                       "WHERE n.id IN $owned AND neighbor.id IN $owned AND related.id IN $owned AND related.id <> $id AND NOT (n)-[:LINKS_TO]-(related) " +
                        "RETURN related.id AS id, related.title AS title, " +
                        "       count(DISTINCT neighbor) AS score " +
                        "ORDER BY score DESC, toLower(coalesce(related.title, '')) " +
                        "LIMIT $limit",
-                       Values.parameters("id", noteId, "limit", limit))
+                       Values.parameters("id", noteId, "limit", limit, "owned", owned))
                   .forEachRemaining(rec -> result.add(new RelatedNote(
                       rec.get("id").asLong(), nullableStr(rec.get("title")), rec.get("score").asInt())));
                 return result;
@@ -168,6 +176,7 @@ public class GraphProjectionService {
      * nodes plus the directed edges among them. Treats links as undirected for traversal.
      */
     public NeighborhoodResult getNeighborhood(Long noteId, int depth) {
+        List<Long> owned = ownedIds(noteId);
         if (!isAvailable() || noteId == null) {
             return NeighborhoodResult.empty();
         }
@@ -179,9 +188,9 @@ public class GraphProjectionService {
                 List<GraphNode> nodes = new ArrayList<>();
                 List<Long> ids = new ArrayList<>();
                 // *0.. includes the center node itself.
-                tx.run("MATCH (n:Note {id: $id})-[:LINKS_TO*0.." + safeDepth + "]-(m:Note) " +
-                       "RETURN DISTINCT m.id AS id, m.title AS title",
-                       Values.parameters("id", noteId))
+                tx.run("MATCH path=(n:Note {id: $id})-[:LINKS_TO*0.." + safeDepth + "]-(m:Note) " +
+                       "WHERE all(node IN nodes(path) WHERE node.id IN $owned) RETURN DISTINCT m.id AS id, m.title AS title",
+                       Values.parameters("id", noteId, "owned", owned))
                   .forEachRemaining(rec -> {
                       long id = rec.get("id").asLong();
                       ids.add(id);
@@ -207,12 +216,13 @@ public class GraphProjectionService {
 
     /** @return total node count in the projection (used for backfill / health checks). */
     public long nodeCount() {
+        List<Long> owned = ownedIds(null);
         if (!isAvailable()) {
             return -1;
         }
         try (Session session = driver.get().session()) {
             return session.readTransaction(tx ->
-                tx.run("MATCH (n:Note) RETURN count(n) AS c").single().get("c").asLong());
+                tx.run("MATCH (n:Note) WHERE n.id IN $owned RETURN count(n) AS c", Values.parameters("owned", owned)).single().get("c").asLong());
         } catch (Exception e) {
             logger.warn("nodeCount() failed: {}", e.getMessage());
             return -1;

@@ -1,5 +1,5 @@
+import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { X } from 'lucide-react';
 import { Button, Textarea, cn, useToast } from '@/ui';
@@ -37,7 +37,7 @@ const CommentsSidebar: React.FC<Props> = ({ noteId, userId, userName, users = []
   useEffect(() => { loadComments(); }, [loadComments]);
 
   useEffect(() => {
-    const client = new Client({
+    const client = authenticatedStomp({
       webSocketFactory: () => new SockJS('/ws'),
       onConnect: () => {
         client.subscribe(`/topic/notes/${noteId}/comments`, (frame) => {

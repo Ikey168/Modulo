@@ -1,6 +1,9 @@
 package com.modulo.service;
 
 import com.modulo.entity.Note;
+import com.modulo.security.AuthenticatedUserService;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import com.modulo.entity.Attachment;
 import com.modulo.entity.User;
 import com.modulo.plugin.event.PluginEventBus;
@@ -27,6 +30,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class NoteService {
+    @Autowired private AuthenticatedUserService users;
+    @Autowired private TagService tagService;
     
     private static final Logger logger = LoggerFactory.getLogger(NoteService.class);
     
@@ -45,7 +50,7 @@ public class NoteService {
     public Optional<Note> findById(Long id) {
         try {
             Note note = entityManager.find(Note.class, id);
-            return Optional.ofNullable(note);
+            return Optional.ofNullable(note).filter(value -> Objects.equals(value.getUserId(), users.requireUserId()));
         } catch (Exception e) {
             logger.error("Error finding note by ID: " + id, e);
             return Optional.empty();
@@ -56,13 +61,18 @@ public class NoteService {
      * Save note (create or update)
      */
     public Note save(Note note) {
+        long owner = users.requireUserId();
         boolean isNew = note.getId() == null;
         Note previousNote = null;
         
         if (!isNew) {
-            previousNote = entityManager.find(Note.class, note.getId());
+            previousNote = findById(note.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
         }
         
+        note.setTags(tagService.resolveOwned(note.getTags()));
+        note.setUserId(owner);
+        note.setLastEditor(users.actor());
+
         // Set timestamps
         LocalDateTime now = LocalDateTime.now();
         if (isNew) {
@@ -106,6 +116,7 @@ public class NoteService {
      */
     @SuppressWarnings("unchecked")
     public List<Note> searchNotes(String query, List<String> tags, Long userId, int limit, int offset) {
+        userId = users.requireOwner(userId);
         StringBuilder sql = new StringBuilder("SELECT n FROM Note n WHERE 1=1");
         Map<String, Object> parameters = new HashMap<>();
         
@@ -140,6 +151,7 @@ public class NoteService {
      */
     @SuppressWarnings("unchecked")
     public List<Note> findByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         String jpql = "SELECT n FROM Note n WHERE n.userId = :userId ORDER BY n.updatedAt DESC";
         return entityManager.createQuery(jpql)
                 .setParameter("userId", userId)
@@ -151,8 +163,9 @@ public class NoteService {
      */
     @SuppressWarnings("unchecked")
     public List<Note> findByTag(String tag) {
-        String jpql = "SELECT n FROM Note n JOIN n.tags t WHERE t.name = :tag ORDER BY n.updatedAt DESC";
+        String jpql = "SELECT n FROM Note n JOIN n.tags t WHERE n.userId = :owner AND t.name = :tag ORDER BY n.updatedAt DESC";
         return entityManager.createQuery(jpql)
+                .setParameter("owner", users.requireUserId())
                 .setParameter("tag", tag)
                 .getResultList();
     }
@@ -215,8 +228,9 @@ public class NoteService {
      */
     @SuppressWarnings("unchecked")
     public List<Note> findAll(int page, int size) {
-        String jpql = "SELECT n FROM Note n ORDER BY n.updatedAt DESC";
+        String jpql = "SELECT n FROM Note n WHERE n.userId = :owner ORDER BY n.updatedAt DESC";
         return entityManager.createQuery(jpql)
+                .setParameter("owner", users.requireUserId())
                 .setFirstResult(page * size)
                 .setMaxResults(size)
                 .getResultList();
@@ -226,14 +240,15 @@ public class NoteService {
      * Count total notes
      */
     public long count() {
-        String jpql = "SELECT COUNT(n) FROM Note n";
-        return (Long) entityManager.createQuery(jpql).getSingleResult();
+        String jpql = "SELECT COUNT(n) FROM Note n WHERE n.userId = :owner";
+        return (Long) entityManager.createQuery(jpql).setParameter("owner", users.requireUserId()).getSingleResult();
     }
     
     /**
      * Count notes by user
      */
     public long countByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         String jpql = "SELECT COUNT(n) FROM Note n WHERE n.userId = :userId";
         return (Long) entityManager.createQuery(jpql)
                 .setParameter("userId", userId)
@@ -269,7 +284,7 @@ public class NoteService {
             entityManager.merge(note);
             
             // Publish event
-            eventBus.publishAsync(new NoteEvent.NoteViewed(note, viewerId));
+            eventBus.publishAsync(new NoteEvent.NoteViewed(note, users.requireUserId()));
             
             logger.debug("Note {} viewed by user {}", noteId, viewerId);
         }
@@ -280,7 +295,7 @@ public class NoteService {
      */
     private Long getCurrentUserId() {
         try {
-            return 1L; // Placeholder - implement based on your security setup
+            return users.requireUserId();
         } catch (Exception e) {
             return null;
         }

@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 @DisplayName("CommentController Tests (#262)")
 class CommentControllerTest {
 
+    @Mock private com.modulo.security.AuthenticatedUserService users;
     @Mock private NoteCommentRepository commentRepository;
     @Mock private NoteRepository noteRepository;
     @Mock private NotificationService notificationService;
@@ -35,6 +36,10 @@ class CommentControllerTest {
 
     @InjectMocks
     private CommentController controller;
+
+    @org.junit.jupiter.api.BeforeEach void injectOwner() {
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "users", users);
+    }
 
     private NoteComment stub(Long id, Long noteId, String authorId, String content) {
         NoteComment c = new NoteComment();
@@ -73,6 +78,7 @@ class CommentControllerTest {
     @Test
     @DisplayName("create saves comment and broadcasts via WebSocket")
     void createSavesAndBroadcasts() {
+        when(users.actor()).thenReturn("1");
         when(noteRepository.existsById(1L)).thenReturn(true);
         NoteComment saved = stub(10L, 1L, "alice", "Nice!");
         when(commentRepository.save(any())).thenReturn(saved);
@@ -87,8 +93,9 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("create notifies mentioned users")
+    @DisplayName("private note mentions do not notify foreign users")
     void createNotifiesMentions() {
+        when(users.actor()).thenReturn("1");
         when(noteRepository.existsById(1L)).thenReturn(true);
         NoteComment saved = stub(10L, 1L, "alice", "@bob check this out");
         saved.setMentionedUserIds(List.of("bob"));
@@ -99,12 +106,14 @@ class CommentControllerTest {
 
         controller.create(1L, req, "alice", "Alice");
 
-        verify(notificationService).notifyMentions(any(), eq("Alice"), eq(1L), eq(10L));
+        verifyNoInteractions(notificationService);
+        verify(commentRepository).save(argThat(c -> c.getMentionedUserIds().isEmpty() && "1".equals(c.getAuthorId())));
     }
 
     @Test
     @DisplayName("delete returns 404 when comment belongs to another user")
     void deleteBlockedForOtherUser() {
+        when(users.actor()).thenReturn("2");
         NoteComment c = stub(5L, 1L, "alice", "Alice's comment");
         when(commentRepository.findById(5L)).thenReturn(Optional.of(c));
 

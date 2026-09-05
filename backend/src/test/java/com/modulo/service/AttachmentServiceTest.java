@@ -25,14 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for {@link AttachmentService}.
- *
- * <p>The Azure {@link BlobServiceClient} is a final class that cannot be mocked
- * under the pinned Mockito 4.x (the inline mock maker conflicts with the JaCoCo
- * agent), so the blob client is left null and only the repository/validation
- * code paths that do not touch blob storage are exercised here.
- */
+/** Repository guards, upload validation and local SAS signing without storage network calls. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Attachment Service Tests")
@@ -44,6 +37,7 @@ class AttachmentServiceTest {
     @Mock
     private NoteRepository noteRepository;
 
+    @Mock private com.modulo.security.AuthenticatedUserService users;
     private AttachmentService attachmentService;
 
     private Note note;
@@ -51,9 +45,14 @@ class AttachmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        // BlobServiceClient is final and intentionally left null; the tests below
-        // only cover paths that do not reach blob storage.
-        attachmentService = new AttachmentService(null, attachmentRepository, noteRepository);
+        // A real client signs locally; these tests make no storage network requests.
+        var blob = new com.azure.storage.blob.BlobServiceClientBuilder()
+            .endpoint("https://testaccount.blob.core.windows.net")
+            .credential(new com.azure.storage.common.StorageSharedKeyCredential("testaccount", java.util.Base64.getEncoder().encodeToString(new byte[32])))
+            .buildClient();
+        attachmentService = new AttachmentService(blob, attachmentRepository, noteRepository);
+        ReflectionTestUtils.setField(attachmentService, "users", users);
+        when(users.requireUserId()).thenReturn(1L); when(users.actor()).thenReturn("1");
         ReflectionTestUtils.setField(attachmentService, "containerName", "test-container");
         ReflectionTestUtils.setField(attachmentService, "maxFileSize", 10_485_760L);
         ReflectionTestUtils.setField(attachmentService, "allowedContentTypes", "text/plain,application/pdf");
@@ -62,6 +61,8 @@ class AttachmentServiceTest {
         note = new Note();
         note.setId(42L);
         note.setTitle("Note");
+        note.setUserId(1L);
+        when(noteRepository.findByIdAndUserId(42L,1L)).thenReturn(Optional.of(note));
 
         attachment = Attachment.builder()
                 .originalFilename("doc.pdf")
@@ -106,7 +107,7 @@ class AttachmentServiceTest {
     @Test
     @DisplayName("getAttachmentById returns DTO when present")
     void getAttachmentByIdFound() {
-        when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndNoteUserId(7L,1L)).thenReturn(Optional.of(attachment));
 
         AttachmentDto dto = attachmentService.getAttachmentById(7L);
 
@@ -117,17 +118,17 @@ class AttachmentServiceTest {
     @Test
     @DisplayName("getAttachmentById throws when missing")
     void getAttachmentByIdNotFound() {
-        when(attachmentRepository.findById(99L)).thenReturn(Optional.empty());
+        when(attachmentRepository.findByIdAndNoteUserId(99L,1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> attachmentService.getAttachmentById(99L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
                 .hasMessageContaining("not found");
     }
 
     @Test
     @DisplayName("deleteAttachment soft-deletes and returns true")
     void deleteAttachmentSoftDeletes() {
-        when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndNoteUserId(7L,1L)).thenReturn(Optional.of(attachment));
 
         boolean result = attachmentService.deleteAttachment(7L, "admin");
 
@@ -137,42 +138,43 @@ class AttachmentServiceTest {
     }
 
     @Test
-    @DisplayName("deleteAttachment returns false when missing")
+    @DisplayName("deleteAttachment returns not found when missing")
     void deleteAttachmentNotFound() {
-        when(attachmentRepository.findById(99L)).thenReturn(Optional.empty());
+        when(attachmentRepository.findByIdAndNoteUserId(99L,1L)).thenReturn(Optional.empty());
 
-        boolean result = attachmentService.deleteAttachment(99L, "admin");
-
-        assertThat(result).isFalse();
+        assertThatThrownBy(() -> attachmentService.deleteAttachment(99L, "admin"))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         verify(attachmentRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("getDownloadUrl prefers CDN url")
+    @DisplayName("getDownloadUrl replaces public CDN URL with a read-only signed grant")
     void getDownloadUrlPrefersCdn() {
-        when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndNoteUserId(7L,1L)).thenReturn(Optional.of(attachment));
 
         assertThat(attachmentService.getDownloadUrl(7L))
-                .isEqualTo("https://cdn.example.com/test-container/blob-1.pdf");
+                .startsWith("https://testaccount.blob.core.windows.net/test-container/blob-1.pdf?")
+                .contains("sp=r", "sig=", "se=");
     }
 
     @Test
-    @DisplayName("getDownloadUrl falls back to blob url when CDN absent")
+    @DisplayName("getDownloadUrl signs private blobs without CDN configuration")
     void getDownloadUrlFallsBackToBlob() {
         attachment.setCdnUrl(null);
-        when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndNoteUserId(7L,1L)).thenReturn(Optional.of(attachment));
 
         assertThat(attachmentService.getDownloadUrl(7L))
-                .isEqualTo("https://blob.example.com/test-container/blob-1.pdf");
+                .startsWith("https://testaccount.blob.core.windows.net/test-container/blob-1.pdf?")
+                .contains("sp=r", "sig=", "se=");
     }
 
     @Test
     @DisplayName("getDownloadUrl throws when attachment missing")
     void getDownloadUrlNotFound() {
-        when(attachmentRepository.findById(99L)).thenReturn(Optional.empty());
+        when(attachmentRepository.findByIdAndNoteUserId(99L,1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> attachmentService.getDownloadUrl(99L))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 
     @Test
@@ -221,11 +223,10 @@ class AttachmentServiceTest {
         when(file.getSize()).thenReturn(10L);
         when(file.getContentType()).thenReturn("application/pdf");
         when(file.getOriginalFilename()).thenReturn("doc.pdf");
-        when(noteRepository.findById(42L)).thenReturn(Optional.empty());
+        when(noteRepository.findByIdAndUserId(42L,1L)).thenReturn(Optional.empty());
 
-        AttachmentUploadResponse response = attachmentService.uploadAttachment(file, 42L, "user");
-
-        assertThat(response.isSuccess()).isFalse();
+        assertThatThrownBy(() -> attachmentService.uploadAttachment(file, 42L, "user"))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         verify(attachmentRepository, never()).save(any());
     }
 }

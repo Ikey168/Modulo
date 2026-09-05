@@ -18,6 +18,14 @@ class GraphProjectionServiceTest {
 
     private final GraphProjectionService service = new GraphProjectionService(Optional.empty());
 
+    @org.junit.jupiter.api.BeforeEach void ownedFixture() {
+        var notes = org.mockito.Mockito.mock(com.modulo.repository.NoteRepository.class);
+        var note = new com.modulo.entity.Note("A", "body"); note.setId(1L); note.setUserId(1L);
+        org.mockito.Mockito.when(notes.findById(1L)).thenReturn(Optional.of(note));
+        org.mockito.Mockito.when(notes.findAll()).thenReturn(java.util.List.of(note));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notes", notes);
+    }
+
     @Test
     @DisplayName("reports unavailable when no driver is configured")
     void notAvailableWithoutDriver() {

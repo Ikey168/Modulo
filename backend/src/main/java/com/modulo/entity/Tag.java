@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tags", schema = "application")
+@Table(name = "tags", schema = "application", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "name"}))
 public class Tag {
 
     @Id
@@ -16,8 +16,13 @@ public class Tag {
     @Column(name = "tag_id")
     private UUID id;
 
-    @Column(name = "name", unique = true, nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
+
+    @Column(name = "user_id")
+    private Long userId;
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
     // Inverse side of Note.tags. Excluded from JSON so serializing a Note's
     // tags doesn't recurse back into notes (Note -> tags -> Tag -> notes ...).
@@ -63,12 +68,12 @@ public class Tag {
         if (this == o) return true;
         if (!(o instanceof Tag)) return false;
         Tag tag = (Tag) o;
-        return name != null && name.equals(tag.name);
+        return name != null && name.equals(tag.name) && java.util.Objects.equals(userId, tag.userId);
     }
 
     @Override
     public int hashCode() {
-        return name != null ? name.hashCode() : 0;
+        return java.util.Objects.hash(name, userId);
     }
 
     @Override

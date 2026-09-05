@@ -26,6 +26,16 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationService Tests (#263)")
 class NotificationServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
+    @Mock private com.modulo.repository.NoteRepository notes;
+    @org.junit.jupiter.api.BeforeEach void owner() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "users", users);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notes", notes);
+
+        lenient().when(users.actor()).thenReturn("alice");
+        lenient().when(users.requireUserId()).thenReturn(1L);
+        lenient().when(notes.findByIdAndUserId(any(), eq(1L))).thenReturn(Optional.of(new com.modulo.entity.Note()));
+    }
 
     @Mock
     private NotificationRepository repository;
@@ -55,7 +65,7 @@ class NotificationServiceTest {
 
         assertThat(result.getUserId()).isEqualTo("alice");
         assertThat(result.getType()).isEqualTo("COMMENT");
-        verify(messaging).convertAndSend(contains("alice"), any(NotificationDto.class));
+        verify(messaging).convertAndSendToUser(eq("alice"), eq("/queue/notifications"), any(NotificationDto.class));
     }
 
     @Test
@@ -67,10 +77,10 @@ class NotificationServiceTest {
             return n;
         });
 
-        service.notifyMentions(List.of("bob", "carol"), "Alice", 1L, 2L);
+        service.notifyMentions(List.of("alice", "bob", "carol"), "Alice", 1L, 2L);
 
-        verify(repository, times(2)).save(any());
-        verify(messaging, times(2)).convertAndSend(any(String.class), any(NotificationDto.class));
+        verify(repository).save(any());
+        verify(messaging).convertAndSendToUser(eq("alice"), eq("/queue/notifications"), any(NotificationDto.class));
     }
 
     @Test
@@ -84,6 +94,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("markRead throws when userId does not match")
     void markReadThrowsForWrongUser() {
+        when(users.actor()).thenReturn("bob");
         Notification n = saved(1L, "alice", "MENTION", "you were mentioned");
         when(repository.findById(1L)).thenReturn(Optional.of(n));
         assertThatThrownBy(() -> service.markRead(1L, "bob"))
