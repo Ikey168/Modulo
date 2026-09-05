@@ -26,6 +26,9 @@ public class Notification {
     @Column(name = "comment_id")
     private Long commentId;
 
+    @Column(name = "approval_request_id")
+    private java.util.UUID approvalRequestId;
+
     @Column(name = "is_read")
     private boolean read = false;
 
@@ -35,6 +38,9 @@ public class Notification {
     public Notification() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public java.util.UUID getApprovalRequestId() { return approvalRequestId; }
+    public void setApprovalRequestId(java.util.UUID id) { approvalRequestId = id; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

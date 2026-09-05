@@ -46,6 +46,14 @@ class NotificationServiceTest {
     @InjectMocks
     private NotificationService service;
 
+    @Test void approvalNotificationPreservesDeepLinkReference() {
+        Notification notification = new Notification();
+        java.util.UUID request = java.util.UUID.randomUUID();
+        notification.setApprovalRequestId(request);
+        notification.setType("APPROVAL");
+        assertThat(NotificationDto.from(notification).getApprovalRequestId()).isEqualTo(request);
+    }
+
     private static Notification saved(Long id, String userId, String type, String msg) {
         Notification n = new Notification();
         n.setId(id);

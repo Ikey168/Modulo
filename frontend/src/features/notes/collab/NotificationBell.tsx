@@ -94,6 +94,7 @@ const NotificationItem: React.FC<ItemProps> = ({ notification: n, onRead, onRemo
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-snug text-foreground">{n.message}</div>
+        {n.approvalRequestId && <a className="text-sm underline" href={`/app/approvals?request=${encodeURIComponent(n.approvalRequestId)}`} onClick={onRead}>Review approval</a>}
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           {new Date(n.createdAt).toLocaleString()}
         </div>
