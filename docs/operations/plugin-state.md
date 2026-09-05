@@ -78,14 +78,15 @@ The host must provide a recovery path for a replica whose tab was abandoned.
 - Host recovery after a database restore and discovery of queues belonging to abandoned
   tabs remain follow-up hardening. Open tabs hold exclusive Web Locks; cloned tabs
   receive a separate replica. Browser session storage retains the replica on reload.
-- #421–422: migrate existing consumer stores using explicit legacy-data claiming,
+- #422: migrate remaining operational consumer stores using explicit legacy-data claiming,
   stable IDs and create-only imports.
 - #420: Canvas uses one schema-versioned record per board, shared sync controls and
   explicit legacy import. Unknown schemas retain their raw cache for recovery export.
   Existing note navigation is preserved; full offline browser acceptance remains in #423.
 - #423: run the full browser/Electron two-client, offline, backup and tenant suite.
 
-Database, Todos and business records still use their existing stores.
+Todos and business records still use their existing stores. Embedded databases now
+use versioned records; see [database state and retention](../plugins/embedded-database-state.md).
 
 ## Validation
 
@@ -149,3 +150,6 @@ The isolated publishable frontend tree passes TypeScript and 74 focused tests,
 including runtime dependencies, failed persistence rollback, migration idempotency,
 provider account switching and offline installation. Full cross-client browser/Electron
 and backup acceptance remains tracked by #423.
+
+Final verification of the published frontend tree: TypeScript passes and the complete
+Vitest suite passes 479 tests across 53 files, including embedded database migrations.
