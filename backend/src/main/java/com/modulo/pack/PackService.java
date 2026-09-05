@@ -137,7 +137,10 @@ public class PackService {
     public PackCheck install(PackManifest manifest) {
         PackCheck c;
 
+        var contract=PackManifestValidator.validate(manifest);
+        if(!contract.ok())return PackCheck.fail(contract.reason());
         c = validateManifest(manifest); if (!c.ok()) return c;
+        if(Integer.valueOf(2).equals(manifest.getManifestVersion()))return PackCheck.fail("V2_REQUIRES_WORKSPACE_INSTALL_PLAN");
         c = checkCompatibility(manifest); if (!c.ok()) return c;
         c = checkDependencies(manifest); if (!c.ok()) return c;
         c = checkVersionConflict(manifest); if (!c.ok()) return c;

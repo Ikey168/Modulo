@@ -15,6 +15,21 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PackManifest {
 
+    private boolean malformedInput;
+    @com.fasterxml.jackson.annotation.JsonIgnore public boolean hasMalformedInput() {return malformedInput || contributes != null && contributes.malformedInput;}
+    private Integer manifestVersion = 1;
+    private List<Map<String,Object>> resources = Collections.emptyList();
+    private Map<String,String> policies = Collections.emptyMap();
+    private final Map<String,Object> unknown = new java.util.LinkedHashMap<>();
+    public Integer getManifestVersion() {return manifestVersion;}
+    public void setManifestVersion(Integer version) {manifestVersion=version;}
+    public List<Map<String,Object>> getResources() {return resources;}
+    public void setResources(List<Map<String,Object>> value) {resources=value;}
+    public Map<String,String> getPolicies() {return policies;}
+    public void setPolicies(Map<String,String> value) {policies=value;}
+    @com.fasterxml.jackson.annotation.JsonAnySetter public void unknown(String key,Object value) {unknown.put(key,value);}
+    @com.fasterxml.jackson.annotation.JsonAnyGetter public Map<String,Object> unknown() {return unknown;}
+
     private String id;
     private String version;
     private String name;
@@ -48,13 +63,13 @@ public class PackManifest {
     public void setMinCatalogVersion(String minCatalogVersion) { this.minCatalogVersion = minCatalogVersion; }
 
     public Contributes getContributes() { return contributes; }
-    public void setContributes(Contributes contributes) { this.contributes = contributes != null ? contributes : new Contributes(); }
+    public void setContributes(Contributes contributes) { if(contributes==null)malformedInput=true; this.contributes = contributes != null ? contributes : new Contributes(); }
 
     public List<PackDependency> getDependencies() { return dependencies; }
-    public void setDependencies(List<PackDependency> dependencies) { this.dependencies = dependencies != null ? dependencies : Collections.emptyList(); }
+    public void setDependencies(List<PackDependency> dependencies) { if(dependencies==null)malformedInput=true; this.dependencies = dependencies != null ? dependencies : Collections.emptyList(); }
 
     public List<String> getCapabilities() { return capabilities; }
-    public void setCapabilities(List<String> capabilities) { this.capabilities = capabilities != null ? capabilities : Collections.emptyList(); }
+    public void setCapabilities(List<String> capabilities) { if(capabilities==null)malformedInput=true; this.capabilities = capabilities != null ? capabilities : Collections.emptyList(); }
 
     // -------------------------------------------------------------------------
     // Nested types
@@ -63,20 +78,29 @@ public class PackManifest {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Contributes {
+        private boolean malformedInput;
+        private final Map<String,Object> unknown = new java.util.LinkedHashMap<>();
+        @com.fasterxml.jackson.annotation.JsonAnySetter public void unknown(String key,Object value) {unknown.put(key,value);}
+        @com.fasterxml.jackson.annotation.JsonAnyGetter public Map<String,Object> unknown() {return unknown;}
+
         /** Raw node descriptor objects (JSON). Validated by PackService on install. */
         private List<Map<String, Object>> nodes = Collections.emptyList();
         /** Blueprint IR objects (JSON). */
         private List<Map<String, Object>> blueprints = Collections.emptyList();
 
         public List<Map<String, Object>> getNodes() { return nodes; }
-        public void setNodes(List<Map<String, Object>> nodes) { this.nodes = nodes != null ? nodes : Collections.emptyList(); }
+        public void setNodes(List<Map<String, Object>> nodes) { if(nodes==null)malformedInput=true; this.nodes = nodes != null ? nodes : Collections.emptyList(); }
 
         public List<Map<String, Object>> getBlueprints() { return blueprints; }
-        public void setBlueprints(List<Map<String, Object>> blueprints) { this.blueprints = blueprints != null ? blueprints : Collections.emptyList(); }
+        public void setBlueprints(List<Map<String, Object>> blueprints) { if(blueprints==null)malformedInput=true; this.blueprints = blueprints != null ? blueprints : Collections.emptyList(); }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PackDependency {
+        private final Map<String,Object> unknown = new java.util.LinkedHashMap<>();
+        @com.fasterxml.jackson.annotation.JsonAnySetter public void unknown(String key,Object value) {unknown.put(key,value);}
+        @com.fasterxml.jackson.annotation.JsonAnyGetter public Map<String,Object> unknown() {return unknown;}
+
         private String id;
         private String minVersion;
 

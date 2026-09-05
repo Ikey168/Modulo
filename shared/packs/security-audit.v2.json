@@ -1,0 +1,312 @@
+{
+  "manifestVersion": 2,
+  "id": "org.modulo.security-audit",
+  "version": "1.0.0",
+  "name": "Security Audit",
+  "minIrVersion": 1,
+  "minCatalogVersion": "1.0.0",
+  "contributes": {},
+  "capabilities": [
+    "approval:request",
+    "blueprints:write",
+    "dashboard:configure",
+    "notes:write",
+    "permissions:request",
+    "properties:schema",
+    "queries:write",
+    "templates:write",
+    "workspace:configure"
+  ],
+  "policies": {
+    "upgrade": "preserve-user-content",
+    "removal": "preserve-user-content",
+    "demoData": "opt-in"
+  },
+  "resources": [
+    {
+      "id": "record-schema",
+      "kind": "propertySchema",
+      "title": "Record properties",
+      "spec": {
+        "fields": [
+          {
+            "id": "status",
+            "title": "Status",
+            "type": "select",
+            "options": [
+              "Open",
+              "In review",
+              "Closed"
+            ]
+          },
+          {
+            "id": "owner",
+            "title": "Owner",
+            "type": "text"
+          },
+          {
+            "id": "severity",
+            "title": "Severity",
+            "type": "select",
+            "options": [
+              "Low",
+              "Medium",
+              "High",
+              "Critical"
+            ]
+          }
+        ]
+      },
+      "requires": [],
+      "capabilities": [
+        "properties:schema"
+      ]
+    },
+    {
+      "id": "record-template",
+      "kind": "template",
+      "title": "Record template",
+      "spec": {
+        "title": "New record",
+        "markdown": "# Record\n\n## Evidence\n",
+        "schemaRef": "record-schema"
+      },
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "templates:write"
+      ]
+    },
+    {
+      "id": "open-records",
+      "kind": "savedQuery",
+      "title": "Open records",
+      "spec": {
+        "schemaRef": "record-schema",
+        "filters": [
+          {
+            "property": "status",
+            "operator": "eq",
+            "value": "Open"
+          }
+        ]
+      },
+      "requires": [
+        "record-schema"
+      ],
+      "capabilities": [
+        "queries:write"
+      ]
+    },
+    {
+      "id": "records-table",
+      "kind": "view",
+      "title": "Records",
+      "spec": {
+        "queryRef": "open-records",
+        "layout": "table"
+      },
+      "requires": [
+        "open-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "records-board",
+      "kind": "view",
+      "title": "Status board",
+      "spec": {
+        "queryRef": "open-records",
+        "layout": "board",
+        "groupBy": "status"
+      },
+      "requires": [
+        "open-records"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "overview",
+      "kind": "dashboard",
+      "title": "Overview",
+      "spec": {
+        "viewRefs": [
+          "records-table",
+          "records-board"
+        ]
+      },
+      "requires": [
+        "records-table",
+        "records-board"
+      ],
+      "capabilities": [
+        "dashboard:configure"
+      ]
+    },
+    {
+      "id": "workspace",
+      "kind": "workspaceMode",
+      "title": "Security Audit",
+      "spec": {
+        "viewRefs": [
+          "records-table",
+          "records-board"
+        ],
+        "dashboardRef": "overview"
+      },
+      "requires": [
+        "records-table",
+        "records-board",
+        "overview"
+      ],
+      "capabilities": [
+        "workspace:configure"
+      ]
+    },
+    {
+      "id": "demo",
+      "kind": "demoData",
+      "title": "Optional demo records",
+      "spec": {
+        "templateRef": "record-template",
+        "notes": [
+          {
+            "id": "sample",
+            "title": "Example finding",
+            "markdown": "Demo content. Replace with your own evidence."
+          }
+        ]
+      },
+      "requires": [
+        "record-template"
+      ],
+      "capabilities": [
+        "notes:write"
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "blueprint",
+      "title": "Human review",
+      "spec": {
+        "ir": {
+          "irVersion": 1,
+          "metadata": {
+            "name": "Human approval sample",
+            "description": "Replace the reviewer ID, then connect business actions to the result branches.",
+            "createdAt": "2026-09-05T00:00:00.000Z",
+            "updatedAt": "2026-09-05T00:00:00.000Z"
+          },
+          "nodes": [
+            {
+              "id": "schedule",
+              "type": "trigger.schedule",
+              "nodeVersion": 1,
+              "config": {
+                "cron": "0 0 9 * * MON",
+                "zone": "UTC"
+              }
+            },
+            {
+              "id": "request",
+              "type": "action.approval.request",
+              "nodeVersion": 1,
+              "config": {
+                "approverUserId": "2",
+                "expirySeconds": 86400,
+                "message": "Review this scheduled workflow request."
+              }
+            },
+            {
+              "id": "wait",
+              "type": "logic.approval.wait",
+              "nodeVersion": 1
+            },
+            {
+              "id": "result",
+              "type": "logic.approval.result",
+              "nodeVersion": 1
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-1",
+              "kind": "exec",
+              "fromNode": "schedule",
+              "fromPin": "then",
+              "toNode": "request",
+              "toPin": "in"
+            },
+            {
+              "id": "edge-2",
+              "kind": "exec",
+              "fromNode": "request",
+              "fromPin": "then",
+              "toNode": "wait",
+              "toPin": "in"
+            },
+            {
+              "id": "edge-3",
+              "kind": "exec",
+              "fromNode": "wait",
+              "fromPin": "then",
+              "toNode": "result",
+              "toPin": "in"
+            },
+            {
+              "id": "edge-4",
+              "kind": "data",
+              "fromNode": "schedule",
+              "fromPin": "firedAt",
+              "toNode": "request",
+              "toPin": "context"
+            },
+            {
+              "id": "edge-5",
+              "kind": "data",
+              "fromNode": "request",
+              "fromPin": "request",
+              "toNode": "wait",
+              "toPin": "request"
+            },
+            {
+              "id": "edge-6",
+              "kind": "data",
+              "fromNode": "wait",
+              "fromPin": "request",
+              "toNode": "result",
+              "toPin": "request"
+            }
+          ]
+        }
+      },
+      "requires": [],
+      "capabilities": [
+        "blueprints:write",
+        "approval:request"
+      ]
+    },
+    {
+      "id": "review-consent",
+      "kind": "permissionPreset",
+      "title": "Review consent",
+      "spec": {
+        "requested": [
+          "approval:request"
+        ]
+      },
+      "requires": [
+        "review"
+      ],
+      "capabilities": [
+        "permissions:request",
+        "approval:request"
+      ]
+    }
+  ]
+}

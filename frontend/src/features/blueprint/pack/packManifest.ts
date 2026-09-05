@@ -2,6 +2,7 @@
 // and declared capabilities into a single versioned, distributable unit.
 // Packs are installed into the node catalog and blueprint registry.
 
+import {validatePackV2, type PackResource} from './packManifestV2';
 import { NodeDescriptor, validateDescriptor } from '../nodeModel';
 import { BlueprintIR, validateIR } from '../blueprintIR';
 import { NodeCatalog } from '../nodeCatalog';
@@ -30,6 +31,9 @@ export interface PackDependency {
  * The pack is stored in plugin_registry with runtime = 'PACK'.
  */
 export interface PackManifest {
+  manifestVersion?: 1 | 2;
+  resources?: PackResource[];
+  policies?: {upgrade: 'preserve-user-content'; removal: 'preserve-user-content'; demoData: 'opt-in'};
   /** Unique pack identifier (reverse-domain style: "com.example.my-pack"). */
   id: string;
   /** Semantic version of this pack release. */
@@ -70,7 +74,8 @@ export interface PackManifest {
 export function parseSemVer(v: SemVer): [number, number, number] | null {
   const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(v);
   if (!m) return null;
-  return [Number(m[1]), Number(m[2]), Number(m[3])];
+  const values=[Number(m[1]),Number(m[2]),Number(m[3])];
+  return values.every(value=>Number.isInteger(value)&&value<=2147483647)?values as [number,number,number]:null;
 }
 
 /**
@@ -112,6 +117,15 @@ export type ManifestCheck = { ok: true } | { ok: false; reason: string };
  * 6. minCatalogVersion (if present) is a valid semver.
  */
 export function validateManifest(manifest: PackManifest, baseCatalog: NodeCatalog): ManifestCheck {
+  if(!manifest || ![1,2].includes(manifest.manifestVersion??1))return {ok:false,reason:'UNSUPPORTED_MANIFEST_VERSION'};
+  if(manifest.manifestVersion===2){
+    const contract=validatePackV2(manifest);if(!contract.ok)return contract;
+    for(const resource of manifest.resources??[])if(resource.kind==='blueprint'){
+      const ir=resource.spec.ir as BlueprintIR;const check=validateIR(ir,baseCatalog);if(!check.ok)return check;
+      for(const node of ir.nodes){const capability=baseCatalog.get(node.type)?.capability;if(capability&&!resource.capabilities.includes(capability))return {ok:false,reason:'UNDECLARED_CAPABILITY'};}
+    }
+  }else if(manifest.resources?.length)return {ok:false,reason:'RESOURCES_REQUIRE_MANIFEST_V2'};
+
   if (!manifest.id || !manifest.id.trim()) {
     return { ok: false, reason: 'manifest.id is required' };
   }
@@ -129,7 +143,7 @@ export function validateManifest(manifest: PackManifest, baseCatalog: NodeCatalo
   }
 
   // Validate contributed nodes
-  for (const node of manifest.contributes.nodes ?? []) {
+  for (const node of manifest.contributes?.nodes ?? []) {
     const check = validateDescriptor(node);
     if (!check.ok) {
       return { ok: false, reason: `Contributed node '${node.type}': ${check.reason}` };
@@ -139,12 +153,12 @@ export function validateManifest(manifest: PackManifest, baseCatalog: NodeCatalo
   // Build a temporary catalog merging base + pack nodes for blueprint validation
   const tempCatalog = new NodeCatalog();
   for (const node of baseCatalog.list()) tempCatalog.register(node);
-  for (const node of manifest.contributes.nodes ?? []) {
+  for (const node of manifest.contributes?.nodes ?? []) {
     try { tempCatalog.register(node); } catch { /* already checked above */ }
   }
 
   // Validate contributed blueprints against the merged catalog
-  for (const bp of manifest.contributes.blueprints ?? []) {
+  for (const bp of manifest.contributes?.blueprints ?? []) {
     const check = validateIR(bp, tempCatalog);
     if (!check.ok) {
       return { ok: false, reason: `Contributed blueprint '${bp.metadata.name}': ${check.reason}` };
@@ -241,7 +255,7 @@ export function checkDependencies(
  */
 export function derivePackCapabilities(manifest: PackManifest): string[] {
   const caps = new Set<string>(manifest.capabilities ?? []);
-  for (const node of manifest.contributes.nodes ?? []) {
+  for (const node of manifest.contributes?.nodes ?? []) {
     if (node.capability) caps.add(node.capability);
   }
   return [...caps].sort();
