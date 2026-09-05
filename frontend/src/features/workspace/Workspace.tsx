@@ -1,5 +1,6 @@
+import {PropertyQueries} from '../knowledge/PropertyQueryView';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
   FileText,
@@ -86,6 +87,7 @@ interface NavEntry {
 const BUILTIN_VIEWS: NavEntry[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, order: 10 },
   { id: 'marketplace', label: 'Marketplace', icon: Store, order: 20 },
+  { id: 'property-queries', label: 'Property queries', icon: FolderSearch, order: 39 },
   { id: 'pack-studio', label: 'Pack Studio', icon: Store, order: 38 },
   { id: 'packs', label: 'Packs', icon: Store, order: 37 },
   { id: 'approvals', label: 'Approvals', icon: Workflow, order: 36 },
@@ -199,6 +201,9 @@ function WorkspaceShell() {
   const plugins = usePlugins();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams]=useSearchParams();
+  const linkedNote=searchParams.get("note");
+  useEffect(()=>{if(linkedNote&&/^[1-9][0-9]*$/.test(linkedNote)&&data.notes.some(note=>note.id===Number(linkedNote)))setSelectedId(Number(linkedNote));},[linkedNote,data.notes]);
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [navOpen, setNavOpen] = useState(false);
@@ -396,6 +401,7 @@ function WorkspaceShell() {
         )}
         {view === 'executions' && <ExecutionCenter />}
         {view === 'approvals' && <ApprovalInbox />}
+        {view === 'property-queries' && <PropertyQueries />}
         {view === 'packs' && <WorkspacePacks />}
         {view === 'pack-studio' && <PackStudio />}
         {view === 'marketplace' && <MarketplaceView />}

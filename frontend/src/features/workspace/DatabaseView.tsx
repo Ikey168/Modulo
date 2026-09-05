@@ -1,3 +1,5 @@
+import {queryRequest} from '../knowledge/propertyQueryApi';
+import {Link} from 'react-router-dom';
 // Renders a ```database fence as an interactive, Notion-style embedded database.
 // Two views over the same rows: a typed table and a board grouped by a select
 // column. All editing goes through the useDatabase hook, which persists to
@@ -68,6 +70,9 @@ const CELL_INPUT =
   'w-full bg-transparent px-2 py-1.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus:bg-surface-2';
 
 export function DatabaseView({ source }: { source: string }) {
+  const [migration,setMigration]=useState<{query?:{id:string};created?:number;retained?:number}>();
+  const [migrationError,setMigrationError]=useState('');
+  const [migrating,setMigrating]=useState(false);
   const api = useDatabase(source);
   const view = api.db.view ?? 'table';
   const setView = api.setView;
@@ -76,6 +81,7 @@ export function DatabaseView({ source }: { source: string }) {
   return (
     <div className="my-5 overflow-hidden rounded-lg border border-border bg-surface">
       <PluginStateNotice {...api.sync} />
+      <details className="border-b border-border px-3 py-2 text-sm"><summary className="cursor-pointer">Use rows as linked notes</summary><p className="my-2">Import up to 100 rows into typed notes and a saved query. Original rows stay here; existing imported notes are preserved on retry.</p>{migrationError&&<p role="alert">{migrationError}</p>}<button className="rounded border border-border px-2 py-1" disabled={!api.sync.ready||migrating||db.rows.length>100} onClick={async()=>{setMigrating(true);setMigrationError('');try{setMigration(await queryRequest('/import-database',db));window.dispatchEvent(new Event('modulo:properties-changed'));}catch(e){setMigrationError((e as Error).message);}finally{setMigrating(false);}}}>Create linked notes and query</button>{migration?.query&&<p role="status">Created {migration.created}; retained {migration.retained}. <Link className="underline" to={`/app/property-queries?query=${migration.query.id}`}>Open saved query</Link></p>}</details>
       {api.sync.legacy && <div className="flex flex-wrap items-center gap-3 border-b px-3 py-2 text-sm">
         <span>Embedded databases are saved in this browser.</span>
         <Button size="sm" variant="outline" disabled={!api.sync.ready} onClick={() => void api.sync.importLegacy()}>Import into this account</Button>

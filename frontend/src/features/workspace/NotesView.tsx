@@ -1,3 +1,4 @@
+import {PropertyQueryResults} from '../knowledge/PropertyQueryView';
 import {NotePropertyPanel} from '../knowledge/NotePropertyPanel';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -485,7 +486,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
           </div>
         ) : (
           <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
-            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} fences={noteFences} />
+            <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} fences={[...noteFences,{language:"property-query",component:({source}:{source:string})=>/^[0-9a-f-]{36}$/.test(source.trim())?<PropertyQueryResults id={source.trim()}/>:<p>Invalid saved query ID.</p>}]} />
           </div>
         )}
       </div>
