@@ -17,3 +17,5 @@ export const getApproval = (id: string, signal?: AbortSignal) => request<Approva
 export const decideApproval = (approval: Approval, outcome: string, comment: string, idempotencyKey: string) => request<{state: string}>(`/${encodeURIComponent(approval.id)}/decision`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({expectedRevision:approval.revision,idempotencyKey,outcome,comment})});
 
 export const getApprovalEvidence = (id: string) => request<{digest: string; summary: Approval["summary"]}>(`/${encodeURIComponent(id)}/evidence`);
+
+export const getDecisionSignature = (requestId: string, decisionId: string) => request<Record<string,unknown>>(`/${encodeURIComponent(requestId)}/decisions/${encodeURIComponent(decisionId)}/signature`);

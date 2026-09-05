@@ -64,7 +64,15 @@ class ApprovalRuntimeTest {
     runs = new WorkflowRunService(jdbc, manager, users);
     notes = mock(NoteService.class);
     checkpoints = new WorkflowCheckpointService(jdbc, json, notes);
-    approvals = new ApprovalService(jdbc, manager, json, new TracePolicy(""), runs, notes);
+    approvals =
+        new ApprovalService(
+            jdbc,
+            manager,
+            json,
+            new TracePolicy(""),
+            runs,
+            notes,
+            new com.modulo.blueprint.approval.ApprovalSigningService(jdbc, json, "", "", false));
     var owner = mock(AuthenticatedUserService.class);
     when(owner.requireUserId()).thenReturn(1L);
     var repository = new BlueprintRepository();
@@ -153,6 +161,103 @@ class ApprovalRuntimeTest {
   UUID run() {
     return jdbc.queryForObject(
         "SELECT run_ref FROM approval_requests ORDER BY created_at LIMIT 1", UUID.class);
+  }
+
+  @org.junit.jupiter.api.io.TempDir java.nio.file.Path keyDirectory;
+
+  private com.modulo.blueprint.approval.ApprovalSigningService configureSigning(String name)
+      throws Exception {
+    var pair = java.security.KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+    var secret = keyDirectory.resolve(name + ".pk8");
+    var visible = keyDirectory.resolve(name + ".spki");
+    java.nio.file.Files.write(secret, pair.getPrivate().getEncoded());
+    java.nio.file.Files.write(visible, pair.getPublic().getEncoded());
+    var signing =
+        new com.modulo.blueprint.approval.ApprovalSigningService(
+            jdbc, json, secret.toString(), visible.toString(), true);
+    approvals =
+        new ApprovalService(
+            jdbc,
+            new DataSourceTransactionManager(source),
+            json,
+            new TracePolicy(""),
+            runs,
+            notes,
+            signing);
+    return signing;
+  }
+
+  @Test
+  void signingFailureRollsBackDecisionAndResume() {
+    UUID request = pending();
+    var failed = mock(com.modulo.blueprint.approval.ApprovalSigningService.class);
+    when(failed.signDecision(any()))
+        .thenThrow(
+            new com.modulo.blueprint.approval.ApprovalFailure(
+                org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                "APPROVAL_SIGNING_FAILED"));
+    approvals =
+        new ApprovalService(
+            jdbc,
+            new DataSourceTransactionManager(source),
+            json,
+            new TracePolicy(""),
+            runs,
+            notes,
+            failed);
+    assertThrows(
+        ResponseStatusException.class, () -> approvals.decide(request, 2, decision("APPROVE")));
+    assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM approval_decisions", Long.class));
+    assertEquals(
+        "PENDING", jdbc.queryForObject("SELECT state FROM approval_requests", String.class));
+    assertNull(
+        jdbc.queryForObject("SELECT resume_at FROM workflow_runs", java.sql.Timestamp.class));
+  }
+
+  @Test
+  void signedDecisionsSurviveRotationAndDetectEveryCoveredFieldChange() throws Exception {
+    var first = configureSigning("first");
+    UUID request = pending();
+    var input = decision("APPROVE");
+    var receipt = approvals.decide(request, 2, input);
+    assertEquals("SERVER_SIGNED", receipt.get("signatureState"));
+    assertEquals(receipt, approvals.decide(request, 2, input));
+    UUID decision = (UUID) receipt.get("id");
+    var envelope = approvals.signature(request, decision, 2);
+    String statement = envelope.get("statement").toString();
+    byte[] signature = Base64.getDecoder().decode(envelope.get("signature").toString());
+    var key =
+        java.security.KeyFactory.getInstance("Ed25519")
+            .generatePublic(
+                new java.security.spec.X509EncodedKeySpec(
+                    Base64.getDecoder().decode(envelope.get("publicKey").toString())));
+    assertTrue(
+        com.modulo.blueprint.approval.ApprovalSigningService.verify(
+            key, statement.getBytes(java.nio.charset.StandardCharsets.UTF_8), signature));
+    var fields = json.readValue(statement, String[].class);
+    for (int i = 0; i < fields.length; i++) {
+      var changed = fields.clone();
+      changed[i] += "changed";
+      assertFalse(
+          com.modulo.blueprint.approval.ApprovalSigningService.verify(
+              key, json.writeValueAsBytes(changed), signature));
+    }
+    assertThrows(ResponseStatusException.class, () -> approvals.signature(request, decision, 3));
+    configureSigning("second");
+    var nextInterpreter = interpreter();
+    nextInterpreter.registerBlueprint(entry);
+    nextInterpreter.fireWebhook(entry.getId(), "trigger", "test-secret", "payload", "second-event");
+    UUID secondRequest =
+        jdbc.queryForObject("SELECT id FROM approval_requests WHERE id<>?", UUID.class, request);
+    approvals.decide(secondRequest, 2, decision("REJECT"));
+    assertEquals(2L, jdbc.queryForObject("SELECT count(*) FROM approval_signing_keys", Long.class));
+    assertEquals(envelope, first.envelope(decision));
+    assertThrows(
+        org.springframework.dao.DataAccessException.class,
+        () ->
+            jdbc.update(
+                "UPDATE approval_signatures SET signature='changed' WHERE decision_id=?",
+                decision));
   }
 
   @Test

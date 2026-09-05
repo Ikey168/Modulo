@@ -1,0 +1,17 @@
+name: Approval signature vectors
+on:
+  pull_request:
+    paths:
+      - 'shared/approval/**'
+      - 'scripts/verify-approval.mjs'
+      - 'backend/src/main/java/com/modulo/blueprint/approval/**'
+      - '.github/workflows/approval-signatures.yml'
+jobs:
+  offline-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test shared/approval/verification.test.mjs
