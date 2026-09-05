@@ -54,7 +54,7 @@ public class CloudSecurityConfig {
             // Enhanced authorization rules
             .authorizeRequests(authz -> authz
                 // The STOMP interceptor authenticates CONNECT; public shares validate their stored grant.
-                .antMatchers("/ws", "/ws/**", "/api/s/**").permitAll()
+                .antMatchers("/ws", "/ws/**", "/api/s/**", "/api/plugin-state/callback/**").permitAll()
                 // Public health and monitoring endpoints (with restrictions)
                 .antMatchers("/api/health/status", "/api/simple-health").permitAll()
                 .antMatchers("/actuator/health", "/actuator/info").permitAll()

@@ -20,9 +20,9 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 | [#412](https://github.com/Ikey168/Modulo/issues/412) | EPIC: Pack Studio and complete installable workspace experiences | Open epic; child acceptance criteria remain incomplete. |
 | [#413](https://github.com/Ikey168/Modulo/issues/413) | EPIC: Marketplace Trust Center and safe plugin upgrades | Open epic; child acceptance criteria remain incomplete. |
 | [#414](https://github.com/Ikey168/Modulo/issues/414) | EPIC: Structured note properties, query views, and private semantic knowledge | Open epic; child acceptance criteria remain incomplete. |
-| [#415](https://github.com/Ikey168/Modulo/issues/415) | State P1: enforce authenticated ownership on notes, tags, links, attachments, and tasks | Implemented in the tenant-isolation change: owner-scoped resource queries and caches, relationship guards, authenticated STOMP subscriptions/delivery, private attachments, authoritative audit actors, verified share grants and tested legacy backfill. See the [migration runbook](../operations/tenant-ownership-migration.md). |
+| [#415](https://github.com/Ikey168/Modulo/issues/415) | State P1: enforce authenticated ownership on notes, tags, links, attachments, and tasks | Merged in [PR #452](https://github.com/Ikey168/Modulo/pull/452); closed. Implemented: owner-scoped resource queries and caches, relationship guards, authenticated STOMP subscriptions/delivery, private attachments, authoritative audit actors, verified share grants and tested legacy backfill. See the [migration runbook](../operations/tenant-ownership-migration.md). |
 | [#416](https://github.com/Ikey168/Modulo/issues/416) | State P2: ADR and contract for namespaced plugin state | ADR 0008 published; closed. |
-| [#417](https://github.com/Ikey168/Modulo/issues/417) | State P3: implement versioned plugin-state persistence and REST API | Partial local implementation: PostgreSQL store, migration and host REST API; external permissions, schema registry and event delivery remain. |
+| [#417](https://github.com/Ikey168/Modulo/issues/417) | State P3: implement versioned plugin-state persistence and REST API | Implemented locally: PostgreSQL CAS store and API, dual-token external owner grants, immutable schema registry, metadata-only private outbox and adversarial PostgreSQL/HTTP tests. Publication and full verification in progress. |
 | [#418](https://github.com/Ikey168/Modulo/issues/418) | State P4: frontend plugin-state client with offline queue and conflict handling | Published client, plugin context, authentication lifecycle and remote discovery; 61 isolated-tree tests and typecheck pass. Closed. |
 | [#419](https://github.com/Ikey168/Modulo/issues/419) | State P5: migrate plugin installs, hub preferences, and saved searches off localStorage | Account-scoped installs, hub tabs and saved searches implemented; migration, offline provider, dependency and account-switch tests pass in the isolated publishable tree (74 tests total). Published in da81f541; closed. |
 | [#420](https://github.com/Ikey168/Modulo/issues/420) | State P6: migrate Canvas boards to synchronized plugin state | Published per-board synchronization, lossless create-only migration and recovery export; eight focused Canvas synchronization tests pass. Closed. |
@@ -60,7 +60,7 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 
 ## Next implementation dependencies
 
-1. Publish and verify #415 tenant isolation, including the V4 migration and explicit legacy backfill runbook.
+1. #415 is merged and closed. Full Java 17 `mvn verify` passed: 699 backend tests, no failures/errors, three existing skips.
 2. Finish #417 permissions/schema/event delivery and #422 operational-record migrations; run #423 before closing #409. Client and consumer migrations #418–421 are published.
 3. Deliver #424–429, then #430–434, followed by the dependent Pack Studio, Trust Center and knowledge work in the [roadmap order](feature-ideas.md).
 4. Keep #401 open until actual staging soak, release and Pi evidence satisfies its operational criteria.
