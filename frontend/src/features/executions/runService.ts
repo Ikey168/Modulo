@@ -1,4 +1,5 @@
 export interface WorkflowRun {
+  max_auto_attempts?: number; retry_backoff_seconds?: number;
   parent_run_id?: string; cancel_requested_at?: string;
   id: string; blueprint_id: number | null; blueprint_name: string | null;
   blueprint_version: string; trigger_type: string; state: string; attempt: number;

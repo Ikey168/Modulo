@@ -147,3 +147,42 @@ oversized, or unavailable snapshots disable that replay boundary; historical run
 without checkpoints remain inspectable. They cascade-delete with retained runs.
 Backups therefore include private workflow payloads and need the same protection
 as notes. Recovery after a crashed worker is addressed by the durable scheduler.
+
+## Durable scheduling and waits (#428)
+
+V10 stores cron definitions, zones, next-fire instants and delivery jobs in
+PostgreSQL. The editor exposes six-field cron, IANA time zone (default UTC), and
+bounded automatic retry settings. Re-registering an unchanged definition keeps
+its next-fire instant. Missed intervals coalesce into one retained delivery and
+the next future fire; they do not produce an unbounded catch-up burst.
+
+A PostgreSQL advisory lock elects one dispatcher across application instances.
+It commits each due job and advances the definition transactionally before
+execution. A job UUID is the trigger idempotency key. If the dispatcher dies,
+its connection releases leadership; a new dispatcher identifies uncertain
+running work as `DEAD_LETTER` rather than repeating its side effects. This is a
+single-dispatcher design: long actions can delay schedules, which is observable
+as schedule lag. Up to 100 due definitions and 10 deliveries are handled per
+poll. The retained job cap is 10,000 per owner; reaching it disables that schedule
+until capacity is reclaimed and the definition is re-enabled by saving it.
+
+`logic.wait` stores a private post-wait checkpoint and `resume_at`, then ends the
+active call. A dispatcher resumes that same run from the saved boundary after
+restart. A database state transition prevents duplicate resumes. Changed note
+references or invalid checkpoints dead-letter the run. The node accepts 1–86400
+seconds (default 60); waiting does not hold a worker or sleep a request thread.
+
+Scheduled runs display their retry policy. Configure `retryMaxAttempts` (1–5,
+default 1) and `retryBackoffSeconds` (5–3600, default 30) on the schedule node.
+Exponential backoff is capped at one hour. Automatic retries are limited to
+failed paths with no potentially effectful action invocation; loop guards and
+uncertain effects are non-retryable. Exhaustion moves the run to `DEAD_LETTER`.
+Execution Center's existing checkpoint replay creates a new attempt with lineage
+and requires confirmation for potentially repeated effects. Jobs rejected before
+a run can be created retain a classified dead-letter delivery record; correct
+the schedule definition before its next delivery.
+
+Validation includes real PostgreSQL concurrent dispatch, reconstructed scheduler
+next-fire preservation, reconstructed interpreter wait resume, bounded backoff,
+exhaustion and dead-letter attempt lineage. Delivery and checkpoint payloads
+remain private and expire with the existing 90-day retention policy.
