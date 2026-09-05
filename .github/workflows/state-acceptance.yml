@@ -1,0 +1,43 @@
+name: State acceptance
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install frontend fixtures
+        run: npm ci --workspace frontend --include-workspace-root
+      - name: PostgreSQL, signed HTTP sessions, backup and restart
+        env:
+          JAVA_TOOL_OPTIONS: -Xmx768m
+        run: mvn -B -f backend/pom.xml -Dtest=StateAcceptanceTest,PluginStateStoreTest,PluginStateContractTest,SchemaMigrationTest test
+      - name: Offline, two-account and restore-generation clients
+        working-directory: frontend
+        run: npx vitest run src/services/__tests__/stateAcceptance.test.ts src/services/__tests__/pluginStateClient.test.ts src/features/workspace/__tests__/operationalState.test.ts src/features/workspace/__tests__/useOperationalCollection.test.tsx --reporter=default --reporter=junit --outputFile.junit=test-results/state-acceptance.xml
+      - name: TypeScript contract
+        run: npm run typecheck --workspace frontend
+      - name: Publish test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-acceptance-diagnostics
+          path: |
+            backend/target/surefire-reports/
+            frontend/test-results/state-acceptance.xml
+          retention-days: 7

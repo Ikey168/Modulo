@@ -37,6 +37,7 @@ export interface StateSnapshot {
   format: 1;
   partition: string;
   sequence: number;
+  generation?: string;
   entries: StateEntry[];
 }
 export interface StatePersistence {
@@ -44,6 +45,8 @@ export interface StatePersistence {
   save(partition: string, snapshot: StateSnapshot): Promise<void>;
 }
 export interface StateTransport {
+  generation?(signal: AbortSignal): Promise<string>;
+  useGeneration?(generation: string): void;
   list?(cursor: string | undefined, signal: AbortSignal): Promise<{ records: StateRecord[]; nextCursor?: string | null }>;
   get(key: string, signal: AbortSignal): Promise<StateRecord | undefined>;
   put(key: string, request: { expectedVersion: number; schemaId: string; schemaVersion: number; value: StateJson },
@@ -108,6 +111,7 @@ export class PluginStateClient {
   private writes: Promise<void> = Promise.resolve();
   private flushing?: Promise<void>;
   private refreshing?: Promise<void>;
+  private checkingGeneration?: Promise<void>;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private failures = 0;
   private _status: StateSyncStatus = 'idle';
@@ -142,6 +146,11 @@ export class PluginStateClient {
       client.snapshot = copy(stored);
       if (stored.entries.some(entry => entry.conflict)) client._status = 'conflict';
       if (stored.entries.some(entry => entry.pending)) client.scheduleSync();
+    }
+    if (transport.generation) {
+      void client.ensureGeneration().catch(error => {
+        if (client.status !== 'closed') client.setStatus(error instanceof StateRequestError ? 'error' : 'offline', error instanceof Error ? error.message : 'Storage handshake failed');
+      });
     }
     return client;
   }
@@ -230,6 +239,7 @@ export class PluginStateClient {
   async refresh(key: string): Promise<void> {
     this.ensureOpen();
     if (!segment.test(key)) throw new Error('Invalid state key');
+    if (this.transport.generation) await this.ensureGeneration();
     const remote = await this.transport.get(key, this.abort.signal);
     this.ensureOpen();
     await this.change(snapshot => {
@@ -248,6 +258,7 @@ export class PluginStateClient {
   }
 
   private async pull(): Promise<void> {
+    await this.ensureGeneration();
     const before = new Map(this.snapshot.entries.map(entry => [entry.key, entry.remote?.version]));
     const records = new Map<string, StateRecord>();
     let cursor: string | undefined;
@@ -319,6 +330,7 @@ export class PluginStateClient {
     this.setStatus('syncing');
     try {
       await this.writes;
+      await this.ensureGeneration();
       while (!this.abort.signal.aborted) {
         const entry = this.snapshot.entries.filter(item => item.pending && !item.conflict)
           .sort((a, b) => a.pending!.sequence - b.pending!.sequence)[0];
@@ -372,6 +384,49 @@ export class PluginStateClient {
         this.retryTimer = setTimeout(() => { if (!this.abort.signal.aborted) void this.synchronize(); }, delay);
       }
     }
+  }
+
+  private ensureGeneration(): Promise<void> {
+    if (!this.transport.generation) return Promise.resolve();
+    if (!this.checkingGeneration) this.checkingGeneration = this.reconcileGeneration().catch(error => {
+      if (!this.abort.signal.aborted) this.setStatus(error instanceof StateRequestError && error.status < 500 ? 'error' : 'offline',
+        error instanceof Error ? error.message : 'Storage handshake failed');
+      throw error;
+    }).finally(() => { this.checkingGeneration = undefined; });
+    return this.checkingGeneration;
+  }
+
+  /** A restored version space cannot be used as the base of an old queued mutation. */
+  private async reconcileGeneration(): Promise<void> {
+    const generation = await this.transport.generation!(this.abort.signal);
+    this.ensureOpen();
+    if (typeof generation !== 'string' || !/^[0-9a-f-]{36}$/i.test(generation)) throw new Error('Invalid storage generation');
+    if (this.snapshot.generation === generation) { this.transport.useGeneration?.(generation); return; }
+    const remotes = new Map<string, StateRecord | undefined>();
+    // Include local edits created during the handshake; a final serialized check prevents omissions.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      for (const entry of this.snapshot.entries) {
+        if (!remotes.has(entry.key)) remotes.set(entry.key, await this.transport.get(entry.key, this.abort.signal));
+      }
+      this.ensureOpen();
+      if (await this.transport.generation!(this.abort.signal) !== generation) throw new StateRequestError(412, 'STATE_STORAGE_GENERATION_CHANGED');
+      let retry = false;
+      await this.change(snapshot => {
+        if (snapshot.entries.some(entry => !remotes.has(entry.key))) { retry = true; return; }
+        for (const entry of snapshot.entries) {
+          const remote = remotes.get(entry.key);
+          if (entry.pending && (snapshot.generation !== undefined || entry.pending.base || entry.remote)) entry.conflict = { base: entry.pending.base, remote };
+          entry.remote = remote;
+        }
+        snapshot.entries = snapshot.entries.filter(entry => entry.remote || entry.pending);
+        snapshot.generation = generation;
+      });
+      if (retry) continue;
+      this.transport.useGeneration?.(generation);
+      if (this.snapshot.entries.some(entry => entry.conflict)) this.setStatus('conflict', 'Database history changed. Review preserved offline edits.');
+      return;
+    }
+    throw new StateRequestError(409, 'STATE_GENERATION_RECONCILIATION_BUSY');
   }
 
   private change(edit: (snapshot: StateSnapshot) => void): Promise<void> {

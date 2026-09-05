@@ -38,7 +38,10 @@ class PluginStateContractTest {
     try (var connection = source.getConnection()) {
       connection.createStatement().execute("CREATE TABLE users(id BIGINT PRIMARY KEY)");
       for (String migration :
-          List.of("V3__Versioned_plugin_state.sql", "V5__Plugin_state_grants_and_delivery.sql"))
+          List.of(
+              "V3__Versioned_plugin_state.sql",
+              "V5__Plugin_state_grants_and_delivery.sql",
+              "V6__State_storage_generation.sql"))
         ScriptUtils.executeSqlScript(
             connection, new ClassPathResource("db/postgresql/" + migration));
     }
@@ -219,6 +222,11 @@ class PluginStateContractTest {
     var http =
         org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(
                 new ExternalPluginStateController(store, grants))
+            .defaultRequest(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
+                    .header(
+                        "X-Modulo-State-Generation",
+                        store.generation("personal", "external").generation()))
             .build();
     String path = "/api/plugin-state/callback/workspaces/personal/external/record";
     http.perform(

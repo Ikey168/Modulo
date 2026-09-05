@@ -102,3 +102,11 @@ alerts during V5 migration. The worker is disabled in the `test` profile and can
 be disabled operationally with `modulo.state.delivery.enabled=false` without
 stopping durable writes or polling. No production migration or credential
 provisioning is performed by compiling or testing this change.
+
+## Restore generation handshake
+
+Before mutations, read `GET ?generation` on the namespace endpoint and include its
+UUID as `X-Modulo-State-Generation` on PUT and DELETE. The authenticated external
+callback supports the same handshake, including write-only grants. Missing headers
+receive 428 `STATE_STORAGE_GENERATION_REQUIRED`; stale generations receive 412
+`STATE_STORAGE_GENERATION_CHANGED`. See the [restore procedure](../operations/state-acceptance.md).

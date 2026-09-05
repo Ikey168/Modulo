@@ -39,6 +39,7 @@ class PluginStateStoreTest {
             ScriptUtils.executeSqlScript(connection,
                     new ClassPathResource("db/postgresql/V3__Versioned_plugin_state.sql"));
             ScriptUtils.executeSqlScript(connection,new ClassPathResource("db/postgresql/V5__Plugin_state_grants_and_delivery.sql"));
+            ScriptUtils.executeSqlScript(connection,new ClassPathResource("db/postgresql/V6__State_storage_generation.sql"));
         }
     }
     @BeforeEach void setup() {
@@ -187,7 +188,8 @@ class PluginStateStoreTest {
     }
     @Test void httpCrudReturnsEtagsAndMachineReadableConflicts() throws Exception {
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
-                .standaloneSetup(new PluginStateController(store)).build();
+                .standaloneSetup(new PluginStateController(store))
+                .defaultRequest(get("/").header("X-Modulo-State-Generation", jdbc.queryForObject("SELECT generation::text FROM plugin_state_storage", String.class))).build();
         String endpoint = "/api/workspaces/personal/plugin-state/canvas/http";
         String body = "{\"expectedVersion\":0,\"schemaId\":\"test\",\"schemaVersion\":1,\"value\":{\"x\":1}}";
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(endpoint)
@@ -205,7 +207,8 @@ class PluginStateStoreTest {
     }
     @Test void httpRejectsMissingVersionDuplicatesInvalidUtf8AndOversizedBody() throws Exception {
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
-                .standaloneSetup(new PluginStateController(store)).build();
+                .standaloneSetup(new PluginStateController(store))
+                .defaultRequest(get("/").header("X-Modulo-State-Generation", jdbc.queryForObject("SELECT generation::text FROM plugin_state_storage", String.class))).build();
         String endpoint = "/api/workspaces/personal/plugin-state/canvas/http";
         for (String body : List.of("{}", "{\"expectedVersion\":0,\"schemaId\":\"s\",\"schemaVersion\":1,\"value\":{\"a\":1,\"a\":2}}")) {
             mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(endpoint)
@@ -223,7 +226,8 @@ class PluginStateStoreTest {
         put("private", 0, "1");
         when(users.requireUserId()).thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "unprovisioned"));
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
-                .standaloneSetup(new PluginStateController(store)).build();
+                .standaloneSetup(new PluginStateController(store))
+                .defaultRequest(get("/").header("X-Modulo-State-Generation", jdbc.queryForObject("SELECT generation::text FROM plugin_state_storage", String.class))).build();
         mvc.perform(get("/api/workspaces/personal/plugin-state/canvas/private"))
                 .andExpect(status().isForbidden());
     }
