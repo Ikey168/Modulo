@@ -25,15 +25,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -54,6 +50,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private static final long ACTION_TIMEOUT_SECS = 30;
 
     @Autowired private com.modulo.blueprint.execution.WorkflowCheckpointService checkpoints;
+    @Autowired(required=false) private com.modulo.blueprint.execution.WorkflowScheduler workflowScheduler;
     @Autowired private BlueprintRepository blueprintRepository;
     @Autowired private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
     private final Map<Long, BlueprintEntry> runtimeEntries = new ConcurrentHashMap<>();
@@ -70,21 +67,11 @@ public class BlueprintInterpreterService implements ApplicationRunner {
 
     // Per-blueprint listener registrations so they can be removed on unregister.
     private final Map<String, List<ListenerRegistration>> registeredListeners = new ConcurrentHashMap<>();
-    private final Map<String, List<ScheduledFuture<?>>> scheduledJobs = new ConcurrentHashMap<>();
 
     // Webhook trigger registrations (#363): "<registryId>:<nodeId>" → registration,
     // plus per-blueprint keys so unregister removes exactly its endpoints.
     private final Map<String, WebhookRegistration> webhooks = new ConcurrentHashMap<>();
     private final Map<String, List<String>> webhookKeysByBlueprint = new ConcurrentHashMap<>();
-
-    private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-
-    @PostConstruct
-    public void initScheduler() {
-        taskScheduler.setPoolSize(4);
-        taskScheduler.setThreadNamePrefix("blueprint-schedule-");
-        taskScheduler.initialize();
-    }
 
     /** Load and register all blueprints when the application is ready. */
     @Override
@@ -115,7 +102,6 @@ public class BlueprintInterpreterService implements ApplicationRunner {
 
         Long registryId = entry.getId();
         List<ListenerRegistration> listeners = new ArrayList<>();
-        List<ScheduledFuture<?>> futures = new ArrayList<>();
 
         for (BlueprintIRGraph.IRNode node : graph.getNodes()) {
             if (!node.getType().startsWith("trigger.")) continue;
@@ -147,16 +133,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         logger.warn("Blueprint schedule missing cron configuration");
                         break;
                     }
-                    String triggerId = node.getId();
-                    try {
-                        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
-                            String firedAt = LocalDateTime.now().toString();
-                            executeBlueprint(graph, registryId, triggerId, Map.of("firedAt", firedAt),firedAt);
-                        }, new CronTrigger(cron));
-                        futures.add(future);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Blueprint schedule rejected invalid cron");
-                    }
+                    // Persisted scheduler registration occurs once the graph is registered.
                     break;
                 }
                 case "trigger.webhook": {
@@ -178,20 +155,16 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         }
 
         registeredListeners.put(Long.toString(entry.getId()), listeners);
-        if (!futures.isEmpty()) scheduledJobs.put(Long.toString(entry.getId()), futures);
+        if(workflowScheduler!=null) workflowScheduler.sync(entry,graph);
         logger.info("Blueprint registered");
     }
 
-    /** Unregister a blueprint: unsubscribe listeners and cancel scheduled jobs. */
+    /** Unregister instance-local event and webhook listeners. */
     public void unregisterBlueprint(String name) {
         try { runtimeEntries.remove(Long.parseLong(name)); } catch(NumberFormatException ignored) { return; }
         List<ListenerRegistration> listeners = registeredListeners.remove(name);
         if (listeners != null) {
             listeners.forEach(r -> eventBus.unsubscribe(r.eventType(), r.listener()));
-        }
-        List<ScheduledFuture<?>> futures = scheduledJobs.remove(name);
-        if (futures != null) {
-            futures.forEach(f -> f.cancel(false));
         }
         List<String> webhookKeys = webhookKeysByBlueprint.remove(name);
         if (webhookKeys != null) {
@@ -236,10 +209,14 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         return note != null && java.util.Objects.equals(note.getUserId(),owner);
     }
 
-    private void executeBlueprint(BlueprintIRGraph graph, Long registryId,
+    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, Long registryId,
                                    String triggerNodeId, Map<String, Object> triggerOutputs, String triggerKey) {
         BlueprintEntry entry=runtimeEntries.get(registryId);
-        if(entry==null || entry.getOwnerId()==null) return;
+        if(entry==null || entry.getOwnerId()==null) return null;
+        return executeBlueprint(graph,entry,triggerNodeId,triggerOutputs,triggerKey);
+    }
+    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, BlueprintEntry entry,String triggerNodeId,Map<String,Object> triggerOutputs,String triggerKey) {
+        Long registryId=entry.getId();
         String digest;
         try {
             String canonical=objectMapper.copy().enable(com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).writeValueAsString(entry.getIr());
@@ -247,7 +224,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         } catch(Exception invalid) { throw new IllegalArgumentException("Invalid Blueprint snapshot",invalid); }
         var trigger=graph.getNodes().stream().filter(node->node.getId().equals(triggerNodeId)).findFirst().orElseThrow();
         var lease=workflowRuns.create(registryId,entry.getOwnerId(),entry.getVersion()==null?"1":entry.getVersion(),digest,triggerNodeId,trigger.getType(),triggerKey);
-        if(!lease.created()) return;
+        if(!lease.created()) return lease.id();
         workflowRuns.begin(lease);
         BlueprintExecutionContext ctx=new BlueprintExecutionContext(lease);
         ctx.setRegistryId(registryId);
@@ -268,6 +245,8 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             workflowRuns.checkCancellation(lease);
             workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
             logger.info("Workflow run {} finished",lease.id());
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // The scheduler will resume the persisted boundary.
         } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
             workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
             logger.info("Workflow run {} cancelled",lease.id());
@@ -276,6 +255,13 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             workflowRuns.transition(lease,"RUNNING","FAILED",classification);
             logger.warn("Workflow run {} failed: {}",lease.id(),classification);
         }
+        return lease.id();
+    }
+
+    public java.util.UUID fireScheduled(BlueprintEntry entry,String nodeId,String key,String firedAt) {
+        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
+        if(graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.schedule".equals(node.getType()))) throw new IllegalArgumentException("SCHEDULE_REMOVED");
+        return executeBlueprint(graph,entry,nodeId,Map.of("firedAt",firedAt),key);
     }
 
     public java.util.UUID retryRun(java.util.UUID parent,long owner,java.util.UUID requestId,int sequence,boolean confirmed) {
@@ -296,12 +282,37 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 return null;
             });
             workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // The scheduler will resume the persisted boundary.
         } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
             workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
         } catch(Exception failure) {
             workflowRuns.transition(lease,"RUNNING","FAILED","NODE_FAILURE");
         }
         return lease.id();
+    }
+
+    public void resumeWaiting(java.util.UUID run,long owner,int checkpoint) {
+        var lease=new com.modulo.blueprint.execution.WorkflowRunService.Lease(run,owner,false);
+        if(!workflowRuns.resumeWaiting(lease)) return;
+        try {
+            workflowRuns.asOwner(lease,()->{
+                var snapshot=checkpoints.load(run,owner,checkpoint);
+                var ctx=new BlueprintExecutionContext(lease);
+                ctx.setRegistryId(workflowRuns.registryId(run,owner));
+                ctx.restorePins(snapshot.pins(),Math.max(0,checkpoint-1));
+                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
+                workflowRuns.checkCancellation(lease);
+                return null;
+            });
+            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // A later wait has its own committed checkpoint.
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+        } catch(Exception invalid) {
+            workflowRuns.transition(lease,"RUNNING","DEAD_LETTER","RESUME_FAILED");
+        }
     }
 
     /** Follow exec edges depth-first until there are no more. */
@@ -339,6 +350,14 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             } catch(Exception failure) {
                 workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),"NODE_FAILURE",elapsed(started));
                 throw failure;
+            }
+            if("logic.wait".equals(target.getType())) {
+                int seconds=((Number)(target.getConfig()==null?60:target.getConfig().getOrDefault("seconds",60))).intValue();
+                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
+                int checkpoint=ctx.getStepCount()+1;
+                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
+                workflowRuns.pause(ctx.getLease(),step,checkpoint,seconds,elapsed(started));
+                throw new com.modulo.blueprint.execution.WorkflowPausedException();
             }
             workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
         }
@@ -607,6 +626,12 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 outputs.put("status", brief.status());
                 outputs.put("itemCount", String.valueOf(brief.itemCount()));
                 return new NodeResult(outputs, "then");
+            }
+
+            case "logic.wait": {
+                Object value=node.getConfig()==null?60:node.getConfig().getOrDefault("seconds",60);
+                if(!(value instanceof Number number) || number.intValue()<1 || number.intValue()>86400 || number.doubleValue()!=number.intValue()) throw new IllegalArgumentException("INVALID_WAIT");
+                return new NodeResult(outputs,"then");
             }
 
             case "logic.branch": {

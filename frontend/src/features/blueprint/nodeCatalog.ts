@@ -102,6 +102,11 @@ export const CORE_NODES: NodeDescriptor[] = [
     capability: 'wasm:execute',
   },
   {
+    type: 'logic.wait', version: 1, category: 'logic', title: 'Wait',
+    description: 'Pause durably for 1–86400 seconds, then resume at the next step.',
+    execIn: true, execOut: ['then'], inputs: [], outputs: [],
+  },
+  {
     type: 'logic.branch',
     version: 1,
     category: 'logic',

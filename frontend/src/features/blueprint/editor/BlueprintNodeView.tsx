@@ -131,6 +131,14 @@ function BlueprintNodeViewImpl({ id, data, selected }: NodeProps<FlowNode>) {
         </div>
       </div>
 
+      {descriptor.type === 'logic.wait' && <label className="nodrag flex flex-col gap-1 border-t border-border p-3 text-xs">Wait seconds<input aria-label="Wait seconds" type="number" min={1} max={86400} value={Number(data.config?.seconds ?? 60)} onChange={event => updateNodeData(id,{...data,config:{...data.config,seconds:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>}
+      {descriptor.type === 'trigger.schedule' && <div className="nodrag space-y-2 border-t border-border p-3 text-xs">
+        <label className="flex flex-col gap-1">Cron (six fields)<input value={String(data.config?.cron ?? '')} onChange={event => updateNodeData(id,{...data,config:{...data.config,cron:event.target.value}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Time zone<input value={String(data.config?.zone ?? 'UTC')} onChange={event => updateNodeData(id,{...data,config:{...data.config,zone:event.target.value}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Maximum automatic attempts<input type="number" min={1} max={5} value={Number(data.config?.retryMaxAttempts ?? 1)} onChange={event => updateNodeData(id,{...data,config:{...data.config,retryMaxAttempts:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>
+        <label className="flex flex-col gap-1">Retry backoff seconds<input type="number" min={5} max={3600} value={Number(data.config?.retryBackoffSeconds ?? 30)} onChange={event => updateNodeData(id,{...data,config:{...data.config,retryBackoffSeconds:Number(event.target.value)}})} className="rounded border border-border bg-background p-1" /></label>
+      </div>}
+
       {/* Data pins: inputs on the left, outputs on the right. */}
       <div className="bp-node__data">
         <div className="bp-node__data-col">

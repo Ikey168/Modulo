@@ -55,6 +55,7 @@ class WorkflowRunServiceTest {
                       .readAllBytes(),
                   java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V9__Workflow_recovery.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+      c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V10__Durable_workflow_scheduling.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute("ALTER TABLE workflow_steps ADD COLUMN duration_ms BIGINT CHECK(duration_ms>=0)");
     }
   }
@@ -193,6 +194,86 @@ class WorkflowRunServiceTest {
     verify(sandbox,times(2)).execute(anyString(),anyString(),anyString());
     assertEquals("SUCCEEDED",jdbc.queryForObject("SELECT state FROM workflow_runs WHERE id=?",String.class,retry));
     assertEquals(List.of("script"),jdbc.queryForList("SELECT node_id FROM workflow_steps WHERE run_id=?",String.class,retry));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void schedulesSurviveReconstructionAndConcurrentDispatch() throws Exception {
+    var entry=blueprint("durable-cron");
+    jdbc.update("UPDATE plugin_registry SET config=CAST(? AS jsonb) WHERE id=?","{\"irVersion\":1,\"nodes\":[{\"id\":\"timer\",\"type\":\"trigger.schedule\",\"config\":{\"cron\":\"* * * * * *\"}}],\"edges\":[]}",entry.getId());
+    var interpreter=mock(com.modulo.blueprint.interpreter.BlueprintInterpreterService.class);
+    var provider=mock(org.springframework.beans.factory.ObjectProvider.class);when(provider.getObject()).thenReturn(interpreter);
+    var first=new WorkflowScheduler(jdbc,source,new DataSourceTransactionManager(source),new ObjectMapper(),provider);
+    var restarted=new WorkflowScheduler(jdbc,source,new DataSourceTransactionManager(source),new ObjectMapper(),provider);
+    var now=java.time.Instant.parse("2026-01-01T00:00:00Z");
+    first.syncAt(entry.getId(),now);
+    var next=jdbc.queryForObject("SELECT next_fire FROM workflow_schedules",java.sql.Timestamp.class);
+    restarted.syncAt(entry.getId(),now.plusSeconds(3600));
+    assertEquals(next,jdbc.queryForObject("SELECT next_fire FROM workflow_schedules",java.sql.Timestamp.class));
+    var pool=Executors.newFixedThreadPool(2);
+    try {
+      var a=pool.submit(()->first.enqueueDue(now.plusSeconds(2)));var b=pool.submit(()->restarted.enqueueDue(now.plusSeconds(2)));a.get();b.get();
+      assertEquals(1L,jdbc.queryForObject("SELECT count(*) FROM workflow_schedule_jobs",Long.class));
+      when(interpreter.fireScheduled(any(),anyString(),anyString(),anyString())).thenAnswer(call->{var lease=runs.create(entry.getId(),1,"1","a".repeat(64),"timer","trigger.schedule",call.getArgument(2));runs.begin(lease);runs.transition(lease,"RUNNING","SUCCEEDED",null);return lease.id();});
+      var c=pool.submit(()->{try {first.tick(now.plusSeconds(2));}catch(Exception e){throw new RuntimeException(e);}});
+      var d=pool.submit(()->{try {restarted.tick(now.plusSeconds(2));}catch(Exception e){throw new RuntimeException(e);}});c.get();d.get();
+      verify(interpreter,times(1)).fireScheduled(any(),anyString(),anyString(),anyString());
+      assertEquals("DELIVERED",jdbc.queryForObject("SELECT state FROM workflow_schedule_jobs",String.class));
+    } finally {pool.shutdownNow();}
+  }
+
+  @Test
+  void waitingRunResumesAfterInterpreterReconstructionExactlyOnce() {
+    var request=new BlueprintSaveRequest();request.setName("wait-restart");
+    request.setIr(Map.of("irVersion",1,"nodes",List.of(
+      Map.of("id","trigger","type","trigger.webhook","config",Map.of("secret","TEST_SECRET")),
+      Map.of("id","wait","type","logic.wait","config",Map.of("seconds",1)),
+      Map.of("id","write","type","action.note.create")),"edges",List.of(
+      Map.of("kind","exec","fromNode","trigger","fromPin","then","toNode","wait","toPin","in"),
+      Map.of("kind","exec","fromNode","wait","fromPin","then","toNode","write","toPin","in"))));
+    var entry=blueprints.create(request,"ignored");
+    var notes=mock(com.modulo.service.NoteService.class);var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);when(notes.save(any())).thenReturn(note);
+    var capabilities=mock(com.modulo.blueprint.BlueprintCapabilityService.class);when(capabilities.isGranted(anyLong(),anyString())).thenReturn(true);
+    java.util.function.Supplier<com.modulo.blueprint.interpreter.BlueprintInterpreterService> factory=()->{
+      var interpreter=new com.modulo.blueprint.interpreter.BlueprintInterpreterService();
+      ReflectionTestUtils.setField(interpreter,"workflowRuns",runs);
+      ReflectionTestUtils.setField(interpreter,"checkpoints",new WorkflowCheckpointService(jdbc,new ObjectMapper(),notes));
+      ReflectionTestUtils.setField(interpreter,"objectMapper",new ObjectMapper());
+      ReflectionTestUtils.setField(interpreter,"eventBus",mock(com.modulo.plugin.event.PluginEventBus.class));
+      ReflectionTestUtils.setField(interpreter,"noteService",notes);
+      ReflectionTestUtils.setField(interpreter,"capabilityService",capabilities);
+      return interpreter;
+    };
+    var original=factory.get();original.registerBlueprint(entry);original.fireWebhook(entry.getId(),"trigger","TEST_SECRET","payload","wait-1");
+    UUID run=jdbc.queryForObject("SELECT id FROM workflow_runs",UUID.class);
+    assertEquals("WAITING",jdbc.queryForObject("SELECT state FROM workflow_runs",String.class));verify(notes,never()).save(any());
+    jdbc.update("UPDATE workflow_runs SET resume_at=CURRENT_TIMESTAMP-INTERVAL '1 second' WHERE id=?",run);
+    var restarted=factory.get();restarted.resumeWaiting(run,1,2);restarted.resumeWaiting(run,1,2);
+    verify(notes,times(1)).save(any());assertEquals("SUCCEEDED",jdbc.queryForObject("SELECT state FROM workflow_runs",String.class));
+    assertEquals(List.of("trigger","wait","write"),jdbc.queryForList("SELECT node_id FROM workflow_steps ORDER BY sequence",String.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void safeFailuresBackOffThenBecomeReplayableDeadLetters() throws Exception {
+    var entry=blueprint("bounded-retry");
+    jdbc.update("UPDATE plugin_registry SET config=CAST(? AS jsonb) WHERE id=?","{\"irVersion\":1,\"nodes\":[{\"id\":\"timer\",\"type\":\"trigger.schedule\",\"config\":{\"cron\":\"* * * * * *\",\"retryMaxAttempts\":2,\"retryBackoffSeconds\":5}}],\"edges\":[]}",entry.getId());
+    var interpreter=mock(com.modulo.blueprint.interpreter.BlueprintInterpreterService.class);
+    var provider=mock(org.springframework.beans.factory.ObjectProvider.class);when(provider.getObject()).thenReturn(interpreter);
+    var scheduler=new WorkflowScheduler(jdbc,source,new DataSourceTransactionManager(source),new ObjectMapper(),provider);
+    java.util.function.Consumer<WorkflowRunService.Lease> fail=lease->{runs.begin(lease);var step=runs.startStep(lease,1,"pure","logic.branch",Map.of());runs.finishStep(lease,step,"FAILED",Map.of(),"NODE_FAILURE");runs.transition(lease,"RUNNING","FAILED","NODE_FAILURE");};
+    when(interpreter.fireScheduled(any(),anyString(),anyString(),anyString())).thenAnswer(call->{var lease=runs.create(entry.getId(),1,"1","a".repeat(64),"timer","trigger.schedule",call.getArgument(2));fail.accept(lease);return lease.id();});
+    when(interpreter.retryRun(any(),anyLong(),any(),anyInt(),anyBoolean())).thenAnswer(call->{var lease=runs.createRetry(call.getArgument(0),1,call.getArgument(2),0,false);fail.accept(lease);return lease.id();});
+    var now=java.time.Instant.parse("2026-01-01T00:00:00Z");scheduler.syncAt(entry.getId(),now);scheduler.enqueueDue(now.plusSeconds(1));jdbc.update("UPDATE workflow_schedules SET enabled=false");
+    scheduler.tick(now.plusSeconds(1));
+    assertEquals("PENDING",jdbc.queryForObject("SELECT state FROM workflow_schedule_jobs",String.class));
+    scheduler.tick(now.plusSeconds(2));verify(interpreter,never()).retryRun(any(),anyLong(),any(),anyInt(),anyBoolean());
+    scheduler.tick(now.plusSeconds(6));
+    assertEquals("DEAD_LETTER",jdbc.queryForObject("SELECT state FROM workflow_schedule_jobs",String.class));
+    UUID dead=jdbc.queryForObject("SELECT id FROM workflow_runs WHERE state='DEAD_LETTER'",UUID.class);
+    var replay=runs.createRetry(dead,1,UUID.randomUUID(),0,false);
+    assertEquals(dead,jdbc.queryForObject("SELECT parent_run_id FROM workflow_runs WHERE id=?",UUID.class,replay.id()));
+    assertEquals(3,jdbc.queryForObject("SELECT attempt FROM workflow_runs WHERE id=?",Integer.class,replay.id()));
   }
 
   @Test

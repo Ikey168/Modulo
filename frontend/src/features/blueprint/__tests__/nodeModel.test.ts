@@ -138,7 +138,7 @@ describe('NodeCatalog', () => {
     expect(catalog.listByCategory('trigger').length).toBe(1);
     // Custom Code + WASM Module (#404)
     expect(catalog.listByCategory('action').length).toBe(2);
-    expect(catalog.listByCategory('logic').length).toBe(1);
+    expect(catalog.listByCategory('logic').length).toBe(2);
   });
 
   it('resolves the latest version by default and exact version on request', () => {

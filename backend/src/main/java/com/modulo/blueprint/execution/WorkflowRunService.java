@@ -101,6 +101,8 @@ public class WorkflowRunService {
               tracePolicy.identifier(triggerNode),
               tracePolicy.identifier(triggerType),
               tracePolicy.identifier(triggerKey));
+          if (WorkflowWorkerContext.active())
+            jdbc.update("UPDATE workflow_runs SET execution_worker='scheduler' WHERE id=?", id);
           return new Lease(id, expectedOwner, true);
         });
   }
@@ -122,8 +124,9 @@ public class WorkflowRunService {
                         + " cancel_requested_at IS NOT NULL THEN 'CANCELLED' ELSE ?"
                         + " END,error_class=?,started_at=CASE WHEN ?='RUNNING' THEN"
                         + " COALESCE(started_at,CURRENT_TIMESTAMP) ELSE started_at"
-                        + " END,finished_at=CASE WHEN ? IN ('SUCCEEDED','FAILED','CANCELLED') THEN"
-                        + " CURRENT_TIMESTAMP ELSE NULL END WHERE id=? AND owner_id=? AND state=?",
+                        + " END,finished_at=CASE WHEN ? IN"
+                        + " ('SUCCEEDED','FAILED','CANCELLED','DEAD_LETTER') THEN CURRENT_TIMESTAMP"
+                        + " ELSE NULL END WHERE id=? AND owner_id=? AND state=?",
                     next,
                     next,
                     next,
@@ -236,6 +239,67 @@ public class WorkflowRunService {
     return tracePolicy.summarize(owner, values, trace != null && trace.noteReferencesAllowed());
   }
 
+  public void pause(Lease lease, UUID step, int checkpoint, int seconds, long duration) {
+    if (seconds < 1 || seconds > 86400) throw invalid();
+    transactions.executeWithoutResult(
+        status -> {
+          jdbc.queryForList(
+              "SELECT id FROM workflow_runs WHERE id=? AND owner_id=? FOR UPDATE",
+              UUID.class,
+              lease.id(),
+              lease.owner());
+          checkCancellation(lease);
+          if (jdbc.queryForObject(
+                  "SELECT count(*) FROM workflow_checkpoints WHERE run_id=? AND sequence=?",
+                  Long.class,
+                  lease.id(),
+                  checkpoint)
+              != 1)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CHECKPOINT_UNAVAILABLE");
+          if (jdbc.update(
+                  "UPDATE workflow_steps SET state='WAITING',duration_ms=? WHERE id=? AND run_id=?"
+                      + " AND state='RUNNING'",
+                  duration,
+                  step,
+                  lease.id())
+              != 1) throw invalid();
+          if (jdbc.update(
+                  "UPDATE workflow_runs SET state='WAITING',resume_at=CURRENT_TIMESTAMP+(? *"
+                      + " INTERVAL '1 second'),resume_checkpoint=? WHERE id=? AND owner_id=? AND"
+                      + " state='RUNNING'",
+                  seconds,
+                  checkpoint,
+                  lease.id(),
+                  lease.owner())
+              != 1) throw invalid();
+        });
+  }
+
+  public boolean resumeWaiting(Lease lease) {
+    return transactions.execute(
+        status -> {
+          int changed =
+              jdbc.update(
+                  "UPDATE workflow_runs SET"
+                      + " state='RUNNING',execution_worker='scheduler',resume_at=NULL WHERE id=?"
+                      + " AND owner_id=? AND state='WAITING' AND cancel_requested_at IS NULL AND"
+                      + " resume_at<=CURRENT_TIMESTAMP",
+                  lease.id(),
+                  lease.owner());
+          if (changed != 1) return false;
+          jdbc.update(
+              "UPDATE workflow_steps SET state='RUNNING' WHERE run_id=? AND state='WAITING'",
+              lease.id());
+          jdbc.update(
+              "UPDATE workflow_steps SET"
+                  + " state='SUCCEEDED',finished_at=CURRENT_TIMESTAMP,duration_ms=GREATEST(0,EXTRACT(EPOCH"
+                  + " FROM (CURRENT_TIMESTAMP-started_at))*1000) WHERE run_id=? AND"
+                  + " state='RUNNING'",
+              lease.id());
+          return true;
+        });
+  }
+
   public Long registryId(UUID run, long owner) {
     var ids =
         jdbc.queryForList(
@@ -255,7 +319,7 @@ public class WorkflowRunService {
           var original =
               jdbc.queryForList(
                   "SELECT * FROM workflow_runs WHERE id=? AND owner_id=? AND state IN"
-                      + " ('FAILED','CANCELLED')",
+                      + " ('FAILED','CANCELLED','DEAD_LETTER')",
                   parent,
                   owner);
           if (original.isEmpty())
@@ -314,6 +378,8 @@ public class WorkflowRunService {
               owner,
               confirmed,
               sequence);
+          if (WorkflowWorkerContext.active())
+            jdbc.update("UPDATE workflow_runs SET execution_worker='scheduler' WHERE id=?", id);
           return new Lease(id, owner, true);
         });
   }
@@ -346,7 +412,7 @@ public class WorkflowRunService {
   public int pruneExpired() {
     return jdbc.update(
         "DELETE FROM workflow_runs WHERE retain_until<CURRENT_TIMESTAMP AND state IN"
-            + " ('SUCCEEDED','FAILED','CANCELLED')");
+            + " ('SUCCEEDED','FAILED','CANCELLED','DEAD_LETTER')");
   }
 
   private static void segment(String value, int limit) {
@@ -361,7 +427,15 @@ public class WorkflowRunService {
   }
 
   private static void state(String value) {
-    if (!Set.of("QUEUED", "RUNNING", "WAITING", "RETRY_WAIT", "SUCCEEDED", "FAILED", "CANCELLED")
+    if (!Set.of(
+            "QUEUED",
+            "RUNNING",
+            "WAITING",
+            "RETRY_WAIT",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "DEAD_LETTER")
         .contains(value)) throw invalid();
   }
 

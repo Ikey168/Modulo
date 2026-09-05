@@ -25,7 +25,7 @@ public class WorkflowQueryController {
       " FROM workflow_runs r LEFT JOIN plugin_registry p ON p.id=r.blueprint_id AND"
           + " p.owner_id=r.owner_id ";
   private static final String COLUMNS =
-      "r.id,r.blueprint_id,p.blueprint_name,r.blueprint_version,r.trigger_type,r.state,r.attempt,r.created_at,r.started_at,r.finished_at,r.error_class,r.parent_run_id,r.cancel_requested_at,r.cancelled_by,r.retry_confirmed,r.retry_from_sequence,EXTRACT(EPOCH"
+      "r.id,r.blueprint_id,p.blueprint_name,r.blueprint_version,r.trigger_type,r.state,r.attempt,r.created_at,r.started_at,r.finished_at,r.error_class,r.parent_run_id,r.cancel_requested_at,r.cancelled_by,r.retry_confirmed,r.retry_from_sequence,r.max_auto_attempts,r.retry_backoff_seconds,EXTRACT(EPOCH"
           + " FROM"
           + " (COALESCE(r.finished_at,CURRENT_TIMESTAMP)-COALESCE(r.started_at,r.created_at)))*1000"
           + " AS duration_ms";
@@ -49,7 +49,15 @@ public class WorkflowQueryController {
         || size > 100
         || minDuration < 0) throw invalid();
     if (!state.isEmpty()
-        && !Set.of("QUEUED", "RUNNING", "WAITING", "RETRY_WAIT", "SUCCEEDED", "FAILED", "CANCELLED")
+        && !Set.of(
+                "QUEUED",
+                "RUNNING",
+                "WAITING",
+                "RETRY_WAIT",
+                "SUCCEEDED",
+                "FAILED",
+                "CANCELLED",
+                "DEAD_LETTER")
             .contains(state)) throw invalid();
     StringBuilder where = new StringBuilder(" WHERE r.owner_id=?");
     List<Object> args = new ArrayList<>();

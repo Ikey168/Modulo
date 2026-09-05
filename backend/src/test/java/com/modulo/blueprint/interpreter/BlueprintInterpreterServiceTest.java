@@ -61,7 +61,6 @@ class BlueprintInterpreterServiceTest {
         // Real ObjectMapper so convertValue() works as in production.
         org.springframework.test.util.ReflectionTestUtils.setField(
             interpreter, "objectMapper", new ObjectMapper());
-        interpreter.initScheduler();
         when(workflowRuns.create(anyLong(),anyLong(),anyString(),anyString(),anyString(),anyString(),anyString()))
             .thenAnswer(call -> new com.modulo.blueprint.execution.WorkflowRunService.Lease(java.util.UUID.randomUUID(),1L,true));
         when(workflowRuns.asOwner(any(),any())).thenAnswer(call -> ((java.util.function.Supplier<?>)call.getArgument(1)).get());

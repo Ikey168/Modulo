@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cancelRun, retryRun, editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
 
-const states = ['QUEUED','RUNNING','WAITING','RETRY_WAIT','SUCCEEDED','FAILED','CANCELLED'];
+const states = ['QUEUED','RUNNING','WAITING','RETRY_WAIT','SUCCEEDED','FAILED','CANCELLED','DEAD_LETTER'];
 const inputClass = 'rounded border border-border bg-background p-2 text-sm';
 export function ExecutionCenter() {
   const [params,setParams] = useSearchParams();
@@ -64,9 +64,10 @@ export function ExecutionCenter() {
       <h2 className="text-lg font-semibold">{detail.run.blueprint_name ?? 'Deleted Blueprint'} · {detail.run.state}</h2>
       <p className="my-2 break-all text-sm">Run {detail.run.id} · version {detail.run.blueprint_version} · attempt {detail.run.attempt}</p>
       {detail.run.blueprint_name && <Link className="underline" to={editorRunLink(detail.run)}>Open executed path in editor</Link>}
+      <p className="my-2 text-sm">Automatic retry policy: at most {detail.run.max_auto_attempts ?? 1} attempts; initial backoff {detail.run.retry_backoff_seconds ?? 30} seconds. Potentially repeated side effects require manual review.</p>
       {detail.run.parent_run_id && <p className="my-2"><button className="underline" onClick={() => openRun(detail.run.parent_run_id)}>View original run</button></p>}
       {['QUEUED','RUNNING','WAITING','RETRY_WAIT'].includes(detail.run.state) && <div className="my-4"><button className={inputClass} disabled={busy || Boolean(detail.run.cancel_requested_at)} onClick={() => recover('cancel')}>{detail.run.cancel_requested_at ? 'Cancellation requested' : 'Request cancellation'}</button><p className="mt-1 text-sm">The current action can finish. Cancellation stops execution at the next step boundary.</p></div>}
-      {['FAILED','CANCELLED'].includes(detail.run.state) && <fieldset className="my-4 space-y-3 border border-border p-4" disabled={busy}>
+      {['FAILED','CANCELLED','DEAD_LETTER'].includes(detail.run.state) && <fieldset className="my-4 space-y-3 border border-border p-4" disabled={busy}>
         <legend>Retry run</legend>
         {(detail.checkpoints?.length ?? 0) === 0 ? <p>No replay checkpoint is available for this run.</p> : <>
           <label className="flex flex-col gap-1">Resume checkpoint<select className={inputClass} value={checkpoint} onChange={event => {setCheckpoint(Number(event.target.value));retryRequest.current=null;}}>{detail.checkpoints?.map(value => <option key={value} value={value}>{value === 0 ? 'From start' : `Before action ${value}`}</option>)}</select></label>
