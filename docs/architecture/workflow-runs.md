@@ -109,3 +109,41 @@ and highlights the recorded path. This opens the current graph and explicitly
 warns that historical nodes may have changed. Deleted Blueprints retain their
 run evidence but cannot open an editor link. The UI only renders recognized
 summary counts and labels values as redacted.
+
+## Recovery controls (#427)
+
+The authenticated owner can request cancellation from the Execution Center or
+`POST /api/workflow-runs/{id}/cancel`. The request records the owner and timestamp.
+Queued/waiting runs cancel immediately; an in-flight action may finish. The next
+step boundary stops execution, and a final success transition atomically honors
+an already-persisted cancellation request. Cancellation never claims to undo an
+external effect or interrupts an action midway through a write.
+
+`POST /api/workflow-runs/{id}/retry` accepts a UUID `requestId`, a listed
+`checkpoint` sequence, and `confirmSideEffects`. A retry creates a new run linked
+to the original with an incremented attempt and recorded requester/confirmation.
+The same request UUID returns the same retry. Original traces remain unchanged.
+Checkpoint zero replays from the start of the action path; later checkpoints
+resume at a recorded boundary using the pinned graph and prior pin values.
+Current capability grants still apply. Note references must still exist, belong
+to the owner, and have the captured version; changed inputs reject replay.
+
+The conservative action policy treats every non-logic/non-trigger operation as
+potentially non-idempotent. Replaying a completed or uncertain failed operation
+requires explicit confirmation. This includes note writes, remote calls and
+blockchain actions. It is not an exactly-once guarantee for an external system:
+a remote timeout can occur after an effect. The external Execute RPC has no
+automatic retry. Resuming after a completed action avoids replaying that action.
+
+Webhook senders can supply `Idempotency-Key` (1–128 printable characters). The
+same key at the same owner's Blueprint trigger resolves to the same protected
+run. Without a key, each request is a distinct delivery. Event deliveries retain
+their event IDs; retry requests have their own keys and lineage.
+
+Checkpoints are private execution payloads in `workflow_checkpoints`, never
+trace API data. They contain the pinned graph, scalar payloads and versioned
+owned note references. Each is limited to 1 MiB and each run to 4 MiB. Unsupported,
+oversized, or unavailable snapshots disable that replay boundary; historical runs
+without checkpoints remain inspectable. They cascade-delete with retained runs.
+Backups therefore include private workflow payloads and need the same protection
+as notes. Recovery after a crashed worker is addressed by the durable scheduler.

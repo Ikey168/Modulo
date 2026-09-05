@@ -33,3 +33,20 @@ test('deep links encode names and summaries reject unknown fields',() => {
   expect(editorRunLink({...run,blueprint_name:'Review & approve'},'n&1')).toContain('node=n%261');
   expect(safeSummary('{"types":{"password":"secret"},"content":"private"}')).toBe('0 fields · Values redacted');
 });
+test('retry requires an explicit user acknowledgement and carries an idempotency key',async () => {
+  const fetcher=vi.fn(async (_url: string, options?: RequestInit) => options?.method === 'POST'
+    ? {ok:true,json:async () => ({id:'retry-1'})}
+    : {ok:true,json:async () => ({run,steps:[],nodeIds:[],stepPage:0,stepTotal:0,checkpoints:[0,2]})});
+  vi.stubGlobal('fetch',fetcher);
+  render(<MemoryRouter initialEntries={['/app/executions?run=run-1']}><ExecutionCenter /></MemoryRouter>);
+  const consent=await screen.findByRole('checkbox');
+  expect(consent).not.toBeChecked();
+  fireEvent.click(consent);
+  fireEvent.click(screen.getByRole('button',{name:'Retry with a new attempt'}));
+  await waitFor(() => expect(fetcher.mock.calls.some(call => call[1]?.method === 'POST')).toBe(true));
+  const request=fetcher.mock.calls.find(call => call[1]?.method === 'POST');
+  const body=JSON.parse(String(request?.[1]?.body));
+  expect(body.confirmSideEffects).toBe(true);
+  expect(body.requestId).toMatch(/^[0-9a-f-]{36}$/);
+  expect(body.checkpoint).toBe(0);
+});

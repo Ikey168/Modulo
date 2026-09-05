@@ -37,9 +37,11 @@ class ExternalPluginRuntimeTest {
         final Map<String, String> receivedInitConfig = new ConcurrentHashMap<>();
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean stopped = new AtomicBoolean();
+        final java.util.concurrent.atomic.AtomicInteger executionCount=new java.util.concurrent.atomic.AtomicInteger();
         volatile ExecuteRequest execution;
         @Override public void execute(ExecuteRequest request, StreamObserver<ExecuteResponse> observer) {
-            execution = request;
+            execution = request;executionCount.incrementAndGet();
+            if(request.getOperation().equals("timeout")) {observer.onError(io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException());return;}
             observer.onNext(ExecuteResponse.newBuilder().setSuccess(true).build());
             observer.onCompleted();
         }
@@ -127,6 +129,14 @@ class ExternalPluginRuntimeTest {
     }
 
     // ------------------------------------------------------------------
+
+    @Test
+    void uncertainRemoteTimeoutIsNotAutomaticallyRetried() throws Exception {
+        String id=manager.installExternalPlugin(endpoint,Map.of());
+        var proxy=(ExternalPluginProxy)manager.getActivePlugins().get(id);
+        assertThatThrownBy(()->proxy.execute("timeout",Map.of(),1)).isInstanceOf(io.grpc.StatusRuntimeException.class);
+        assertThat(stub.executionCount.get()).isEqualTo(1);
+    }
 
     @Test
     void executionCarriesCorrelationOnlyWithinItsScope() throws Exception {

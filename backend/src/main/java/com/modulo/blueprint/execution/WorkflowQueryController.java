@@ -25,7 +25,7 @@ public class WorkflowQueryController {
       " FROM workflow_runs r LEFT JOIN plugin_registry p ON p.id=r.blueprint_id AND"
           + " p.owner_id=r.owner_id ";
   private static final String COLUMNS =
-      "r.id,r.blueprint_id,p.blueprint_name,r.blueprint_version,r.trigger_type,r.state,r.attempt,r.created_at,r.started_at,r.finished_at,r.error_class,EXTRACT(EPOCH"
+      "r.id,r.blueprint_id,p.blueprint_name,r.blueprint_version,r.trigger_type,r.state,r.attempt,r.created_at,r.started_at,r.finished_at,r.error_class,r.parent_run_id,r.cancel_requested_at,r.cancelled_by,r.retry_confirmed,r.retry_from_sequence,EXTRACT(EPOCH"
           + " FROM"
           + " (COALESCE(r.finished_at,CURRENT_TIMESTAMP)-COALESCE(r.started_at,r.created_at)))*1000"
           + " AS duration_ms";
@@ -151,7 +151,14 @@ public class WorkflowQueryController {
         "stepTotal",
         total,
         "stepPage",
-        stepPage);
+        stepPage,
+        "checkpoints",
+        jdbc.queryForList(
+            "SELECT c.sequence FROM workflow_checkpoints c JOIN workflow_runs r ON r.id=c.run_id"
+                + " WHERE r.id=? AND r.owner_id=? ORDER BY c.sequence",
+            Integer.class,
+            id,
+            owner));
   }
 
   private static ResponseStatusException invalid() {

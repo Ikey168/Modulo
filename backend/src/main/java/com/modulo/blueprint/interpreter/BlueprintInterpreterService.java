@@ -53,6 +53,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(BlueprintInterpreterService.class);
     private static final long ACTION_TIMEOUT_SECS = 30;
 
+    @Autowired private com.modulo.blueprint.execution.WorkflowCheckpointService checkpoints;
     @Autowired private BlueprintRepository blueprintRepository;
     @Autowired private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
     private final Map<Long, BlueprintEntry> runtimeEntries = new ConcurrentHashMap<>();
@@ -210,6 +211,10 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * to the caller.
      */
     public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload) {
+        return fireWebhook(registryId,nodeId,secret,payload,java.util.UUID.randomUUID().toString());
+    }
+    public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload,String deliveryId) {
+        if(deliveryId==null || deliveryId.isBlank() || deliveryId.length()>128 || deliveryId.chars().anyMatch(Character::isISOControl)) return WebhookResult.REJECTED;
         WebhookRegistration reg = webhooks.get(registryId + ":" + nodeId);
         if (reg == null || secret == null) return WebhookResult.REJECTED;
         boolean valid = java.security.MessageDigest.isEqual(
@@ -219,7 +224,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             logger.warn("Blueprint webhook authentication rejected");
             return WebhookResult.REJECTED;
         }
-        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload),java.util.UUID.randomUUID().toString());
+        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload),"webhook:"+deliveryId);
         return WebhookResult.ACCEPTED;
     }
 
@@ -255,16 +260,48 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 ctx.recordExecutedNode(triggerNodeId);
                 workflowRuns.finishStep(lease,step,"SUCCEEDED",triggerOutputs,null,elapsed(started));
                 }
+                if(checkpoints!=null) checkpoints.save(lease,0,graph,triggerNodeId,"then",ctx.checkpointPins());
+                workflowRuns.checkCancellation(lease);
                 executeExecFlow(graph,ctx,triggerNodeId,"then");
                 return null;
             });
+            workflowRuns.checkCancellation(lease);
             workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
-            logger.info("Workflow run {} succeeded",lease.id());
+            logger.info("Workflow run {} finished",lease.id());
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+            logger.info("Workflow run {} cancelled",lease.id());
         } catch(Exception failure) {
             String classification=failure instanceof BlueprintLoopGuardException?"LOOP_GUARD":"NODE_FAILURE";
             workflowRuns.transition(lease,"RUNNING","FAILED",classification);
             logger.warn("Workflow run {} failed: {}",lease.id(),classification);
         }
+    }
+
+    public java.util.UUID retryRun(java.util.UUID parent,long owner,java.util.UUID requestId,int sequence,boolean confirmed) {
+        var snapshot=checkpoints.load(parent,owner,sequence);
+        var lease=workflowRuns.createRetry(parent,owner,requestId,sequence,confirmed);
+        if(!lease.created()) return lease.id();
+        workflowRuns.begin(lease);
+        var ctx=new BlueprintExecutionContext(lease);
+        try {
+            workflowRuns.asOwner(lease,()->{
+                // The persisted graph is replayed with current capability grants.
+                Long registryId=workflowRuns.registryId(lease.id(),owner);
+                ctx.setRegistryId(registryId);
+                ctx.restorePins(snapshot.pins(),Math.max(0,sequence-1));
+                checkpoints.save(lease,sequence,snapshot.graph(),snapshot.fromNode(),snapshot.outPin(),snapshot.pins());
+                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
+                workflowRuns.checkCancellation(lease);
+                return null;
+            });
+            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+        } catch(Exception failure) {
+            workflowRuns.transition(lease,"RUNNING","FAILED","NODE_FAILURE");
+        }
+        return lease.id();
     }
 
     /** Follow exec edges depth-first until there are no more. */
@@ -285,6 +322,8 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Edge references unknown node: " + targetId));
 
+        workflowRuns.checkCancellation(ctx.getLease());
+        if(checkpoints!=null) checkpoints.save(ctx.getLease(),ctx.getStepCount()+1,graph,fromNodeId,execOutPin,ctx.checkpointPins());
         ctx.incrementStep(); // throws BlueprintLoopGuardException when > MAX_STEPS
         ctx.recordExecutedNode(targetId);
 

@@ -32,10 +32,11 @@ public class BlueprintWebhookController {
             @PathVariable Long registryId,
             @PathVariable String nodeId,
             @RequestHeader(value = "X-Webhook-Secret", required = false) String secret,
-            @RequestBody(required = false) String payload) {
+            @RequestBody(required = false) String payload,
+            @RequestHeader(value = "Idempotency-Key", required = false) String deliveryId) {
 
         BlueprintInterpreterService.WebhookResult result =
-            interpreter.fireWebhook(registryId, nodeId, secret, payload == null ? "" : payload);
+            deliveryId == null ? interpreter.fireWebhook(registryId, nodeId, secret, payload == null ? "" : payload) : interpreter.fireWebhook(registryId,nodeId,secret,payload == null ? "" : payload,deliveryId);
 
         if (result == BlueprintInterpreterService.WebhookResult.ACCEPTED) {
             return ResponseEntity.accepted().body(Map.of("status", "accepted"));

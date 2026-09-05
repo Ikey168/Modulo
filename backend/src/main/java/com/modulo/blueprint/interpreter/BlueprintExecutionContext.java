@@ -59,5 +59,8 @@ public class BlueprintExecutionContext {
         }
     }
 
+    public Map<String,Object> checkpointPins() { return new HashMap<>(pinValues); }
+    public void restorePins(Map<String,Object> pins,int completedSteps) { pinValues.clear();pinValues.putAll(pins);stepCount=completedSteps; }
+
     public int getStepCount() { return stepCount; }
 }
