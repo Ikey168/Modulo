@@ -26,13 +26,17 @@ public class ApprovalService {
   private final WorkflowRunService runs;
   private final NoteService notes;
 
+  private final ApprovalSigningService signing;
+
   public ApprovalService(
       JdbcTemplate jdbc,
       PlatformTransactionManager manager,
       ObjectMapper json,
       TracePolicy traces,
       WorkflowRunService runs,
-      NoteService notes) {
+      NoteService notes,
+      ApprovalSigningService signing) {
+    this.signing = signing;
     this.jdbc = jdbc;
     this.tx = new TransactionTemplate(manager);
     this.json =
@@ -254,7 +258,7 @@ public class ApprovalService {
                 "state",
                 approval.get("state"),
                 "signatureState",
-                "UNSIGNED");
+                signing.state((UUID) duplicate.get(0).get("id")));
           }
           if (!"PENDING".equals(approval.get("state"))
               || ((Number) approval.get("revision")).intValue() != input.expectedRevision())
@@ -307,6 +311,7 @@ public class ApprovalService {
               payload,
               Timestamp.from(now),
               encode(binding));
+          String signatureState = signing.signDecision(decision);
           String state = "APPROVE".equals(input.outcome()) ? "APPROVED" : "REJECTED";
           jdbc.update(
               "UPDATE approval_requests SET state=?,revision=revision+1,resolved_at=? WHERE id=?",
@@ -319,7 +324,7 @@ public class ApprovalService {
                   + " AND resume_approval_id=?",
               approval.get("run_ref"),
               request);
-          return Map.of("id", decision, "state", state, "signatureState", "UNSIGNED");
+          return Map.of("id", decision, "state", state, "signatureState", signatureState);
         });
   }
 
@@ -403,11 +408,11 @@ public class ApprovalService {
 
   private String visibleSelect() {
     return "SELECT a.*,p.blueprint_name,r.state AS run_state,r.resume_approval_id FROM"
-               + " approval_requests a LEFT JOIN plugin_registry p ON p.id=a.blueprint_id AND"
-               + " p.owner_id=a.owner_id LEFT JOIN workflow_runs r ON r.id=a.run_id AND"
-               + " r.owner_id=a.owner_id WHERE (a.owner_id=? OR (a.approver_id=? AND EXISTS(SELECT"
-               + " 1 FROM approval_grants g WHERE g.blueprint_id=a.blueprint_id AND"
-               + " g.owner_id=a.owner_id AND g.approver_id=a.approver_id AND g.enabled)))";
+        + " approval_requests a LEFT JOIN plugin_registry p ON p.id=a.blueprint_id AND"
+        + " p.owner_id=a.owner_id LEFT JOIN workflow_runs r ON r.id=a.run_id AND"
+        + " r.owner_id=a.owner_id WHERE (a.owner_id=? OR (a.approver_id=? AND EXISTS(SELECT"
+        + " 1 FROM approval_grants g WHERE g.blueprint_id=a.blueprint_id AND"
+        + " g.owner_id=a.owner_id AND g.approver_id=a.approver_id AND g.enabled)))";
   }
 
   private Map<String, Object> project(Map<String, Object> row, long actor) {
@@ -442,9 +447,10 @@ public class ApprovalService {
         "decisions",
         jdbc.queryForList(
             "SELECT"
-                + " id,request_revision,actor_ref,outcome,comment_text,comment_digest,decided_at,'UNSIGNED'"
-                + " AS signature_state FROM approval_decisions WHERE request_id=? ORDER BY"
-                + " decided_at,id",
+                + " d.id,request_revision,actor_ref,outcome,comment_text,comment_digest,decided_at,CASE"
+                + " WHEN s.decision_id IS NULL THEN 'UNSIGNED' ELSE 'SERVER_SIGNED' END AS"
+                + " signature_state FROM approval_decisions d LEFT JOIN approval_signatures s ON"
+                + " s.decision_id=d.id WHERE request_id=? ORDER BY decided_at,d.id",
             row.get("id")));
     result.put(
         "events",
@@ -452,6 +458,17 @@ public class ApprovalService {
             "SELECT state,actor_ref,created_at FROM approval_events WHERE request_id=? ORDER BY id",
             row.get("id")));
     return result;
+  }
+
+  public Map<String, Object> signature(UUID request, UUID decision, long actor) {
+    view(request, actor);
+    if (jdbc.queryForObject(
+            "SELECT count(*) FROM approval_decisions WHERE id=? AND request_id=?",
+            Long.class,
+            decision,
+            request)
+        != 1) throw unavailable();
+    return signing.envelope(decision);
   }
 
   public void cancel(UUID id, long owner) {

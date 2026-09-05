@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { ApprovalInbox } from '../ApprovalInbox';
+import { ApprovalInbox, signatureLabel } from '../ApprovalInbox';
 import * as api from '../approvalService';
 vi.mock('../approvalService', async () => ({...await vi.importActual('../approvalService'), listApprovals:vi.fn(),getApproval:vi.fn(),decideApproval:vi.fn()}));
 const request: api.Approval = {id:'request-1',revision:1,state:'PENDING',requester:'1',reviewer:'2',blueprintName:'Invoice review',expiresAt:'2099-01-01T12:00:00Z',createdAt:'2026-09-05T12:00:00Z',evidenceDigest:'abc',summary:{message:'Review invoice',omissions:['Note contents']},canDecide:true,decisions:[],events:[{state:'PENDING',created_at:'2026-09-05T12:00:00Z'}]};
@@ -32,4 +32,11 @@ test('conflict refreshes state and clears confirmation', async () => {
 });
 test('detail has focusable heading, labeled form, safe evidence and no reviewer run link', async () => {
   detail();await screen.findByLabelText('Decision');expect(screen.getByRole('heading',{level:2})).toHaveFocus();expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby','comment-limit');expect(screen.getByRole('button',{name:'Open safe evidence summary'})).toBeTruthy();expect(screen.queryByRole('link',{name:'View workflow run'})).toBeNull();
+});
+
+test('signature labels separate identity claims from verification and anchoring', () => {
+  expect(signatureLabel('SERVER_SIGNED')).toContain('Server signed');
+  expect(signatureLabel('WALLET_SIGNED')).toContain('Wallet signed');
+  expect(signatureLabel('UNSIGNED')).toContain('unverifiable');
+  expect(signatureLabel('ANCHORED')).toContain('Unverifiable');
 });

@@ -36,9 +36,9 @@ An expired request follows the expired result output. Invalidated requests do
 not authorize continuation. After a run has requested approval, manual retry
 must start at checkpoint zero and issue a fresh request.
 
-Decisions are immutable database records and are explicitly **UNSIGNED** at this
-stage. Cryptographic signing and portable evidence verification are separate
-features; an evidence digest alone is not a signature.
+Decisions are immutable database records. Configure a server signing identity as
+described in [approval signing](approval-signing.md); without one, decisions are
+explicitly **UNSIGNED**. An evidence digest alone is not a signature.
 
 Validation uses PostgreSQL with all Flyway migrations and the real interpreter:
 restart/resume, competing decisions, authorization, stale and duplicate requests,

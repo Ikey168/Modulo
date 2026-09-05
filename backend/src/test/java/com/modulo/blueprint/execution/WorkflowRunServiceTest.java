@@ -59,6 +59,7 @@ class WorkflowRunServiceTest {
       c.createStatement().execute("CREATE TABLE notifications(id BIGSERIAL PRIMARY KEY,user_id TEXT,type TEXT,message TEXT,is_read BOOLEAN,created_at TIMESTAMP)");
       c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V11__Workflow_operations.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V12__Human_approval_runtime.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+    c.createStatement().execute(new String(new ClassPathResource("db/postgresql/V13__Approval_decision_signatures.sql").getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
       c.createStatement().execute("ALTER TABLE workflow_steps ADD COLUMN duration_ms BIGINT CHECK(duration_ms>=0)");
     }
   }

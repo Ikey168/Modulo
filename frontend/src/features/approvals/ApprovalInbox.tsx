@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ApprovalError, decideApproval, getApproval, getApprovalEvidence, listApprovals, type Approval } from './approvalService';
+import { ApprovalError, decideApproval, getApproval, getApprovalEvidence, getDecisionSignature, listApprovals, type Approval } from './approvalService';
 const field = 'border border-border bg-background px-3 py-2 text-sm rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
+export const signatureLabel = (state: string) => ({SERVER_SIGNED:'Server signed · not locally verified', WALLET_SIGNED:'Wallet signed · not locally verified', UNSIGNED:'Unsigned · unverifiable'}[state] || 'Unverifiable signature state');
 const date = (value: string) => new Date(value).toLocaleString();
 export function ApprovalInbox() {
   const [params, setParams] = useSearchParams();
@@ -74,6 +75,15 @@ function ApprovalDetail({id,onBack}: {id: string; onBack: () => void}) {
       }
     } finally {submission.current = false; setBusy(false);}
   }
+  async function exportSignature(decision: string) {
+    try {
+      const envelope = await getDecisionSignature(id, decision);
+      const url = URL.createObjectURL(new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'}));
+      const link = document.createElement('a'); link.href=url; link.download=`approval-${decision}.json`;link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url),1000);
+      setNotice('Signature exported. Verify it locally with the approval verifier and a trusted key fingerprint.');
+    } catch (e) {setError(e instanceof Error ? e.message : 'Unable to export signature.');}
+  }
   const bytes = new TextEncoder().encode(comment.normalize('NFC')).length;
   return <section className="mt-4">
     <button className={field} onClick={onBack}>Back to approvals</button>
@@ -103,7 +113,7 @@ function ApprovalDetail({id,onBack}: {id: string; onBack: () => void}) {
         </fieldset>
       </form> : <p role="status" className="my-5">{request.state === 'PENDING' ? 'This request is not currently available for your decision.' : 'This request is resolved. Further decisions are disabled.'}</p>}
       <h3 className="mt-6 font-medium">Decision history</h3>
-      {request.decisions.length ? <ul className="divide-y divide-border">{request.decisions.map(decision => <li key={decision.id} className="py-3"><p>{decision.outcome} by user {decision.actor_ref} · {date(decision.decided_at)}</p><p className="whitespace-pre-wrap break-words">{decision.comment_text}</p><p className="text-sm">Signature: {decision.signature_state}</p></li>)}</ul> : <p className="mt-2 text-sm">No human decision recorded.</p>}
+      {request.decisions.length ? <ul className="divide-y divide-border">{request.decisions.map(decision => <li key={decision.id} className="py-3"><p>{decision.outcome} by user {decision.actor_ref} · {date(decision.decided_at)}</p><p className="whitespace-pre-wrap break-words">{decision.comment_text}</p><p className="text-sm">{signatureLabel(decision.signature_state)} · Not anchored</p><button className="text-sm underline" onClick={() => exportSignature(decision.id)}>Export decision signature</button></li>)}</ul> : <p className="mt-2 text-sm">No human decision recorded.</p>}
       <h3 className="mt-5 font-medium">Request history</h3><ol className="mt-2 space-y-2 text-sm">{request.events.map((event,index) => <li key={index}>{event.state} · {date(event.created_at)}{event.actor_ref && ` · User ${event.actor_ref}`}</li>)}</ol>
     </>}
   </section>;

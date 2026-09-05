@@ -1,0 +1,74 @@
+[
+  {
+    "fields": {
+      "format": "modulo.approval.decision.v1",
+      "keyId": "10ea2b7e61b51eeb2f72238449d31c3cca6e06b599fc7980611a98ca2b73293d",
+      "decisionId": "00000000-0000-4000-8000-000000000001",
+      "requestId": "00000000-0000-4000-8000-000000000002",
+      "requestRevision": "1",
+      "runId": "00000000-0000-4000-8000-000000000003",
+      "runAttempt": "1",
+      "nodeId": "approval",
+      "blueprintDigest": "3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c",
+      "evidenceDigest": "bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139",
+      "policyDigest": "1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8",
+      "nonceDigest": "fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9",
+      "checkpoint": "1",
+      "actor": "1",
+      "outcome": "APPROVE",
+      "comment": "Reviewed café ✓ 😀\n\"quoted\" \\ /",
+      "commentDigest": "fd953decc15b2fba864ffc91e252b6e620a6e6106b1c204ccdc49b42e7e4db4c",
+      "decidedAt": "2026-09-05T12:34:56.789Z",
+      "idempotencyKey": "00000000-0000-4000-8000-000000000004"
+    },
+    "canonical": "[\"modulo.approval.decision.v1\",\"10ea2b7e61b51eeb2f72238449d31c3cca6e06b599fc7980611a98ca2b73293d\",\"00000000-0000-4000-8000-000000000001\",\"00000000-0000-4000-8000-000000000002\",\"1\",\"00000000-0000-4000-8000-000000000003\",\"1\",\"approval\",\"3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c\",\"bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139\",\"1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8\",\"fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9\",\"1\",\"1\",\"APPROVE\",\"Reviewed café ✓ 😀\\n\\\"quoted\\\" \\\\ /\",\"fd953decc15b2fba864ffc91e252b6e620a6e6106b1c204ccdc49b42e7e4db4c\",\"2026-09-05T12:34:56.789Z\",\"00000000-0000-4000-8000-000000000004\"]",
+    "envelope": {
+      "decisionId": "00000000-0000-4000-8000-000000000001",
+      "signatureState": "SERVER_SIGNED",
+      "formatVersion": 1,
+      "algorithm": "Ed25519",
+      "keyId": "10ea2b7e61b51eeb2f72238449d31c3cca6e06b599fc7980611a98ca2b73293d",
+      "publicKey": "MCowBQYDK2VwAyEAM48a9+3owunc8klYcKZe+sGT0AvT45JnxahjT8AZw0Y=",
+      "statement": "[\"modulo.approval.decision.v1\",\"10ea2b7e61b51eeb2f72238449d31c3cca6e06b599fc7980611a98ca2b73293d\",\"00000000-0000-4000-8000-000000000001\",\"00000000-0000-4000-8000-000000000002\",\"1\",\"00000000-0000-4000-8000-000000000003\",\"1\",\"approval\",\"3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c\",\"bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139\",\"1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8\",\"fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9\",\"1\",\"1\",\"APPROVE\",\"Reviewed café ✓ 😀\\n\\\"quoted\\\" \\\\ /\",\"fd953decc15b2fba864ffc91e252b6e620a6e6106b1c204ccdc49b42e7e4db4c\",\"2026-09-05T12:34:56.789Z\",\"00000000-0000-4000-8000-000000000004\"]",
+      "digest": "3b175d71d22c14515287e7629690f95973dfd8777f879d44b88773a0c2066fae",
+      "signature": "pDW1s4S/tATKZl8peVSmim6hpUikB7mqKIKVoOCfl+74Sg9bBrXGpgDirJ5mkNhyyCVWijQgsxXbK6k/HCRkBg==",
+      "anchored": false
+    }
+  },
+  {
+    "fields": {
+      "format": "modulo.approval.decision.v1",
+      "keyId": "2b1dd1d736a092456e6e06ff7ee6428cb1ef1a9a4a16e752e2815ae747d967cf",
+      "decisionId": "00000000-0000-4000-8000-000000000001",
+      "requestId": "00000000-0000-4000-8000-000000000002",
+      "requestRevision": "1",
+      "runId": "00000000-0000-4000-8000-000000000003",
+      "runAttempt": "1",
+      "nodeId": "approval",
+      "blueprintDigest": "3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c",
+      "evidenceDigest": "bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139",
+      "policyDigest": "1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8",
+      "nonceDigest": "fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9",
+      "checkpoint": "1",
+      "actor": "1",
+      "outcome": "APPROVE",
+      "comment": "Control\u000b\u0000\b\f\r\t and separators  ",
+      "commentDigest": "2b9e7dfbd387a240a583d782d42583c9243aa6a97afc3bd0f776934548a156bd",
+      "decidedAt": "2026-09-05T12:34:56.789Z",
+      "idempotencyKey": "00000000-0000-4000-8000-000000000004"
+    },
+    "canonical": "[\"modulo.approval.decision.v1\",\"2b1dd1d736a092456e6e06ff7ee6428cb1ef1a9a4a16e752e2815ae747d967cf\",\"00000000-0000-4000-8000-000000000001\",\"00000000-0000-4000-8000-000000000002\",\"1\",\"00000000-0000-4000-8000-000000000003\",\"1\",\"approval\",\"3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c\",\"bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139\",\"1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8\",\"fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9\",\"1\",\"1\",\"APPROVE\",\"Control\\u000b\\u0000\\b\\f\\r\\t and separators  \",\"2b9e7dfbd387a240a583d782d42583c9243aa6a97afc3bd0f776934548a156bd\",\"2026-09-05T12:34:56.789Z\",\"00000000-0000-4000-8000-000000000004\"]",
+    "envelope": {
+      "decisionId": "00000000-0000-4000-8000-000000000001",
+      "signatureState": "SERVER_SIGNED",
+      "formatVersion": 1,
+      "algorithm": "Ed25519",
+      "keyId": "2b1dd1d736a092456e6e06ff7ee6428cb1ef1a9a4a16e752e2815ae747d967cf",
+      "publicKey": "MCowBQYDK2VwAyEAV1OeD4LqcesUKZusJCN+ZNzLPJsMSzmeUxyx/hKOx3A=",
+      "statement": "[\"modulo.approval.decision.v1\",\"2b1dd1d736a092456e6e06ff7ee6428cb1ef1a9a4a16e752e2815ae747d967cf\",\"00000000-0000-4000-8000-000000000001\",\"00000000-0000-4000-8000-000000000002\",\"1\",\"00000000-0000-4000-8000-000000000003\",\"1\",\"approval\",\"3e07ba9fe91e958cf42f2efcb6a3d0dbf3c2c8b4c0c3624a472865486fcda13c\",\"bd68078c38d15baf64fc2e84b313039ed73ff6069003d893910c96b4fbb7a139\",\"1334bfedfb6f3316d800fc2f0fb7088cd1d14bf1f9e8794a09a077e8dfd76ba8\",\"fb6ed7734d7399f7fb32823cda002061f8f2e1d20c49df96ec4ebdd88eb382a9\",\"1\",\"1\",\"APPROVE\",\"Control\\u000b\\u0000\\b\\f\\r\\t and separators  \",\"2b9e7dfbd387a240a583d782d42583c9243aa6a97afc3bd0f776934548a156bd\",\"2026-09-05T12:34:56.789Z\",\"00000000-0000-4000-8000-000000000004\"]",
+      "digest": "3bac736a14347e872a2cf445038eb21c639069ea2502baa33a828d18d02a1d0a",
+      "signature": "D8uZWKWH4Q9psnMGM4bu5dp3Hfr2eESYwwTKJeNdPO5ggC3Kaid8KyVekO9hACInshWZhWar48HYPXi0wEfJBw==",
+      "anchored": false
+    }
+  }
+]

@@ -37,6 +37,11 @@ public class ApprovalController {
     return approvals.view(id, users.requireUserId());
   }
 
+  @GetMapping("/{id}/decisions/{decision}/signature")
+  public Map<String, Object> signature(@PathVariable UUID id, @PathVariable UUID decision) {
+    return approvals.signature(id, decision, users.requireUserId());
+  }
+
   @PostMapping("/{id}/decision")
   public Map<String, Object> decide(
       @PathVariable UUID id, @RequestBody ApprovalService.DecisionInput input) {
