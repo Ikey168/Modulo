@@ -331,7 +331,11 @@
                             "boolean",
                             "date",
                             "select",
-                            "relation"
+                            "relation",
+                            "datetime",
+                            "multiSelect",
+                            "link",
+                            "noteReference"
                           ]
                         },
                         "required": {
@@ -728,6 +732,21 @@
                   "dashboardRef": {
                     "type": "string",
                     "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                  },
+                  "builtinPlugins": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "maxItems": 16,
+                    "items": {
+                      "enum": [
+                        "notes-editor",
+                        "findings-tracker",
+                        "kanban",
+                        "audit-checklists",
+                        "vuln-kb",
+                        "audit-reports"
+                      ]
+                    }
                   }
                 },
                 "required": [

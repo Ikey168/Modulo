@@ -158,6 +158,7 @@ public final class PackManifestValidator {
             if (cap == null
                 && !Set.of(
                         "trigger.schedule",
+                        "trigger.manual",
                         "trigger.webhook",
                         "trigger.note.saved",
                         "trigger.link.created",

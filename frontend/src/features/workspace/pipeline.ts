@@ -13,7 +13,8 @@ export const STAGE_TAG_PREFIX = 'stage/';
 export const DEFAULT_STAGES = ['inquiry', 'scoping', 'audit', 'report', 'fix-review', 'final'];
 
 export function isEngagement(note: CoreNote): boolean {
-  return note.tags.some((t) => t.name.startsWith(ENGAGEMENT_TAG_PREFIX));
+  const kind=note.tags.find(tag=>tag.name.startsWith("audit/record/"));
+  return (!kind||kind.name==="audit/record/engagement")&&note.tags.some((t) => t.name.startsWith(ENGAGEMENT_TAG_PREFIX));
 }
 
 export function engagementLabel(note: CoreNote): string | null {

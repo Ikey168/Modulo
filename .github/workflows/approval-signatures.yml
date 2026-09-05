@@ -4,6 +4,7 @@ on:
     paths:
       - 'shared/approval/**'
       - 'scripts/verify-approval.mjs'
+      - 'scripts/*audit-report.mjs'
       - 'scripts/*evidence-bundle.py'
       - 'backend/src/main/java/com/modulo/blueprint/approval/**'
       - '.github/workflows/approval-signatures.yml'
@@ -17,3 +18,4 @@ jobs:
           node-version: '20'
       - run: node --test shared/approval/verification.test.mjs
       - run: python3 scripts/test-evidence-bundle.py
+      - run: node --test scripts/test-audit-report.mjs

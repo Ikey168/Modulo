@@ -430,6 +430,7 @@ public class ApprovalService {
     result.put("summary", parse(row.get("safe_summary").toString()));
     result.put("evidenceDigest", row.get("evidence_digest"));
     result.put("redacted", true);
+    result.put("hasReport",!jdbc.queryForList("SELECT request_id FROM approval_report_artifacts WHERE request_id=?",row.get("id")).isEmpty());
     result.put("commentRequiredOnReject", true);
     boolean reviewer = Long.toString(actor).equals(row.get("approver_ref"));
     result.put(

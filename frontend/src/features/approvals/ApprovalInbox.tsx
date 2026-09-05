@@ -1,3 +1,4 @@
+import {AuditReportArtifact} from '../packs/AuditPack';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ApprovalError, decideApproval, getApproval, getApprovalEvidence, getDecisionSignature, listApprovals, type Approval } from './approvalService';
@@ -102,6 +103,7 @@ function ApprovalDetail({id,onBack}: {id: string; onBack: () => void}) {
       <details className="my-3"><summary className="cursor-pointer underline">Evidence digest</summary><code className="block break-all py-2 text-xs">{request.evidenceDigest}</code><p className="text-sm">This digest identifies the evidence. It is not a cryptographic signature.</p></details>
       <button className="text-sm underline" onClick={() => {getApprovalEvidence(id).then(setEvidence).catch(e => setError(e.message));}}>Open safe evidence summary</button>
       {evidence && <section aria-label="Safe evidence summary" className="my-3 border-l-2 border-border pl-3"><p>{evidence.summary.message}</p><p className="break-all text-xs">{evidence.digest}</p><p>Raw values and note contents omitted.</p></section>}
+      {request.hasReport&&<AuditReportArtifact requestId={id}/>}
       {request.runId && <p className="mt-2"><Link className="underline" to={`/app/executions?run=${encodeURIComponent(request.runId)}`}>View workflow run</Link></p>}
       {request.canDecide ? <form onSubmit={submit} className="mt-6 max-w-xl space-y-4">
         <fieldset disabled={busy} className="space-y-4"><legend className="font-medium">Your decision</legend>

@@ -1,3 +1,4 @@
+import {AuditPack} from '../packs/AuditPack';
 import {PropertyQueries} from '../knowledge/PropertyQueryView';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -87,6 +88,7 @@ interface NavEntry {
 const BUILTIN_VIEWS: NavEntry[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, order: 10 },
   { id: 'marketplace', label: 'Marketplace', icon: Store, order: 20 },
+  { id: 'audit-pack', label: 'Security Audit', icon: Workflow, order: 40 },
   { id: 'property-queries', label: 'Property queries', icon: FolderSearch, order: 39 },
   { id: 'pack-studio', label: 'Pack Studio', icon: Store, order: 38 },
   { id: 'packs', label: 'Packs', icon: Store, order: 37 },
@@ -401,6 +403,7 @@ function WorkspaceShell() {
         )}
         {view === 'executions' && <ExecutionCenter />}
         {view === 'approvals' && <ApprovalInbox />}
+        {view === 'audit-pack' && <AuditPack />}
         {view === 'property-queries' && <PropertyQueries />}
         {view === 'packs' && <WorkspacePacks />}
         {view === 'pack-studio' && <PackStudio />}

@@ -135,7 +135,7 @@ describe('NodeCatalog', () => {
 
   it('lists core primitives by category (note nodes now live in a plugin)', () => {
     const catalog = createCoreCatalog();
-    expect(catalog.listByCategory('trigger').length).toBe(1);
+    expect(catalog.listByCategory('trigger').length).toBe(2);
     // Custom Code, WASM Module, and human approval
     expect(catalog.listByCategory('action').length).toBe(3);
     expect(catalog.listByCategory('logic').length).toBe(4);
