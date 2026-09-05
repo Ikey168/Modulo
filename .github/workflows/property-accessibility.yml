@@ -1,0 +1,23 @@
+name: Property accessibility
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/features/knowledge/**'
+      - 'frontend/tests/property-accessibility.spec.ts'
+      - 'frontend/tests/fixtures/properties.*'
+      - 'frontend/playwright.properties.config.ts'
+      - '.github/workflows/property-accessibility.yml'
+jobs:
+  keyboard-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.properties.config.ts
+        working-directory: frontend

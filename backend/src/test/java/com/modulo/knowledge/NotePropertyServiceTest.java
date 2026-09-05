@@ -226,6 +226,25 @@ class NotePropertyServiceTest {
   }
 
   @Test
+  void documentAndPropertiesCommitTogetherAndRejectStaleBody() {
+    define("status", "select");
+    jdbc.update(
+        "UPDATE application.notes SET content='Body',markdown_content='Body' WHERE note_id=10");
+    var change = new NotePropertyService.Change(10, 0, Map.of("status", node("Open")), List.of());
+    assertThrows(
+        ResponseStatusException.class, () -> service.writeDocument(1, change, "Changed", "stale"));
+    assertTrue(values(10).isEmpty());
+    service.writeDocument(1, change, "---\nmoduloProperties:\n  status: Open\n---\nBody", "Body");
+    assertEquals("Open", values(10).get("status").asText());
+    assertTrue(
+        jdbc.queryForObject(
+                "SELECT markdown_content FROM application.notes WHERE note_id=10", String.class)
+            .contains("status: Open"));
+    assertThrows(
+        ResponseStatusException.class, () -> service.writeDocument(1, change, "overwrite", "Body"));
+  }
+
+  @Test
   void equalityUsesIndexOnRepresentativeData() {
     define("score", "number");
     jdbc.execute(
