@@ -1,3 +1,4 @@
+import {NotePropertyPanel} from '../knowledge/NotePropertyPanel';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Anchor,
@@ -194,6 +195,7 @@ export function NotesView({
             note={note}
             editMode={editMode}
             onToggleEdit={onToggleEdit}
+            onPropertySaved={()=>void data.refresh()}
             onSave={(title, content) => updateNote(note.id, { title, content, markdownContent: content })}
             onSelectNote={openNote}
             allNotes={notes}
@@ -340,6 +342,7 @@ interface EditorProps {
   editMode: boolean;
   onToggleEdit: (v: boolean) => void;
   onSave: (title: string, content: string) => void;
+  onPropertySaved: () => void;
   onSelectNote: (id: number) => void;
   allNotes: CoreNote[];
   onBack: () => void;
@@ -349,7 +352,7 @@ interface EditorProps {
   editorActions: EditorActionContribution[];
 }
 
-function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, noteFences, editorActions }: EditorProps) {
+function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, noteFences, editorActions }: EditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
   const dirtyRef = useRef(false);
@@ -444,6 +447,7 @@ function Editor({ note, editMode, onToggleEdit, onSave, onSelectNote, allNotes, 
         </div>
       </div>
 
+      <NotePropertyPanel key={note.id} noteId={note.id} content={content} notes={allNotes} contentBusy={dirtyRef.current} onSaved={next=>{if(saveTimer.current)clearTimeout(saveTimer.current);dirtyRef.current=false;setContent(next);onPropertySaved();}}/>
       <div className="relative flex-1 overflow-hidden">
         {editMode ? (
           <div className="flex h-full flex-col">

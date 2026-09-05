@@ -48,6 +48,18 @@ public class NotePropertyController {
     return properties.query(users.requireUserId(), body.filters(), body.after(), body.limit());
   }
 
+  public record DocumentWrite(
+      NotePropertyService.Change change, String markdown, String expectedMarkdown) {}
+
+  @PostMapping("/document")
+  public Object document(@RequestBody DocumentWrite body) {
+    if (body.change() == null)
+      throw new org.springframework.web.server.ResponseStatusException(
+          org.springframework.http.HttpStatus.BAD_REQUEST, "INVALID_PROPERTY_PATCH");
+    return properties.writeDocument(
+        users.requireUserId(), body.change(), body.markdown(), body.expectedMarkdown());
+  }
+
   @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
   public org.springframework.http.ResponseEntity<Map<String, String>> failure(
       org.springframework.web.server.ResponseStatusException failure) {

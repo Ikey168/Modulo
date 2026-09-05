@@ -234,6 +234,36 @@ public class NotePropertyService {
         });
   }
 
+  public List<Map<String, Object>> writeDocument(
+      long owner, Change change, String markdown, String expectedMarkdown) {
+    if (markdown == null
+        || markdown.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 2097152)
+      throw bad("NOTE_DOCUMENT_TOO_LARGE");
+    return tx.execute(
+        status -> {
+          lockOwner(owner);
+          ownedNote(owner, change.noteId(), true);
+          String stored =
+              jdbc.queryForObject(
+                  "SELECT COALESCE(markdown_content,content,'') FROM application.notes WHERE"
+                      + " note_id=? AND user_id=?",
+                  String.class,
+                  change.noteId(),
+                  owner);
+          if (!Objects.equals(stored, expectedMarkdown)) throw conflict();
+          var result = write(owner, List.of(change));
+          jdbc.update(
+              "UPDATE application.notes SET content=?,markdown_content=? WHERE note_id=? AND"
+                  + " user_id=?",
+              markdown,
+              markdown,
+              change.noteId(),
+              owner);
+          audit(owner, change.noteId(), "PROPERTY_DOCUMENT_WRITE");
+          return result;
+        });
+  }
+
   private JsonNode validateValue(long owner, Map<String, Object> definition, JsonNode value) {
     if (value == null || value.isNull()) return json.nullNode();
     String type = definition.get("value_type").toString();
