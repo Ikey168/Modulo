@@ -6,6 +6,7 @@ export interface AppNotification {
   message: string;
   noteId?: number;
   commentId?: number;
+  approvalRequestId?: string;
   read: boolean;
   createdAt: string;
 }

@@ -1,0 +1,23 @@
+name: Approval accessibility
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/features/approvals/**'
+      - 'frontend/tests/approval-accessibility.spec.ts'
+      - 'frontend/tests/fixtures/approval.*'
+      - 'frontend/playwright.approvals.config.ts'
+      - '.github/workflows/approval-accessibility.yml'
+jobs:
+  keyboard-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.approvals.config.ts
+        working-directory: frontend

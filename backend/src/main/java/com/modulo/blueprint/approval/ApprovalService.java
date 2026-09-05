@@ -415,6 +415,7 @@ public class ApprovalService {
     result.put("id", row.get("id"));
     result.put("revision", row.get("revision"));
     result.put("state", row.get("state"));
+    result.put("runState", row.get("run_state"));
     result.put("requester", row.get("requester_ref"));
     result.put("reviewer", row.get("approver_ref"));
     result.put("blueprintId", row.get("blueprint_id"));

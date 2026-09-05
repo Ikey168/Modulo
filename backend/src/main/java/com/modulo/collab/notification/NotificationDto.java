@@ -10,6 +10,7 @@ public class NotificationDto {
     private String message;
     private Long noteId;
     private Long commentId;
+    private java.util.UUID approvalRequestId;
     private boolean read;
     private LocalDateTime createdAt;
 
@@ -23,10 +24,13 @@ public class NotificationDto {
         dto.message = n.getMessage();
         dto.noteId = n.getNoteId();
         dto.commentId = n.getCommentId();
+        dto.approvalRequestId = n.getApprovalRequestId();
         dto.read = n.isRead();
         dto.createdAt = n.getCreatedAt();
         return dto;
     }
+
+    public java.util.UUID getApprovalRequestId() { return approvalRequestId; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

@@ -44,3 +44,23 @@ Validation uses PostgreSQL with all Flyway migrations and the real interpreter:
 restart/resume, competing decisions, authorization, stale and duplicate requests,
 revocation, changed evidence, expiry, cancellation, and fresh approval on retry.
 The editor fixture verifies typed request/decision pins and result branches.
+
+## Reviewer inbox
+
+Open **Approvals** in the workspace, or follow an approval notification. Pending
+requests show expiry times; the status filter includes resolved history. Details
+show only the authorized summary, evidence digest, request events, and decision
+history. Workflow state refreshes every ten seconds so reviewers can observe
+continuation without receiving access to private execution details.
+
+Choose a decision, enter a reason (required for rejection), and explicitly
+confirm it. Changing the choice or reason clears confirmation. The client keeps
+the same idempotency key when retrying an unchanged submission after a network
+failure. A conflict refreshes server state and requires review before another
+submission. Resolved requests have no decision form.
+
+The inbox uses labeled native controls, a focused detail heading, live status
+messages, and a single-column mobile layout. Run the browser keyboard and mobile
+checks with `cd frontend && npx playwright test --config playwright.approvals.config.ts`.
+The browser fixture mocks the service; PostgreSQL integration tests separately
+exercise authorization and durable continuation.
