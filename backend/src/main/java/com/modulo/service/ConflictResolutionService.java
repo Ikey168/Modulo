@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ConflictResolutionService {
+    @org.springframework.beans.factory.annotation.Autowired private com.modulo.security.AuthenticatedUserService users;
     
     private static final Logger log = LoggerFactory.getLogger(ConflictResolutionService.class);
     
@@ -56,7 +57,7 @@ public class ConflictResolutionService {
             currentNote.getUpdatedAt(),
             LocalDateTime.now(),
             currentNote.getLastEditor(),
-            currentEditor,
+            users.actor(),
             expectedVersion,
             currentNote.getVersion()
         );
@@ -99,7 +100,7 @@ public class ConflictResolutionService {
         if (markdownContent != null) {
             note.setMarkdownContent(markdownContent);
         }
-        note.setLastEditor(editor);
+        note.setLastEditor(users.actor());
         
         // Handle tags update
         if (tagNames != null) {
@@ -139,7 +140,7 @@ public class ConflictResolutionService {
         if (markdownContent != null) {
             note.setMarkdownContent(markdownContent);
         }
-        note.setLastEditor(editor);
+        note.setLastEditor(users.actor());
         note.setUpdatedAt(LocalDateTime.now());
         
         // Handle tags update

@@ -30,6 +30,8 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Note Service Tests")
 class NoteServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
+    @Mock private TagService tagService;
 
     @Mock
     private EntityManager entityManager;
@@ -63,6 +65,10 @@ class NoteServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(users.requireUserId()).thenReturn(100L);
+        when(users.actor()).thenReturn("100");
+        when(users.requireOwner(any())).thenReturn(100L);
+        when(tagService.resolveOwned(any())).thenAnswer(call -> call.getArgument(0));
         testNote = new Note();
         testNote.setId(1L);
         testNote.setTitle("Test Note");
@@ -372,7 +378,7 @@ class NoteServiceTest {
             assertThat(result).hasSize(1);
             verify(query, never()).setParameter(eq("query"), any());
             verify(query, never()).setParameter(eq("tags"), any());
-            verify(query, never()).setParameter(eq("userId"), any());
+            verify(query).setParameter("userId", 100L);
         }
     }
 

@@ -35,10 +35,10 @@ public class NoteAuditInterceptor implements HandlerInterceptor {
         Long noteId;
         try { noteId = Long.parseLong(m.group(1)); } catch (NumberFormatException e) { return; }
 
-        String userId   = header(request, "X-User-Id", "anonymous");
-        String userName = header(request, "X-User-Name", null);
+        String userId   = null;
+        String userName = null;
         int    status   = response.getStatus();
-        String outcome  = (status >= 200 && status < 300) ? "ALLOW" : (status == 403 || status == 401) ? "DENY" : "ERROR";
+        String outcome  = (status >= 200 && status < 300) ? "ALLOW" : (status == 403 || status == 401 || status == 404) ? "DENY" : "ERROR";
         String eventType = switch (method) {
             case "GET"    -> "NOTE_READ";
             case "POST"   -> "NOTE_CREATE";
@@ -51,13 +51,7 @@ public class NoteAuditInterceptor implements HandlerInterceptor {
         auditService.record(eventType, noteId, userId, userName, outcome, getClientIp(request), "status=" + status);
     }
 
-    private static String header(HttpServletRequest req, String name, String fallback) {
-        String v = req.getHeader(name);
-        return (v != null && !v.isBlank()) ? v : fallback;
-    }
-
     private static String getClientIp(HttpServletRequest req) {
-        String xff = req.getHeader("X-Forwarded-For");
-        return (xff != null && !xff.isBlank()) ? xff.split(",")[0].trim() : req.getRemoteAddr();
+        return req.getRemoteAddr();
     }
 }

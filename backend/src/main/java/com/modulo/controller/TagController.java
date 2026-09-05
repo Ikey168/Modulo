@@ -29,6 +29,7 @@ public class TagController {
             List<Tag> tags = tagService.findAll();
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -40,6 +41,7 @@ public class TagController {
             return tag.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -50,6 +52,7 @@ public class TagController {
             List<Tag> tags = tagService.searchByName(query);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -66,6 +69,7 @@ public class TagController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -80,6 +84,7 @@ public class TagController {
             tagService.deleteById(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -90,6 +95,7 @@ public class TagController {
             List<Tag> tags = tagService.findTagsByNoteId(noteId);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -100,6 +106,7 @@ public class TagController {
             Long count = tagService.countNotesByTagId(id);
             return ResponseEntity.ok(count);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

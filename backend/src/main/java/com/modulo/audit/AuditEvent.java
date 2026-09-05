@@ -24,6 +24,11 @@ public class AuditEvent {
     @Column(name = "user_id", length = 128)
     private String userId;
 
+    @Column(name = "actor_verified", nullable = false)
+    private boolean actorVerified;
+    public boolean isActorVerified() { return actorVerified; }
+    public void setActorVerified(boolean value) { actorVerified = value; }
+
     @Column(name = "user_name", length = 256)
     private String userName;
 

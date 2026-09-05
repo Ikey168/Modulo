@@ -31,6 +31,7 @@ public class ShareController {
     private final ShareTokenRepository tokenRepository;
     private final NoteRepository noteRepository;
     private final AuditEventService auditService;
+    private final com.modulo.security.AuthenticatedUserService users;
 
     // ── Owner management ────────────────────────────────────────────────────
 
@@ -45,7 +46,8 @@ public class ShareController {
 
         ShareToken token = new ShareToken();
         token.setNoteId(noteId);
-        token.setOwnerId(userId);
+        token.setOwnerId(users.actor());
+        token.setOwnerVerified(true);
 
         if (req.getExpiresInHours() != null && req.getExpiresInHours() > 0) {
             token.setExpiresAt(Instant.now().plus(req.getExpiresInHours(), ChronoUnit.HOURS));
@@ -56,7 +58,7 @@ public class ShareController {
 
         tokenRepository.save(token);
         auditService.record("SHARE_CREATED", noteId, userId, null, "ALLOW", null,
-                "share_token=" + token.getToken());
+                "token_id=" + token.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ShareTokenDto.from(token));
     }
 
@@ -66,6 +68,7 @@ public class ShareController {
             @PathVariable Long noteId,
             @RequestHeader(value = "X-User-Id", defaultValue = "anonymous") String userId) {
 
+        if (noteRepository.findById(noteId).isEmpty()) return ResponseEntity.notFound().build();
         List<ShareTokenDto> tokens = tokenRepository.findByNoteIdOrderByCreatedAtDesc(noteId)
             .stream().map(ShareTokenDto::from).toList();
         return ResponseEntity.ok(tokens);
@@ -81,6 +84,7 @@ public class ShareController {
         if (found.isEmpty()) return ResponseEntity.notFound().build();
 
         ShareToken t = found.get();
+        if (noteRepository.findById(t.getNoteId()).isEmpty()) return ResponseEntity.notFound().build();
         t.setRevoked(true);
         tokenRepository.save(t);
         auditService.record("SHARE_REVOKED", t.getNoteId(), userId, null, "ALLOW", null,
@@ -106,6 +110,7 @@ public class ShareController {
 
         ShareToken t = found.get();
 
+        if (!t.isOwnerVerified()) return notFoundHtml();
         if (t.isRevoked()) {
             return errorHtml("This link has been revoked.");
         }
@@ -118,13 +123,16 @@ public class ShareController {
             }
         }
 
-        Optional<Note> noteOpt = noteRepository.findById(t.getNoteId());
+        Long owner;
+        try { owner = Long.valueOf(t.getOwnerId()); }
+        catch (RuntimeException invalidOwner) { return notFoundHtml(); }
+        Optional<Note> noteOpt = noteRepository.findByIdAndUserId(t.getNoteId(), owner);
         if (noteOpt.isEmpty()) return notFoundHtml();
 
         Note note = noteOpt.get();
         String ip = getClientIp(request);
         auditService.record("SHARE_VIEWED", note.getId(), null, null, "ALLOW", ip,
-                "token=" + token);
+                "token_id=" + t.getId());
 
         return ResponseEntity.ok(buildNoteHtml(note));
     }

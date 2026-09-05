@@ -56,9 +56,43 @@ public final class SchemaMigrationTool {
         }
     }
 
+    /** Validate the immutable V1 contract before adopting, rather than requiring future migration columns. */
+    static void validateBaseline(String url, String user, String password) throws Exception {
+        String baseline;
+        try (var stream = SchemaMigrationTool.class.getResourceAsStream("/db/postgresql/V1__Current_JPA_baseline.sql")) {
+            if (stream == null) throw new IllegalStateException("Baseline resource missing");
+            baseline = new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        var tables = java.util.regex.Pattern.compile("(?is)create\\s+table\\s+([a-z_][a-z_0-9.]*)\\s*\\((.*?)\\)\\s*;").matcher(baseline);
+        try (var connection = DriverManager.getConnection(url, user, password)) {
+            int count = 0;
+            while (tables.find()) {
+                count++;
+                String[] qualified = tables.group(1).toLowerCase(java.util.Locale.ROOT).split("\\.");
+                String schema = qualified.length == 2 ? qualified[0] : "public", table = qualified[qualified.length - 1];
+                for (String line : tables.group(2).split("\\r?\\n")) {
+                    var column = java.util.regex.Pattern.compile("(?i)^\\s*([a-z_][a-z_0-9]*)\\s+([a-z0-9]+)(?:\\((\\d+)(?:,\\d+)?\\))?").matcher(line);
+                    if (!column.find() || java.util.Set.of("primary", "unique", "constraint", "foreign", "check").contains(column.group(1).toLowerCase(java.util.Locale.ROOT))) continue;
+                    String expected = column.group(2).toLowerCase(java.util.Locale.ROOT);
+                    expected = java.util.Map.of("bigint", "int8", "integer", "int4", "boolean", "bool", "smallint", "int2", "double", "float8", "bigserial", "int8", "serial", "int4").getOrDefault(expected, expected);
+                    try (var statement = connection.prepareStatement("SELECT udt_name,character_maximum_length FROM information_schema.columns WHERE table_schema=? AND table_name=? AND column_name=?")) {
+                        statement.setString(1, schema); statement.setString(2, table); statement.setString(3, column.group(1).toLowerCase(java.util.Locale.ROOT));
+                        try (var result = statement.executeQuery()) {
+                            if (!result.next() || !(expected.equals(result.getString(1)) || (expected.equals("varchar") && result.getString(1).equals("text"))))
+                                throw new IllegalStateException("Baseline column missing or incompatible: " + schema + "." + table + "." + column.group(1));
+                            if (expected.equals("varchar") && column.group(3) != null && result.getObject(2) != null && result.getInt(2) < Integer.parseInt(column.group(3)))
+                                throw new IllegalStateException("Baseline column is too short: " + table + "." + column.group(1));
+                        }
+                    }
+                }
+            }
+            if (count == 0) throw new IllegalStateException("No baseline tables found");
+        }
+    }
+
     public static void adopt(String url, String user, String password) throws Exception {
         // Validate before writing any history: UUID-era or incomplete schemas fail closed.
-        validateSchema(url, user, password);
+        validateBaseline(url, user, password);
         flyway(url, user, password).baseline();
     }
 

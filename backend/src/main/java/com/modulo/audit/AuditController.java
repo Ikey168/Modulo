@@ -22,7 +22,7 @@ public class AuditController {
     /**
      * GET /api/audit
      * Query params: noteId, userId, eventType, from (ISO), to (ISO), page, size
-     * Users should only see their own events; admins can filter by any userId.
+     * The service restricts results to the authenticated actor.
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> query(
@@ -35,14 +35,10 @@ public class AuditController {
             @RequestParam(defaultValue = "50") int size,
             @RequestHeader(value = "X-User-Id", defaultValue = "anonymous") String requesterId) {
 
-        // Non-admin users may only see their own events or events on their notes
-        String effectiveUserId = "admin".equals(requesterId) ? userId : requesterId;
-        Long effectiveNoteId   = noteId;  // note-scoped views are handled by noteId filter
-
         Instant fromInstant = from != null ? Instant.parse(from) : null;
         Instant toInstant   = to   != null ? Instant.parse(to)   : null;
 
-        Page<AuditEvent> result = service.filter(effectiveNoteId, effectiveUserId, eventType,
+        Page<AuditEvent> result = service.filter(noteId, userId, eventType,
                                                   fromInstant, toInstant, page, Math.min(size, 200));
 
         return ResponseEntity.ok(Map.of(

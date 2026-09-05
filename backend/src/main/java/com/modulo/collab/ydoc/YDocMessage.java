@@ -7,6 +7,9 @@ public class YDocMessage {
     private String type;
     private Long noteId;
     private String userId;
+    private String clientId;
+    public String getClientId() { return clientId; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
     private String update;
 
     public YDocMessage() {}

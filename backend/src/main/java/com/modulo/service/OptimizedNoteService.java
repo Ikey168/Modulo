@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class OptimizedNoteService {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
 
     private static final Logger logger = LoggerFactory.getLogger(OptimizedNoteService.class);
     
@@ -46,7 +47,7 @@ public class OptimizedNoteService {
      * Find note by ID with caching
      * Cache key includes the note ID for precise caching
      */
-    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "#id")
+    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + (#id)")
     @Transactional(readOnly = true)
     public Optional<Note> findById(Long id) {
         logger.debug("Fetching note with ID: {} (cache miss)", id);
@@ -66,9 +67,10 @@ public class OptimizedNoteService {
      * Cache key includes userId and page parameters
      */
     @Cacheable(value = CacheConfig.NOTES_BY_USER_CACHE, 
-               key = "#userId + '_' + #page + '_' + #size + '_' + #sortBy")
+               key = "@authenticatedUserService.requireUserId() + '_' + (#userId + '_' + #page + '_' + #size + '_' + #sortBy)")
     @Transactional(readOnly = true)
     public Page<Note> findByUserId(Long userId, int page, int size, String sortBy) {
+        userId = users.requireOwner(userId);
         logger.debug("Fetching notes for user: {} (page: {}, size: {}) (cache miss)", userId, page, size);
         
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
@@ -78,9 +80,10 @@ public class OptimizedNoteService {
     /**
      * Find recently accessed notes by user (highly cached)
      */
-    @Cacheable(value = CacheConfig.NOTES_BY_USER_CACHE, key = "'recent_' + #userId")
+    @Cacheable(value = CacheConfig.NOTES_BY_USER_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + ('recent_' + #userId)")
     @Transactional(readOnly = true)
     public List<Note> findRecentlyAccessedByUser(Long userId) {
+        userId = users.requireOwner(userId);
         logger.debug("Fetching recently accessed notes for user: {} (cache miss)", userId);
         
         Pageable pageable = PageRequest.of(0, RECENT_NOTES_LIMIT);
@@ -92,7 +95,7 @@ public class OptimizedNoteService {
      * Cache key includes query and pagination parameters
      */
     @Cacheable(value = CacheConfig.NOTES_SEARCH_CACHE, 
-               key = "#query + '_' + #page + '_' + #size")
+               key = "@authenticatedUserService.requireUserId() + '_' + (#query + '_' + #page + '_' + #size)")
     @Transactional(readOnly = true)
     public Page<Note> searchNotes(String query, int page, int size) {
         logger.debug("Searching notes with query: '{}' (page: {}, size: {}) (cache miss)", query, page, size);
@@ -109,7 +112,7 @@ public class OptimizedNoteService {
      * Advanced search with multiple criteria
      */
     @Cacheable(value = CacheConfig.NOTES_SEARCH_CACHE, 
-               key = "(#query ?: 'null') + '_' + (#userId ?: 'null') + '_' + (#tagName ?: 'null') + '_' + #page + '_' + #size")
+               key = "@authenticatedUserService.requireUserId() + '_' + ((#query ?: 'null') + '_' + (#userId ?: 'null') + '_' + (#tagName ?: 'null') + '_' + #page + '_' + #size)")
     @Transactional(readOnly = true)
     public Page<Note> advancedSearch(String query, Long userId, String tagName, 
                                    LocalDateTime fromDate, LocalDateTime toDate, 
@@ -125,7 +128,7 @@ public class OptimizedNoteService {
      * Find notes by tag with caching
      */
     @Cacheable(value = CacheConfig.NOTES_BY_TAG_CACHE, 
-               key = "#tagName + '_' + #page + '_' + #size")
+               key = "@authenticatedUserService.requireUserId() + '_' + (#tagName + '_' + #page + '_' + #size)")
     @Transactional(readOnly = true)
     public Page<Note> findByTag(String tagName, int page, int size) {
         logger.debug("Fetching notes by tag: '{}' (cache miss)", tagName);
@@ -137,9 +140,10 @@ public class OptimizedNoteService {
     /**
      * Get note count by user with caching
      */
-    @Cacheable(value = CacheConfig.USER_CACHE, key = "'note_count_' + #userId")
+    @Cacheable(value = CacheConfig.USER_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + ('note_count_' + #userId)")
     @Transactional(readOnly = true)
     public Long getNoteCountByUser(Long userId) {
+        userId = users.requireOwner(userId);
         logger.debug("Getting note count for user: {} (cache miss)", userId);
         return noteRepository.countByUserId(userId);
     }
@@ -147,9 +151,10 @@ public class OptimizedNoteService {
     /**
      * Get recently updated notes for dashboard
      */
-    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "'recent_updates_' + (#userId ?: 'all')")
+    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + ('recent_updates_' + (#userId ?: 'all'))")
     @Transactional(readOnly = true)
     public List<Note> getRecentlyUpdatedNotes(Long userId, int limit) {
+        userId = users.requireOwner(userId);
         logger.debug("Getting recently updated notes (cache miss)");
         
         LocalDateTime since = LocalDateTime.now().minusDays(7); // Last week
@@ -160,9 +165,10 @@ public class OptimizedNoteService {
     /**
      * Get note titles only for quick overview
      */
-    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "'titles_' + (#userId ?: 'all') + '_' + #limit")
+    @Cacheable(value = CacheConfig.NOTES_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + ('titles_' + (#userId ?: 'all') + '_' + #limit)")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getNoteTitles(Long userId, int limit) {
+        userId = users.requireOwner(userId);
         logger.debug("Getting note titles overview (cache miss)");
         
         Pageable pageable = PageRequest.of(0, Math.min(limit, 100));
@@ -183,9 +189,10 @@ public class OptimizedNoteService {
     /**
      * Get user note statistics with caching
      */
-    @Cacheable(value = CacheConfig.USER_CACHE, key = "'stats_' + #userId")
+    @Cacheable(value = CacheConfig.USER_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + ('stats_' + #userId)")
     @Transactional(readOnly = true)
     public Map<String, Object> getUserNoteStatistics(Long userId) {
+        userId = users.requireOwner(userId);
         logger.debug("Getting user note statistics: {} (cache miss)", userId);
         
         LocalDateTime weekAgo = LocalDateTime.now().minusWeeks(1);
@@ -208,13 +215,19 @@ public class OptimizedNoteService {
      * Save note and invalidate relevant caches
      */
     @Caching(evict = {
-        @CacheEvict(value = CacheConfig.NOTES_CACHE, key = "#note.id", condition = "#note.id != null"),
+        @CacheEvict(value = CacheConfig.NOTES_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + (#note.id)", condition = "#note.id != null"),
         @CacheEvict(value = CacheConfig.NOTES_BY_USER_CACHE, allEntries = true),
         @CacheEvict(value = CacheConfig.NOTES_SEARCH_CACHE, allEntries = true),
         @CacheEvict(value = CacheConfig.USER_CACHE, allEntries = true)
     })
     public Note save(Note note) {
+        long owner = users.requireUserId();
         boolean isNew = note.getId() == null;
+        if (!isNew && noteRepository.findByIdAndUserId(note.getId(), owner).isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found");
+        }
+        note.setTags(tagService.resolveOwned(note.getTags()));
+        note.setUserId(owner); note.setLastEditor(users.actor());
         LocalDateTime now = LocalDateTime.now();
         
         if (isNew) {
@@ -239,7 +252,7 @@ public class OptimizedNoteService {
      * Delete note and invalidate caches
      */
     @Caching(evict = {
-        @CacheEvict(value = CacheConfig.NOTES_CACHE, key = "#id"),
+        @CacheEvict(value = CacheConfig.NOTES_CACHE, key = "@authenticatedUserService.requireUserId() + '_' + (#id)"),
         @CacheEvict(value = CacheConfig.NOTES_BY_USER_CACHE, allEntries = true),
         @CacheEvict(value = CacheConfig.NOTES_SEARCH_CACHE, allEntries = true),
         @CacheEvict(value = CacheConfig.NOTES_BY_TAG_CACHE, allEntries = true),
@@ -279,6 +292,7 @@ public class OptimizedNoteService {
      * Warm up frequently accessed caches
      */
     public void warmUpCache(Long userId) {
+        userId = users.requireOwner(userId);
         logger.info("Warming up cache for user: {}", userId);
         
         // Pre-load recent notes
@@ -301,6 +315,7 @@ public class OptimizedNoteService {
         @CacheEvict(value = CacheConfig.USER_CACHE, allEntries = true)
     })
     public void evictUserCaches(Long userId) {
+        userId = users.requireOwner(userId);
         logger.info("Evicted all caches for user: {}", userId);
     }
 }

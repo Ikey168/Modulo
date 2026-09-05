@@ -20,7 +20,7 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 | [#412](https://github.com/Ikey168/Modulo/issues/412) | EPIC: Pack Studio and complete installable workspace experiences | Open epic; child acceptance criteria remain incomplete. |
 | [#413](https://github.com/Ikey168/Modulo/issues/413) | EPIC: Marketplace Trust Center and safe plugin upgrades | Open epic; child acceptance criteria remain incomplete. |
 | [#414](https://github.com/Ikey168/Modulo/issues/414) | EPIC: Structured note properties, query views, and private semantic knowledge | Open epic; child acceptance criteria remain incomplete. |
-| [#415](https://github.com/Ikey168/Modulo/issues/415) | State P1: enforce authenticated ownership on notes, tags, links, attachments, and tasks | Partial local foundation: canonical principal resolver; existing resource and WebSocket paths still need enforcement. |
+| [#415](https://github.com/Ikey168/Modulo/issues/415) | State P1: enforce authenticated ownership on notes, tags, links, attachments, and tasks | Implemented in the tenant-isolation change: owner-scoped resource queries and caches, relationship guards, authenticated STOMP subscriptions/delivery, private attachments, authoritative audit actors, verified share grants and tested legacy backfill. See the [migration runbook](../operations/tenant-ownership-migration.md). |
 | [#416](https://github.com/Ikey168/Modulo/issues/416) | State P2: ADR and contract for namespaced plugin state | ADR 0008 published; closed. |
 | [#417](https://github.com/Ikey168/Modulo/issues/417) | State P3: implement versioned plugin-state persistence and REST API | Partial local implementation: PostgreSQL store, migration and host REST API; external permissions, schema registry and event delivery remain. |
 | [#418](https://github.com/Ikey168/Modulo/issues/418) | State P4: frontend plugin-state client with offline queue and conflict handling | Published client, plugin context, authentication lifecycle and remote discovery; 61 isolated-tree tests and typecheck pass. Closed. |
@@ -60,7 +60,7 @@ The state API, offline queue, authentication lifecycle, namespace-bound plugin c
 
 ## Next implementation dependencies
 
-1. Complete #415 across every resource access path, including WebSocket subscriptions/broadcasts, graph, import/export and audit attribution; define and test legacy ownership migration.
+1. Publish and verify #415 tenant isolation, including the V4 migration and explicit legacy backfill runbook.
 2. Finish #417 permissions/schema/event delivery and #422 operational-record migrations; run #423 before closing #409. Client and consumer migrations #418–421 are published.
 3. Deliver #424–429, then #430–434, followed by the dependent Pack Studio, Trust Center and knowledge work in the [roadmap order](feature-ideas.md).
 4. Keep #401 open until actual staging soak, release and Pi evidence satisfies its operational criteria.
@@ -72,3 +72,11 @@ The exact publishable frontend tree passes `npm run typecheck` and all 479 tests
 53 Vitest files. Verification used an isolated archive of the Git index, so the
 result does not depend on pre-existing uncommitted UI, pack or infrastructure work.
 38 issues remain open; this checkpoint does not complete the overall inventory.
+
+## Tenant isolation verification
+
+The staged tenant-isolation tree passes frontend typechecking and 485 tests in
+55 files, plus 133 backend tests in 20 suites. Backend verification includes real
+PostgreSQL migrations and repository discovery, two-owner cache/relationship
+checks, HTTP file isolation and real STOMP private-queue delivery. The operational
+upgrade and explicit legacy backfill are documented in the tenant migration runbook.

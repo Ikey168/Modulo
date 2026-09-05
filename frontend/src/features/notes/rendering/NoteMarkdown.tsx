@@ -12,6 +12,7 @@
  */
 
 import React from 'react';
+import { PrivateAttachmentImage, PrivateAttachmentLink } from './PrivateAttachment';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -46,7 +47,7 @@ const markdownComponents: Components = {
   h5: styled('h5', 'mb-1.5 mt-4 text-sm font-semibold text-foreground first:mt-0'),
   h6: styled('h6', 'mb-1.5 mt-4 text-sm font-semibold text-muted-foreground first:mt-0'),
   p: styled('p', 'my-3 text-sm leading-relaxed first:mt-0 last:mb-0'),
-  a: styled('a', 'font-medium text-primary-hover underline-offset-2 hover:underline'),
+  a: ({ node: _node, ...props }) => <PrivateAttachmentLink {...props} className="font-medium text-primary-hover underline-offset-2 hover:underline" />,
   strong: styled('strong', 'font-semibold text-foreground'),
   ul: styled('ul', 'my-3 flex list-disc flex-col gap-1 pl-6 text-sm leading-relaxed'),
   ol: styled('ol', 'my-3 flex list-decimal flex-col gap-1 pl-6 text-sm leading-relaxed'),
@@ -62,7 +63,7 @@ const markdownComponents: Components = {
       '[&_code]:bg-transparent [&_code]:p-0 [&_code]:text-inherit',
   ),
   hr: styled('hr', 'my-6 border-border'),
-  img: styled('img', 'my-3 h-auto max-w-full rounded-md border border-border'),
+  img: ({ node: _node, ...props }) => <PrivateAttachmentImage {...props} className="my-3 h-auto max-w-full rounded-md border border-border" />,
   table: styled('table', 'my-4 block w-max max-w-full border-collapse overflow-x-auto text-[13px]'),
   thead: styled('thead', 'bg-surface-2'),
   th: styled('th', 'border border-border-strong px-3 py-1.5 text-left font-semibold text-foreground'),

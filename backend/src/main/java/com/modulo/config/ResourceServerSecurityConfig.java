@@ -71,7 +71,8 @@ public class ResourceServerSecurityConfig {
         };
     }
 
-    private JwtDecoder jwtDecoder() {
+    @Bean
+    public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
         if (issuerUri != null && !issuerUri.trim().isEmpty()) {
             decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuerUri));
