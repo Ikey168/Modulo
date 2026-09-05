@@ -92,3 +92,20 @@ owned reference redaction, nested context cleanup, and real localhost gRPC
 correlation. A bounded summary benchmark reports time per operation for a
 10,000-field input with only 256 inspected fields; database and network latency
 are additional costs.
+
+## Execution Center (#426)
+
+`/app/executions` lists the signed-in owner's retained runs. Server-side filters
+cover text, state, Blueprint ID, trigger type, inclusive start date, exclusive end
+date, and minimum duration. Run pages are capped at 100 rows; step timeline pages
+are capped at 100 rows. The owner predicate applies to list, aggregate counts,
+detail, and every step/path query. Missing, deleted and foreign runs return the
+same unavailable response.
+
+Dashboard workflow counts and activity use these run records. Blueprint edits
+are no longer presented as workflow executions. Deep links include the run UUID
+and optional node ID; the editor loads the run's authoritative Blueprint identity
+and highlights the recorded path. This opens the current graph and explicitly
+warns that historical nodes may have changed. Deleted Blueprints retain their
+run evidence but cannot open an editor link. The UI only renders recognized
+summary counts and labels values as redacted.

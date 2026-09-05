@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { listRuns, getRunSummary, type WorkflowRun } from '../executions/runService';
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Store, FileText, ArrowRight } from 'lucide-react';
 import type { CoreNote } from '@modulo/core';
@@ -34,6 +36,17 @@ interface ActivityEvent {
 }
 
 export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNote, onOpenBlueprints, onOpenMarketplace }: DashboardViewProps) {
+  const navigate = useNavigate();
+  const [runs,setRuns] = useState<WorkflowRun[]>([]);
+  const [runCount,setRunCount] = useState<number | null>(null);
+  const [runError,setRunError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.all([listRuns(new URLSearchParams({size:'9'}), controller.signal), getRunSummary(controller.signal)])
+      .then(([page,summary]) => { if(!controller.signal.aborted) {setRuns(page.items);setRunCount(summary.counts.reduce((sum,row) => sum+Number(row.count),0));} })
+      .catch(() => {if(!controller.signal.aborted) setRunError(true);});
+    return () => controller.abort();
+  },[]);
   const [workflows, setWorkflows] = useState<BlueprintListItem[] | null>(null);
 
   useEffect(() => {
@@ -52,17 +65,13 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
 
   const anchoredCount = useMemo(() => notes.filter(isAnchored).length, [notes]);
 
-  // Presentational activity log synthesized from what the client knows:
-  // workflow updates, note saves, and on-chain anchors, newest first.
+  // Workflow activity comes from persisted executions.
   const activity = useMemo<ActivityEvent[]>(() => {
     const events: ActivityEvent[] = [];
-    (workflows ?? []).forEach((w) => {
-      events.push({
-        at: new Date(w.updatedAt).getTime(),
-        kind: 'workflow',
-        text: `workflow updated · ${w.name}`,
-        onClick: onOpenBlueprints,
-      });
+    runs.forEach((run) => {
+      events.push({ at: new Date(run.created_at).getTime(), kind: 'workflow',
+        text: `${run.state.toLowerCase()} · ${run.blueprint_name ?? 'Deleted Blueprint'}`,
+        onClick: () => navigate(`/app/executions?run=${encodeURIComponent(run.id)}`) });
     });
     notes.forEach((n) => {
       const at = new Date(n.updatedAt ?? 0).getTime();
@@ -75,7 +84,7 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
       .filter((e) => Number.isFinite(e.at) && e.at > 0)
       .sort((a, b) => b.at - a.at)
       .slice(0, 9);
-  }, [workflows, notes, onOpenBlueprints, onOpenNote]);
+  }, [runs, notes, navigate, onOpenNote]);
 
   const activePlugins = useMemo(
     () => [...installedPlugins].map((id) => PLUGINS.find((p) => p.id === id)?.name ?? id),
@@ -106,7 +115,7 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
             </Button>
           </div>
           <p className="mt-3 font-mono text-xs text-muted-foreground">
-            <span className="text-primary-hover">{workflows?.length ?? '–'}</span> workflows ·{' '}
+            <span className="text-primary-hover">{runCount ?? '–'}</span> retained workflow runs ·{' '}
             <span className="text-foreground">{installedPlugins.size}</span> plugins ·{' '}
             <span className="text-foreground">{notes.length}</span> notes ·{' '}
             <span className={anchoredCount > 0 ? 'text-success' : undefined}>{anchoredCount}</span> anchored on-chain
@@ -185,7 +194,8 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
         <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_260px]">
           {/* Activity: terminal-style log. */}
           <section aria-label="Recent activity">
-            <SectionRule label="Activity" />
+            <SectionRule label="Activity" right={<button className="text-sm underline" onClick={() => navigate('/app/executions')}>All executions</button>} />
+            {runError && <p role="alert">Workflow activity is unavailable.</p>}
             {activity.length === 0 ? (
               <p className="px-2 font-mono text-xs text-muted-foreground">— no activity yet</p>
             ) : (
