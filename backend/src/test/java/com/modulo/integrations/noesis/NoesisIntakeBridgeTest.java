@@ -90,6 +90,10 @@ class NoesisIntakeBridgeTest {
       assertTrue(NoesisIntakeBridge.TOOLS.contains("list_due_practice"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("start_practice_review"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("command_practice_review"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("scan_intake_maintenance"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_maintenance"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("record_maintenance_finding"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("assess_maintenance_health"));
     } finally {
       server.stop(0);
     }
