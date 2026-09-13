@@ -41,7 +41,9 @@ type Session = {
   duration_minutes: number;
   remaining_minutes?: number;
   inputs: { feed_item_ids?: string[]; symptom?: string; environment?: string;
-    urgency?: string; success_check?: string };
+    urgency?: string; success_check?: string; research_project_id?: string;
+    research_project_revision?: number; definition_of_done?: string[];
+    research_budget?: { requests: number; tokens: number; usd_micros: number } };
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
   references?: { kind: string; id: string; namespace: string; version: number;
     locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
@@ -52,6 +54,18 @@ type Session = {
 };
 type Preferences = { namespace: string; lastSessionId?: string; pendingStartKey?: string;
   pendingExploreKey?: string; pendingCaptureKey?: string };
+type ResearchStartRequest = { namespace: string; request_key: string;
+  questions: string[]; success_criteria: string[];
+  scope: { domains: string[]; namespaces: string[] };
+  budget: { requests: number; tokens: number; usd_micros: number };
+  origin: { session_id: string; reason: string }; references: SourceReference[] };
+type ResearchPending = { namespace: string; request?: ResearchStartRequest };
+type ResearchStartResult = { project: { project_id: string; revision: number };
+  session: Session };
+type ResearchProject = { project_id: string; revision: number; status: string;
+  questions: string[]; success_criteria: string[];
+  budget: { requests: number; tokens: number; usd_micros: number };
+  spent: { requests: number; tokens: number; usd_micros: number } };
 type MigratedRecord = { key: string; collection: string; legacyId: string; title: string };
 
 function migratedRecords(client: PluginStateClient): MigratedRecord[] {
@@ -79,6 +93,10 @@ export function NoesisIntakeView() {
   const preferences = usePluginState<Preferences>(
     'information-intake', 'preferences', { namespace: 'research' }, 'modulo.intake.preferences');
   const namespace = preferences.value.namespace;
+  const researchPending = usePluginState<ResearchPending>(
+    'information-intake', 'research.pending', { namespace }, 'modulo.intake.research-start');
+  const pendingResearchRequest = researchPending.value.namespace === namespace
+    ? researchPending.value.request : undefined;
   const [namespaceDraft, setNamespaceDraft] = useState(namespace);
   const [preflight, setPreflight] = useState<{ available: boolean; reason?: string;
     readiness?: IntakeReadiness }>();
@@ -108,6 +126,14 @@ export function NoesisIntakeView() {
   const [selectedVisit, setSelectedVisit] = useState<TrailVisit>();
   const [sourceAnnotations, setSourceAnnotations] = useState<SourceAnnotation[]>([]);
   const [annotationBody, setAnnotationBody] = useState('');
+  const [researchSource, setResearchSource] = useState<TrailVisit>();
+  const [researchQuestion, setResearchQuestion] = useState('');
+  const [researchDone, setResearchDone] = useState('');
+  const [researchRequests, setResearchRequests] = useState('5');
+  const [researchTokens, setResearchTokens] = useState('10000');
+  const [researchUsd, setResearchUsd] = useState('0');
+  const [researchProject, setResearchProject] = useState<ResearchProject>();
+  const [researchProjectError, setResearchProjectError] = useState<string>();
   const [escalationReason, setEscalationReason] = useState('');
   const [migration, setMigration] = useState<LegacyIntakePlan>();
   const [migrationResult, setMigrationResult] = useState<{
@@ -173,6 +199,21 @@ export function NoesisIntakeView() {
   }, [namespace, session?.access_degraded, session?.mode, session?.revision,
     session?.session_id, session?.status, suggestionRefresh]);
 
+  useEffect(() => {
+    const projectId = session?.mode === 'Deep Research' ? session.inputs.research_project_id : undefined;
+    setResearchProject(undefined); setResearchProjectError(undefined);
+    if (!projectId || preflight?.available !== true) return;
+    let active = true;
+    void intakeCall<ResearchProject>('inspect_research_project', {
+      namespace, project_id: projectId,
+    }).then(project => {
+      if (!active) return;
+      if (project.project_id !== projectId) throw new Error('Noesis returned a different research project.');
+      setResearchProject(project);
+    }).catch(cause => { if (active) setResearchProjectError(cause instanceof Error ? cause.message : String(cause)); });
+    return () => { active = false; };
+  }, [namespace, preflight?.available, session?.mode, session?.inputs.research_project_id]);
+
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setError(undefined);
     try { await action(); await load(); }
@@ -197,6 +238,10 @@ export function NoesisIntakeView() {
     const next = namespaceDraft.trim();
     if (!next || next.length > 128) {
       setError('Enter a namespace of at most 128 characters.'); return;
+    }
+    if (next !== namespace && researchPending.value.request &&
+      next !== researchPending.value.namespace) {
+      setError('Retry or abandon the pending research start before changing namespace.'); return;
     }
     setBusy(true); setError(undefined); loadSequence.current++;
     setPage(undefined); setSignalRules([]); setSignalPreview(undefined);
@@ -362,18 +407,53 @@ export function NoesisIntakeView() {
     await inspectVisit(selectedVisit);
   });
 
-  const researchVisit = (visit: TrailVisit) => run(async () => {
-    if (!session || session.mode !== 'Exploration') return;
-    const next = await intakeCall<Session>('start_intake_mode', {
-      namespace, mode: 'Deep Research',
-      request_key: `modulo-research-${session.session_id}-${visit.source_id}-${visit.version}`,
-      intent: `Investigate ${visit.title}`,
-      origin: { session_id: session.session_id, reason: 'Saved Exploration source selected for research' },
-      references: [{ kind: visit.source_id.startsWith('feed:') ? 'intake_feed_item' : 'exploration_source',
-        id: visit.source_id, namespace, version: visit.version, locator: { url: visit.url } }],
-    });
-    await preferences.set({ namespace, lastSessionId: next.session_id });
-    setSession(next);
+  const startResearch = () => run(async () => {
+    let request = pendingResearchRequest;
+    if (!request) {
+      if (researchPending.value.request)
+        throw new Error(`Resolve the pending research start in ${researchPending.value.namespace} first.`);
+      if (!session || session.mode !== 'Exploration' || !researchSource?.saved)
+        throw new Error('Select a saved Exploration source before starting research.');
+      const question = researchQuestion.trim();
+      const criteria = researchDone.split('\n').map(line => line.trim()).filter(Boolean);
+      if (!question || question.length > 2000 || !criteria.length || criteria.length > 20 ||
+        criteria.some(line => line.length > 2000))
+        throw new Error('Enter a question and one to twenty reviewable completion criteria.');
+      const count = (value: string, label: string) => {
+        if (!/^(0|[1-9]\d*)$/.test(value) || !Number.isSafeInteger(Number(value)))
+          throw new Error(`${label} must be a nonnegative whole number.`);
+        return Number(value);
+      };
+      const requests = count(researchRequests, 'Request budget');
+      const tokens = count(researchTokens, 'Token budget');
+      if (!requests || !tokens) throw new Error('Set positive request and token budgets.');
+      if (!/^(0|[1-9]\d*)(\.\d{1,6})?$/.test(researchUsd.trim()))
+        throw new Error('Max paid spend must be a nonnegative USD amount with at most six decimals.');
+      const usd_micros = Math.round(Number(researchUsd.trim()) * 1_000_000);
+      if (!Number.isSafeInteger(usd_micros)) throw new Error('Max paid spend is too large.');
+      request = {
+        namespace, request_key: `modulo-research-${crypto.randomUUID()}`,
+        questions: [question], success_criteria: criteria,
+        scope: { domains: [], namespaces: [namespace] },
+        budget: { requests, tokens, usd_micros },
+        origin: { session_id: session.session_id,
+          reason: 'Saved Exploration source selected for research' },
+        references: [{ kind: researchSource.source_id.startsWith('feed:')
+          ? 'intake_feed_item' : 'exploration_source',
+        id: researchSource.source_id, namespace, version: researchSource.version,
+        locator: { url: researchSource.url } }],
+      };
+      await researchPending.set({ namespace, request });
+      await researchPending.retry();
+    }
+    const result = await intakeCall<ResearchStartResult>('start_intake_research_topic', request);
+    if (!result.project?.project_id || !result.session?.session_id ||
+      result.session.inputs?.research_project_id !== result.project.project_id)
+      throw new Error('Noesis returned a research topic without its linked project. Retry the saved start.');
+    await preferences.set({ namespace, lastSessionId: result.session.session_id });
+    setSession(result.session);
+    setResearchSource(undefined);
+    await researchPending.set({ namespace });
   });
 
   const decide = (item: FeedItem, decision: string) => run(async () => {
@@ -529,6 +609,14 @@ export function NoesisIntakeView() {
       </header>
 
       {preferences.error && <p role="alert" className="text-destructive">Plugin state: {preferences.error}</p>}
+      {researchPending.value.request && <div role="status" className="flex flex-wrap items-center gap-3 border border-border p-3">
+        <span>A Deep Research topic start is pending in {researchPending.value.namespace}.</span>
+        <button className={buttonClass} disabled={busy || !pendingResearchRequest || !researchPending.ready}
+          onClick={() => void startResearch()}>Retry pending research start</button>
+        <button className={buttonClass} disabled={busy || !researchPending.ready || !!researchPending.conflict}
+          onClick={() => void run(async () => { await researchPending.set({ namespace }); })}>
+          Abandon pending research start</button>
+      </div>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {preflight && !preflight.available &&
         <p role="status" className="border border-border p-3">Noesis is unavailable: {preflight.reason}</p>}
@@ -605,6 +693,29 @@ export function NoesisIntakeView() {
           await preferences.set({ namespace, lastSessionId: next.session_id });
           setSession(next as Session);
         }} />
+
+      {session?.mode === 'Deep Research' && session.inputs.research_project_id &&
+        <section className="space-y-2 border-b border-border pb-5">
+          <h2 className="font-semibold">Deep Research topic</h2>
+          <p className="text-xs text-muted-foreground">Noesis project {session.inputs.research_project_id}
+            {' '}· pinned v{session.inputs.research_project_revision ?? 1}</p>
+          {researchProjectError && <p role="alert">Project unavailable: {researchProjectError}</p>}
+          {researchProject && <>
+            <p>{researchProject.questions.join('; ')} · {researchProject.status} · project v{researchProject.revision}</p>
+            <p className="text-xs text-muted-foreground">Budget: {researchProject.budget.requests} requests,
+              {' '}{researchProject.budget.tokens} tokens, ${
+                (researchProject.budget.usd_micros / 1_000_000).toFixed(2)} maximum paid spend.
+              {' '}Recorded spend: {researchProject.spent.requests} requests,
+              {' '}{researchProject.spent.tokens} tokens,
+              {' '}${(researchProject.spent.usd_micros / 1_000_000).toFixed(2)}.</p>
+            <h3 className="font-medium">Definition of Done</h3>
+            <ul className="list-inside list-disc text-sm">{researchProject.success_criteria.map(criterion =>
+              <li key={criterion}>{criterion}</li>)}</ul>
+          </>}
+          {!!session.unmet_completion_checks?.length && <p className="text-xs text-muted-foreground">
+            Completion still requires: {session.unmet_completion_checks.join(', ')}.
+          </p>}
+        </section>}
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
@@ -777,12 +888,59 @@ export function NoesisIntakeView() {
               {visit.note && <p className="text-muted-foreground">{visit.note}</p>}
               <div className="flex flex-wrap gap-2">
                 <button className={buttonClass} disabled={busy} onClick={() => void inspectVisit(visit)}>Notes</button>
-                {visit.saved && <button className={buttonClass} disabled={busy}
-                  onClick={() => void researchVisit(visit)}>Research this source</button>}
+                {visit.saved && <button className={buttonClass} disabled={busy || !!researchPending.value.request}
+                  onClick={() => { setResearchSource(visit); setResearchQuestion(''); setResearchDone(''); }}>
+                  Research this source</button>}
               </div>
             </li>)}
         </ul>
         {!session.data.trail?.length && <p className="text-muted-foreground">No pages visited yet. Finishing without a discovery is valid when the time box ends.</p>}
+        {(researchSource || pendingResearchRequest) &&
+          <div className="space-y-3 border-t border-border pt-4">
+            <h3 className="font-medium">Start a research topic</h3>
+            {pendingResearchRequest ? <p role="status" className="text-sm text-muted-foreground">
+              A topic start may already be committed in Noesis. Retry the saved request before starting another.
+            </p> : <>
+              <p className="text-sm text-muted-foreground">Source: {researchSource?.title} · Scope: {namespace}</p>
+              <label className="grid gap-1">Research question
+                <input className="rounded-md border border-border bg-background px-2 py-1.5"
+                  value={researchQuestion} onChange={event => setResearchQuestion(event.target.value)} />
+              </label>
+              <label className="grid gap-1">Definition of Done
+                <textarea className="min-h-20 rounded-md border border-border bg-background px-2 py-1.5"
+                  placeholder="One reviewable criterion per line" value={researchDone}
+                  onChange={event => setResearchDone(event.target.value)} />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="grid gap-1">Request budget
+                  <input className="rounded-md border border-border bg-background px-2 py-1.5"
+                    type="number" min="1" step="1" value={researchRequests}
+                    onChange={event => setResearchRequests(event.target.value)} />
+                </label>
+                <label className="grid gap-1">Token budget
+                  <input className="rounded-md border border-border bg-background px-2 py-1.5"
+                    type="number" min="1" step="1" value={researchTokens}
+                    onChange={event => setResearchTokens(event.target.value)} />
+                </label>
+                <label className="grid gap-1">Max paid spend (USD)
+                  <input className="rounded-md border border-border bg-background px-2 py-1.5"
+                    type="number" min="0" step="0.01" value={researchUsd}
+                    onChange={event => setResearchUsd(event.target.value)} />
+                </label>
+              </div>
+            </>}
+            {researchPending.error && <p role="alert">Research start state: {researchPending.error}</p>}
+            {researchPending.conflict && <p role="alert">Resolve the research start sync conflict before retrying.</p>}
+            <div className="flex gap-2">
+              <button className={buttonClass} disabled={busy || !researchPending.ready || !!researchPending.conflict}
+                onClick={() => void startResearch()}>{pendingResearchRequest ? 'Retry saved topic start' : 'Start topic and project'}</button>
+              {pendingResearchRequest && <button className={buttonClass} disabled={busy || !researchPending.ready}
+                onClick={() => void run(async () => { await researchPending.set({ namespace }); })}>
+                Abandon pending start</button>}
+              {!pendingResearchRequest && <button className={buttonClass} disabled={busy}
+                onClick={() => setResearchSource(undefined)}>Cancel</button>}
+            </div>
+          </div>}
         {selectedVisit && !session.access_degraded && <div className="space-y-2 border-t border-border pt-4">
           <h3 className="font-medium">Notes on {selectedVisit.title} · v{selectedVisit.version}</h3>
           {sourceAnnotations.map((annotation, index) =>

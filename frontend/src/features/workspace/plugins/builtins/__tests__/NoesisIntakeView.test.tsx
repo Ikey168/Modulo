@@ -7,13 +7,17 @@ const mock = vi.hoisted(() => ({
   call: vi.fn(),
   preflight: vi.fn(),
   set: vi.fn(),
+  retry: vi.fn(),
   state: vi.fn(),
+  pendingValue: undefined as { namespace: string; request?: Record<string, unknown> } | undefined,
 }));
 vi.mock('../noesisIntakeApi', () => ({ intakeCall: mock.call, intakePreflight: mock.preflight }));
 vi.mock('../../PluginProvider', () => ({ usePlugins: () => ({ state: mock.state }) }));
 vi.mock('../../usePluginState', () => ({
-  usePluginState: () => ({
-    value: { namespace: 'research' }, ready: true, set: mock.set,
+  usePluginState: (_plugin: string, key: string) => ({
+    value: key === 'research.pending' && mock.pendingValue
+      ? mock.pendingValue : { namespace: 'research' }, ready: true, set: mock.set,
+    retry: mock.retry,
     error: undefined,
   }),
 }));
@@ -21,9 +25,12 @@ vi.mock('../../usePluginState', () => ({
 beforeEach(() => {
   vi.stubGlobal('crypto', webcrypto);
   window.localStorage.clear();
-  mock.call.mockReset(); mock.preflight.mockReset(); mock.set.mockReset(); mock.state.mockReset();
+  mock.call.mockReset(); mock.preflight.mockReset(); mock.set.mockReset();
+  mock.retry.mockReset(); mock.state.mockReset();
+  mock.pendingValue = undefined;
   mock.preflight.mockResolvedValue({ available: true });
   mock.set.mockResolvedValue(undefined);
+  mock.retry.mockResolvedValue(undefined);
   mock.call.mockImplementation(async (tool: string) => {
     if (tool === 'list_intake_feed_inbox') return {
       remaining_unprocessed: 1,
@@ -41,6 +48,38 @@ beforeEach(() => {
     };
     return {};
   });
+});
+
+it('replays a saved research start after reload without minting a new request key', async () => {
+  const request = { namespace: 'research', request_key: 'modulo-research-saved',
+    questions: ['What changed?'], success_criteria: ['List known and unknown causes'],
+    scope: { domains: [], namespaces: ['research'] },
+    budget: { requests: 5, tokens: 10000, usd_micros: 0 },
+    origin: { session_id: 'intake:explore', reason: 'Saved Exploration source selected for research' },
+    references: [{ kind: 'exploration_source', id: 'explore:one', namespace: 'research',
+      version: 1, locator: { url: 'https://example.org/source' } }],
+  };
+  mock.pendingValue = { namespace: 'research', request };
+  mock.call.mockImplementation(async (tool: string) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 0, items: [] };
+    if (tool === 'start_intake_research_topic') return {
+      project: { project_id: 'project:one', revision: 1 },
+      session: { session_id: 'intake:research', mode: 'Deep Research', status: 'active',
+        revision: 1, duration_minutes: 120, inputs: { research_project_id: 'project:one' }, data: {} },
+    };
+    if (tool === 'inspect_research_project') return {
+      project_id: 'project:one', revision: 1, status: 'active',
+      questions: ['What changed?'], success_criteria: ['List known and unknown causes'],
+      budget: request.budget, spent: { requests: 0, tokens: 0, usd_micros: 0 },
+    };
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry pending research start' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('start_intake_research_topic', request));
+  await waitFor(() => expect(mock.set).toHaveBeenCalledWith(
+    { namespace: 'research', lastSessionId: 'intake:research' }));
+  await waitFor(() => expect(mock.set).toHaveBeenCalledWith({ namespace: 'research' }));
 });
 
 it('requests scoped readiness and presents unresolved mode blockers separately from access', async () => {
@@ -236,11 +275,20 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
         id: `explore:${'c'.repeat(32)}`, namespace: 'research', version: 1,
         locator: { url: 'https://example.net/adaptation' } } },
   };
-  mock.call.mockImplementation(async (tool: string, args?: { mode?: string }) => {
+  mock.call.mockImplementation(async (tool: string) => {
     if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 0, items: [] };
-    if (tool === 'start_intake_mode' && args?.mode === 'Deep Research') return {
-      session_id: 'intake:research', mode: 'Deep Research', status: 'active', revision: 1,
-      duration_minutes: 120, inputs: {}, data: {},
+    if (tool === 'start_intake_research_topic') return {
+      project: { project_id: 'project:research', revision: 1 },
+      session: { session_id: 'intake:research', mode: 'Deep Research', status: 'active',
+        revision: 1, duration_minutes: 120,
+        inputs: { research_project_id: 'project:research' }, data: {} },
+    };
+    if (tool === 'inspect_research_project') return {
+      project_id: 'project:research', revision: 1, status: 'active',
+      questions: ['Which adaptation methods work?'],
+      success_criteria: ['Identify supported methods', 'List unresolved risks'],
+      budget: { requests: 5, tokens: 10000, usd_micros: 0 },
+      spent: { requests: 0, tokens: 0, usd_micros: 0 },
     };
     if (tool === 'start_intake_mode') return { session_id: 'intake:explore', mode: 'Exploration',
       status: 'active', revision: 1, duration_minutes: 90, remaining_minutes: 90,
@@ -281,10 +329,24 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
   await waitFor(() => expect(mock.call).toHaveBeenCalledWith('annotate_exploration_source',
     expect.objectContaining({ source_id: visit.source_id, body: 'Check the method' })));
   fireEvent.click(screen.getAllByRole('button', { name: 'Research this source' })[1]);
-  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('start_intake_mode',
-    expect.objectContaining({ mode: 'Deep Research', origin: { session_id: 'intake:explore',
+  expect(mock.call).not.toHaveBeenCalledWith('start_intake_research_topic', expect.anything());
+  fireEvent.change(screen.getByLabelText('Research question'),
+    { target: { value: 'Which adaptation methods work?' } });
+  fireEvent.change(screen.getByLabelText('Definition of Done'),
+    { target: { value: 'Identify supported methods\nList unresolved risks' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Start topic and project' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('start_intake_research_topic',
+    expect.objectContaining({ questions: ['Which adaptation methods work?'],
+      success_criteria: ['Identify supported methods', 'List unresolved risks'],
+      scope: { namespaces: ['research'], domains: [] },
+      budget: { requests: 5, tokens: 10000, usd_micros: 0 },
+      origin: { session_id: 'intake:explore',
       reason: 'Saved Exploration source selected for research' },
     references: [expect.objectContaining({ id: visit.source_id, version: 1 })] })));
+  expect(mock.retry).toHaveBeenCalled();
+  expect(await screen.findByText('Deep Research topic')).toBeInTheDocument();
+  expect(mock.call).toHaveBeenCalledWith('inspect_research_project',
+    { namespace: 'research', project_id: 'project:research' });
 });
 
 it('shows signed-in migrated Research Workflow records without a local browser copy', async () => {

@@ -10,6 +10,23 @@ final class OperationalSchemas {
           namespace.equals("information-intake")
               ? "{\"type\":\"object\",\"required\":[\"namespace\"],\"properties\":{\"namespace\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":128},\"lastSessionId\":{\"type\":\"string\",\"maxLength\":512},\"pendingStartKey\":{\"type\":\"string\",\"maxLength\":256},\"pendingExploreKey\":{\"type\":\"string\",\"maxLength\":256},\"pendingCaptureKey\":{\"type\":\"string\",\"maxLength\":256}},\"additionalProperties\":false}"
               : null;
+      case "modulo.intake.research-start" ->
+          namespace.equals("information-intake")
+              ? """
+                {"type":"object","required":["namespace"],"properties":{
+                  "namespace":{"type":"string","minLength":1,"maxLength":128},
+                  "request":{"type":"object","required":["namespace","request_key","questions","success_criteria","scope","budget","origin","references"],
+                    "properties":{
+                      "namespace":{"type":"string","minLength":1,"maxLength":128},
+                      "request_key":{"type":"string","minLength":1,"maxLength":256},
+                      "questions":{"type":"array","minItems":1,"maxItems":10,"items":{"type":"string","minLength":1,"maxLength":2000}},
+                      "success_criteria":{"type":"array","minItems":1,"maxItems":20,"items":{"type":"string","minLength":1,"maxLength":2000}},
+                      "scope":{"type":"object"},"budget":{"type":"object"},
+                      "origin":{"type":"object"},"references":{"type":"array","minItems":1,"maxItems":10}
+                    },"additionalProperties":false}
+                },"additionalProperties":false}
+                """
+              : null;
       case "modulo.intake.item-link" ->
           namespace.equals("information-intake")
               ? "{\"type\":\"object\",\"required\":[\"id\",\"noesisItemId\",\"sourceVersion\",\"objectVersion\",\"createdAt\"],\"properties\":{\"id\":{\"type\":\"string\",\"maxLength\":80},\"noesisItemId\":{\"type\":\"string\",\"maxLength\":80},\"sourceVersion\":{\"type\":\"integer\",\"minimum\":1},\"objectVersion\":{\"type\":\"integer\",\"minimum\":1},\"createdAt\":{\"type\":\"string\",\"maxLength\":40},\"userNote\":{\"type\":\"string\",\"maxLength\":10000}},\"additionalProperties\":false}"
