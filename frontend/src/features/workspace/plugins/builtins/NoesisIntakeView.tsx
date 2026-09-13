@@ -3,6 +3,7 @@ import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import type { PluginStateClient } from '../../../../services/pluginStateClient';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
+import { NoesisDecisionView } from './NoesisDecisionView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -508,7 +509,7 @@ export function NoesisIntakeView() {
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-semibold">Information Intake</h1>
-          <p className="mt-1 text-muted-foreground">Feed triage and linked Noesis sessions</p>
+          <p className="mt-1 text-muted-foreground">Feed triage, decisions, and linked Noesis sessions</p>
         </div>
         <button className={buttonClass} disabled={busy} onClick={() => void run(async () => {
           await intakeCall('refresh_intake_feed_inbox', { namespace });
@@ -548,6 +549,8 @@ export function NoesisIntakeView() {
             onClick={() => void startExploration()}>Start Exploration</button>
         </div>
       </section>
+
+      <NoesisDecisionView namespace={namespace} available={preflight?.available === true} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
