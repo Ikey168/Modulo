@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import { intakeCall } from './noesisIntakeApi';
 
@@ -11,6 +12,14 @@ type DecisionContent = { project: null; decision_context: DecisionContext;
   rationale: string; review_conditions: string[] };
 type Decision = { decision_id: string; namespace: string; revision: number;
   contract: string; content: DecisionContent; decided_at_ms: number };
+type Reference = { kind: string; id: string; namespace: string; version: number;
+  locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } };
+type OriginSession = { session_id: string; mode: string; access_degraded?: boolean;
+  references?: Reference[] };
+type ModeSession = { session_id: string; mode: string; status: string; revision: number };
+type DecisionLink = { id: string; noesisDecisionId: string; noesisRevision: number;
+  objectVersion: number; updatedAt: string;
+  origin?: { sessionId: string; reason: string }; sourceReferences: Reference[] };
 type Draft = { question: string; yes: string; no: string; selected: 'yes' | 'no';
   rationale: string; stakes: string; confidence: string; stop: string; uncertainty: string;
   missing: string; deadline: string; constraints: string; assumptions: string;
@@ -71,18 +80,23 @@ function draftFromDecision(value: Decision): Draft {
 }
 
 /** A bounded user choice, stored in Noesis with only its versioned pointer in Modulo. */
-export function NoesisDecisionView({ namespace, available }: { namespace: string; available: boolean }) {
+export function NoesisDecisionView({ namespace, available, originSession, onWorkflowLinked }: {
+  namespace: string; available: boolean; originSession?: OriginSession;
+  onWorkflowLinked?: (session: ModeSession) => Promise<void>;
+}) {
+  const plugins = usePlugins();
   const pointer = usePluginState<Pointer>('information-intake', 'decision.last',
     { namespace }, 'modulo.intake.decision-link');
   const currentId = pointer.value.namespace === namespace ? pointer.value.decisionId : undefined;
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [decision, setDecision] = useState<Decision>();
+  const [linkedSession, setLinkedSession] = useState<ModeSession>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setDecision(undefined); setDraft(emptyDraft()); setError(undefined);
+    setDecision(undefined); setLinkedSession(undefined); setDraft(emptyDraft()); setError(undefined);
     if (!available || !currentId) return;
     let active = true;
     void intakeCall<Decision>('inspect_research_decision', { namespace, decision_id: currentId })
@@ -94,6 +108,73 @@ export function NoesisDecisionView({ namespace, available }: { namespace: string
 
   const update = (field: keyof Draft, value: string) =>
     setDraft(previous => ({ ...previous, [field]: value }));
+
+  const linkWorkflow = async (value: Decision) => {
+    if (!/^decision:[0-9a-f]{32}$/.test(value.decision_id))
+      throw new Error('Noesis returned an invalid decision identity.');
+    const source = originSession?.mode === 'Exploration' || originSession?.mode === 'Deep Research'
+      ? originSession : undefined;
+    if (source?.access_degraded)
+      throw new Error('The source session has inaccessible references. Restore access before linking it.');
+    const priorReferences = source?.references ?? [];
+    if (priorReferences.length >= 1000)
+      throw new Error('The source session has too many references for a decision handoff.');
+    const client = await plugins.state('information-intake');
+    const linkId = `decision.${value.decision_id.slice('decision:'.length)}`;
+    const existing = client.get(linkId);
+    if (existing?.deleted || existing?.conflict)
+      throw new Error('The Modulo decision link needs conflict or deletion review before handoff.');
+    const prior = existing?.value as DecisionLink | undefined;
+    if (prior && (prior.noesisDecisionId !== value.decision_id ||
+      prior.noesisRevision > value.revision || !Number.isSafeInteger(prior.objectVersion)))
+      throw new Error('The Modulo decision link disagrees with Noesis. Refresh before handoff.');
+    const objectVersion = prior?.noesisRevision === value.revision
+      ? prior.objectVersion : (prior?.objectVersion ?? 0) + 1;
+    if (!prior || prior.noesisRevision !== value.revision) {
+      const origin = prior?.origin ?? (source ? { sessionId: source.session_id,
+        reason: 'Decision recorded from the linked research context' } : undefined);
+      const link: DecisionLink = { id: linkId, noesisDecisionId: value.decision_id,
+        noesisRevision: value.revision, objectVersion, updatedAt: new Date().toISOString(),
+        ...(origin ? { origin } : {}),
+        sourceReferences: prior?.sourceReferences ?? priorReferences,
+      };
+      if (prior) await client.set(linkId, link, 'modulo.intake.decision-link', 1);
+      else await client.create(linkId, link, 'modulo.intake.decision-link', 1);
+    }
+    await client.synchronize();
+    const stored = client.get(linkId);
+    if (!stored || stored.pending || stored.conflict || stored.deleted)
+      throw new Error('Save the Modulo decision link before creating the Noesis mode handoff.');
+    const saved = stored.value as DecisionLink;
+    if (saved.noesisDecisionId !== value.decision_id || saved.noesisRevision !== value.revision ||
+      saved.objectVersion !== objectVersion || !Array.isArray(saved.sourceReferences))
+      throw new Error('The confirmed Modulo decision link changed. Refresh before handoff.');
+    const key = `${value.decision_id}-${value.revision}`;
+    const reference: Reference = { kind: 'decision', id: value.decision_id,
+      namespace, version: value.revision };
+    const session = await intakeCall<ModeSession>('start_intake_mode', {
+      namespace, mode: 'Decision Support', request_key: `modulo-decision-session-${key}`,
+      intent: value.content.decision_context.question,
+      ...(saved.origin ? { origin: { session_id: saved.origin.sessionId,
+        reason: saved.origin.reason } } : {}),
+      references: [...saved.sourceReferences, reference],
+      workspace_links: [{ system: 'modulo', workspace_id: 'personal',
+        kind: 'artifact', id: linkId, version: objectVersion }],
+    });
+    await intakeCall<ModeSession>('command_intake_mode', {
+      namespace, session_id: session.session_id,
+      command_key: `modulo-decision-record-${key}`, expected_revision: 1,
+      action: 'record', payload: { data: { selected_option: value.content.selected_action,
+        rationale: value.content.rationale } },
+    });
+    const completed = await intakeCall<ModeSession>('command_intake_mode', {
+      namespace, session_id: session.session_id,
+      command_key: `modulo-decision-complete-${key}`, expected_revision: 2,
+      action: 'complete',
+    });
+    setLinkedSession(completed);
+    await onWorkflowLinked?.(completed);
+  };
 
   const save = async () => {
     setBusy(true); setError(undefined);
@@ -127,6 +208,7 @@ export function NoesisDecisionView({ namespace, available }: { namespace: string
       }
       await pointer.set({ namespace, decisionId: next.decision_id, revision: next.revision });
       setDecision(next); setDraft(draftFromDecision(next));
+      await linkWorkflow(next);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally { setBusy(false); }
@@ -134,7 +216,8 @@ export function NoesisDecisionView({ namespace, available }: { namespace: string
 
   const newChoice = async () => {
     setBusy(true); setError(undefined);
-    try { await pointer.set({ namespace }); setDecision(undefined); setDraft(emptyDraft()); }
+    try { await pointer.set({ namespace }); setDecision(undefined); setLinkedSession(undefined);
+      setDraft(emptyDraft()); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
   };
@@ -154,6 +237,8 @@ export function NoesisDecisionView({ namespace, available }: { namespace: string
     {pointer.conflict && <p role="alert">The decision link has a sync conflict. Resolve it before editing.</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {decision && <p className="text-xs text-muted-foreground">Noesis {decision.decision_id} · v{decision.revision}</p>}
+    {linkedSession && <p className="text-xs text-muted-foreground">Decision Support session
+      {' '}{linkedSession.session_id} · {linkedSession.status}</p>}
     {pointer.pending && <p role="status">Decision link is waiting to sync across devices.</p>}
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="grid gap-1 sm:col-span-2">Question
@@ -200,5 +285,9 @@ export function NoesisDecisionView({ namespace, available }: { namespace: string
     </div>
     <button className={buttonClass} disabled={busy || !pointer.ready || !!pointer.conflict || !available || (!!currentId && !decision)}
       onClick={() => void save()}>{decision ? 'Save decision revision' : 'Record choice'}</button>
+    {decision && !linkedSession && <button className={`${buttonClass} ml-2`} disabled={busy || !available}
+      onClick={() => { setBusy(true); setError(undefined);
+        void linkWorkflow(decision).catch(cause => setError(cause instanceof Error ? cause.message : String(cause)))
+          .finally(() => setBusy(false)); }}>Complete mode handoff</button>}
   </section>;
 }

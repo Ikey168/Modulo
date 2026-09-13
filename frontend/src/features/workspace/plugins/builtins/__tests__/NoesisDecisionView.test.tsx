@@ -4,8 +4,10 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { NoesisDecisionView } from '../NoesisDecisionView';
 
 const mock = vi.hoisted(() => ({ call: vi.fn(), set: vi.fn(), retry: vi.fn(),
+  state: vi.fn(),
   pointer: { namespace: 'research' } as { namespace: string; decisionId?: string; revision?: number; pendingKey?: string } }));
 vi.mock('../noesisIntakeApi', () => ({ intakeCall: mock.call }));
+vi.mock('../../PluginProvider', () => ({ usePlugins: () => ({ state: mock.state }) }));
 vi.mock('../../usePluginState', () => ({ usePluginState: () => ({
   value: mock.pointer, ready: true, pending: false, error: undefined, conflict: undefined,
   set: mock.set, retry: mock.retry,
@@ -14,8 +16,21 @@ vi.mock('../../usePluginState', () => ({ usePluginState: () => ({
 beforeEach(() => {
   vi.stubGlobal('crypto', webcrypto);
   mock.call.mockReset(); mock.set.mockReset(); mock.retry.mockReset();
+  mock.state.mockReset();
   mock.pointer = { namespace: 'research' };
   mock.set.mockResolvedValue(undefined); mock.retry.mockResolvedValue(undefined);
+  const records = new Map<string, { value: Record<string, unknown>; pending: boolean;
+    deleted: boolean; conflict?: unknown }>();
+  mock.state.mockResolvedValue({
+    get: (key: string) => records.get(key),
+    create: async (key: string, value: Record<string, unknown>) => {
+      records.set(key, { value, pending: true, deleted: false });
+    },
+    set: async (key: string, value: Record<string, unknown>) => {
+      records.set(key, { value, pending: true, deleted: false });
+    },
+    synchronize: async () => { for (const record of records.values()) record.pending = false; },
+  });
 });
 
 function fillChoice() {
@@ -33,12 +48,21 @@ function fillChoice() {
 it('persists an idempotency key before recording a standalone Noesis choice', async () => {
   mock.call.mockImplementation(async (tool: string, args: Record<string, unknown>) => {
     if (tool === 'create_research_decision') return {
-      decision_id: 'decision:one', namespace: 'research', revision: 1,
+      decision_id: `decision:${'a'.repeat(32)}`, namespace: 'research', revision: 1,
       contract: 'noesis-decision-v2', content: args.content, decided_at_ms: 1,
     };
+    if (tool === 'start_intake_mode') return { session_id: 'intake:choice', mode: 'Decision Support',
+      status: 'active', revision: 1 };
+    if (tool === 'command_intake_mode') return { session_id: 'intake:choice', mode: 'Decision Support',
+      status: args.action === 'complete' ? 'completed' : 'active',
+      revision: args.action === 'complete' ? 3 : 2 };
     return {};
   });
-  render(<NoesisDecisionView namespace="research" available />);
+  render(<NoesisDecisionView namespace="research" available originSession={{
+    session_id: 'intake:explore', mode: 'Exploration', references: [
+      { kind: 'exploration_source', id: 'explore:source', namespace: 'research', version: 2 },
+    ],
+  }} />);
   fillChoice();
   fireEvent.click(screen.getByRole('button', { name: 'Record choice' }));
   await waitFor(() => expect(mock.call).toHaveBeenCalledWith('create_research_decision',
@@ -50,9 +74,21 @@ it('persists an idempotency key before recording a standalone Noesis choice', as
   expect(mock.set.mock.invocationCallOrder[0]).toBeLessThan(mock.retry.mock.invocationCallOrder[0]);
   expect(mock.retry.mock.invocationCallOrder[0]).toBeLessThan(mock.call.mock.invocationCallOrder[0]);
   await waitFor(() => expect(mock.set).toHaveBeenLastCalledWith({
-    namespace: 'research', decisionId: 'decision:one', revision: 1,
+    namespace: 'research', decisionId: `decision:${'a'.repeat(32)}`, revision: 1,
   }));
-  expect(screen.getByText(/decision:one · v1/)).toBeInTheDocument();
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('start_intake_mode',
+    expect.objectContaining({ mode: 'Decision Support',
+      origin: { session_id: 'intake:explore',
+        reason: 'Decision recorded from the linked research context' },
+      references: [
+        { kind: 'exploration_source', id: 'explore:source', namespace: 'research', version: 2 },
+        { kind: 'decision', id: `decision:${'a'.repeat(32)}`,
+          namespace: 'research', version: 1 },
+      ],
+      workspace_links: [{ system: 'modulo', workspace_id: 'personal', kind: 'artifact',
+        id: `decision.${'a'.repeat(32)}`, version: 1 }],
+    })));
+  expect(await screen.findByText(/Decision Support session intake:choice · completed/)).toBeInTheDocument();
 });
 
 it('keeps a denied decision read out of the workspace', async () => {
@@ -65,7 +101,7 @@ it('keeps a denied decision read out of the workspace', async () => {
 });
 
 it('re-inspects an uncertain revision before allowing another edit', async () => {
-  mock.pointer = { namespace: 'research', decisionId: 'decision:one', revision: 1 };
+  mock.pointer = { namespace: 'research', decisionId: `decision:${'a'.repeat(32)}`, revision: 1 };
   const content = { project: null, decision_context: {
     question: 'Renew?', stakes: 'One month', required_confidence: 'Moderate',
     stop_condition: 'Usage known', uncertainty: 'Future use unknown',
@@ -75,19 +111,24 @@ it('re-inspects an uncertain revision before allowing another edit', async () =>
     selected_action: 'no', rationale: 'No current use', review_conditions: [] };
   let revisedContent: unknown;
   mock.call.mockImplementation(async (tool: string, args: Record<string, unknown>) => {
-    if (tool === 'inspect_research_decision') return { decision_id: 'decision:one',
+    if (tool === 'inspect_research_decision') return { decision_id: `decision:${'a'.repeat(32)}`,
       namespace: 'research', revision: revisedContent ? 2 : 1,
       contract: 'noesis-decision-v2', content: revisedContent ?? content, decided_at_ms: 1 };
     if (tool === 'revise_research_decision') { revisedContent = args.content;
       throw new Error('Response lost'); }
+    if (tool === 'start_intake_mode') return { session_id: 'intake:choice', mode: 'Decision Support',
+      status: 'active', revision: 1 };
+    if (tool === 'command_intake_mode') return { session_id: 'intake:choice', mode: 'Decision Support',
+      status: args.action === 'complete' ? 'completed' : 'active',
+      revision: args.action === 'complete' ? 3 : 2 };
     return {};
   });
   render(<NoesisDecisionView namespace="research" available />);
-  expect(await screen.findByText(/decision:one · v1/)).toBeInTheDocument();
+  expect(await screen.findByText(new RegExp(`decision:${'a'.repeat(32)} · v1`))).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Rationale'), { target: { value: 'Usage resumed' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save decision revision' }));
-  await waitFor(() => expect(screen.getByText(/decision:one · v2/)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText(new RegExp(`decision:${'a'.repeat(32)} · v2`))).toBeInTheDocument());
   expect(mock.set).toHaveBeenLastCalledWith({ namespace: 'research',
-    decisionId: 'decision:one', revision: 2 });
+    decisionId: `decision:${'a'.repeat(32)}`, revision: 2 });
   expect(screen.queryByText('Response lost')).not.toBeInTheDocument();
 });

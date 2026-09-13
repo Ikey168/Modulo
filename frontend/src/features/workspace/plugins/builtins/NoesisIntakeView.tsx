@@ -36,6 +36,8 @@ type Session = {
   remaining_minutes?: number;
   inputs: { feed_item_ids?: string[] };
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
+  references?: { kind: string; id: string; namespace: string; version: number;
+    locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
   access_degraded?: boolean;
   unmet_completion_checks?: string[];
 };
@@ -550,7 +552,13 @@ export function NoesisIntakeView() {
         </div>
       </section>
 
-      <NoesisDecisionView namespace={namespace} available={preflight?.available === true} />
+      <NoesisDecisionView namespace={namespace} available={preflight?.available === true}
+        originSession={session} onWorkflowLinked={async next => {
+          await preferences.set({ namespace, lastSessionId: next.session_id });
+          setSession(await intakeCall<Session>('inspect_intake_mode', {
+            namespace, session_id: next.session_id,
+          }));
+        }} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
