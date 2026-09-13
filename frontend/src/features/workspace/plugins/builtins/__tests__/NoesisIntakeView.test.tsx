@@ -1,5 +1,5 @@
 import { webcrypto } from 'node:crypto';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { NoesisIntakeView } from '../NoesisIntakeView';
 
@@ -249,7 +249,9 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
   fireEvent.click(screen.getByRole('button', { name: 'Start Exploration' }));
   expect(await screen.findByText('Exploration trail')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Page URL'), { target: { value: visit.url } });
-  fireEvent.change(screen.getByLabelText('Title'), { target: { value: visit.title } });
+  const exploration = screen.getByText('Exploration trail').closest('section');
+  expect(exploration).not.toBeNull();
+  fireEvent.change(within(exploration!).getByLabelText('Title'), { target: { value: visit.title } });
   fireEvent.click(screen.getByRole('button', { name: 'Add to trail' }));
   await waitFor(() => expect(mock.call).toHaveBeenCalledWith('capture_exploration_page',
     expect.objectContaining({ url: visit.url, expected_revision: 1 })));

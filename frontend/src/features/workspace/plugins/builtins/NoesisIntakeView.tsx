@@ -8,6 +8,7 @@ import { NoesisProblemView } from './NoesisProblemView';
 import { NoesisPlaybookView } from './NoesisPlaybookView';
 import { NoesisPracticeView } from './NoesisPracticeView';
 import { NoesisCreationView } from './NoesisCreationView';
+import { NoesisMaintenanceView } from './NoesisMaintenanceView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -581,6 +582,11 @@ export function NoesisIntakeView() {
         references={session?.references ?? []} />
       <NoesisCreationView namespace={namespace} available={preflight?.available === true}
         origin={session} />
+      <NoesisMaintenanceView namespace={namespace} available={preflight?.available === true}
+        onSessionChanged={async next => {
+          await preferences.set({ namespace, lastSessionId: next.session_id });
+          setSession(next as Session);
+        }} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
