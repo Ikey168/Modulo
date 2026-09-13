@@ -6,6 +6,7 @@ import { intakeCall, intakePreflight } from './noesisIntakeApi';
 import { NoesisDecisionView } from './NoesisDecisionView';
 import { NoesisProblemView } from './NoesisProblemView';
 import { NoesisPlaybookView } from './NoesisPlaybookView';
+import { NoesisPracticeView } from './NoesisPracticeView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -573,6 +574,8 @@ export function NoesisIntakeView() {
 
       <NoesisPlaybookView namespace={namespace} available={preflight?.available === true}
         problemSession={session} />
+      <NoesisPracticeView namespace={namespace} available={preflight?.available === true}
+        references={session?.references ?? []} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
