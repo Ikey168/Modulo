@@ -37,7 +37,9 @@ public class NoesisIntakeBridge {
       "preview_intake_feed_signal_rule", "mark_intake_feed_read", "decide_intake_feed_item",
       "annotate_intake_feed_item", "start_awareness_from_inbox", "triage_awareness_item",
       "triage_awareness_batch", "promote_awareness_item", "capture_exploration_page",
-      "visit_exploration_feed_item", "inspect_exploration_source");
+      "visit_exploration_feed_item", "inspect_exploration_source",
+      "annotate_exploration_source", "suggest_exploration_sources",
+      "decide_exploration_suggestion");
   private static final String PROTOCOL = "2025-03-26";
   private static final int MAX_RESPONSE = 8_388_608;
   private static final int MAX_CREDENTIALS = 262_144;

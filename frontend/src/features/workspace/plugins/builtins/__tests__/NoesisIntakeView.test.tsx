@@ -132,3 +132,65 @@ it('starts a durable daily queue and triages through the Noesis session', async 
     expect.objectContaining({ session_id: 'intake:today', item_id: 'feed:one', decision: 'discard' })));
   expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
 });
+
+it('runs Exploration capture, related reading, and follow from the plugin', async () => {
+  let notesSaved = false;
+  const visit = { source_id: `explore:${'a'.repeat(32)}`, url: 'https://example.org/climate',
+    title: 'Climate adaptation', version: 1, saved: true, note: 'Interesting' };
+  const suggestion = { suggestion_id: `explore-related:${'b'.repeat(32)}`, method: 'lexical_overlap_v1',
+    cross_domain: true, shared_terms: ['climate', 'adaptation'],
+    anchor: { title: visit.title, reference: { kind: 'exploration_source', id: visit.source_id,
+      namespace: 'research', version: 1, locator: { url: visit.url } } },
+    candidate: { source_id: `explore:${'c'.repeat(32)}`, title: 'Adaptation methods',
+      url: 'https://example.net/adaptation', reference: { kind: 'exploration_source',
+        id: `explore:${'c'.repeat(32)}`, namespace: 'research', version: 1,
+        locator: { url: 'https://example.net/adaptation' } } },
+  };
+  mock.call.mockImplementation(async (tool: string, args?: { mode?: string }) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 0, items: [] };
+    if (tool === 'start_intake_mode' && args?.mode === 'Deep Research') return {
+      session_id: 'intake:research', mode: 'Deep Research', status: 'active', revision: 1,
+      duration_minutes: 120, inputs: {}, data: {},
+    };
+    if (tool === 'start_intake_mode') return { session_id: 'intake:explore', mode: 'Exploration',
+      status: 'active', revision: 1, duration_minutes: 90, remaining_minutes: 90,
+      inputs: {}, data: {}, unmet_completion_checks: ['timebox_or_escalation'] };
+    if (tool === 'capture_exploration_page') return { session_id: 'intake:explore', mode: 'Exploration',
+      status: 'active', revision: 2, duration_minutes: 90, remaining_minutes: 88,
+      inputs: {}, data: { trail: [visit] }, unmet_completion_checks: ['timebox_or_escalation'] };
+    if (tool === 'suggest_exploration_sources') return { suggestions: [suggestion] };
+    if (tool === 'inspect_exploration_source') return { version: 1,
+      annotations: notesSaved ? [{ body: 'Check the method', source_version: 1 }] : [] };
+    if (tool === 'annotate_exploration_source') { notesSaved = true; return {}; }
+    if (tool === 'decide_exploration_suggestion') return { session_id: 'intake:explore', mode: 'Exploration',
+      status: 'active', revision: 3, duration_minutes: 90, remaining_minutes: 87,
+      inputs: {}, data: { trail: [visit, { ...visit, source_id: suggestion.candidate.source_id,
+        title: suggestion.candidate.title, url: suggestion.candidate.url }] },
+      unmet_completion_checks: ['timebox_or_escalation'] };
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(screen.getByRole('button', { name: 'Start Exploration' }));
+  expect(await screen.findByText('Exploration trail')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Page URL'), { target: { value: visit.url } });
+  fireEvent.change(screen.getByLabelText('Title'), { target: { value: visit.title } });
+  fireEvent.click(screen.getByRole('button', { name: 'Add to trail' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('capture_exploration_page',
+    expect.objectContaining({ url: visit.url, expected_revision: 1 })));
+  expect(await screen.findByText('Climate adaptation')).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: 'Follow and save' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('decide_exploration_suggestion',
+    expect.objectContaining({ suggestion_id: suggestion.suggestion_id,
+      decision: 'follow', expected_revision: 2, expected_candidate_version: 1 })));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Notes' })[1]);
+  fireEvent.change(await screen.findByLabelText('Add a source note'),
+    { target: { value: 'Check the method' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save note' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('annotate_exploration_source',
+    expect.objectContaining({ source_id: visit.source_id, body: 'Check the method' })));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Research this source' })[1]);
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('start_intake_mode',
+    expect.objectContaining({ mode: 'Deep Research', origin: { session_id: 'intake:explore',
+      reason: 'Saved Exploration source selected for research' },
+    references: [expect.objectContaining({ id: visit.source_id, version: 1 })] })));
+});
