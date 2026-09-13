@@ -6,9 +6,7 @@ type Reference = { kind: string; id: string; namespace: string; version: number;
   locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } };
 type Draft = { title: string; kind: 'recall' | 'procedure' | 'explanation';
   prompt: string; answer: string; masteryCriterion: string; reference?: Reference };
-type Pack = { pack_id: string; revision: number; title: string; cards: {
-  id: string; kind: string; prompt: string; answer: string; mastery_criterion: string;
-  references: Reference[]; answer_status: string }[] };
+type Pack = { pack_id: string; revision: number };
 type DueCard = { pack_id: string; pack_revision: number; card_id: string;
   prompt: string; kind: string; due_at_ms: number; overdue_ms: number;
   self_reported_unassisted_passes: number };
@@ -39,7 +37,6 @@ export function NoesisPracticeView({ namespace, available, references }: {
   const currentReviewId = pointer.value.namespace === namespace ? pointer.value.reviewId : undefined;
   const [draft, setDraft] = useState<Draft>(blankDraft);
   const [referenceIndex, setReferenceIndex] = useState(0);
-  const [pack, setPack] = useState<Pack>();
   const [due, setDue] = useState<DueCard[]>([]);
   const [review, setReview] = useState<Review>();
   const [attempt, setAttempt] = useState('');
@@ -51,15 +48,11 @@ export function NoesisPracticeView({ namespace, available, references }: {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setPack(undefined); setReview(undefined); setDue([]); setError(undefined);
+    setReview(undefined); setDue([]); setError(undefined);
     if (!available) return;
     let active = true;
     void intakeCall<{ cards: DueCard[] }>('list_due_practice', { namespace, limit: 50 })
       .then(value => { if (active) setDue(value.cards ?? []); })
-      .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : String(cause)); });
-    if (currentPackId) void intakeCall<Pack>('inspect_practice_pack', {
-      namespace, pack_id: currentPackId,
-    }).then(value => { if (active) setPack(value); })
       .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : String(cause)); });
     if (currentReviewId) void intakeCall<Review>('inspect_practice_review', {
       namespace, review_id: currentReviewId,
@@ -98,7 +91,7 @@ export function NoesisPracticeView({ namespace, available, references }: {
       });
       await pointer.set({ namespace, packId: value.pack_id,
         ...(currentReviewId ? { reviewId: currentReviewId } : {}) });
-      setPack(value); setDraft(blankDraft()); setRefresh(value => value + 1);
+      setDraft(blankDraft()); setRefresh(value => value + 1);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
   };
@@ -190,8 +183,7 @@ export function NoesisPracticeView({ namespace, available, references }: {
     {review && pointer.value.pendingCommand && <button className={buttonClass}
       disabled={busy || !available || !!pointer.conflict}
       onClick={() => void command(pointer.value.pendingCommand!.action)}>Retry pending review command</button>}
-    {pack && <p className="text-xs text-muted-foreground">Pack {pack.pack_id} · v{pack.revision}
-      {' '}· {pack.cards.length} author-supplied cards</p>}
+    {currentPackId && <p className="text-xs text-muted-foreground">Current pack {currentPackId}</p>}
     <div className="space-y-2 border-t border-border pt-3">
       <h3 className="font-medium">Due and overdue</h3>
       {due.length ? <ol className="divide-y divide-border">

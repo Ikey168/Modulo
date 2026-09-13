@@ -52,8 +52,6 @@ it('records an unaided answer before requesting reveal', async () => {
     reviewId: 'practice-review:one' };
   mock.call.mockImplementation(async (tool: string, args: Record<string, unknown>) => {
     if (tool === 'list_due_practice') return { cards: [] };
-    if (tool === 'inspect_practice_pack') return { pack_id: 'practice-pack:one',
-      revision: 1, title: 'Worker', cards: [] };
     if (tool === 'inspect_practice_review') return { review_id: 'practice-review:one',
       pack_id: 'practice-pack:one', pack_revision: 1, card_id: 'card-1',
       revision: 1, status: 'active', prompt: 'What stopped?', kind: 'recall',
@@ -75,6 +73,7 @@ it('records an unaided answer before requesting reveal', async () => {
   });
   render(<NoesisPracticeView namespace="research" available references={refs} />);
   expect(await screen.findByLabelText('Your answer before reveal')).toBeInTheDocument();
+  expect(mock.call).not.toHaveBeenCalledWith('inspect_practice_pack', expect.anything());
   expect(screen.queryByText(/Author answer \(author_supplied_unverified\)/)).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Your answer before reveal'), {
     target: { value: 'The worker' },
