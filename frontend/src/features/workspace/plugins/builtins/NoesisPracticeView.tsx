@@ -190,7 +190,7 @@ export function NoesisPracticeView({ namespace, available, references }: {
         {due.map(card => <li className="flex flex-wrap items-center justify-between gap-2 py-2"
           key={`${card.pack_id}:${card.card_id}`}>
           <span>{card.prompt} · {card.kind} · {card.overdue_ms > 0 ? 'overdue' : 'due'}</span>
-          <button className={buttonClass} disabled={busy || !!review || !!pointer.value.pendingReview
+          <button className={buttonClass} disabled={busy || !!currentReviewId || !!pointer.value.pendingReview
             || !!pointer.value.pendingCreate}
             onClick={() => void startReview(card)}>Review</button>
         </li>)}
