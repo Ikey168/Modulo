@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
+import type { PluginStateClient } from '../../../../services/pluginStateClient';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
@@ -39,6 +40,20 @@ type Session = {
 };
 type Preferences = { namespace: string; lastSessionId?: string; pendingStartKey?: string;
   pendingExploreKey?: string; pendingCaptureKey?: string };
+type MigratedRecord = { key: string; collection: string; legacyId: string; title: string };
+
+function migratedRecords(client: PluginStateClient): MigratedRecord[] {
+  return client.list().flatMap(view => {
+    if (view.schemaId !== 'modulo.intake.legacy-record' || view.deleted || view.pending || view.conflict ||
+        !view.value || typeof view.value !== 'object' || Array.isArray(view.value)) return [];
+    const { collection, legacyId, payload } = view.value;
+    if (typeof collection !== 'string' || typeof legacyId !== 'string' ||
+        !payload || typeof payload !== 'object' || Array.isArray(payload)) return [];
+    return [{ key: view.key, collection, legacyId,
+      title: typeof payload.title === 'string' && payload.title.trim() ? payload.title : legacyId }];
+  }).sort((left, right) => left.collection.localeCompare(right.collection)
+    || left.legacyId.localeCompare(right.legacyId));
+}
 
 const buttonClass = 'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50';
 const noteKey = async (sessionId: string, visit: TrailVisit, body: string) => {
@@ -90,6 +105,9 @@ export function NoesisIntakeView() {
   const [migrationBusy, setMigrationBusy] = useState(false);
   const [migrationError, setMigrationError] = useState<string>();
   const loadSequence = useRef(0);
+  const [savedRecords, setSavedRecords] = useState<MigratedRecord[]>();
+  const [savedRecordsError, setSavedRecordsError] = useState<string>();
+  const [savedRecordsBusy, setSavedRecordsBusy] = useState(false);
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
@@ -473,6 +491,18 @@ export function NoesisIntakeView() {
     } finally { setMigrationBusy(false); }
   };
 
+  const loadSavedRecords = async () => {
+    setSavedRecordsBusy(true); setSavedRecordsError(undefined);
+    try {
+      const client = await plugins.state('information-intake');
+      await client.refreshAll();
+      setSavedRecords(migratedRecords(client));
+    } catch (cause) {
+      setSavedRecords(undefined);
+      setSavedRecordsError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setSavedRecordsBusy(false); }
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6 text-sm">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -769,6 +799,29 @@ export function NoesisIntakeView() {
           The browser-local copy was retained.
         </p>}
         {undoResult && <p role="status">Undo queued {undoResult.pending} deletions with {undoResult.conflicts} conflicts. The browser-local copy was retained.</p>}
+      </section>
+
+      <section className="space-y-3 border-t border-border pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Migrated Research Workflow records</h2>
+            <p className="text-muted-foreground">Read-only records from your signed-in Modulo plugin state, including on another device.</p>
+          </div>
+          <button className={buttonClass} disabled={savedRecordsBusy || !preferences.ready}
+            onClick={() => void loadSavedRecords()}>Load saved records</button>
+        </div>
+        {savedRecordsError && <p role="alert" className="text-destructive">{savedRecordsError}</p>}
+        {savedRecords && <>
+          <p role="status">{savedRecords.length} migrated records available.</p>
+          <ul className="divide-y divide-border">
+            {savedRecords.slice(0, 50).map(record => <li key={record.key} className="flex flex-wrap gap-x-3 py-2">
+              <span className="text-muted-foreground">{record.collection}</span>
+              <span className="font-medium">{record.title}</span>
+              <span className="font-mono text-xs text-muted-foreground">{record.legacyId}</span>
+            </li>)}
+          </ul>
+          {savedRecords.length > 50 && <p className="text-muted-foreground">Showing the first 50 records.</p>}
+        </>}
       </section>
     </div>
   );
