@@ -20,6 +20,12 @@ type ModeSession = { session_id: string; mode: string; status: string; revision:
 type DecisionLink = { id: string; noesisDecisionId: string; noesisRevision: number;
   objectVersion: number; updatedAt: string;
   origin?: { sessionId: string; reason: string }; sourceReferences: Reference[] };
+type Criterion = { id: string; name: string; weight: string; yes: string;
+  no: string; scenarioWeight: string };
+type Comparison = { scores: Record<string, string | null>;
+  missing_inputs: Record<string, string[]>; ordering_with_ties: string[][] };
+type SensitivityReceipt = { receipt_id: string; decision_revision: number;
+  baseline: Comparison; scenarios: (Comparison & { assumption: string; ordering_changed: boolean })[] };
 type Draft = { question: string; yes: string; no: string; selected: 'yes' | 'no';
   rationale: string; stakes: string; confidence: string; stop: string; uncertainty: string;
   missing: string; deadline: string; constraints: string; assumptions: string;
@@ -38,6 +44,8 @@ const canonical = (value: unknown): string => {
 };
 const fieldClass = 'w-full rounded-md border border-border bg-background px-2 py-1.5';
 const buttonClass = 'rounded-md border border-border px-3 py-1.5 hover:bg-muted disabled:opacity-50';
+const blankCriterion = (): Criterion => ({ id: crypto.randomUUID(), name: '', weight: '1',
+  yes: '', no: '', scenarioWeight: '' });
 
 function contentFromDraft(draft: Draft): DecisionContent {
   if (![draft.question, draft.yes, draft.no, draft.rationale, draft.stakes,
@@ -91,12 +99,17 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [decision, setDecision] = useState<Decision>();
   const [linkedSession, setLinkedSession] = useState<ModeSession>();
+  const [criteria, setCriteria] = useState<Criterion[]>([]);
+  const [scenarioAssumption, setScenarioAssumption] = useState('');
+  const [comparisonProvenance, setComparisonProvenance] = useState('');
+  const [comparison, setComparison] = useState<SensitivityReceipt>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setDecision(undefined); setLinkedSession(undefined); setDraft(emptyDraft()); setError(undefined);
+    setDecision(undefined); setLinkedSession(undefined); setComparison(undefined);
+    setDraft(emptyDraft()); setError(undefined);
     if (!available || !currentId) return;
     let active = true;
     void intakeCall<Decision>('inspect_research_decision', { namespace, decision_id: currentId })
@@ -108,6 +121,32 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
 
   const update = (field: keyof Draft, value: string) =>
     setDraft(previous => ({ ...previous, [field]: value }));
+
+  const compare = async () => {
+    if (!decision) return;
+    setBusy(true); setError(undefined); setComparison(undefined);
+    try {
+      const names = criteria.map(row => row.name.trim());
+      if (!criteria.length || names.some(name => !name) || new Set(names).size !== names.length)
+        throw new Error('Add at least one uniquely named criterion.');
+      if (!comparisonProvenance.trim())
+        throw new Error('Describe the source and scale of your utility inputs.');
+      const weights = Object.fromEntries(criteria.map(row => [row.name.trim(), row.weight]));
+      const inputs = Object.fromEntries((['yes', 'no'] as const).map(option => [option,
+        Object.fromEntries(criteria.map(row => [row.name.trim(), row[option].trim() || null]))]));
+      const changedWeights = Object.fromEntries(criteria.filter(row => row.scenarioWeight.trim())
+        .map(row => [row.name.trim(), row.scenarioWeight.trim()]));
+      if (Object.keys(changedWeights).length && !scenarioAssumption.trim())
+        throw new Error('Name the assumption behind the alternative weights.');
+      const scenarios = scenarioAssumption.trim()
+        ? [{ assumption: scenarioAssumption.trim(), weights: changedWeights }] : [];
+      setComparison(await intakeCall<SensitivityReceipt>('calculate_decision_sensitivity', {
+        namespace, decision_id: decision.decision_id, revision: decision.revision,
+        weights, inputs, scenarios, provenance: comparisonProvenance.trim(),
+      }));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
 
   const linkWorkflow = async (value: Decision) => {
     if (!/^decision:[0-9a-f]{32}$/.test(value.decision_id))
@@ -207,7 +246,7 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
         });
       }
       await pointer.set({ namespace, decisionId: next.decision_id, revision: next.revision });
-      setDecision(next); setDraft(draftFromDecision(next));
+      setDecision(next); setDraft(draftFromDecision(next)); setComparison(undefined);
       await linkWorkflow(next);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -217,6 +256,7 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
   const newChoice = async () => {
     setBusy(true); setError(undefined);
     try { await pointer.set({ namespace }); setDecision(undefined); setLinkedSession(undefined);
+      setComparison(undefined); setCriteria([]);
       setDraft(emptyDraft()); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
@@ -289,5 +329,45 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
       onClick={() => { setBusy(true); setError(undefined);
         void linkWorkflow(decision).catch(cause => setError(cause instanceof Error ? cause.message : String(cause)))
           .finally(() => setBusy(false)); }}>Complete mode handoff</button>}
+    {decision && <div className="space-y-3 border-t border-border pt-4">
+      <div><h3 className="font-medium">Compare options</h3>
+        <p className="text-muted-foreground">Enter comparable, author-supplied utilities. Empty values stay missing.</p></div>
+      {criteria.map((row, index) => <div key={row.id} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-6">
+        {(['name', 'weight', 'yes', 'no', 'scenarioWeight'] as const).map(field =>
+          <label key={field} className="grid gap-1 text-xs">{({ name: 'Criterion', weight: 'Weight',
+            yes: 'Yes utility', no: 'No utility', scenarioWeight: 'Scenario weight' })[field]} {index + 1}
+            <input className={fieldClass} type={field === 'name' ? 'text' : 'number'}
+              step="any" value={row[field]} onChange={event => setCriteria(previous => previous.map(item =>
+                item.id === row.id ? { ...item, [field]: event.target.value } : item))} />
+          </label>)}
+        <button className={buttonClass} disabled={busy} onClick={() => setCriteria(previous =>
+          previous.filter(item => item.id !== row.id))}>Remove</button>
+      </div>)}
+      <button className={buttonClass} disabled={busy || criteria.length >= 100}
+        onClick={() => setCriteria(previous => [...previous, blankCriterion()])}>Add criterion</button>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1">Alternative weight assumption
+          <input className={fieldClass} value={scenarioAssumption}
+            onChange={event => setScenarioAssumption(event.target.value)} />
+        </label>
+        <label className="grid gap-1">Utility provenance and scale
+          <input className={fieldClass} value={comparisonProvenance}
+            onChange={event => setComparisonProvenance(event.target.value)} />
+        </label>
+      </div>
+      <button className={buttonClass} disabled={busy || !available || !criteria.length}
+        onClick={() => void compare()}>Calculate comparison</button>
+      {comparison && <div className="space-y-2 rounded-md border border-border p-3">
+        <p className="text-xs text-muted-foreground">Noesis receipt {comparison.receipt_id} · decision v{comparison.decision_revision}</p>
+        <p>Baseline: {comparison.baseline.ordering_with_ties.map(group => group.join(' = ')).join(' → ') || 'Unranked'}</p>
+        <p className="text-xs">Yes {comparison.baseline.scores.yes ?? 'missing'} · No {comparison.baseline.scores.no ?? 'missing'}</p>
+        {Object.entries(comparison.baseline.missing_inputs).map(([option, missing]) =>
+          <p className="text-xs text-muted-foreground" key={option}>{option}: missing {missing.join(', ')}</p>)}
+        {comparison.scenarios.map((scenario, index) => <p key={index} className="text-xs">
+          {scenario.assumption}: {scenario.ordering_with_ties.map(group => group.join(' = ')).join(' → ') || 'Unranked'}
+          {scenario.ordering_changed ? ' · Ordering changed' : ' · Same ordering'}
+        </p>)}
+      </div>}
+    </div>}
   </section>;
 }

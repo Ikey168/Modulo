@@ -121,6 +121,12 @@ it('re-inspects an uncertain revision before allowing another edit', async () =>
     if (tool === 'command_intake_mode') return { session_id: 'intake:choice', mode: 'Decision Support',
       status: args.action === 'complete' ? 'completed' : 'active',
       revision: args.action === 'complete' ? 3 : 2 };
+    if (tool === 'calculate_decision_sensitivity') return { receipt_id: 'sensitivity:one',
+      decision_revision: 2,
+      baseline: { scores: { yes: '0', no: '1' }, missing_inputs: {},
+        ordering_with_ties: [['no'], ['yes']] },
+      scenarios: [{ assumption: 'Cost matters less', scores: { yes: '1', no: '0' },
+        missing_inputs: {}, ordering_with_ties: [['yes'], ['no']], ordering_changed: true }] };
     return {};
   });
   render(<NoesisDecisionView namespace="research" available />);
@@ -131,4 +137,23 @@ it('re-inspects an uncertain revision before allowing another edit', async () =>
   expect(mock.set).toHaveBeenLastCalledWith({ namespace: 'research',
     decisionId: `decision:${'a'.repeat(32)}`, revision: 2 });
   expect(screen.queryByText('Response lost')).not.toBeInTheDocument();
+  expect(await screen.findByText(/Decision Support session intake:choice · completed/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add criterion' }));
+  fireEvent.change(screen.getByLabelText('Criterion 1'), { target: { value: 'cost' } });
+  fireEvent.change(screen.getByLabelText('Weight 1'), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Yes utility 1'), { target: { value: '0' } });
+  fireEvent.change(screen.getByLabelText('No utility 1'), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Scenario weight 1'), { target: { value: '0.5' } });
+  fireEvent.change(screen.getByLabelText('Alternative weight assumption'),
+    { target: { value: 'Cost matters less' } });
+  fireEvent.change(screen.getByLabelText('Utility provenance and scale'),
+    { target: { value: 'Author utilities on a 0–1 scale' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Calculate comparison' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('calculate_decision_sensitivity',
+    expect.objectContaining({ decision_id: `decision:${'a'.repeat(32)}`, revision: 2,
+      weights: { cost: '1' }, inputs: { yes: { cost: '0' }, no: { cost: '1' } },
+      scenarios: [{ assumption: 'Cost matters less', weights: { cost: '0.5' } }],
+    })));
+  expect(await screen.findByText('Baseline: no → yes')).toBeInTheDocument();
+  expect(screen.getByText(/Ordering changed/)).toBeInTheDocument();
 });
