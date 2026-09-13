@@ -65,7 +65,10 @@ type ResearchStartResult = { project: { project_id: string; revision: number };
 type ResearchProject = { project_id: string; revision: number; status: string;
   questions: string[]; success_criteria: string[];
   budget: { requests: number; tokens: number; usd_micros: number };
-  spent: { requests: number; tokens: number; usd_micros: number } };
+  spent: { requests: number; tokens: number; usd_micros: number };
+  links?: { kind: string; id: string; namespace?: string; revision?: number }[];
+  reference_availability?: { kind: string; id: string; status: string;
+    revision_verified?: boolean }[] };
 type MigratedRecord = { key: string; collection: string; legacyId: string; title: string };
 
 function migratedRecords(client: PluginStateClient): MigratedRecord[] {
@@ -134,6 +137,7 @@ export function NoesisIntakeView() {
   const [researchUsd, setResearchUsd] = useState('0');
   const [researchProject, setResearchProject] = useState<ResearchProject>();
   const [researchProjectError, setResearchProjectError] = useState<string>();
+  const [researchProjectRefresh, setResearchProjectRefresh] = useState(0);
   const [escalationReason, setEscalationReason] = useState('');
   const [migration, setMigration] = useState<LegacyIntakePlan>();
   const [migrationResult, setMigrationResult] = useState<{
@@ -212,7 +216,8 @@ export function NoesisIntakeView() {
       setResearchProject(project);
     }).catch(cause => { if (active) setResearchProjectError(cause instanceof Error ? cause.message : String(cause)); });
     return () => { active = false; };
-  }, [namespace, preflight?.available, session?.mode, session?.inputs.research_project_id]);
+  }, [namespace, preflight?.available, session?.mode, session?.inputs.research_project_id,
+    researchProjectRefresh]);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setError(undefined);
@@ -702,6 +707,8 @@ export function NoesisIntakeView() {
           {researchProjectError && <p role="alert">Project unavailable: {researchProjectError}</p>}
           {researchProject && <>
             <p>{researchProject.questions.join('; ')} · {researchProject.status} · project v{researchProject.revision}</p>
+            <button type="button" className="text-xs underline" onClick={() =>
+              setResearchProjectRefresh(value => value + 1)}>Refresh project status</button>
             <p className="text-xs text-muted-foreground">Budget: {researchProject.budget.requests} requests,
               {' '}{researchProject.budget.tokens} tokens, ${
                 (researchProject.budget.usd_micros / 1_000_000).toFixed(2)} maximum paid spend.
@@ -711,6 +718,15 @@ export function NoesisIntakeView() {
             <h3 className="font-medium">Definition of Done</h3>
             <ul className="list-inside list-disc text-sm">{researchProject.success_criteria.map(criterion =>
               <li key={criterion}>{criterion}</li>)}</ul>
+            {!!researchProject.links?.some(link => link.kind === 'intake_source') && <>
+              <h3 className="font-medium">Pinned intake sources</h3>
+              <ul className="list-inside list-disc text-sm">{researchProject.links.map((link, index) =>
+                link.kind === 'intake_source' && <li key={`${link.id}:${link.revision}`}>
+                  {link.id} · revision {link.revision} · {
+                    researchProject.reference_availability?.[index]?.id === link.id
+                      ? researchProject.reference_availability[index].status : 'not checked'}
+                </li>)}</ul>
+            </>}
           </>}
           {!!session.unmet_completion_checks?.length && <p className="text-xs text-muted-foreground">
             Completion still requires: {session.unmet_completion_checks.join(', ')}.
