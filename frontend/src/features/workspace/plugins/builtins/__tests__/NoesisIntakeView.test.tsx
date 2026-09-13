@@ -161,6 +161,24 @@ it('subscribes a newsletter feed and previews signals without triaging or markin
     expect.objectContaining({ item_id: 'feed:one', read: true })));
 });
 
+it('restores unread state even after an item has been triaged', async () => {
+  let readAt: number | null = 123;
+  mock.call.mockImplementation(async (tool: string, args?: { read?: boolean }) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 0,
+      items: [{ item_id: 'feed:one', title: 'Archived source', original_url: 'https://example.org/a',
+        source_version: 1, decision: 'archive', read_at_ms: readAt }] };
+    if (tool === 'mark_intake_feed_read') { readAt = args?.read ? 456 : null; return {}; }
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Mark unread' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: false })));
+  fireEvent.click(await screen.findByRole('button', { name: 'Mark read' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: true })));
+});
+
 it('runs Exploration capture, related reading, and follow from the plugin', async () => {
   let notesSaved = false;
   const visit = { source_id: `explore:${'a'.repeat(32)}`, url: 'https://example.org/climate',

@@ -180,10 +180,10 @@ export function NoesisIntakeView() {
     setFeedUrl(''); setFeedName('');
   });
 
-  const markRead = (item: FeedItem) => run(async () => {
+  const markRead = (item: FeedItem, read: boolean) => run(async () => {
     await intakeCall('mark_intake_feed_read', {
       namespace, item_id: item.item_id,
-      command_key: crypto.randomUUID(), read: true,
+      command_key: crypto.randomUUID(), read,
     });
   });
 
@@ -579,13 +579,15 @@ export function NoesisIntakeView() {
                 target="_blank" rel="noopener noreferrer">{item.title}</a>
               <span className="text-xs text-muted-foreground">Source v{item.source_version} · {item.decision ?? 'Unprocessed'}</span>
             </div>
-            {!item.decision && <div className="flex flex-wrap gap-2">
-              {!item.read_at_ms && <button className={buttonClass} disabled={busy}
-                onClick={() => void markRead(item)}>Mark read</button>}
-              {(['discard', 'archive', 'flag', 'escalate'] as const).map(decision =>
+            <div className="flex flex-wrap gap-2">
+              <button className={buttonClass} disabled={busy}
+                onClick={() => void markRead(item, !item.read_at_ms)}>
+                {item.read_at_ms ? 'Mark unread' : 'Mark read'}
+              </button>
+              {!item.decision && (['discard', 'archive', 'flag', 'escalate'] as const).map(decision =>
                 <button key={decision} className={buttonClass} disabled={busy}
                   onClick={() => void decide(item, decision)}>{decision[0].toUpperCase() + decision.slice(1)}</button>)}
-            </div>}
+            </div>
             {item.decision === 'escalate' && session?.mode === 'Awareness' &&
               session.inputs.feed_item_ids?.includes(item.item_id) &&
               session.data.decisions?.[item.item_id] === 'escalate' &&
