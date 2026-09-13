@@ -14,6 +14,14 @@ final class OperationalSchemas {
           namespace.equals("information-intake")
               ? "{\"type\":\"object\",\"required\":[\"id\",\"noesisItemId\",\"sourceVersion\",\"objectVersion\",\"createdAt\"],\"properties\":{\"id\":{\"type\":\"string\",\"maxLength\":80},\"noesisItemId\":{\"type\":\"string\",\"maxLength\":80},\"sourceVersion\":{\"type\":\"integer\",\"minimum\":1},\"objectVersion\":{\"type\":\"integer\",\"minimum\":1},\"createdAt\":{\"type\":\"string\",\"maxLength\":40},\"userNote\":{\"type\":\"string\",\"maxLength\":10000}},\"additionalProperties\":false}"
               : null;
+      case "modulo.intake.legacy-record" ->
+          namespace.equals("information-intake")
+              ? "{\"type\":\"object\",\"required\":[\"collection\",\"legacyId\",\"payload\",\"sourceDigest\",\"importedAt\"],\"properties\":{\"collection\":{\"enum\":[\"items\",\"sessions\",\"artifacts\",\"projects\",\"explorationTrails\",\"syntheses\",\"cases\",\"creations\",\"learningPlans\",\"experiments\",\"maintenanceReviews\",\"transitions\"]},\"legacyId\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":256},\"payload\":{\"type\":\"object\"},\"sourceDigest\":{\"type\":\"string\",\"minLength\":64,\"maxLength\":64},\"importedAt\":{\"type\":\"string\",\"maxLength\":40}},\"additionalProperties\":false}"
+              : null;
+      case "modulo.intake.import-report" ->
+          namespace.equals("information-intake")
+              ? "{\"type\":\"object\",\"required\":[\"sourceKey\",\"sourceDigest\",\"recordKeys\",\"counts\",\"importedAt\"],\"properties\":{\"sourceKey\":{\"enum\":[\"modulo-information-intake-v1\"]},\"sourceDigest\":{\"type\":\"string\",\"minLength\":64,\"maxLength\":64},\"recordKeys\":{\"type\":\"array\",\"maxItems\":5000,\"items\":{\"type\":\"string\",\"maxLength\":128}},\"counts\":{\"type\":\"object\"},\"importedAt\":{\"type\":\"string\",\"maxLength\":40}},\"additionalProperties\":false}"
+              : null;
       case "modulo.todo" ->
           namespace.equals("todo-lists")
               ? "{\"type\":\"object\",\"required\":[\"id\",\"title\",\"list\",\"priority\",\"done\"],\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":120},\"title\":{\"type\":\"string\",\"maxLength\":10000},\"list\":{\"type\":\"string\",\"maxLength\":10000},\"priority\":{\"enum\":[\"LOW\",\"MEDIUM\",\"HIGH\",\"URGENT\"]},\"done\":{\"type\":\"boolean\"},\"noteId\":{\"type\":\"integer\",\"minimum\":1},\"dueDate\":{\"type\":\"string\",\"maxLength\":10}}}"
@@ -56,6 +64,26 @@ final class OperationalSchemas {
       if (!noesisId.matches("feed:[0-9a-f]{32}")
           || !key.equals("item." + noesisId.substring(5))
           || !key.equals(value.path("id").asText())) fail();
+    }
+    if (id.equals("modulo.intake.legacy-record")) {
+      String collection = value.path("collection").asText();
+      String legacyId = value.path("legacyId").asText();
+      String digest = value.path("sourceDigest").asText();
+      if (!key.matches("legacy\\.[A-Za-z]+\\.[0-9a-f]{32}")
+          || !key.startsWith("legacy." + collection + ".")
+          || !digest.matches("[0-9a-f]{64}")
+          || !value.path("payload").path("id").isTextual()
+          || !value.path("payload").path("id").asText().equals(legacyId)) fail();
+    }
+    if (id.equals("modulo.intake.import-report")) {
+      String digest = value.path("sourceDigest").asText();
+      if (!digest.matches("[0-9a-f]{64}") || !key.equals("migration." + digest.substring(0, 32))
+          || !value.path("sourceKey").asText().equals("modulo-information-intake-v1")) fail();
+      var keys = new java.util.HashSet<String>();
+      for (var recordKey : value.path("recordKeys")) {
+        String candidate = recordKey.asText();
+        if (!candidate.matches("legacy\\.[A-Za-z]+\\.[0-9a-f]{32}") || !keys.add(candidate)) fail();
+      }
     }
     if (id.equals("modulo.todo") || id.equals("modulo.time-entry") || id.equals("modulo.expense")) {
       String recordId = value.path("id").asText();
