@@ -8,7 +8,7 @@ final class OperationalSchemas {
     return switch (id) {
       case "modulo.intake.preferences" ->
           namespace.equals("information-intake")
-              ? "{\"type\":\"object\",\"required\":[\"namespace\"],\"properties\":{\"namespace\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":128},\"lastSessionId\":{\"type\":\"string\",\"maxLength\":512},\"pendingStartKey\":{\"type\":\"string\",\"maxLength\":256}},\"additionalProperties\":false}"
+              ? "{\"type\":\"object\",\"required\":[\"namespace\"],\"properties\":{\"namespace\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":128},\"lastSessionId\":{\"type\":\"string\",\"maxLength\":512},\"pendingStartKey\":{\"type\":\"string\",\"maxLength\":256},\"pendingExploreKey\":{\"type\":\"string\",\"maxLength\":256},\"pendingCaptureKey\":{\"type\":\"string\",\"maxLength\":256}},\"additionalProperties\":false}"
               : null;
       case "modulo.intake.item-link" ->
           namespace.equals("information-intake")
