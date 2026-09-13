@@ -10,6 +10,8 @@ Set `NOESIS_INTAKE_MCP_URL` to the Noesis Knowledge Engine `/mcp` endpoint and `
 {"1":{"token":"the-per-user-noesis-bearer-token"}}
 ```
 
+The Information Intake preflight now calls Noesis `preflight_intake_mode` for the selected namespace before returning the public discovery catalog. A missing user mapping or namespace scope reports unavailable; a successful call returns a separate, caller-scoped readiness matrix with missing mutation scopes, known native start blockers, and unverified live-source/model/execution state. The plugin displays that matrix on demand. An available connector only means the authenticated transport and namespace read succeeded; it does not claim a complete mode or live acceptance.
+
 Configure Noesis's `NOESIS_MCP_AUTH_TOKENS_FILE` with the same token mapped to one unique `client_id` and the required `knowledge:intake:*` and `namespace:<name>:*` scopes. Decision Support also needs `knowledge:decisions:read` and `knowledge:decisions:write`; a standalone decision does not need project access. The Noesis `client_id` is the owner of Noesis intake sessions, feed items, and decisions. Modulo selects a token only from its authenticated user ID, never from a request argument. A missing mapping, unavailable Noesis, or an unsupported tool produces an explicit preflight/bridge error. The bridge allowlists intake and decision tools; Noesis enforces namespace and object access on every call. `knowledge:intake:fetch` is needed for feed refresh and live Exploration page acquisition.
 
 ## Current authority and mapping

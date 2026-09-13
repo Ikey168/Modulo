@@ -43,6 +43,20 @@ beforeEach(() => {
   });
 });
 
+it('requests scoped readiness and presents unresolved mode blockers separately from access', async () => {
+  mock.preflight.mockResolvedValue({ available: true, readiness: {
+    source_mode: 'unknown_live_or_fixture', enabled_feed_subscription_count: 0,
+    modes: [{ mode: 'Maintenance', native_start_possible: true,
+      complete_journey_ready: false, blockers: ['Dependency impact pending'] }],
+  } });
+  render(<NoesisIntakeView />);
+  const summary = await screen.findByText('Noesis readiness for research');
+  expect(mock.preflight).toHaveBeenCalledWith('research');
+  fireEvent.click(summary);
+  expect(screen.getByText(/Dependency impact pending/)).toBeInTheDocument();
+  expect(screen.getByText(/Full journey pending/)).toBeInTheDocument();
+});
+
 it('previews and imports browser-local Modulo intake without deleting it', async () => {
   const raw = JSON.stringify({ version: 1, items: [{ id: 'old-1', title: 'Saved locally' }] });
   window.localStorage.setItem('modulo-information-intake-v1', raw);
