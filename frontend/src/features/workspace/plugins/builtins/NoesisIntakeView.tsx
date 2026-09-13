@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import type { PluginStateClient } from '../../../../services/pluginStateClient';
-import { intakeCall, intakePreflight } from './noesisIntakeApi';
+import { intakeCall, intakePreflight, type IntakeReadiness } from './noesisIntakeApi';
 import { NoesisDecisionView } from './NoesisDecisionView';
 import { NoesisProblemView } from './NoesisProblemView';
 import { NoesisPlaybookView } from './NoesisPlaybookView';
@@ -80,7 +80,8 @@ export function NoesisIntakeView() {
     'information-intake', 'preferences', { namespace: 'research' }, 'modulo.intake.preferences');
   const namespace = preferences.value.namespace;
   const [namespaceDraft, setNamespaceDraft] = useState(namespace);
-  const [preflight, setPreflight] = useState<{ available: boolean; reason?: string }>();
+  const [preflight, setPreflight] = useState<{ available: boolean; reason?: string;
+    readiness?: IntakeReadiness }>();
   const [page, setPage] = useState<InboxPage>();
   const [session, setSession] = useState<Session>();
   const [selectedInboxIds, setSelectedInboxIds] = useState<string[]>([]);
@@ -123,7 +124,7 @@ export function NoesisIntakeView() {
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
-    const readiness = await intakePreflight();
+    const readiness = await intakePreflight(namespace);
     if (sequence !== loadSequence.current) return;
     setPreflight(readiness);
     if (!readiness.available) { setPage(undefined); setSignalRules([]); setSignalPreview(undefined);
@@ -531,6 +532,17 @@ export function NoesisIntakeView() {
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {preflight && !preflight.available &&
         <p role="status" className="border border-border p-3">Noesis is unavailable: {preflight.reason}</p>}
+      {preflight?.available && preflight.readiness && <details className="rounded-md border border-border p-3 text-sm">
+        <summary className="cursor-pointer font-medium">Noesis readiness for {namespace}</summary>
+        <p className="mt-2 text-xs text-muted-foreground">{preflight.readiness.enabled_feed_subscription_count} enabled feeds · Source mode: {preflight.readiness.source_mode.replace(/_/g, ' ')}. Tool access does not confirm a complete live journey.</p>
+        <ul className="mt-2 space-y-1">
+          {preflight.readiness.modes.map(mode => <li key={mode.mode}>
+            <span className="font-medium">{mode.mode}</span> · {mode.native_start_possible ? 'Native start possible' : 'Start blocked'}
+            {!mode.complete_journey_ready && <span className="text-muted-foreground"> · Full journey pending</span>}
+            {mode.blockers.length > 0 && <span className="block text-xs text-muted-foreground">{mode.blockers.join('; ')}</span>}
+          </li>)}
+        </ul>
+      </details>}
 
       <section className="flex flex-wrap items-end gap-2">
         <label className="grid gap-1">Namespace

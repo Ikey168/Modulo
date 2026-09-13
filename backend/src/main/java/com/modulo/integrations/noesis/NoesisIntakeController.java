@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Signed-in Modulo facade for the supported Noesis intake MCP tools. */
@@ -36,16 +37,26 @@ public class NoesisIntakeController {
   public record BridgeError(String code) {}
 
   @GetMapping("/preflight")
-  public ResponseEntity<?> preflight() {
+  public ResponseEntity<?> preflight(@RequestParam(defaultValue = "research") String namespace) {
     if (!bridge.configured()) {
       return ResponseEntity.ok().cacheControl(CacheControl.noStore())
           .body(Map.of("available", false, "reason", "NOESIS_NOT_CONFIGURED"));
     }
     try {
+      JsonNode readiness = bridge.call(users.requireUserId(), "preflight_intake_mode",
+          json.createObjectNode().put("namespace", namespace));
+      if (!"noesis-intake-readiness-v1".equals(readiness.path("contract").asText())
+          || !readiness.path("modes").isArray()
+          || !readiness.path("source_mode").isTextual()
+          || !readiness.path("enabled_feed_subscription_count").isNumber()) {
+        String reason = readiness.path("error").path("code").asText("NOESIS_READINESS_INVALID");
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(Map.of("available", false, "reason", reason));
+      }
       JsonNode modes = bridge.call(users.requireUserId(), "discover_intake_modes",
           json.createObjectNode());
       return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-          .body(Map.of("available", true, "discovery", modes));
+          .body(Map.of("available", true, "discovery", modes, "readiness", readiness));
     } catch (NoesisIntakeBridge.BridgeException error) {
       return ResponseEntity.ok().cacheControl(CacheControl.noStore())
           .body(Map.of("available", false, "reason", error.code()));
