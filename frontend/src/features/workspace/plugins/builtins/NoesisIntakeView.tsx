@@ -41,7 +41,9 @@ type Session = {
   duration_minutes: number;
   remaining_minutes?: number;
   inputs: { feed_item_ids?: string[]; symptom?: string; environment?: string;
-    urgency?: string; success_check?: string; research_project_id?: string };
+    urgency?: string; success_check?: string; research_project_id?: string;
+    research_project_revision?: number; definition_of_done?: string[];
+    research_budget?: { requests: number; tokens: number; usd_micros: number } };
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
   references?: { kind: string; id: string; namespace: string; version: number;
     locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
@@ -60,6 +62,10 @@ type ResearchStartRequest = { namespace: string; request_key: string;
 type ResearchPending = { namespace: string; request?: ResearchStartRequest };
 type ResearchStartResult = { project: { project_id: string; revision: number };
   session: Session };
+type ResearchProject = { project_id: string; revision: number; status: string;
+  questions: string[]; success_criteria: string[];
+  budget: { requests: number; tokens: number; usd_micros: number };
+  spent: { requests: number; tokens: number; usd_micros: number } };
 type MigratedRecord = { key: string; collection: string; legacyId: string; title: string };
 
 function migratedRecords(client: PluginStateClient): MigratedRecord[] {
@@ -126,6 +132,8 @@ export function NoesisIntakeView() {
   const [researchRequests, setResearchRequests] = useState('5');
   const [researchTokens, setResearchTokens] = useState('10000');
   const [researchUsd, setResearchUsd] = useState('0');
+  const [researchProject, setResearchProject] = useState<ResearchProject>();
+  const [researchProjectError, setResearchProjectError] = useState<string>();
   const [escalationReason, setEscalationReason] = useState('');
   const [migration, setMigration] = useState<LegacyIntakePlan>();
   const [migrationResult, setMigrationResult] = useState<{
@@ -190,6 +198,21 @@ export function NoesisIntakeView() {
     return () => { active = false; };
   }, [namespace, session?.access_degraded, session?.mode, session?.revision,
     session?.session_id, session?.status, suggestionRefresh]);
+
+  useEffect(() => {
+    const projectId = session?.mode === 'Deep Research' ? session.inputs.research_project_id : undefined;
+    setResearchProject(undefined); setResearchProjectError(undefined);
+    if (!projectId || preflight?.available !== true) return;
+    let active = true;
+    void intakeCall<ResearchProject>('inspect_research_project', {
+      namespace, project_id: projectId,
+    }).then(project => {
+      if (!active) return;
+      if (project.project_id !== projectId) throw new Error('Noesis returned a different research project.');
+      setResearchProject(project);
+    }).catch(cause => { if (active) setResearchProjectError(cause instanceof Error ? cause.message : String(cause)); });
+    return () => { active = false; };
+  }, [namespace, preflight?.available, session?.mode, session?.inputs.research_project_id]);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setError(undefined);
@@ -664,6 +687,29 @@ export function NoesisIntakeView() {
           await preferences.set({ namespace, lastSessionId: next.session_id });
           setSession(next as Session);
         }} />
+
+      {session?.mode === 'Deep Research' && session.inputs.research_project_id &&
+        <section className="space-y-2 border-b border-border pb-5">
+          <h2 className="font-semibold">Deep Research topic</h2>
+          <p className="text-xs text-muted-foreground">Noesis project {session.inputs.research_project_id}
+            {' '}· pinned v{session.inputs.research_project_revision ?? 1}</p>
+          {researchProjectError && <p role="alert">Project unavailable: {researchProjectError}</p>}
+          {researchProject && <>
+            <p>{researchProject.questions.join('; ')} · {researchProject.status} · project v{researchProject.revision}</p>
+            <p className="text-xs text-muted-foreground">Budget: {researchProject.budget.requests} requests,
+              {' '}{researchProject.budget.tokens} tokens, ${
+                (researchProject.budget.usd_micros / 1_000_000).toFixed(2)} maximum paid spend.
+              {' '}Recorded spend: {researchProject.spent.requests} requests,
+              {' '}{researchProject.spent.tokens} tokens,
+              {' '}${(researchProject.spent.usd_micros / 1_000_000).toFixed(2)}.</p>
+            <h3 className="font-medium">Definition of Done</h3>
+            <ul className="list-inside list-disc text-sm">{researchProject.success_criteria.map(criterion =>
+              <li key={criterion}>{criterion}</li>)}</ul>
+          </>}
+          {!!session.unmet_completion_checks?.length && <p className="text-xs text-muted-foreground">
+            Completion still requires: {session.unmet_completion_checks.join(', ')}.
+          </p>}
+        </section>}
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>

@@ -248,6 +248,13 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
         revision: 1, duration_minutes: 120,
         inputs: { research_project_id: 'project:research' }, data: {} },
     };
+    if (tool === 'inspect_research_project') return {
+      project_id: 'project:research', revision: 1, status: 'active',
+      questions: ['Which adaptation methods work?'],
+      success_criteria: ['Identify supported methods', 'List unresolved risks'],
+      budget: { requests: 5, tokens: 10000, usd_micros: 0 },
+      spent: { requests: 0, tokens: 0, usd_micros: 0 },
+    };
     if (tool === 'start_intake_mode') return { session_id: 'intake:explore', mode: 'Exploration',
       status: 'active', revision: 1, duration_minutes: 90, remaining_minutes: 90,
       inputs: {}, data: {}, unmet_completion_checks: ['timebox_or_escalation'] };
@@ -302,6 +309,9 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
       reason: 'Saved Exploration source selected for research' },
     references: [expect.objectContaining({ id: visit.source_id, version: 1 })] })));
   expect(mock.retry).toHaveBeenCalled();
+  expect(await screen.findByText('Deep Research topic')).toBeInTheDocument();
+  expect(mock.call).toHaveBeenCalledWith('inspect_research_project',
+    { namespace: 'research', project_id: 'project:research' });
 });
 
 it('shows signed-in migrated Research Workflow records without a local browser copy', async () => {
