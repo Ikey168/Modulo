@@ -21,6 +21,10 @@ class IntakePluginStateSchemaTest {
         "item." + "a".repeat(32), value));
     assertThrows(ResponseStatusException.class, () -> OperationalSchemas.validate(
         "modulo.intake.item-link", "item." + "b".repeat(32), value));
+    var preferences = json.readTree("{\"namespace\":\"research\",\"pendingExploreKey\":\"explore-1\","
+        + "\"pendingCaptureKey\":\"capture-1\"}");
+    assertDoesNotThrow(() -> new StateSchemaRegistry(null, json).validate(1,
+        "information-intake", "modulo.intake.preferences", 1, preferences));
   }
 
   @Test
