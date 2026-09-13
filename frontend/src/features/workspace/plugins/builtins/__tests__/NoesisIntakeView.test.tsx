@@ -270,3 +270,34 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
       reason: 'Saved Exploration source selected for research' },
     references: [expect.objectContaining({ id: visit.source_id, version: 1 })] })));
 });
+
+it('shows signed-in migrated Research Workflow records without a local browser copy', async () => {
+  const client = {
+    refreshAll: vi.fn(async () => undefined),
+    list: vi.fn(() => [
+      { key: 'legacy.items.a', schemaId: 'modulo.intake.legacy-record', deleted: false,
+        value: { collection: 'items', legacyId: 'old-1',
+          payload: { id: 'old-1', title: 'Saved on first device', userNote: 'Preserved' } } },
+      { key: 'legacy.projects.b', schemaId: 'modulo.intake.legacy-record', deleted: false,
+        value: { collection: 'projects', legacyId: 'project-1',
+          payload: { id: 'project-1', title: 'Research topic' } } },
+      { key: 'legacy.items.deleted', schemaId: 'modulo.intake.legacy-record', deleted: true,
+        value: { collection: 'items', legacyId: 'deleted', payload: { title: 'Do not show' } } },
+      { key: 'legacy.items.pending', schemaId: 'modulo.intake.legacy-record', deleted: false,
+        pending: true, value: { collection: 'items', legacyId: 'pending',
+          payload: { title: 'Not yet synced' } } },
+      { key: 'preferences', schemaId: 'modulo.intake.preferences', deleted: false,
+        value: { namespace: 'research' } },
+    ]),
+  };
+  mock.state.mockResolvedValue(client);
+  render(<NoesisIntakeView />);
+  expect(window.localStorage.getItem('modulo-information-intake-v1')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Load saved records' }));
+  expect(await screen.findByText('2 migrated records available.')).toBeInTheDocument();
+  expect(screen.getByText('Saved on first device')).toBeInTheDocument();
+  expect(screen.getByText('Research topic')).toBeInTheDocument();
+  expect(screen.queryByText('Do not show')).not.toBeInTheDocument();
+  expect(screen.queryByText('Not yet synced')).not.toBeInTheDocument();
+  expect(client.refreshAll).toHaveBeenCalledOnce();
+});
