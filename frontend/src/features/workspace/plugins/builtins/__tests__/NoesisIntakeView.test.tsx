@@ -133,6 +133,34 @@ it('starts a durable daily queue and triages through the Noesis session', async 
   expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
 });
 
+it('subscribes a newsletter feed and previews signals without triaging or marking matches read', async () => {
+  mock.call.mockImplementation(async (tool: string) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 1,
+      items: [{ item_id: 'feed:one', title: 'Climate update', original_url: 'https://example.org/a',
+        source_version: 1, decision: null, read_at_ms: null }] };
+    if (tool === 'list_intake_feed_signal_rules') return { rules: [
+      { rule_id: 'rule:climate', name: 'Climate', terms: ['climate'], version: 2 },
+    ] };
+    if (tool === 'preview_intake_feed_signal_rule') return { evaluated_count: 1,
+      evaluation_truncated: false, matches: [{ item_id: 'feed:one', title: 'Climate update',
+        matched: [{ term: 'climate', field: 'title', excerpt: 'Climate update' }] }] };
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  expect(await screen.findByText('Climate update')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Feed URL'), { target: { value: 'https://example.org/newsletter.xml' } });
+  fireEvent.change(screen.getByLabelText('Source type'), { target: { value: 'newsletter_feed' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('subscribe_intake_feed',
+    expect.objectContaining({ source_kind: 'newsletter_feed' })));
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+  expect(await screen.findByText('climate in title: Climate update')).toBeInTheDocument();
+  expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: 'Mark read' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: true })));
+});
+
 it('runs Exploration capture, related reading, and follow from the plugin', async () => {
   let notesSaved = false;
   const visit = { source_id: `explore:${'a'.repeat(32)}`, url: 'https://example.org/climate',
