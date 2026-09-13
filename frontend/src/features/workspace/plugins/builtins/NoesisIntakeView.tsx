@@ -5,6 +5,7 @@ import type { PluginStateClient } from '../../../../services/pluginStateClient';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
 import { NoesisDecisionView } from './NoesisDecisionView';
 import { NoesisProblemView } from './NoesisProblemView';
+import { NoesisPlaybookView } from './NoesisPlaybookView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -35,7 +36,8 @@ type Session = {
   revision: number;
   duration_minutes: number;
   remaining_minutes?: number;
-  inputs: { feed_item_ids?: string[] };
+  inputs: { feed_item_ids?: string[]; symptom?: string; environment?: string;
+    urgency?: string; success_check?: string };
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
   references?: { kind: string; id: string; namespace: string; version: number;
     locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
@@ -568,6 +570,9 @@ export function NoesisIntakeView() {
             namespace, session_id: next.session_id,
           }));
         }} />
+
+      <NoesisPlaybookView namespace={namespace} available={preflight?.available === true}
+        problemSession={session} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
