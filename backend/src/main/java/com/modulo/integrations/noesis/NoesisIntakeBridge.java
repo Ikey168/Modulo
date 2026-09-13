@@ -50,7 +50,10 @@ public class NoesisIntakeBridge {
       "verify_practice_export", "start_intake_creation", "inspect_intake_creation",
       "command_intake_creation", "export_intake_creation",
       "scan_intake_maintenance", "start_intake_maintenance",
-      "record_maintenance_finding", "assess_maintenance_health");
+      "record_maintenance_finding", "assess_maintenance_health",
+      "start_intake_iteration", "record_intake_iteration_outcome",
+      "propose_intake_playbook_revision", "accept_intake_playbook_revision",
+      "review_intake_iteration_stability");
   private static final String PROTOCOL = "2025-03-26";
   private static final int MAX_RESPONSE = 8_388_608;
   private static final int MAX_CREDENTIALS = 262_144;
