@@ -9,6 +9,7 @@ import { NoesisPlaybookView } from './NoesisPlaybookView';
 import { NoesisPracticeView } from './NoesisPracticeView';
 import { NoesisCreationView } from './NoesisCreationView';
 import { NoesisMaintenanceView } from './NoesisMaintenanceView';
+import { NoesisIterationView } from './NoesisIterationView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -583,6 +584,11 @@ export function NoesisIntakeView() {
       <NoesisCreationView namespace={namespace} available={preflight?.available === true}
         origin={session} />
       <NoesisMaintenanceView namespace={namespace} available={preflight?.available === true}
+        onSessionChanged={async next => {
+          await preferences.set({ namespace, lastSessionId: next.session_id });
+          setSession(next as Session);
+        }} />
+      <NoesisIterationView namespace={namespace} available={preflight?.available === true}
         onSessionChanged={async next => {
           await preferences.set({ namespace, lastSessionId: next.session_id });
           setSession(next as Session);
