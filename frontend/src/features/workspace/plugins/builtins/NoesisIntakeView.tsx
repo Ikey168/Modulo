@@ -704,11 +704,11 @@ export function NoesisIntakeView() {
           <h2 className="font-semibold">Deep Research topic</h2>
           <p className="text-xs text-muted-foreground">Noesis project {session.inputs.research_project_id}
             {' '}· pinned v{session.inputs.research_project_revision ?? 1}</p>
+          <button type="button" className="text-xs underline" onClick={() =>
+            setResearchProjectRefresh(value => value + 1)}>Refresh project status</button>
           {researchProjectError && <p role="alert">Project unavailable: {researchProjectError}</p>}
           {researchProject && <>
             <p>{researchProject.questions.join('; ')} · {researchProject.status} · project v{researchProject.revision}</p>
-            <button type="button" className="text-xs underline" onClick={() =>
-              setResearchProjectRefresh(value => value + 1)}>Refresh project status</button>
             <p className="text-xs text-muted-foreground">Budget: {researchProject.budget.requests} requests,
               {' '}{researchProject.budget.tokens} tokens, ${
                 (researchProject.budget.usd_micros / 1_000_000).toFixed(2)} maximum paid spend.
