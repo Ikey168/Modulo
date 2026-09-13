@@ -181,7 +181,7 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
   fireEvent.click(await screen.findByRole('button', { name: 'Follow and save' }));
   await waitFor(() => expect(mock.call).toHaveBeenCalledWith('decide_exploration_suggestion',
     expect.objectContaining({ suggestion_id: suggestion.suggestion_id,
-      decision: 'follow', expected_revision: 2 })));
+      decision: 'follow', expected_revision: 2, expected_candidate_version: 1 })));
   fireEvent.click(screen.getAllByRole('button', { name: 'Notes' })[1]);
   fireEvent.change(await screen.findByLabelText('Add a source note'),
     { target: { value: 'Check the method' } });

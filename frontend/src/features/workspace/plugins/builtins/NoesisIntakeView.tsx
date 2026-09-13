@@ -235,7 +235,9 @@ export function NoesisIntakeView() {
     const next = await intakeCall<Session>('decide_exploration_suggestion', {
       namespace, session_id: session.session_id, suggestion_id: suggestion.suggestion_id,
       command_key: `modulo-${decision}-${session.session_id}-${suggestion.suggestion_id}`,
-      expected_revision: session.revision, decision, saved: decision === 'follow',
+      expected_revision: session.revision,
+      expected_candidate_version: suggestion.candidate.reference.version,
+      decision, saved: decision === 'follow',
     });
     setSession(next);
   });
