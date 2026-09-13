@@ -5,7 +5,8 @@ import { NoesisDecisionView } from '../NoesisDecisionView';
 
 const mock = vi.hoisted(() => ({ call: vi.fn(), set: vi.fn(), retry: vi.fn(),
   state: vi.fn(),
-  pointer: { namespace: 'research' } as { namespace: string; decisionId?: string; revision?: number; pendingKey?: string } }));
+  pointer: { namespace: 'research' } as { namespace: string; decisionId?: string; revision?: number;
+    pendingKey?: string; pendingContent?: Record<string, unknown> } }));
 vi.mock('../noesisIntakeApi', () => ({ intakeCall: mock.call }));
 vi.mock('../../PluginProvider', () => ({ usePlugins: () => ({ state: mock.state }) }));
 vi.mock('../../usePluginState', () => ({ usePluginState: () => ({
@@ -73,6 +74,9 @@ it('persists an idempotency key before recording a standalone Noesis choice', as
     })));
   expect(mock.set.mock.invocationCallOrder[0]).toBeLessThan(mock.retry.mock.invocationCallOrder[0]);
   expect(mock.retry.mock.invocationCallOrder[0]).toBeLessThan(mock.call.mock.invocationCallOrder[0]);
+  expect(mock.set).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'research',
+    pendingContent: expect.objectContaining({ selected_action: 'no',
+      decision_context: expect.objectContaining({ question: 'Renew?' }) }) }));
   await waitFor(() => expect(mock.set).toHaveBeenLastCalledWith({
     namespace: 'research', decisionId: `decision:${'a'.repeat(32)}`, revision: 1,
   }));
@@ -89,6 +93,31 @@ it('persists an idempotency key before recording a standalone Noesis choice', as
         id: `decision.${'a'.repeat(32)}`, version: 1 }],
     })));
   expect(await screen.findByText(/Decision Support session intake:choice · completed/)).toBeInTheDocument();
+});
+
+it('can abandon a rejected create key without another remote mutation', async () => {
+  mock.pointer = { namespace: 'research', pendingKey: 'rejected-key' };
+  render(<NoesisDecisionView namespace="research" available />);
+  fireEvent.click(screen.getByRole('button', { name: 'Abandon pending choice' }));
+  await waitFor(() => expect(mock.set).toHaveBeenCalledWith({ namespace: 'research' }));
+  expect(mock.call).not.toHaveBeenCalled();
+});
+
+it('does not replay a pending create key with a changed choice', async () => {
+  mock.pointer = { namespace: 'research', pendingKey: 'saved-key', pendingContent: {
+    project: null, decision_context: { question: 'Renew?', stakes: 'One month',
+      required_confidence: 'Moderate', stop_condition: 'Usage known',
+      uncertainty: 'Future use unknown', missing_inputs: [], deadline_at_ms: null },
+    options: [{ id: 'yes', description: 'Renew' }, { id: 'no', description: 'Cancel' }],
+    constraints: [], assumptions: [], observations: [], preferences: [],
+    selected_action: 'no', rationale: 'No current use', review_conditions: [],
+  } };
+  render(<NoesisDecisionView namespace="research" available />);
+  expect(await screen.findByDisplayValue('No current use')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Rationale'), { target: { value: 'A different reason' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Retry saved choice' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('The choice changed after its key was saved');
+  expect(mock.call).not.toHaveBeenCalled();
 });
 
 it('keeps a denied decision read out of the workspace', async () => {
