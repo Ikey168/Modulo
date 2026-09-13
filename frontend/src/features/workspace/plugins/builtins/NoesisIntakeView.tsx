@@ -3,6 +3,7 @@ import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import type { PluginStateClient } from '../../../../services/pluginStateClient';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
+import { NoesisDecisionView } from './NoesisDecisionView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -35,6 +36,8 @@ type Session = {
   remaining_minutes?: number;
   inputs: { feed_item_ids?: string[] };
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
+  references?: { kind: string; id: string; namespace: string; version: number;
+    locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
   access_degraded?: boolean;
   unmet_completion_checks?: string[];
 };
@@ -508,7 +511,7 @@ export function NoesisIntakeView() {
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-semibold">Information Intake</h1>
-          <p className="mt-1 text-muted-foreground">Feed triage and linked Noesis sessions</p>
+          <p className="mt-1 text-muted-foreground">Feed triage, decisions, and linked Noesis sessions</p>
         </div>
         <button className={buttonClass} disabled={busy} onClick={() => void run(async () => {
           await intakeCall('refresh_intake_feed_inbox', { namespace });
@@ -548,6 +551,14 @@ export function NoesisIntakeView() {
             onClick={() => void startExploration()}>Start Exploration</button>
         </div>
       </section>
+
+      <NoesisDecisionView namespace={namespace} available={preflight?.available === true}
+        originSession={session} onWorkflowLinked={async next => {
+          await preferences.set({ namespace, lastSessionId: next.session_id });
+          setSession(await intakeCall<Session>('inspect_intake_mode', {
+            namespace, session_id: next.session_id,
+          }));
+        }} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>

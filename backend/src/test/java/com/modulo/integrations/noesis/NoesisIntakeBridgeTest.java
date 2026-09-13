@@ -76,6 +76,8 @@ class NoesisIntakeBridgeTest {
       assertEquals("NOESIS_TOOL_UNSUPPORTED", assertThrows(
           NoesisIntakeBridge.BridgeException.class,
           () -> bridge.call(1L, "create_research_project", json.createObjectNode())).code());
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("create_research_decision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_decision"));
     } finally {
       server.stop(0);
     }
