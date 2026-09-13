@@ -7,6 +7,7 @@ import { NoesisDecisionView } from './NoesisDecisionView';
 import { NoesisProblemView } from './NoesisProblemView';
 import { NoesisPlaybookView } from './NoesisPlaybookView';
 import { NoesisPracticeView } from './NoesisPracticeView';
+import { NoesisCreationView } from './NoesisCreationView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -42,6 +43,8 @@ type Session = {
   data: { decisions?: Record<string, string>; trail?: TrailVisit[] };
   references?: { kind: string; id: string; namespace: string; version: number;
     locator?: { url?: string; page?: number; start?: number; end?: number; section?: string } }[];
+  workspace_links?: { system: 'modulo'; workspace_id: string; kind: string;
+    id: string; version: number }[];
   access_degraded?: boolean;
   unmet_completion_checks?: string[];
 };
@@ -576,6 +579,8 @@ export function NoesisIntakeView() {
         problemSession={session} />
       <NoesisPracticeView namespace={namespace} available={preflight?.available === true}
         references={session?.references ?? []} />
+      <NoesisCreationView namespace={namespace} available={preflight?.available === true}
+        origin={session} />
 
       <section className="space-y-3 border-b border-border pb-5">
         <h2 className="font-semibold">Feeds</h2>
