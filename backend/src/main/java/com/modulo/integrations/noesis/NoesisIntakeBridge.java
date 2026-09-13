@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 public class NoesisIntakeBridge {
   public static final Set<String> TOOLS = Set.of(
       "discover_intake_modes", "preflight_intake_mode", "route_intake_mode",
-      "start_intake_mode", "start_intake_research_topic", "inspect_intake_mode",
+      "start_intake_mode", "start_intake_research_topic", "inspect_research_project", "inspect_intake_mode",
       "list_intake_modes", "command_intake_mode", "export_intake_mode",
       "verify_intake_mode_export", "export_modulo_intake_handoff",
       "subscribe_intake_feed", "list_intake_feed_subscriptions", "refresh_intake_feed_inbox",

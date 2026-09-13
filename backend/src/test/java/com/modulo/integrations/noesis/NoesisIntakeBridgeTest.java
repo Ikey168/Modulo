@@ -79,6 +79,7 @@ class NoesisIntakeBridgeTest {
       assertTrue(NoesisIntakeBridge.TOOLS.contains("create_research_decision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("preflight_intake_mode"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_research_topic"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_project"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_decision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("start_problem_session"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("record_problem_step"));
