@@ -740,8 +740,8 @@ export function NoesisIntakeView() {
       <section className="space-y-3 border-t border-border pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Existing Modulo intake</h2>
-            <p className="text-muted-foreground">Move this browser's Information Intake records into signed-in plugin state. The local copy stays in place.</p>
+            <h2 className="font-semibold">Knowledge · Research Workflow data</h2>
+            <p className="text-muted-foreground">Preview this browser's Research Workflow and Information Intake records, then copy them into signed-in plugin state. The original local data stays in place.</p>
           </div>
           <button className={buttonClass} disabled={migrationBusy || !preferences.ready}
             onClick={() => void previewMigration()}>Preview local intake</button>
