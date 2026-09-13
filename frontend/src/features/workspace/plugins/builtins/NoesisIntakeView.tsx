@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
@@ -14,6 +14,9 @@ type FeedItem = {
   read_at_ms: number | null;
 };
 type InboxPage = { items: FeedItem[]; remaining_unprocessed: number };
+type SignalRule = { rule_id: string; name: string; terms: string[]; version: number };
+type SignalMatch = { item_id: string; title: string;
+  matched: { term: string; field: string; excerpt: string }[] };
 type TrailVisit = { source_id: string; url: string; title: string; version: number;
   note?: string; saved: boolean; discovered_via?: string };
 type SourceReference = { kind: string; id: string; namespace: string; version: number;
@@ -53,8 +56,16 @@ export function NoesisIntakeView() {
   const [preflight, setPreflight] = useState<{ available: boolean; reason?: string }>();
   const [page, setPage] = useState<InboxPage>();
   const [session, setSession] = useState<Session>();
+  const [selectedInboxIds, setSelectedInboxIds] = useState<string[]>([]);
+  const [batchDecision, setBatchDecision] = useState<'discard' | 'archive' | 'flag' | 'escalate'>('archive');
   const [feedUrl, setFeedUrl] = useState('');
   const [feedName, setFeedName] = useState('');
+  const [feedKind, setFeedKind] = useState<'rss_atom' | 'newsletter_feed'>('rss_atom');
+  const [ruleName, setRuleName] = useState('');
+  const [ruleTerms, setRuleTerms] = useState('');
+  const [signalRules, setSignalRules] = useState<SignalRule[]>([]);
+  const [signalPreview, setSignalPreview] = useState<{ rule: SignalRule;
+    matches: SignalMatch[]; evaluated_count: number; evaluation_truncated: boolean }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [curiosity, setCuriosity] = useState('');
@@ -78,25 +89,36 @@ export function NoesisIntakeView() {
   const [undoResult, setUndoResult] = useState<{ pending: number; conflicts: number }>();
   const [migrationBusy, setMigrationBusy] = useState(false);
   const [migrationError, setMigrationError] = useState<string>();
+  const loadSequence = useRef(0);
 
   const load = useCallback(async () => {
+    const sequence = ++loadSequence.current;
     const readiness = await intakePreflight();
+    if (sequence !== loadSequence.current) return;
     setPreflight(readiness);
-    if (!readiness.available) { setPage(undefined); setSession(undefined);
+    if (!readiness.available) { setPage(undefined); setSignalRules([]); setSignalPreview(undefined);
+      setSession(undefined);
       setSelectedVisit(undefined); setSourceAnnotations([]); return; }
     const inbox = await intakeCall<InboxPage>('list_intake_feed_inbox', { namespace, limit: 50 });
+    if (sequence !== loadSequence.current) return;
     setPage(inbox);
+    const rules = await intakeCall<{ rules: SignalRule[] }>('list_intake_feed_signal_rules', { namespace });
+    if (sequence !== loadSequence.current) return;
+    setSignalRules(Array.isArray(rules.rules) ? rules.rules : []);
   }, [namespace]);
 
   useEffect(() => {
     if (!preferences.ready) return;
     let active = true;
-    void load().catch(cause => { if (active) { setSession(undefined); setSelectedVisit(undefined);
+    const sequenceRef = loadSequence;
+    void load().catch(cause => { if (active) { setPage(undefined); setSignalRules([]);
+      setSignalPreview(undefined); setSession(undefined); setSelectedVisit(undefined);
       setSourceAnnotations([]); setError(String(cause)); } });
-    return () => { active = false; };
+    return () => { active = false; sequenceRef.current++; };
   }, [load, preferences.ready]);
   useEffect(() => setNamespaceDraft(namespace), [namespace]);
-  useEffect(() => { setSelectedVisit(undefined); setSourceAnnotations([]); }, [session?.session_id]);
+  useEffect(() => { setSelectedVisit(undefined); setSourceAnnotations([]);
+    setSelectedInboxIds([]); }, [session?.session_id, namespace]);
   useEffect(() => {
     const sessionId = preferences.value.lastSessionId;
     if (!preferences.ready || !sessionId) return;
@@ -133,25 +155,55 @@ export function NoesisIntakeView() {
           }));
         }
       } catch {
+        setPage(undefined); setSignalRules([]); setSignalPreview(undefined);
         setSession(undefined); setSelectedVisit(undefined); setSourceAnnotations([]);
       }
     }
     finally { setBusy(false); }
   };
 
-  const saveNamespace = () => run(async () => {
+  const saveNamespace = async () => {
     const next = namespaceDraft.trim();
-    if (!next || next.length > 128) throw new Error('Enter a namespace of at most 128 characters.');
-    await preferences.set({ namespace: next });
+    if (!next || next.length > 128) {
+      setError('Enter a namespace of at most 128 characters.'); return;
+    }
+    setBusy(true); setError(undefined); loadSequence.current++;
+    setPage(undefined); setSignalRules([]); setSignalPreview(undefined);
     setSession(undefined); setSelectedVisit(undefined); setSourceAnnotations([]);
-    setPage(undefined);
-  });
+    try { await preferences.set({ namespace: next }); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
 
   const subscribe = () => run(async () => {
     await intakeCall('subscribe_intake_feed', {
       namespace, url: feedUrl.trim(), name: feedName.trim() || feedUrl.trim(),
+      source_kind: feedKind,
     });
     setFeedUrl(''); setFeedName('');
+  });
+
+  const markRead = (item: FeedItem, read: boolean) => run(async () => {
+    await intakeCall('mark_intake_feed_read', {
+      namespace, item_id: item.item_id,
+      command_key: crypto.randomUUID(), read,
+    });
+  });
+
+  const saveSignalRule = () => run(async () => {
+    const terms = ruleTerms.split(',').map(term => term.trim()).filter(Boolean);
+    await intakeCall('save_intake_feed_signal_rule', {
+      namespace, name: ruleName.trim(), terms,
+    });
+    setRuleName(''); setRuleTerms(''); setSignalPreview(undefined);
+  });
+
+  const previewSignalRule = (rule: SignalRule) => run(async () => {
+    const preview = await intakeCall<{ matches: SignalMatch[];
+      evaluated_count: number; evaluation_truncated: boolean }>(
+      'preview_intake_feed_signal_rule', { namespace, rule_id: rule.rule_id,
+        only_unprocessed: true, limit: 50 });
+    setSignalPreview({ ...preview, rule });
   });
 
   const startAwareness = () => run(async () => {
@@ -306,6 +358,20 @@ export function NoesisIntakeView() {
         namespace, item_id: item.item_id, command_key: crypto.randomUUID(), decision,
       });
     }
+  });
+
+  const triageSelected = () => run(async () => {
+    if (!session || session.mode !== 'Awareness' || session.status !== 'active') return;
+    const eligible = new Set(page?.items.filter(item => !item.decision &&
+      session.inputs.feed_item_ids?.includes(item.item_id)).map(item => item.item_id));
+    const ids = selectedInboxIds.filter(id => eligible.has(id));
+    if (!ids.length) throw new Error('Select unprocessed items in the active Awareness queue.');
+    const next = await intakeCall<Session>('triage_awareness_batch', {
+      namespace, session_id: session.session_id,
+      decisions: Object.fromEntries(ids.map(id => [id, batchDecision])),
+      command_key: crypto.randomUUID(), expected_revision: session.revision,
+    });
+    setSession(next); setSelectedInboxIds([]);
   });
 
   const finish = () => run(async () => {
@@ -464,8 +530,50 @@ export function NoesisIntakeView() {
             <input className="rounded-md border border-border bg-background px-2 py-1.5" value={feedName}
               onChange={event => setFeedName(event.target.value)} />
           </label>
+          <label className="grid gap-1">Source type
+            <select className="rounded-md border border-border bg-background px-2 py-1.5"
+              value={feedKind} onChange={event => setFeedKind(event.target.value as 'rss_atom' | 'newsletter_feed')}>
+              <option value="rss_atom">RSS or Atom</option>
+              <option value="newsletter_feed">Newsletter feed</option>
+            </select>
+          </label>
           <button className={buttonClass} disabled={busy || !feedUrl.trim()} onClick={() => void subscribe()}>Subscribe</button>
         </div>
+      </section>
+
+      <section className="space-y-3 border-b border-border pb-5">
+        <h2 className="font-semibold">Signal rules</h2>
+        <p className="text-muted-foreground">Keyword previews explain matches without changing read or triage state.</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="grid min-w-44 flex-1 gap-1">Rule name
+            <input className="rounded-md border border-border bg-background px-2 py-1.5"
+              value={ruleName} onChange={event => setRuleName(event.target.value)} />
+          </label>
+          <label className="grid min-w-64 flex-1 gap-1">Terms, separated by commas
+            <input className="rounded-md border border-border bg-background px-2 py-1.5"
+              value={ruleTerms} onChange={event => setRuleTerms(event.target.value)} />
+          </label>
+          <button className={buttonClass} disabled={busy || !ruleName.trim() || !ruleTerms.trim()}
+            onClick={() => void saveSignalRule()}>Save rule</button>
+        </div>
+        {signalRules.length > 0 && <ul className="divide-y divide-border">
+          {signalRules.map(rule => <li key={rule.rule_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <div><span className="font-medium">{rule.name}</span>
+              <span className="ml-2 text-muted-foreground">v{rule.version} · {rule.terms.join(', ')}</span></div>
+            <button className={buttonClass} disabled={busy}
+              onClick={() => void previewSignalRule(rule)}>Preview</button>
+          </li>)}
+        </ul>}
+        {signalPreview && <div className="space-y-2 border-t border-border pt-3">
+          <h3 className="font-medium">{signalPreview.rule.name}: {signalPreview.matches.length} matches</h3>
+          <p className="text-xs text-muted-foreground">Evaluated {signalPreview.evaluated_count} items
+            {signalPreview.evaluation_truncated ? ' · More items remain' : ''}</p>
+          {signalPreview.matches.map(match => <div key={match.item_id} className="space-y-1 py-1">
+            <p>{match.title}</p>
+            {match.matched.map((reason, index) => <p key={`${reason.term}-${reason.field}-${index}`}
+              className="text-xs text-muted-foreground">{reason.term} in {reason.field}: {reason.excerpt}</p>)}
+          </div>)}
+        </div>}
       </section>
 
       <section className="space-y-3">
@@ -480,19 +588,45 @@ export function NoesisIntakeView() {
             <button className={buttonClass} disabled={busy || !!session.unmet_completion_checks?.length}
               onClick={() => void finish()}>Finish triage</button>}
         </div>}
+        {session?.mode === 'Awareness' && session.status === 'active' &&
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="grid gap-1">Selected item decision
+              <select className="rounded-md border border-border bg-background px-2 py-1.5"
+                value={batchDecision} onChange={event => setBatchDecision(event.target.value as typeof batchDecision)}>
+                <option value="archive">Archive</option>
+                <option value="discard">Discard</option>
+                <option value="flag">Flag</option>
+                <option value="escalate">Escalate</option>
+              </select>
+            </label>
+            <button className={buttonClass} disabled={busy || !selectedInboxIds.length}
+              onClick={() => void triageSelected()}>Apply to {selectedInboxIds.length} selected</button>
+          </div>}
         {!page?.items.length && <p className="text-muted-foreground">No feed items in this namespace.</p>}
         <ul className="divide-y divide-border">
           {page?.items.map(item => <li key={item.item_id} className="space-y-2 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <a className="font-medium underline-offset-2 hover:underline" href={item.original_url}
-                target="_blank" rel="noopener noreferrer">{item.title}</a>
+              <div className="flex items-center gap-2">
+                {!item.decision && session?.mode === 'Awareness' && session.status === 'active' &&
+                  session.inputs.feed_item_ids?.includes(item.item_id) &&
+                  <input type="checkbox" aria-label={`Select ${item.title}`} disabled={busy}
+                    checked={selectedInboxIds.includes(item.item_id)} onChange={event =>
+                      setSelectedInboxIds(ids => event.target.checked
+                        ? [...ids, item.item_id] : ids.filter(id => id !== item.item_id))} />}
+                <a className="font-medium underline-offset-2 hover:underline" href={item.original_url}
+                  target="_blank" rel="noopener noreferrer">{item.title}</a>
+              </div>
               <span className="text-xs text-muted-foreground">Source v{item.source_version} · {item.decision ?? 'Unprocessed'}</span>
             </div>
-            {!item.decision && <div className="flex flex-wrap gap-2">
-              {(['discard', 'archive', 'flag', 'escalate'] as const).map(decision =>
+            <div className="flex flex-wrap gap-2">
+              <button className={buttonClass} disabled={busy}
+                onClick={() => void markRead(item, !item.read_at_ms)}>
+                {item.read_at_ms ? 'Mark unread' : 'Mark read'}
+              </button>
+              {!item.decision && (['discard', 'archive', 'flag', 'escalate'] as const).map(decision =>
                 <button key={decision} className={buttonClass} disabled={busy}
                   onClick={() => void decide(item, decision)}>{decision[0].toUpperCase() + decision.slice(1)}</button>)}
-            </div>}
+            </div>
             {item.decision === 'escalate' && session?.mode === 'Awareness' &&
               session.inputs.feed_item_ids?.includes(item.item_id) &&
               session.data.decisions?.[item.item_id] === 'escalate' &&
@@ -606,8 +740,8 @@ export function NoesisIntakeView() {
       <section className="space-y-3 border-t border-border pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Existing Modulo intake</h2>
-            <p className="text-muted-foreground">Move this browser's Information Intake records into signed-in plugin state. The local copy stays in place.</p>
+            <h2 className="font-semibold">Knowledge · Research Workflow data</h2>
+            <p className="text-muted-foreground">Preview this browser's Research Workflow and Information Intake records, then copy them into signed-in plugin state. The original local data stays in place.</p>
           </div>
           <button className={buttonClass} disabled={migrationBusy || !preferences.ready}
             onClick={() => void previewMigration()}>Preview local intake</button>

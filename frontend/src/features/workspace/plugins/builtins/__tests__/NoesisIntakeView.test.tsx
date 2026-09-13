@@ -133,6 +133,82 @@ it('starts a durable daily queue and triages through the Noesis session', async 
   expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
 });
 
+it('batch-triages only selected unprocessed items in the active Awareness queue', async () => {
+  let decided = false;
+  mock.call.mockImplementation(async (tool: string) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: decided ? 0 : 2,
+      items: ['one', 'two', 'outside'].map(id => ({ item_id: `feed:${id}`, title: id,
+        original_url: `https://example.org/${id}`, source_version: 1,
+        decision: decided && id !== 'outside' ? 'flag' : null, read_at_ms: null })) };
+    if (tool === 'start_awareness_from_inbox') return { session_id: 'intake:batch',
+      mode: 'Awareness', status: 'active', revision: 1, duration_minutes: 15,
+      inputs: { feed_item_ids: ['feed:one', 'feed:two'] }, data: {} };
+    if (tool === 'triage_awareness_batch') { decided = true; return { session_id: 'intake:batch',
+      mode: 'Awareness', status: 'active', revision: 2, duration_minutes: 15,
+      inputs: { feed_item_ids: ['feed:one', 'feed:two'] },
+      data: { decisions: { 'feed:one': 'flag', 'feed:two': 'flag' } } }; }
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Start daily triage' }));
+  expect(await screen.findByRole('checkbox', { name: 'Select one' })).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'Select outside' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select one' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select two' }));
+  fireEvent.change(screen.getByLabelText('Selected item decision'), { target: { value: 'flag' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Apply to 2 selected' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('triage_awareness_batch',
+    expect.objectContaining({ session_id: 'intake:batch', expected_revision: 1,
+      decisions: { 'feed:one': 'flag', 'feed:two': 'flag' } })));
+  expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
+});
+
+it('subscribes a newsletter feed and previews signals without triaging or marking matches read', async () => {
+  mock.call.mockImplementation(async (tool: string) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 1,
+      items: [{ item_id: 'feed:one', title: 'Climate update', original_url: 'https://example.org/a',
+        source_version: 1, decision: null, read_at_ms: null }] };
+    if (tool === 'list_intake_feed_signal_rules') return { rules: [
+      { rule_id: 'rule:climate', name: 'Climate', terms: ['climate'], version: 2 },
+    ] };
+    if (tool === 'preview_intake_feed_signal_rule') return { evaluated_count: 1,
+      evaluation_truncated: false, matches: [{ item_id: 'feed:one', title: 'Climate update',
+        matched: [{ term: 'climate', field: 'title', excerpt: 'Climate update' }] }] };
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  expect(await screen.findByText('Climate update')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Feed URL'), { target: { value: 'https://example.org/newsletter.xml' } });
+  fireEvent.change(screen.getByLabelText('Source type'), { target: { value: 'newsletter_feed' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('subscribe_intake_feed',
+    expect.objectContaining({ source_kind: 'newsletter_feed' })));
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+  expect(await screen.findByText('climate in title: Climate update')).toBeInTheDocument();
+  expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: 'Mark read' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: true })));
+});
+
+it('restores unread state even after an item has been triaged', async () => {
+  let readAt: number | null = 123;
+  mock.call.mockImplementation(async (tool: string, args?: { read?: boolean }) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 0,
+      items: [{ item_id: 'feed:one', title: 'Archived source', original_url: 'https://example.org/a',
+        source_version: 1, decision: 'archive', read_at_ms: readAt }] };
+    if (tool === 'mark_intake_feed_read') { readAt = args?.read ? 456 : null; return {}; }
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Mark unread' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: false })));
+  fireEvent.click(await screen.findByRole('button', { name: 'Mark read' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('mark_intake_feed_read',
+    expect.objectContaining({ item_id: 'feed:one', read: true })));
+});
+
 it('runs Exploration capture, related reading, and follow from the plugin', async () => {
   let notesSaved = false;
   const visit = { source_id: `explore:${'a'.repeat(32)}`, url: 'https://example.org/climate',
