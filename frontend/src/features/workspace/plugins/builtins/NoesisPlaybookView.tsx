@@ -162,6 +162,7 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
     setBusy(true); setError(undefined);
     try {
       if (!available) throw new Error('Noesis is unavailable. Retry when the connection returns.');
+      if (pointer.value.pendingSave) throw new Error('Retry or abandon the pending playbook save first.');
       const environment = pointer.value.pendingRunKey && pointer.value.pendingRunEnvironment
         ? pointer.value.pendingRunEnvironment : runEnvironment.trim();
       const revision = pointer.value.pendingRunKey && pointer.value.pendingRunRevision
@@ -238,9 +239,24 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
     if (!playbook) return;
     setBusy(true); setError(undefined);
     try {
-      if (pointer.value.pendingCommand) throw new Error('Retry the pending result first.');
+      if (pointer.value.pendingCommand || pointer.value.pendingSave)
+        throw new Error('Retry the pending result or playbook save first.');
       await pointer.set({ namespace, playbookId: playbook.playbook_id });
       setRun(undefined); setRunPlaybook(undefined); setRunEnvironment('');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const abandonPendingSave = async () => {
+    setBusy(true); setError(undefined);
+    try {
+      if (pointer.value.pendingCommand || pointer.value.pendingRunKey)
+        throw new Error('Retry the pending guided operation first.');
+      await pointer.set({ namespace,
+        ...(currentId ? { playbookId: currentId } : {}),
+        ...(currentRunId ? { runId: currentRunId } : {}),
+      });
+      setDraft(playbook ? fromPlaybook(playbook) : blankDraft());
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
   };
@@ -261,8 +277,12 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
     {pointer.error && <p role="alert" className="text-destructive">Plugin state: {pointer.error}</p>}
     {pointer.conflict && <p role="alert" className="text-destructive">Resolve the playbook link sync conflict before editing.</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
-    {pointer.value.pendingSave && <p role="status">A playbook save may already be in Noesis.
-      Retry sends the exact saved draft and key.</p>}
+    {pointer.value.pendingSave && <div className="flex flex-wrap items-center gap-2">
+      <p role="status">A playbook save may already be in Noesis.
+        Retry sends the exact saved draft and key.</p>
+      <button className={buttonClass} disabled={busy || !!pointer.conflict}
+        onClick={() => void abandonPendingSave()}>Abandon pending playbook save</button>
+    </div>}
     {pointer.value.pendingCommand && <p role="status">A guided result may already be saved. Retry it with the original key.</p>}
     {run && pointer.value.pendingCommand && <button className={buttonClass}
       disabled={busy || !available || !!pointer.conflict}
