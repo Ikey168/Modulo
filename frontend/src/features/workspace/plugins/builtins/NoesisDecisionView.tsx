@@ -3,7 +3,8 @@ import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import { intakeCall } from './noesisIntakeApi';
 
-type Pointer = { namespace: string; decisionId?: string; revision?: number; pendingKey?: string };
+type Pointer = { namespace: string; decisionId?: string; revision?: number;
+  pendingKey?: string; pendingContent?: DecisionContent };
 type DecisionContext = { question: string; stakes: string; required_confidence: string;
   stop_condition: string; uncertainty: string; missing_inputs: string[]; deadline_at_ms: number | null };
 type DecisionContent = { project: null; decision_context: DecisionContext;
@@ -71,8 +72,7 @@ function contentFromDraft(draft: Draft): DecisionContent {
   };
 }
 
-function draftFromDecision(value: Decision): Draft {
-  const content = value.content;
+function draftFromContent(content: DecisionContent): Draft {
   const context = content.decision_context;
   return {
     question: context.question, yes: content.options.find(option => option.id === 'yes')?.description ?? '',
@@ -87,6 +87,8 @@ function draftFromDecision(value: Decision): Draft {
   };
 }
 
+const draftFromDecision = (value: Decision): Draft => draftFromContent(value.content);
+
 /** A bounded user choice, stored in Noesis with only its versioned pointer in Modulo. */
 export function NoesisDecisionView({ namespace, available, originSession, onWorkflowLinked }: {
   namespace: string; available: boolean; originSession?: OriginSession;
@@ -96,6 +98,8 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
   const pointer = usePluginState<Pointer>('information-intake', 'decision.last',
     { namespace }, 'modulo.intake.decision-link');
   const currentId = pointer.value.namespace === namespace ? pointer.value.decisionId : undefined;
+  const pendingKey = pointer.value.namespace === namespace ? pointer.value.pendingKey : undefined;
+  const pendingContent = pointer.value.namespace === namespace ? pointer.value.pendingContent : undefined;
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [decision, setDecision] = useState<Decision>();
   const [linkedSession, setLinkedSession] = useState<ModeSession>();
@@ -109,7 +113,7 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
 
   useEffect(() => {
     setDecision(undefined); setLinkedSession(undefined); setComparison(undefined);
-    setDraft(emptyDraft()); setError(undefined);
+    setDraft(pendingContent ? draftFromContent(pendingContent) : emptyDraft()); setError(undefined);
     if (!available || !currentId) return;
     let active = true;
     void intakeCall<Decision>('inspect_research_decision', { namespace, decision_id: currentId })
@@ -117,7 +121,7 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
       .catch(cause => { if (active) { setDecision(undefined); setDraft(emptyDraft());
         setError(cause instanceof Error ? cause.message : String(cause)); } });
     return () => { active = false; };
-  }, [available, currentId, namespace, refresh]);
+  }, [available, currentId, namespace, pendingContent, refresh]);
 
   const update = (field: keyof Draft, value: string) =>
     setDraft(previous => ({ ...previous, [field]: value }));
@@ -237,12 +241,16 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
           next = current;
         }
       } else {
-        const requestKey = pointer.value.namespace === namespace && pointer.value.pendingKey
-          ? pointer.value.pendingKey : `modulo-decision-${crypto.randomUUID()}`;
-        await pointer.set({ namespace, pendingKey: requestKey });
+        const requestKey = pendingKey ?? `modulo-decision-${crypto.randomUUID()}`;
+        if (pendingKey && !pendingContent)
+          throw new Error('The pending choice has no saved draft. Inspect Noesis, then abandon this key.');
+        if (pendingContent && canonical(content) !== canonical(pendingContent))
+          throw new Error('The choice changed after its key was saved. Retry the saved draft or abandon the pending choice.');
+        const savedContent = pendingContent ?? content;
+        await pointer.set({ namespace, pendingKey: requestKey, pendingContent: savedContent });
         await pointer.retry();
         next = await intakeCall<Decision>('create_research_decision', {
-          namespace, request_key: requestKey, content,
+          namespace, request_key: requestKey, content: savedContent,
         });
       }
       await pointer.set({ namespace, decisionId: next.decision_id, revision: next.revision });
@@ -259,6 +267,16 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
       setComparison(undefined); setCriteria([]);
       setDraft(emptyDraft()); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const abandonPendingChoice = async () => {
+    setBusy(true); setError(undefined);
+    try {
+      if (currentId) throw new Error('Reload the recorded choice before clearing its link.');
+      await pointer.set({ namespace });
+      setDraft(emptyDraft());
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
   };
 
@@ -280,6 +298,11 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
     {linkedSession && <p className="text-xs text-muted-foreground">Decision Support session
       {' '}{linkedSession.session_id} · {linkedSession.status}</p>}
     {pointer.pending && <p role="status">Decision link is waiting to sync across devices.</p>}
+    {pendingKey && !currentId && <div className="flex flex-wrap items-center gap-2">
+      <p role="status">A choice may already be in Noesis. Retry the saved draft and key after checking its outcome.</p>
+      <button className={buttonClass} disabled={busy || !!pointer.conflict}
+        onClick={() => void abandonPendingChoice()}>Abandon pending choice</button>
+    </div>}
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="grid gap-1 sm:col-span-2">Question
         <input className={fieldClass} value={draft.question} onChange={event => update('question', event.target.value)} />
@@ -324,7 +347,7 @@ export function NoesisDecisionView({ namespace, available, originSession, onWork
         </label>)}
     </div>
     <button className={buttonClass} disabled={busy || !pointer.ready || !!pointer.conflict || !available || (!!currentId && !decision)}
-      onClick={() => void save()}>{decision ? 'Save decision revision' : 'Record choice'}</button>
+      onClick={() => void save()}>{decision ? 'Save decision revision' : pendingKey ? 'Retry saved choice' : 'Record choice'}</button>
     {decision && !linkedSession && <button className={`${buttonClass} ml-2`} disabled={busy || !available}
       onClick={() => { setBusy(true); setError(undefined);
         void linkWorkflow(decision).catch(cause => setError(cause instanceof Error ? cause.message : String(cause)))
