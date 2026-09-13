@@ -56,6 +56,8 @@ export function NoesisIntakeView() {
   const [preflight, setPreflight] = useState<{ available: boolean; reason?: string }>();
   const [page, setPage] = useState<InboxPage>();
   const [session, setSession] = useState<Session>();
+  const [selectedInboxIds, setSelectedInboxIds] = useState<string[]>([]);
+  const [batchDecision, setBatchDecision] = useState<'discard' | 'archive' | 'flag' | 'escalate'>('archive');
   const [feedUrl, setFeedUrl] = useState('');
   const [feedName, setFeedName] = useState('');
   const [feedKind, setFeedKind] = useState<'rss_atom' | 'newsletter_feed'>('rss_atom');
@@ -115,7 +117,8 @@ export function NoesisIntakeView() {
     return () => { active = false; sequenceRef.current++; };
   }, [load, preferences.ready]);
   useEffect(() => setNamespaceDraft(namespace), [namespace]);
-  useEffect(() => { setSelectedVisit(undefined); setSourceAnnotations([]); }, [session?.session_id]);
+  useEffect(() => { setSelectedVisit(undefined); setSourceAnnotations([]);
+    setSelectedInboxIds([]); }, [session?.session_id, namespace]);
   useEffect(() => {
     const sessionId = preferences.value.lastSessionId;
     if (!preferences.ready || !sessionId) return;
@@ -357,6 +360,20 @@ export function NoesisIntakeView() {
     }
   });
 
+  const triageSelected = () => run(async () => {
+    if (!session || session.mode !== 'Awareness' || session.status !== 'active') return;
+    const eligible = new Set(page?.items.filter(item => !item.decision &&
+      session.inputs.feed_item_ids?.includes(item.item_id)).map(item => item.item_id));
+    const ids = selectedInboxIds.filter(id => eligible.has(id));
+    if (!ids.length) throw new Error('Select unprocessed items in the active Awareness queue.');
+    const next = await intakeCall<Session>('triage_awareness_batch', {
+      namespace, session_id: session.session_id,
+      decisions: Object.fromEntries(ids.map(id => [id, batchDecision])),
+      command_key: crypto.randomUUID(), expected_revision: session.revision,
+    });
+    setSession(next); setSelectedInboxIds([]);
+  });
+
   const finish = () => run(async () => {
     if (!session) return;
     const next = await intakeCall<Session>('command_intake_mode', {
@@ -571,12 +588,34 @@ export function NoesisIntakeView() {
             <button className={buttonClass} disabled={busy || !!session.unmet_completion_checks?.length}
               onClick={() => void finish()}>Finish triage</button>}
         </div>}
+        {session?.mode === 'Awareness' && session.status === 'active' &&
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="grid gap-1">Selected item decision
+              <select className="rounded-md border border-border bg-background px-2 py-1.5"
+                value={batchDecision} onChange={event => setBatchDecision(event.target.value as typeof batchDecision)}>
+                <option value="archive">Archive</option>
+                <option value="discard">Discard</option>
+                <option value="flag">Flag</option>
+                <option value="escalate">Escalate</option>
+              </select>
+            </label>
+            <button className={buttonClass} disabled={busy || !selectedInboxIds.length}
+              onClick={() => void triageSelected()}>Apply to {selectedInboxIds.length} selected</button>
+          </div>}
         {!page?.items.length && <p className="text-muted-foreground">No feed items in this namespace.</p>}
         <ul className="divide-y divide-border">
           {page?.items.map(item => <li key={item.item_id} className="space-y-2 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <a className="font-medium underline-offset-2 hover:underline" href={item.original_url}
-                target="_blank" rel="noopener noreferrer">{item.title}</a>
+              <div className="flex items-center gap-2">
+                {!item.decision && session?.mode === 'Awareness' && session.status === 'active' &&
+                  session.inputs.feed_item_ids?.includes(item.item_id) &&
+                  <input type="checkbox" aria-label={`Select ${item.title}`} disabled={busy}
+                    checked={selectedInboxIds.includes(item.item_id)} onChange={event =>
+                      setSelectedInboxIds(ids => event.target.checked
+                        ? [...ids, item.item_id] : ids.filter(id => id !== item.item_id))} />}
+                <a className="font-medium underline-offset-2 hover:underline" href={item.original_url}
+                  target="_blank" rel="noopener noreferrer">{item.title}</a>
+              </div>
               <span className="text-xs text-muted-foreground">Source v{item.source_version} · {item.decision ?? 'Unprocessed'}</span>
             </div>
             <div className="flex flex-wrap gap-2">

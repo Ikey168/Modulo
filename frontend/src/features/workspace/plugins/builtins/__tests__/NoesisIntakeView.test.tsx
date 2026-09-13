@@ -133,6 +133,36 @@ it('starts a durable daily queue and triages through the Noesis session', async 
   expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
 });
 
+it('batch-triages only selected unprocessed items in the active Awareness queue', async () => {
+  let decided = false;
+  mock.call.mockImplementation(async (tool: string) => {
+    if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: decided ? 0 : 2,
+      items: ['one', 'two', 'outside'].map(id => ({ item_id: `feed:${id}`, title: id,
+        original_url: `https://example.org/${id}`, source_version: 1,
+        decision: decided && id !== 'outside' ? 'flag' : null, read_at_ms: null })) };
+    if (tool === 'start_awareness_from_inbox') return { session_id: 'intake:batch',
+      mode: 'Awareness', status: 'active', revision: 1, duration_minutes: 15,
+      inputs: { feed_item_ids: ['feed:one', 'feed:two'] }, data: {} };
+    if (tool === 'triage_awareness_batch') { decided = true; return { session_id: 'intake:batch',
+      mode: 'Awareness', status: 'active', revision: 2, duration_minutes: 15,
+      inputs: { feed_item_ids: ['feed:one', 'feed:two'] },
+      data: { decisions: { 'feed:one': 'flag', 'feed:two': 'flag' } } }; }
+    return {};
+  });
+  render(<NoesisIntakeView />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Start daily triage' }));
+  expect(await screen.findByRole('checkbox', { name: 'Select one' })).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'Select outside' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select one' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select two' }));
+  fireEvent.change(screen.getByLabelText('Selected item decision'), { target: { value: 'flag' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Apply to 2 selected' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('triage_awareness_batch',
+    expect.objectContaining({ session_id: 'intake:batch', expected_revision: 1,
+      decisions: { 'feed:one': 'flag', 'feed:two': 'flag' } })));
+  expect(mock.call).not.toHaveBeenCalledWith('decide_intake_feed_item', expect.anything());
+});
+
 it('subscribes a newsletter feed and previews signals without triaging or marking matches read', async () => {
   mock.call.mockImplementation(async (tool: string) => {
     if (tool === 'list_intake_feed_inbox') return { remaining_unprocessed: 1,
