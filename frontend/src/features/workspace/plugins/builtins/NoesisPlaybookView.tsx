@@ -16,8 +16,10 @@ type Run = { run_id: string; playbook_id: string; playbook_revision: number; rev
   verification: { passed: boolean; observation: string; at_ms: number } | null };
 type PendingCommand = { key: string; expectedRevision: number; action: 'step' | 'verify';
   payload: { step_id?: string; passed: boolean; observation: string } };
+type PendingSave = { key: string; draft: Draft; playbookId?: string;
+  expectedRevision?: number; problemSessionId?: string };
 type Pointer = { namespace: string; playbookId?: string; runId?: string;
-  pendingSaveKey?: string; pendingRunKey?: string; pendingRunEnvironment?: string;
+  pendingSave?: PendingSave; pendingRunKey?: string; pendingRunEnvironment?: string;
   pendingRunRevision?: number; pendingCommand?: PendingCommand };
 type ProblemOrigin = { session_id: string; mode: string; status: string; revision: number;
   inputs: { symptom?: string; environment?: string; success_check?: string } };
@@ -85,6 +87,10 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
   }, [available, namespace, playbook, run]);
 
   useEffect(() => {
+    if (pointer.value.namespace === namespace && pointer.value.pendingSave) {
+      setDraft(pointer.value.pendingSave.draft);
+      return;
+    }
     if (playbook || currentId || problemSession?.mode !== 'Problem-Solving'
       || problemSession.status !== 'completed') return;
     setDraft(value => ({ ...value,
@@ -94,7 +100,7 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
       sourceRationale: value.sourceRationale ||
         `Derived from verified Noesis problem ${problemSession.session_id} v${problemSession.revision}.`,
     }));
-  }, [playbook, currentId, problemSession]);
+  }, [playbook, currentId, namespace, pointer.value, problemSession]);
 
   const update = (field: keyof Omit<Draft, 'steps'>, value: string) =>
     setDraft(previous => ({ ...previous, [field]: value }));
@@ -107,33 +113,41 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
     try {
       if (!available) throw new Error('Noesis is unavailable. Retry when the connection returns.');
       if (!pointer.ready || pointer.conflict) throw new Error('Resolve plugin state before saving.');
-      if (![draft.title, draft.environment, draft.verification, draft.sourceRationale]
-        .every(value => value.trim()) || !draft.steps.length || draft.steps.some(step =>
+      if (pointer.value.pendingCommand) throw new Error('Retry the pending guided result first.');
+      const pending = pointer.value.namespace === namespace && pointer.value.pendingSave
+        ? pointer.value.pendingSave : {
+          key: `modulo-playbook-${crypto.randomUUID()}`, draft,
+          ...(playbook ? { playbookId: playbook.playbook_id,
+            expectedRevision: playbook.revision } : {
+            problemSessionId: problemSession?.session_id }),
+        };
+      const snapshot = pending.draft;
+      if (![snapshot.title, snapshot.environment, snapshot.verification, snapshot.sourceRationale]
+        .every(value => value.trim()) || !snapshot.steps.length || snapshot.steps.some(step =>
           !step.action.trim() || !step.expectedResult.trim() || !step.recovery.trim()))
         throw new Error('Complete the title, environment, verification, rationale, and every step.');
       const details = {
-        title: draft.title.trim(), prerequisites: split(draft.prerequisites),
-        environment: draft.environment.trim(),
-        steps: draft.steps.map(step => ({ action: step.action.trim(),
+        title: snapshot.title.trim(), prerequisites: split(snapshot.prerequisites),
+        environment: snapshot.environment.trim(),
+        steps: snapshot.steps.map(step => ({ action: step.action.trim(),
           expected_result: step.expectedResult.trim(), recovery: step.recovery.trim() })),
-        verification: draft.verification.trim(), source_rationale: draft.sourceRationale.trim(),
+        verification: snapshot.verification.trim(), source_rationale: snapshot.sourceRationale.trim(),
       };
-      const key = pointer.value.namespace === namespace && pointer.value.pendingSaveKey
-        ? pointer.value.pendingSaveKey : `modulo-playbook-${crypto.randomUUID()}`;
-      await pointer.set({ namespace, ...(playbook ? { playbookId: playbook.playbook_id,
-        runId: currentRunId } : {}), pendingSaveKey: key });
+      await pointer.set({ namespace, ...(pending.playbookId ? { playbookId: pending.playbookId,
+        runId: currentRunId } : {}), pendingSave: pending });
       await pointer.retry();
       let value: Playbook;
-      if (playbook) value = await intakeCall<Playbook>('revise_intake_playbook', {
-        namespace, playbook_id: playbook.playbook_id, edit_key: key,
-        expected_revision: playbook.revision, ...details,
+      if (pending.playbookId) value = await intakeCall<Playbook>('revise_intake_playbook', {
+        namespace, playbook_id: pending.playbookId, edit_key: pending.key,
+        expected_revision: pending.expectedRevision, ...details,
       });
       else {
-        if (problemSession?.mode !== 'Problem-Solving' || problemSession.status !== 'completed')
+        if (!pending.problemSessionId || !pointer.value.pendingSave &&
+          (problemSession?.mode !== 'Problem-Solving' || problemSession.status !== 'completed'))
           throw new Error('Finish a verified Problem-Solving session before promotion.');
         value = await intakeCall<Playbook>('promote_problem_playbook', {
-          namespace, problem_session_id: problemSession.session_id,
-          request_key: key, ...details,
+          namespace, problem_session_id: pending.problemSessionId,
+          request_key: pending.key, ...details,
         });
       }
       await pointer.set({ namespace, playbookId: value.playbook_id,
@@ -211,7 +225,10 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
 
   const newPlaybook = async () => {
     setBusy(true); setError(undefined);
-    try { await pointer.set({ namespace }); setPlaybook(undefined); setRun(undefined);
+    try {
+      if (pointer.value.pendingCommand || pointer.value.pendingSave || pointer.value.pendingRunKey)
+        throw new Error('Retry the pending operation before opening a new playbook.');
+      await pointer.set({ namespace }); setPlaybook(undefined); setRun(undefined);
       setDraft(blankDraft()); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
@@ -244,15 +261,18 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
     {pointer.error && <p role="alert" className="text-destructive">Plugin state: {pointer.error}</p>}
     {pointer.conflict && <p role="alert" className="text-destructive">Resolve the playbook link sync conflict before editing.</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
+    {pointer.value.pendingSave && <p role="status">A playbook save may already be in Noesis.
+      Retry sends the exact saved draft and key.</p>}
     {pointer.value.pendingCommand && <p role="status">A guided result may already be saved. Retry it with the original key.</p>}
     {run && pointer.value.pendingCommand && <button className={buttonClass}
       disabled={busy || !available || !!pointer.conflict}
       onClick={() => void command(pointer.value.pendingCommand!.action)}>Retry pending result</button>}
     {playbook && <p className="text-xs text-muted-foreground">Noesis {playbook.playbook_id} · v{playbook.revision}
       {' '}· {playbook.trust_state} · {playbook.reported_rehearsal_count ?? 0} reported rehearsals</p>}
-    {!playbook && problemSession?.status !== 'completed' &&
+    {!playbook && !pointer.value.pendingSave && problemSession?.status !== 'completed' &&
       <p className="text-muted-foreground">Complete a verified Problem-Solving session to make a draft playbook.</p>}
-    {(playbook || problemSession?.mode === 'Problem-Solving' && problemSession.status === 'completed') &&
+    {(playbook || pointer.value.pendingSave ||
+      problemSession?.mode === 'Problem-Solving' && problemSession.status === 'completed') &&
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="grid gap-1 sm:col-span-2">Title
           <input className={fieldClass} value={draft.title} onChange={event => update('title', event.target.value)} /></label>
@@ -280,7 +300,8 @@ export function NoesisPlaybookView({ namespace, available, problemSession }: {
           <button className={buttonClass} disabled={busy || draft.steps.length >= 50}
             onClick={() => setDraft(value => ({ ...value, steps: [...value.steps, blankStep()] }))}>Add step</button>
           <button className={buttonClass} disabled={busy || !pointer.ready || !!pointer.conflict}
-            onClick={() => void save()}>{playbook ? 'Save playbook revision' : 'Promote verified fix'}</button>
+            onClick={() => void save()}>{pointer.value.pendingSave ? 'Retry pending playbook save'
+              : playbook ? 'Save playbook revision' : 'Promote verified fix'}</button>
         </div>
       </div>}
     {playbook && <div className="space-y-2 border-t border-border pt-3">

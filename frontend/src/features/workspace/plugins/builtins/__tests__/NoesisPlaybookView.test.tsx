@@ -54,6 +54,26 @@ it('promotes a verified fix after saving a durable request key', async () => {
   expect(await screen.findByText(/playbook:one · v1 · draft/)).toBeInTheDocument();
 });
 
+it('replays the exact saved draft after restart without an active problem view', async () => {
+  mock.pointer = { namespace: 'research', pendingSave: {
+    key: 'modulo-playbook-original', problemSessionId: 'intake:problem', draft: {
+      title: 'Repair search', prerequisites: 'Back up index', environment: 'Desktop',
+      verification: 'New item appears', sourceRationale: 'Verified problem',
+      steps: [{ action: 'Rebuild index', expectedResult: 'New item appears',
+        recovery: 'Check logs' }],
+    },
+  } };
+  mock.call.mockResolvedValue(playbook(1));
+  render(<NoesisPlaybookView namespace="research" available />);
+  expect(await screen.findByDisplayValue('Rebuild index')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry pending playbook save' }));
+  await waitFor(() => expect(mock.call).toHaveBeenCalledWith('promote_problem_playbook',
+    expect.objectContaining({ request_key: 'modulo-playbook-original',
+      problem_session_id: 'intake:problem', prerequisites: ['Back up index'],
+      steps: [{ action: 'Rebuild index', expected_result: 'New item appears',
+        recovery: 'Check logs' }] })));
+});
+
 it('uses the pinned historical procedure when a guided run predates an edit', async () => {
   mock.pointer = { namespace: 'research', playbookId: 'playbook:one', runId: 'run:one' };
   mock.call.mockImplementation(async (tool: string, args: Record<string, unknown>) => {
