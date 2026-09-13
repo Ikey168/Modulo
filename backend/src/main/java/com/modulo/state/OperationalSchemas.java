@@ -6,6 +6,14 @@ final class OperationalSchemas {
 
   static String definition(String namespace, String id) {
     return switch (id) {
+      case "modulo.intake.preferences" ->
+          namespace.equals("information-intake")
+              ? "{\"type\":\"object\",\"required\":[\"namespace\"],\"properties\":{\"namespace\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":128},\"lastSessionId\":{\"type\":\"string\",\"maxLength\":512},\"pendingStartKey\":{\"type\":\"string\",\"maxLength\":256}},\"additionalProperties\":false}"
+              : null;
+      case "modulo.intake.item-link" ->
+          namespace.equals("information-intake")
+              ? "{\"type\":\"object\",\"required\":[\"id\",\"noesisItemId\",\"sourceVersion\",\"objectVersion\",\"createdAt\"],\"properties\":{\"id\":{\"type\":\"string\",\"maxLength\":80},\"noesisItemId\":{\"type\":\"string\",\"maxLength\":80},\"sourceVersion\":{\"type\":\"integer\",\"minimum\":1},\"objectVersion\":{\"type\":\"integer\",\"minimum\":1},\"createdAt\":{\"type\":\"string\",\"maxLength\":40},\"userNote\":{\"type\":\"string\",\"maxLength\":10000}},\"additionalProperties\":false}"
+              : null;
       case "modulo.todo" ->
           namespace.equals("todo-lists")
               ? "{\"type\":\"object\",\"required\":[\"id\",\"title\",\"list\",\"priority\",\"done\"],\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":120},\"title\":{\"type\":\"string\",\"maxLength\":10000},\"list\":{\"type\":\"string\",\"maxLength\":10000},\"priority\":{\"enum\":[\"LOW\",\"MEDIUM\",\"HIGH\",\"URGENT\"]},\"done\":{\"type\":\"boolean\"},\"noteId\":{\"type\":\"integer\",\"minimum\":1},\"dueDate\":{\"type\":\"string\",\"maxLength\":10}}}"
@@ -43,6 +51,12 @@ final class OperationalSchemas {
   }
 
   static void validate(String id, String key, com.fasterxml.jackson.databind.JsonNode value) {
+    if (id.equals("modulo.intake.item-link")) {
+      String noesisId = value.path("noesisItemId").asText();
+      if (!noesisId.matches("feed:[0-9a-f]{32}")
+          || !key.equals("item." + noesisId.substring(5))
+          || !key.equals(value.path("id").asText())) fail();
+    }
     if (id.equals("modulo.todo") || id.equals("modulo.time-entry") || id.equals("modulo.expense")) {
       String recordId = value.path("id").asText();
       if (!recordId.matches("[A-Za-z0-9_-][A-Za-z0-9_.-]{0,119}")

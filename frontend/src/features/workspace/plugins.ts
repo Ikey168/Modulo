@@ -89,6 +89,8 @@ export const TODO_PLUGIN_ID = 'todo-lists';
 export const TAX_AUTOMATION_PLUGIN_ID = 'tax-automation';
 /** Plugin id for the Noesis daily knowledge brief blueprint node. */
 export const NOESIS_BRIEF_PLUGIN_ID = 'noesis-brief';
+/** Plugin id for signed-in Information Intake backed by Noesis. */
+export const INFORMATION_INTAKE_PLUGIN_ID = 'information-intake';
 
 export const PLUGINS: PluginInfo[] = [
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
@@ -121,6 +123,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'timestamp-proofs', name: 'Timestamp Proofs', desc: 'OpenTimestamps proofs for notes without a full on-chain anchor.', category: 'web3', subcategory: 'Proofs', downloads: '2.4k', rating: '4.3', icon: Stamp },
   { id: 'webhook-trigger', name: 'Webhook Trigger', desc: 'Start a blueprint workflow from an inbound webhook.', category: 'automation', subcategory: 'Triggers', downloads: '6.1k', rating: '4.6', icon: Webhook },
   { id: NOESIS_BRIEF_PLUGIN_ID, name: 'Noesis Daily Brief', desc: 'Blueprint node that pulls the daily knowledge brief — news, economics, tech, web3, and new research publications, every line cited — from a Noesis instance; pair with On Schedule and Create Note to file it as a linked note.', category: 'automation', subcategory: 'Knowledge', downloads: '0.1k', rating: '4.8', icon: Newspaper },
+  { id: INFORMATION_INTAKE_PLUGIN_ID, name: 'Information Intake', desc: 'Signed-in feed triage and linked Noesis workflow sessions, with workspace preferences stored in durable plugin state.', category: 'productivity', subcategory: 'Knowledge', downloads: '0', rating: '—', icon: Newspaper },
   { id: 'scheduled-digest', name: 'Scheduled Digest', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', subcategory: 'Scheduled', downloads: '4.9k', rating: '4.4', icon: CalendarClock },
   { id: 'semantic-search', name: 'Semantic Search', desc: 'Vector search across your whole vault, powered by embeddings.', category: 'ai', subcategory: 'Search', downloads: '11.3k', rating: '4.7', icon: ScanSearch },
   { id: 'auto-linker', name: 'Auto-Linker', desc: 'Suggest [[wiki-links]] between notes from embedding similarity.', category: 'ai', subcategory: 'Writing', downloads: '8.2k', rating: '4.5', icon: Link2 },
