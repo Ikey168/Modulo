@@ -25,6 +25,20 @@ class IntakePluginStateSchemaTest {
         + "\"pendingCaptureKey\":\"capture-1\"}");
     assertDoesNotThrow(() -> new StateSchemaRegistry(null, json).validate(1,
         "information-intake", "modulo.intake.preferences", 1, preferences));
+    assertNotNull(OperationalSchemas.definition("information-intake", "modulo.intake.research-start"));
+    var researchStart = json.readTree("""
+        {"namespace":"research","request":{"namespace":"research","request_key":"research-1",
+        "questions":["Why?"],"success_criteria":["Explain uncertainty"],
+        "scope":{"namespaces":["research"],"domains":[]},
+        "budget":{"requests":5,"tokens":10000,"usd_micros":0},
+        "origin":{"session_id":"intake:one","reason":"Saved source"},
+        "references":[{"kind":"exploration_source","id":"explore:one","namespace":"research","version":1}]}}
+        """);
+    assertDoesNotThrow(() -> new StateSchemaRegistry(null, json).validate(1,
+        "information-intake", "modulo.intake.research-start", 1, researchStart));
+    ((com.fasterxml.jackson.databind.node.ObjectNode) researchStart.path("request")).remove("questions");
+    assertThrows(ResponseStatusException.class, () -> new StateSchemaRegistry(null, json).validate(1,
+        "information-intake", "modulo.intake.research-start", 1, researchStart));
   }
 
   @Test
