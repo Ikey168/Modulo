@@ -239,7 +239,8 @@ export function NoesisIntakeView() {
     if (!next || next.length > 128) {
       setError('Enter a namespace of at most 128 characters.'); return;
     }
-    if (next !== namespace && researchPending.value.request) {
+    if (next !== namespace && researchPending.value.request &&
+      next !== researchPending.value.namespace) {
       setError('Retry or abandon the pending research start before changing namespace.'); return;
     }
     setBusy(true); setError(undefined); loadSequence.current++;
@@ -608,9 +609,14 @@ export function NoesisIntakeView() {
       </header>
 
       {preferences.error && <p role="alert" className="text-destructive">Plugin state: {preferences.error}</p>}
-      {researchPending.value.request && <p role="status" className="border border-border p-3">
-        A Deep Research topic start is pending in {researchPending.value.namespace}. Return to its Exploration source to retry the exact request.
-      </p>}
+      {researchPending.value.request && <div role="status" className="flex flex-wrap items-center gap-3 border border-border p-3">
+        <span>A Deep Research topic start is pending in {researchPending.value.namespace}.</span>
+        <button className={buttonClass} disabled={busy || !pendingResearchRequest || !researchPending.ready}
+          onClick={() => void startResearch()}>Retry pending research start</button>
+        <button className={buttonClass} disabled={busy || !researchPending.ready || !!researchPending.conflict}
+          onClick={() => void run(async () => { await researchPending.set({ namespace }); })}>
+          Abandon pending research start</button>
+      </div>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {preflight && !preflight.available &&
         <p role="status" className="border border-border p-3">Noesis is unavailable: {preflight.reason}</p>}
