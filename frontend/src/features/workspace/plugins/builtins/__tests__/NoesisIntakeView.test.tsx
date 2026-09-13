@@ -264,6 +264,7 @@ it('restores unread state even after an item has been triaged', async () => {
 
 it('runs Exploration capture, related reading, and follow from the plugin', async () => {
   let notesSaved = false;
+  let sourceStatus = 'current';
   const visit = { source_id: `explore:${'a'.repeat(32)}`, url: 'https://example.org/climate',
     title: 'Climate adaptation', version: 1, saved: true, note: 'Interesting' };
   const suggestion = { suggestion_id: `explore-related:${'b'.repeat(32)}`, method: 'lexical_overlap_v1',
@@ -289,6 +290,9 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
       success_criteria: ['Identify supported methods', 'List unresolved risks'],
       budget: { requests: 5, tokens: 10000, usd_micros: 0 },
       spent: { requests: 0, tokens: 0, usd_micros: 0 },
+      links: [{ kind: 'intake_source', id: visit.source_id, namespace: 'research', revision: 1 }],
+      reference_availability: [{ kind: 'intake_source', id: visit.source_id,
+        status: sourceStatus, revision_verified: true }],
     };
     if (tool === 'start_intake_mode') return { session_id: 'intake:explore', mode: 'Exploration',
       status: 'active', revision: 1, duration_minutes: 90, remaining_minutes: 90,
@@ -347,6 +351,11 @@ it('runs Exploration capture, related reading, and follow from the plugin', asyn
   expect(await screen.findByText('Deep Research topic')).toBeInTheDocument();
   expect(mock.call).toHaveBeenCalledWith('inspect_research_project',
     { namespace: 'research', project_id: 'project:research' });
+  expect(await screen.findByText('Pinned intake sources')).toBeInTheDocument();
+  expect(screen.getByText(`${visit.source_id} · revision 1 · current`)).toBeInTheDocument();
+  sourceStatus = 'superseded';
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh project status' }));
+  expect(await screen.findByText(`${visit.source_id} · revision 1 · superseded`)).toBeInTheDocument();
 });
 
 it('shows signed-in migrated Research Workflow records without a local browser copy', async () => {
