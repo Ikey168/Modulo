@@ -80,6 +80,12 @@ class NoesisIntakeBridgeTest {
       assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_decision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("start_problem_session"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("record_problem_step"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("promote_problem_playbook"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_intake_playbook"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("revise_intake_playbook"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_guided_playbook_run"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_guided_playbook_run"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("command_guided_playbook_run"));
     } finally {
       server.stop(0);
     }
