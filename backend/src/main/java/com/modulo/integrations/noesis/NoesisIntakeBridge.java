@@ -47,7 +47,8 @@ public class NoesisIntakeBridge {
       "command_guided_playbook_run", "create_practice_pack", "inspect_practice_pack",
       "revise_practice_pack", "list_due_practice", "start_practice_review",
       "inspect_practice_review", "command_practice_review", "export_practice_pack",
-      "verify_practice_export");
+      "verify_practice_export", "start_intake_creation", "inspect_intake_creation",
+      "command_intake_creation", "export_intake_creation");
   private static final String PROTOCOL = "2025-03-26";
   private static final int MAX_RESPONSE = 8_388_608;
   private static final int MAX_CREDENTIALS = 262_144;
