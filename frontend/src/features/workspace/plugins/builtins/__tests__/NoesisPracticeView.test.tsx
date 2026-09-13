@@ -88,3 +88,16 @@ it('records an unaided answer before requesting reveal', async () => {
   expect(await screen.findByText(/Author answer \(author_supplied_unverified\): The indexing worker/))
     .toBeInTheDocument();
 });
+
+it('can abandon a rejected pack start without issuing another Noesis mutation', async () => {
+  mock.pointer = { namespace: 'research', pendingCreate: {
+    key: 'pack-key', draft: { title: 'Worker', kind: 'recall',
+      prompt: 'What stopped?', answer: 'The worker',
+      masteryCriterion: 'Recall without notes', reference: refs[0] },
+  } };
+  mock.call.mockResolvedValue({ cards: [] });
+  render(<NoesisPracticeView namespace="research" available references={refs} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Abandon pending pack save' }));
+  await waitFor(() => expect(mock.set).toHaveBeenCalledWith({ namespace: 'research' }));
+  expect(mock.call).not.toHaveBeenCalledWith('create_practice_pack', expect.anything());
+});

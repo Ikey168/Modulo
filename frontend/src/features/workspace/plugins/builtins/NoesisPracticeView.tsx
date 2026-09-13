@@ -167,6 +167,21 @@ export function NoesisPracticeView({ namespace, available, references }: {
     finally { setBusy(false); }
   };
 
+  const abandonPendingStart = async () => {
+    setBusy(true); setError(undefined);
+    try {
+      if (pointer.value.pendingCommand)
+        throw new Error('Retry the pending review command before changing navigation.');
+      await pointer.set({ namespace,
+        ...(currentPackId || pointer.value.pendingReview?.packId
+          ? { packId: currentPackId ?? pointer.value.pendingReview?.packId } : {}),
+        ...(currentReviewId ? { reviewId: currentReviewId } : {}),
+      });
+      setDraft(blankDraft());
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
+
   return <section className="space-y-3 border-b border-border pb-5">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div><h2 className="font-semibold">Retrieval practice</h2>
@@ -177,9 +192,15 @@ export function NoesisPracticeView({ namespace, available, references }: {
     {pointer.error && <p role="alert" className="text-destructive">Plugin state: {pointer.error}</p>}
     {pointer.conflict && <p role="alert" className="text-destructive">Resolve the practice sync conflict before editing.</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
-    {pointer.value.pendingCreate && <p role="status">A pack save may already be in Noesis. Retry sends the original draft and key.</p>}
+    {pointer.value.pendingCreate && <div className="flex flex-wrap items-center gap-2">
+      <p role="status">A pack save may already be in Noesis. Retry sends the original draft and key.</p>
+      <button className={buttonClass} disabled={busy || !!pointer.conflict}
+        onClick={() => void abandonPendingStart()}>Abandon pending pack save</button>
+    </div>}
     {pointer.value.pendingReview && <button className={buttonClass} disabled={busy || !available}
       onClick={() => void startReview()}>Retry pending review start</button>}
+    {pointer.value.pendingReview && <button className={buttonClass} disabled={busy || !!pointer.conflict}
+      onClick={() => void abandonPendingStart()}>Abandon pending review start</button>}
     {review && pointer.value.pendingCommand && <button className={buttonClass}
       disabled={busy || !available || !!pointer.conflict}
       onClick={() => void command(pointer.value.pendingCommand!.action)}>Retry pending review command</button>}
