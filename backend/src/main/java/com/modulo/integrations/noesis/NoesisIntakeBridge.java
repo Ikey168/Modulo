@@ -41,7 +41,7 @@ public class NoesisIntakeBridge {
       "annotate_exploration_source", "suggest_exploration_sources",
       "decide_exploration_suggestion", "create_research_decision",
       "inspect_research_decision", "revise_research_decision",
-      "calculate_decision_sensitivity");
+      "calculate_decision_sensitivity", "start_problem_session", "record_problem_step");
   private static final String PROTOCOL = "2025-03-26";
   private static final int MAX_RESPONSE = 8_388_608;
   private static final int MAX_CREDENTIALS = 262_144;

@@ -4,6 +4,7 @@ import { usePluginState } from '../usePluginState';
 import type { PluginStateClient } from '../../../../services/pluginStateClient';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
 import { NoesisDecisionView } from './NoesisDecisionView';
+import { NoesisProblemView } from './NoesisProblemView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -553,6 +554,14 @@ export function NoesisIntakeView() {
       </section>
 
       <NoesisDecisionView namespace={namespace} available={preflight?.available === true}
+        originSession={session} onWorkflowLinked={async next => {
+          await preferences.set({ namespace, lastSessionId: next.session_id });
+          setSession(await intakeCall<Session>('inspect_intake_mode', {
+            namespace, session_id: next.session_id,
+          }));
+        }} />
+
+      <NoesisProblemView namespace={namespace} available={preflight?.available === true}
         originSession={session} onWorkflowLinked={async next => {
           await preferences.set({ namespace, lastSessionId: next.session_id });
           setSession(await intakeCall<Session>('inspect_intake_mode', {
