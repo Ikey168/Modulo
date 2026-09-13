@@ -123,3 +123,18 @@ it('replays a pending final result even if the server already completed the run'
   expect(mock.set).toHaveBeenCalledWith({ namespace: 'research',
     playbookId: 'playbook:one', runId: 'run:one' });
 });
+
+it('can abandon a rejected playbook save without another remote mutation', async () => {
+  mock.pointer = { namespace: 'research', pendingSave: { key: 'save-key',
+    problemSessionId: 'intake:problem', draft: {
+      title: 'Repair search', prerequisites: '', environment: 'Desktop',
+      verification: 'New item appears', sourceRationale: 'Verified problem',
+      steps: [{ action: 'Rebuild index', expectedResult: 'New item appears',
+        recovery: 'Check logs' }],
+    },
+  } };
+  render(<NoesisPlaybookView namespace="research" available />);
+  fireEvent.click(screen.getByRole('button', { name: 'Abandon pending playbook save' }));
+  await waitFor(() => expect(mock.set).toHaveBeenCalledWith({ namespace: 'research' }));
+  expect(mock.call).not.toHaveBeenCalledWith('promote_problem_playbook', expect.anything());
+});
