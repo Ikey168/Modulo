@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
 
@@ -27,6 +28,7 @@ type Preferences = { namespace: string; lastSessionId?: string; pendingStartKey?
 const buttonClass = 'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50';
 
 export function NoesisIntakeView() {
+  const plugins = usePlugins();
   const preferences = usePluginState<Preferences>(
     'information-intake', 'preferences', { namespace: 'research' }, 'modulo.intake.preferences');
   const namespace = preferences.value.namespace;
@@ -42,7 +44,7 @@ export function NoesisIntakeView() {
   const load = useCallback(async () => {
     const readiness = await intakePreflight();
     setPreflight(readiness);
-    if (!readiness.available) { setPage(undefined); return; }
+    if (!readiness.available) { setPage(undefined); setSession(undefined); return; }
     const inbox = await intakeCall<InboxPage>('list_intake_feed_inbox', { namespace, limit: 50 });
     setPage(inbox);
   }, [namespace]);
@@ -134,10 +136,40 @@ export function NoesisIntakeView() {
 
   const explore = (item: FeedItem) => run(async () => {
     if (!session || session.mode !== 'Awareness') throw new Error('Start Awareness before escalating.');
+    if (!/^feed:[0-9a-f]{32}$/.test(item.item_id)) throw new Error('The feed item has an invalid identity.');
+    const client = await plugins.state('information-intake');
+    const linkId = `item.${item.item_id.slice(5)}`;
+    const existing = client.get(linkId);
+    const prior = existing?.value as { objectVersion?: number; sourceVersion?: number } | undefined;
+    if (!existing) {
+      await client.create(linkId, {
+        id: linkId, noesisItemId: item.item_id, sourceVersion: item.source_version,
+        objectVersion: 1, createdAt: new Date().toISOString(),
+      }, 'modulo.intake.item-link', 1);
+    } else if (existing.deleted) {
+      await client.set(linkId, {
+        id: linkId, noesisItemId: item.item_id, sourceVersion: item.source_version,
+        objectVersion: 1, createdAt: new Date().toISOString(),
+      }, 'modulo.intake.item-link', 1);
+    } else if (prior?.sourceVersion !== item.source_version) {
+      await client.set(linkId, {
+        ...prior, id: linkId, noesisItemId: item.item_id,
+        sourceVersion: item.source_version, objectVersion: (prior?.objectVersion ?? 1) + 1,
+      }, 'modulo.intake.item-link', 1);
+    }
+    await client.synchronize();
+    const stored = client.get(linkId);
+    if (!stored || stored.pending || stored.conflict || stored.deleted) {
+      throw new Error('Save the Modulo intake link before promoting this item.');
+    }
+    const version = (stored.value as { objectVersion: number }).objectVersion;
+    const workspaceLink = { system: 'modulo', workspace_id: 'personal', kind: 'intake_item',
+      id: linkId, version };
     const next = await intakeCall<Session>('promote_awareness_item', {
       namespace, awareness_session_id: session.session_id, item_id: item.item_id,
-      request_key: `modulo-explore-${session.session_id}-${item.item_id}`,
+      request_key: `modulo-explore-${session.session_id}-${item.item_id}-${version}`,
       target_mode: 'Exploration', reason: 'Selected during feed triage', intent: `Explore ${item.title}`,
+      workspace_links: [workspaceLink],
     });
     await preferences.set({ namespace, lastSessionId: next.session_id });
     setSession(next);
@@ -209,6 +241,8 @@ export function NoesisIntakeView() {
                   onClick={() => void decide(item, decision)}>{decision[0].toUpperCase() + decision.slice(1)}</button>)}
             </div>}
             {item.decision === 'escalate' && session?.mode === 'Awareness' &&
+              session.inputs.feed_item_ids?.includes(item.item_id) &&
+              session.data.decisions?.[item.item_id] === 'escalate' &&
               <button className={buttonClass} disabled={busy} onClick={() => void explore(item)}>Explore this item</button>}
           </li>)}
         </ul>
