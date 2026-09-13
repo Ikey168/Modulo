@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
 import { intakeCall, intakePreflight } from './noesisIntakeApi';
+import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
+  type LegacyIntakePlan } from './legacyIntakeMigration';
 
 type FeedItem = {
   item_id: string;
@@ -40,6 +42,14 @@ export function NoesisIntakeView() {
   const [feedName, setFeedName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [migration, setMigration] = useState<LegacyIntakePlan>();
+  const [migrationResult, setMigrationResult] = useState<{
+    staged: number; confirmed: number; pending: number; conflicts: number;
+    reportPending: boolean; reportConflict: boolean; reportKey: string;
+  }>();
+  const [undoResult, setUndoResult] = useState<{ pending: number; conflicts: number }>();
+  const [migrationBusy, setMigrationBusy] = useState(false);
+  const [migrationError, setMigrationError] = useState<string>();
 
   const load = useCallback(async () => {
     const readiness = await intakePreflight();
@@ -175,6 +185,55 @@ export function NoesisIntakeView() {
     setSession(next);
   });
 
+  const previewMigration = async () => {
+    setMigrationBusy(true); setMigrationError(undefined); setMigrationResult(undefined);
+    setUndoResult(undefined);
+    try {
+      const client = await plugins.state('information-intake');
+      await client.refreshAll();
+      setMigration(await planLegacyIntakeMigration(
+        window.localStorage.getItem(LEGACY_INTAKE_KEY), client));
+    } catch (cause) {
+      setMigrationError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setMigrationBusy(false); }
+  };
+
+  const importMigration = async () => {
+    if (!migration || migration.status !== 'ready') return;
+    setMigrationBusy(true); setMigrationError(undefined);
+    try {
+      const client = await plugins.state('information-intake');
+      const current = await planLegacyIntakeMigration(
+        window.localStorage.getItem(LEGACY_INTAKE_KEY), client);
+      if (current.status !== 'ready' || current.sourceDigest !== migration.sourceDigest)
+        throw new Error('The local or synced intake data changed. Preview the migration again.');
+      const result = await importLegacyIntake(current, client);
+      setMigrationResult(result);
+      setMigration({ ...current, reportExists: true });
+    } catch (cause) {
+      setMigrationError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setMigrationBusy(false); }
+  };
+
+  const undoMigration = async () => {
+    if (!migration?.reportExists) return;
+    setMigrationBusy(true); setMigrationError(undefined);
+    try {
+      const client = await plugins.state('information-intake');
+      await client.refreshAll();
+      const current = await planLegacyIntakeMigration(
+        window.localStorage.getItem(LEGACY_INTAKE_KEY), client);
+      if (current.status !== 'ready' || !current.reportExists
+        || current.sourceDigest !== migration.sourceDigest)
+        throw new Error('The local or synced intake data changed. Preview the migration again.');
+      setUndoResult(await undoLegacyIntake(current, client));
+      setMigrationResult(undefined);
+      setMigration({ ...current, reportExists: false });
+    } catch (cause) {
+      setMigrationError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setMigrationBusy(false); }
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6 text-sm">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -246,6 +305,40 @@ export function NoesisIntakeView() {
               <button className={buttonClass} disabled={busy} onClick={() => void explore(item)}>Explore this item</button>}
           </li>)}
         </ul>
+      </section>
+
+      <section className="space-y-3 border-t border-border pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Existing Modulo intake</h2>
+            <p className="text-muted-foreground">Move this browser's Information Intake records into signed-in plugin state. The local copy stays in place.</p>
+          </div>
+          <button className={buttonClass} disabled={migrationBusy || !preferences.ready}
+            onClick={() => void previewMigration()}>Preview local intake</button>
+        </div>
+        {migrationError && <p role="alert" className="text-destructive">{migrationError}</p>}
+        {migration?.status === 'absent' && <p role="status">No browser-local Information Intake records found on this device.</p>}
+        {migration && migration.status !== 'absent' && <div className="space-y-2">
+          <p>{migration.records.length} records · {migration.toCreate} to add · {migration.alreadyPresent} already present</p>
+          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+            {Object.entries(migration.counts).filter(([, count]) => count > 0).map(([name, count]) =>
+              <div key={name} className="flex gap-1"><dt>{name}</dt><dd>{count}</dd></div>)}
+          </dl>
+          {migration.blockers.map(message => <p key={message} role="alert" className="text-destructive">{message}</p>)}
+          {migration.warnings.map((message, index) => <p key={`${index}-${message}`} className="text-muted-foreground">{message}</p>)}
+          <button className={buttonClass} disabled={migrationBusy || migration.status !== 'ready'}
+            onClick={() => void importMigration()}>Import into plugin state</button>
+          {migration.reportExists && <button className={buttonClass} disabled={migrationBusy}
+            onClick={() => void undoMigration()}>Undo unchanged import</button>}
+        </div>}
+        {migrationResult && <p role="status">
+          Import report {migrationResult.reportKey}: {migrationResult.confirmed} confirmed,
+          {' '}{migrationResult.pending} queued, {migrationResult.conflicts} conflicts.
+          {migrationResult.reportPending && ' The report is queued.'}
+          {migrationResult.reportConflict && ' The report has a conflict.'}
+          The browser-local copy was retained.
+        </p>}
+        {undoResult && <p role="status">Undo queued {undoResult.pending} deletions with {undoResult.conflicts} conflicts. The browser-local copy was retained.</p>}
       </section>
     </div>
   );

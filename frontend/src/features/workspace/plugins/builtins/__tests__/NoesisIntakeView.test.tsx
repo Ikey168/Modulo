@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { NoesisIntakeView } from '../NoesisIntakeView';
@@ -18,6 +19,8 @@ vi.mock('../../usePluginState', () => ({
 }));
 
 beforeEach(() => {
+  vi.stubGlobal('crypto', webcrypto);
+  window.localStorage.clear();
   mock.call.mockReset(); mock.preflight.mockReset(); mock.set.mockReset(); mock.state.mockReset();
   mock.preflight.mockResolvedValue({ available: true });
   mock.set.mockResolvedValue(undefined);
@@ -38,6 +41,40 @@ beforeEach(() => {
     };
     return {};
   });
+});
+
+it('previews and imports browser-local Modulo intake without deleting it', async () => {
+  const raw = JSON.stringify({ version: 1, items: [{ id: 'old-1', title: 'Saved locally' }] });
+  window.localStorage.setItem('modulo-information-intake-v1', raw);
+  const records = new Map<string, { key: string; value: Record<string, unknown>; pending: boolean; deleted: boolean }>();
+  const client = {
+    get: (key: string) => records.get(key),
+    refreshAll: vi.fn(async () => undefined),
+    create: vi.fn(async (key: string, value: Record<string, unknown>) => {
+      records.set(key, { key, value, pending: true, deleted: false });
+    }),
+    set: vi.fn(),
+    delete: vi.fn(async (key: string) => {
+      const record = records.get(key);
+      if (record) records.set(key, { ...record, value: null as unknown as Record<string, unknown>,
+        pending: true, deleted: true });
+    }),
+    synchronize: vi.fn(async () => {
+      for (const record of records.values()) record.pending = false;
+    }),
+  };
+  mock.state.mockResolvedValue(client);
+  render(<NoesisIntakeView />);
+  fireEvent.click(screen.getByRole('button', { name: 'Preview local intake' }));
+  expect(await screen.findByText('1 records · 1 to add · 0 already present')).toBeInTheDocument();
+  expect(client.create).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Import into plugin state' }));
+  await waitFor(() => expect(client.create).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText(/1 confirmed, 0 queued, 0 conflicts/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Undo unchanged import' }));
+  await waitFor(() => expect(client.delete).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText(/Undo queued 0 deletions/)).toBeInTheDocument();
+  expect(window.localStorage.getItem('modulo-information-intake-v1')).toBe(raw);
 });
 
 it('persists a Modulo item link before promoting an escalated source', async () => {
