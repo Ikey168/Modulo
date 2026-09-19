@@ -37,7 +37,7 @@ permissions:
   id-token: write  # For OIDC authentication
 
 env:
-  TF_VERSION: '1.6.0'
+  TF_VERSION: '1.16.3'
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -301,7 +301,8 @@ jobs:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-    environment: ${{ github.event.inputs.environment }}
+    environment:
+      name: ${{ github.event.inputs.environment == 'prod' && 'production' || 'development' }}
     
     steps:
     - name: Checkout
