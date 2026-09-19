@@ -301,7 +301,8 @@ jobs:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-    environment: ${{ github.event.inputs.environment }}
+    environment:
+      name: ${{ github.event.inputs.environment == 'prod' && 'production' || 'development' }}
     
     steps:
     - name: Checkout
