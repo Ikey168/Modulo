@@ -63,7 +63,7 @@ jobs:
 
   build-signed:
     name: Build and sign immutable artifacts
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -188,7 +188,7 @@ jobs:
 
   promote:
     name: Promote approved immutable artifacts
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.promote == true)
+    if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.promote == true)) && github.ref == 'refs/heads/main'
     needs: build-signed
     runs-on: ubuntu-latest
     environment:
