@@ -25,7 +25,8 @@ permissions: {}
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  # GHCR image names must be lowercase; the repository owner is mixed-case.
+  IMAGE_PREFIX: ghcr.io/ikey168/modulo
 
 jobs:
   multiarch-verification:
