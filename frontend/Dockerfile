@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies (including dev dependencies for build)
 COPY package*.json ./
-RUN npm install && npm cache clean --force
+RUN npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --maxsockets=5 && npm cache clean --force
 
 # Build stage
 FROM node:21-alpine AS builder
