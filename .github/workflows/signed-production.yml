@@ -1,0 +1,274 @@
+name: Signed production CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/signed-production.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/signed-production.yml'
+  workflow_dispatch:
+    inputs:
+      promote:
+        description: 'Request promotion to the protected production environment'
+        required: true
+        default: false
+        type: boolean
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  multiarch-verification:
+    name: Multi-architecture build verification
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build both production architectures without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.component }}
+          file: ./${{ matrix.component }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          provenance: false
+          sbom: false
+          tags: local/${{ matrix.component }}:${{ github.sha }}
+
+  build-signed:
+    name: Build and sign immutable artifacts
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      backend_digest: ${{ steps.build_backend.outputs.digest }}
+      frontend_digest: ${{ steps.build_frontend.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend multi-architecture image
+        id: build_backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/backend:build-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build frontend multi-architecture image
+        id: build_frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/frontend:build-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign and verify the exact image digests
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          BACKEND_DIGEST: ${{ steps.build_backend.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.build_frontend.outputs.digest }}
+        run: |
+          set -euo pipefail
+          identity="^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/signed-production.yml@refs/heads/main$"
+          issuer="https://token.actions.githubusercontent.com"
+          for spec in \
+            "${IMAGE_PREFIX}/backend|${BACKEND_DIGEST}" \
+            "${IMAGE_PREFIX}/frontend|${FRONTEND_DIGEST}"; do
+            image=${spec%%|*}
+            digest=${spec#*|}
+            test -n "$digest"
+            cosign sign --yes "${image}@${digest}"
+            cosign verify \
+              --certificate-identity-regexp="$identity" \
+              --certificate-oidc-issuer="$issuer" \
+              "${image}@${digest}"
+          done
+
+      - name: Attest build provenance for backend
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/backend
+          subject-digest: ${{ steps.build_backend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest build provenance for frontend
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/frontend
+          subject-digest: ${{ steps.build_frontend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Publish signed artifact manifest
+        run: |
+          cat > signed-artifact-manifest.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "source": "${GITHUB_SHA}",
+            "backend": {
+              "image": "${IMAGE_PREFIX}/backend",
+              "digest": "${{ steps.build_backend.outputs.digest }}",
+              "platforms": ["linux/amd64", "linux/arm64"]
+            },
+            "frontend": {
+              "image": "${IMAGE_PREFIX}/frontend",
+              "digest": "${{ steps.build_frontend.outputs.digest }}",
+              "platforms": ["linux/amd64", "linux/arm64"]
+            }
+          }
+          EOF
+
+      - name: Upload signed artifact manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-artifact-manifest-${{ github.sha }}
+          path: signed-artifact-manifest.json
+          if-no-files-found: error
+
+  promote:
+    name: Promote approved immutable artifacts
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.promote == true)
+    needs: build-signed
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Verify signed source digests before promotion
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          BACKEND_DIGEST: ${{ needs.build-signed.outputs.backend_digest }}
+          FRONTEND_DIGEST: ${{ needs.build-signed.outputs.frontend_digest }}
+        run: |
+          set -euo pipefail
+          identity="^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/signed-production.yml@refs/heads/main$"
+          issuer="https://token.actions.githubusercontent.com"
+          for spec in \
+            "${IMAGE_PREFIX}/backend|${BACKEND_DIGEST}" \
+            "${IMAGE_PREFIX}/frontend|${FRONTEND_DIGEST}"; do
+            image=${spec%%|*}
+            digest=${spec#*|}
+            cosign verify \
+              --certificate-identity-regexp="$identity" \
+              --certificate-oidc-issuer="$issuer" \
+              "${image}@${digest}"
+          done
+
+      - name: Promote by digest after environment approval
+        env:
+          BACKEND_DIGEST: ${{ needs.build-signed.outputs.backend_digest }}
+          FRONTEND_DIGEST: ${{ needs.build-signed.outputs.frontend_digest }}
+        run: |
+          set -euo pipefail
+          for spec in \
+            "${IMAGE_PREFIX}/backend|${BACKEND_DIGEST}" \
+            "${IMAGE_PREFIX}/frontend|${FRONTEND_DIGEST}"; do
+            image=${spec%%|*}
+            digest=${spec#*|}
+            promoted_tag="${image}:production-${GITHUB_SHA}"
+            docker buildx imagetools create --tag "$promoted_tag" "${image}@${digest}"
+            promoted_digest=$(docker buildx imagetools inspect "$promoted_tag" | awk '/^Digest:/ {print $2; exit}')
+            test "$promoted_digest" = "$digest"
+            echo "Promoted $promoted_tag -> $promoted_digest"
+          done
+
+      - name: Write promotion record
+        env:
+          BACKEND_DIGEST: ${{ needs.build-signed.outputs.backend_digest }}
+          FRONTEND_DIGEST: ${{ needs.build-signed.outputs.frontend_digest }}
+        run: |
+          cat > production-promotion.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "source": "${GITHUB_SHA}",
+            "environment": "production",
+            "approval": "GitHub environment reviewer",
+            "backend": "${IMAGE_PREFIX}/backend@${BACKEND_DIGEST}",
+            "frontend": "${IMAGE_PREFIX}/frontend@${FRONTEND_DIGEST}"
+          }
+          EOF
+
+      - name: Upload promotion record
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-promotion-${{ github.sha }}
+          path: production-promotion.json
+          if-no-files-found: error
