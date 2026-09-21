@@ -246,7 +246,15 @@ jobs:
             digest=${spec#*|}
             promoted_tag="${image}:production-${GITHUB_SHA}"
             docker buildx imagetools create --tag "$promoted_tag" "${image}@${digest}"
-            promoted_digest=$(docker buildx imagetools inspect "$promoted_tag" | awk '/^Digest:/ {print $2; exit}')
+            promoted_digest=""
+            for attempt in $(seq 1 10); do
+              promoted_digest=$(docker buildx imagetools inspect "$promoted_tag" 2>/dev/null | awk '/^Digest:/ {print $2}' || true)
+              if [ "$promoted_digest" = "$digest" ]; then
+                break
+              fi
+              echo "Waiting for $promoted_tag to become readable (attempt ${attempt}/10)"
+              sleep 5
+            done
             test "$promoted_digest" = "$digest"
             echo "Promoted $promoted_tag -> $promoted_digest"
           done
