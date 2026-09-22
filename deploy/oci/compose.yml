@@ -78,9 +78,10 @@ services:
       MODULO_SECURITY_KEYCLOAK_JWK_SET_URI: http://keycloak:8080/auth/realms/modulo/protocol/openid-connect/certs
       MODULO_SECURITY_KEYCLOAK_ISSUER_URI: ${MODULO_URL}/auth/realms/modulo
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${MODULO_URL}/auth/realms/modulo
-      # Per-item workspace state (e.g. one record per media item) needs more than the 100/min default.
-      MODULO_SECURITY_RATE_LIMIT_REQUESTS_PER_MINUTE: "300"
-      MODULO_SECURITY_RATE_LIMIT_BURST_CAPACITY: "60"
+      # Workspace startup handshakes every open namespace, then reads it. Keep this
+      # below the 1000/min global cap while allowing the authenticated startup fan-out.
+      MODULO_SECURITY_RATE_LIMIT_REQUESTS_PER_MINUTE: "900"
+      MODULO_SECURITY_RATE_LIMIT_BURST_CAPACITY: "900"
       OTEL_SDK_DISABLED: "true"
       MODULO_INTEGRATIONS_IPFS_ENABLED: "false"
       BLOCKCHAIN_RPC_URL: ${BLOCKCHAIN_RPC_URL:-http://127.0.0.1:8545}
