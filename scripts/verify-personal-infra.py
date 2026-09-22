@@ -17,6 +17,7 @@ def main() -> None:
         "inventory.example.yml",
         "group_vars/all.yml",
         "playbooks/audit.yml",
+        "playbooks/development-server.yml",
         "playbooks/prepare-workstation.yml",
         "playbooks/site.yml",
         "playbooks/workstation.yml",
@@ -26,10 +27,13 @@ def main() -> None:
         "roles/container_host/tasks/main.yml",
         "roles/developer_workstation/tasks/main.yml",
         "roles/developer_workstation/defaults/main.yml",
+        "roles/remote_development/defaults/main.yml",
     )
     for relative in required:
         if not (BASE / relative).is_file():
             raise SystemExit(f"missing infrastructure file: {relative}")
+    if not (ROOT / "scripts/verify-netcup-development.py").is_file():
+        raise SystemExit("missing Netcup development verifier")
 
     inventory = (BASE / "inventory.example.yml").read_text(encoding="utf-8")
     for name in ("desktop", "laptop", "home-pi", "dev-netcup", "prod-oracle"):

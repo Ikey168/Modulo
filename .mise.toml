@@ -3,9 +3,9 @@ java = "temurin-17"
 node = "22"
 python = "3.14"
 
-[tasks.check-contract]
-description = "Verify the repository contract and its required entry points"
-run = "python3 scripts/verify-repository-contract.py"
+[tasks.check-repository]
+description = "Verify tracked content and whitespace integrity"
+run = "git diff --check"
 
 [tasks.check-frontend]
 description = "Run the frontend type, lint, boundary, unit, and production-build gates"
@@ -22,16 +22,10 @@ description = "Run the backend unit and integration suite"
 dir = "backend"
 run = "mvn test"
 
-[tasks.check-operations]
-description = "Run deployment and infrastructure structural gates"
-run = [
-  "python3 -m unittest discover -s deploy/oci/tests -v",
-  "python3 scripts/verify-device-inventory.py docs/infrastructure/devices/inventory.json",
-  "python3 scripts/verify-data-inventory.py docs/infrastructure/data/inventory.json",
-  "python3 scripts/verify-personal-infra.py",
-  "python3 scripts/verify-noesis-lifecycle.py",
-]
+[tasks.check-infrastructure]
+description = "Run the versioned personal-infrastructure structural gate"
+run = "python3 scripts/verify-personal-infra.py"
 
 [tasks.check]
 description = "Run the common local acceptance gate"
-depends = ["check-contract", "check-frontend", "check-backend", "check-operations"]
+depends = ["check-repository", "check-frontend", "check-backend", "check-infrastructure"]

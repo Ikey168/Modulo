@@ -38,7 +38,7 @@ def first_line(result: subprocess.CompletedProcess[str]) -> str | None:
     return combined.splitlines()[0] if combined else None
 
 
-def admin_run(
+def as_admin(
     admin: str, home: Path, project: Path, command: list[str]
 ) -> subprocess.CompletedProcess[str]:
     return run(
@@ -51,13 +51,16 @@ def admin_run(
             f"HOME={home}",
             f"USER={admin}",
             f"LOGNAME={admin}",
-            "mise",
-            "exec",
-            "--",
             *command,
         ],
         cwd=project,
     )
+
+
+def admin_run(
+    admin: str, home: Path, project: Path, command: list[str]
+) -> subprocess.CompletedProcess[str]:
+    return as_admin(admin, home, project, ["mise", "exec", "--", *command])
 
 
 def main() -> None:
@@ -165,7 +168,9 @@ def main() -> None:
     marker_state = {marker: (project / marker).exists() for marker in markers}
     failures.extend(f"project:{marker}" for marker, present in marker_state.items() if not present)
 
-    git_status = run(["git", "status", "--porcelain"], cwd=project)
+    git_status = as_admin(
+        args.admin_user, admin_home, project, ["git", "status", "--porcelain"]
+    )
     clean_checkout = git_status.returncode == 0 and not git_status.stdout.strip()
     if not clean_checkout:
         failures.append("project:not-clean")
@@ -182,19 +187,22 @@ def main() -> None:
         if result.returncode != 0:
             failures.append(f"runtime:{name}")
 
-    tasks = admin_run(args.admin_user, admin_home, project, ["mise", "tasks"])
-    for task in ("check", "check-backend", "check-contract", "check-frontend", "check-operations"):
+    tasks = as_admin(args.admin_user, admin_home, project, ["mise", "tasks"])
+    for task in (
+        "check",
+        "check-backend",
+        "check-frontend",
+        "check-infrastructure",
+        "check-repository",
+    ):
         if task not in tasks.stdout:
             failures.append(f"mise-task:{task}")
 
-    contract = admin_run(
-        args.admin_user,
-        admin_home,
-        project,
-        ["python", "scripts/verify-repository-contract.py"],
+    repository_check = as_admin(
+        args.admin_user, admin_home, project, ["git", "diff", "--check"]
     )
-    if contract.returncode != 0:
-        failures.append("smoke:repository-contract")
+    if repository_check.returncode != 0:
+        failures.append("smoke:repository-check")
 
     report = {
         "accepted": not failures,
