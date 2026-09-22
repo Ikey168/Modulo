@@ -1,0 +1,233 @@
+name: Oracle application images
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      modulo_revision:
+        description: Full Modulo Git SHA (defaults to the selected run/branch)
+        required: false
+        type: string
+      noesis_revision:
+        description: Full Noesis Git SHA
+        required: false
+        default: a0170965d9d946ad9cc153e5f831670dd34eeb4c
+        type: string
+      praxis_revision:
+        description: Full Praxis Git SHA
+        required: false
+        default: 5ad020825b68cd3cdbe3fd69f4a0b5a613450e8b
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-images-${{ inputs.modulo_revision || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Build ${{ matrix.component }} image
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: backend
+            context: ./modulo/backend
+            dockerfile: ./modulo/backend/Dockerfile
+            source: modulo
+            source_repository: Ikey168/Modulo
+          - component: frontend
+            context: ./modulo
+            dockerfile: ./modulo/frontend/Dockerfile
+            source: modulo
+            source_repository: Ikey168/Modulo
+          - component: noesis
+            context: ./noesis
+            dockerfile: ./noesis/deploy/oci/Dockerfile
+            source: noesis
+            source_repository: Ikey168/Noesis
+          - component: praxis
+            context: ./praxis
+            dockerfile: ./modulo/deploy/oci/praxis.Dockerfile
+            source: praxis
+            source_repository: KrasForge/Praxis
+    steps:
+      - name: Check out Modulo source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.modulo_revision || github.event.workflow_run.head_sha || github.sha }}
+          path: modulo
+          fetch-depth: 1
+
+      - name: Check out Noesis source
+        if: matrix.source == 'noesis'
+        uses: actions/checkout@v4
+        with:
+          repository: Ikey168/Noesis
+          ref: ${{ inputs.noesis_revision || 'a0170965d9d946ad9cc153e5f831670dd34eeb4c' }}
+          path: noesis
+          fetch-depth: 1
+          token: ${{ github.token }}
+
+      - name: Check out Praxis source
+        if: matrix.source == 'praxis'
+        uses: actions/checkout@v4
+        with:
+          repository: KrasForge/Praxis
+          ref: ${{ inputs.praxis_revision || '5ad020825b68cd3cdbe3fd69f4a0b5a613450e8b' }}
+          path: praxis
+          fetch-depth: 1
+          token: ${{ github.token }}
+
+      - name: Resolve source revisions
+        id: revisions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          modulo_sha=$(git -C modulo rev-parse HEAD)
+          case '${{ matrix.source }}' in
+            modulo) component_sha=$modulo_sha ;;
+            noesis) component_sha=$(git -C noesis rev-parse HEAD) ;;
+            praxis) component_sha=$(git -C praxis rev-parse HEAD) ;;
+            *) echo 'unknown source checkout' >&2; exit 1 ;;
+          esac
+          printf 'modulo_sha=%s\n' "$modulo_sha" >> "$GITHUB_OUTPUT"
+          printf 'component_sha=%s\n' "$component_sha" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+          COMPONENT: ${{ matrix.component }}
+        shell: bash
+        run: printf 'name=ghcr.io/%s/%s\n' "${REPOSITORY,,}" "$COMPONENT" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish immutable image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.name }}:sha-${{ steps.revisions.outputs.modulo_sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ matrix.source_repository }}
+            org.opencontainers.image.revision=${{ steps.revisions.outputs.component_sha }}
+            com.modulo.component=${{ matrix.component }}
+            com.modulo.source-revision=${{ steps.revisions.outputs.modulo_sha }}
+            com.modulo.component-source=${{ matrix.source_repository }}
+            com.modulo.component-source-revision=${{ steps.revisions.outputs.component_sha }}
+          cache-from: type=gha,scope=oracle-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=oracle-${{ matrix.component }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign and verify immutable image
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/oracle-images.yml@${{ github.ref }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cosign sign --yes "$IMAGE"
+          cosign verify "$IMAGE" \
+            --certificate-identity "$IDENTITY" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          printf '%s\n' "$IMAGE" > "image-${{ matrix.component }}.txt"
+          printf '%s\n' '${{ steps.revisions.outputs.component_sha }}' > "source-${{ matrix.component }}.txt"
+          printf '%s\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload immutable image reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-image-${{ matrix.component }}
+          path: |
+            image-${{ matrix.component }}.txt
+            source-${{ matrix.component }}.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  manifest:
+    name: Publish Oracle deployment manifest
+    needs: images
+    if: needs.images.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the exact Modulo source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.modulo_revision || github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Download immutable image references
+        uses: actions/download-artifact@v4
+        with:
+          pattern: oracle-image-*
+          path: release-inputs
+          merge-multiple: true
+
+      - name: Generate and validate deployment manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          modulo_sha=$(git rev-parse HEAD)
+          backend=$(cat release-inputs/image-backend.txt)
+          frontend=$(cat release-inputs/image-frontend.txt)
+          noesis=$(cat release-inputs/image-noesis.txt)
+          praxis=$(cat release-inputs/image-praxis.txt)
+          noesis_sha=$(cat release-inputs/source-noesis.txt)
+          praxis_sha=$(cat release-inputs/source-praxis.txt)
+          deploy/oci/manifest.sh --check deployment-manifest.json \
+            "$modulo_sha" "$backend" "$frontend" "$noesis" "$praxis" \
+            "$noesis_sha" "$praxis_sha"
+          deploy/oci/manifest.sh deployment-manifest.json \
+            "$modulo_sha" "$backend" "$frontend" "$noesis" "$praxis" \
+            "$noesis_sha" "$praxis_sha"
+          jq -e '
+            .format == "modulo.oracle.release.v1" and
+            (.sourceRevision | length == 40) and
+            (.images | length == 4) and
+            (.sources.modulo == .sourceRevision) and
+            (.sources.noesis | length == 40) and
+            (.sources.praxis | length == 40)
+          ' deployment-manifest.json
+
+      - name: Upload deployment manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-deployment-manifest-${{ inputs.modulo_revision || github.event.workflow_run.head_sha || github.sha }}
+          path: deployment-manifest.json
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,5080 @@
+{
+  "catalogCount": 192,
+  "runnableCount": 192,
+  "pluginCoverage": [
+    {
+      "id": "ai-summary",
+      "name": "AI Summarizer",
+      "category": "ai",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "ai-summary"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-checklists",
+      "name": "Audit Checklists",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "audit-checklist"
+        ],
+        "noteFences": [],
+        "editorActions": [
+          "insert-checklist-erc20",
+          "insert-checklist-erc721",
+          "insert-checklist-proxy",
+          "insert-checklist-defi"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-browser",
+      "name": "Audit Core Browser",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "audit-core-browser"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-findings",
+      "name": "Audit Core Findings & Evidence",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-findings"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-overview",
+      "name": "Audit Core Phase Dashboard",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-overview"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-remediation",
+      "name": "Audit Core Remediation",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-remediation"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-report",
+      "name": "Audit Core Severity & Report",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-report"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-scope",
+      "name": "Audit Core Scope & Architecture",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-scope"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-tests",
+      "name": "Audit Core Tests & Exploits",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-tests"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-core-threats",
+      "name": "Audit Core Threat Model",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "audit-core-browser"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-core-threats"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "audit-reports",
+      "name": "Audit Reports",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "findings-tracker"
+      ],
+      "contributionIds": {
+        "views": [
+          "audit-reports"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "auto-linker",
+      "name": "Auto-Linker",
+      "category": "ai",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "auto-linker"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "bookmark-read-later",
+      "name": "Bookmarks & Read Later",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "bookmark-read-later"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-contracts",
+      "name": "Proposals & Contracts",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "business-directory"
+      ],
+      "contributionIds": {
+        "views": [
+          "business-contracts"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-dashboard",
+      "name": "Business Command Center",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "business-directory",
+        "business-contracts",
+        "business-reconciliation",
+        "business-obligations",
+        "business-operations",
+        "rechnung",
+        "zeiterfassung",
+        "euer-datev",
+        "gobd-vault"
+      ],
+      "contributionIds": {
+        "views": [
+          "business-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-directory",
+      "name": "Business Directory",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "business-directory"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-obligations",
+      "name": "Filings & Obligations",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "business-obligations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-operations",
+      "name": "Vendors & Correspondence",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "business-directory",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "business-operations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "business-reconciliation",
+      "name": "Expense Inbox & Reconciliation",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "rechnung",
+        "euer-datev"
+      ],
+      "contributionIds": {
+        "views": [
+          "business-reconciliation"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "caldav-sync",
+      "name": "CalDAV Sync",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-notes",
+        "calendar-view"
+      ],
+      "contributionIds": {
+        "views": [
+          "caldav-sync"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P17",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "calendar-view",
+      "name": "Calendar",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "calendar"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "canvas-board",
+      "name": "Canvas",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "canvas"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P14",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "career-dashboard",
+      "name": "Career Dashboard",
+      "category": "career",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "career-portfolio",
+        "career-opportunities",
+        "career-development"
+      ],
+      "contributionIds": {
+        "views": [
+          "career-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "career-development",
+      "name": "Professional Development",
+      "category": "career",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "career-development"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "career-opportunities",
+      "name": "Applications & Interviews",
+      "category": "career",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "career-opportunities"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "career-portfolio",
+      "name": "Career Portfolio",
+      "category": "career",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "career-portfolio"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "citation-manager",
+      "name": "Citation Manager",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "evidence-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "citation-manager"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "creation-briefs",
+      "name": "Creation Briefs",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-creation"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "daily-briefing",
+      "name": "Daily Briefing",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "topic-watchlists"
+      ],
+      "contributionIds": {
+        "views": [
+          "daily-briefing"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "daily-notes",
+      "name": "Planner (Daily Notes)",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "planner"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [
+          "insert-daily-plan"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "decision-cases",
+      "name": "Decision Cases",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-decisions"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "decision-journal",
+      "name": "Decision Journal",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "decision-journal"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "document-inbox-ocr",
+      "name": "Document Inbox & OCR",
+      "category": "knowledge",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "universal-attachments"
+      ],
+      "contributionIds": {
+        "views": [
+          "document-inbox-ocr"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "education-assignments",
+      "name": "Assignments & Assessments",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "education-assignments"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "education-core",
+      "name": "Learning Core",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "education-core"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "education-curriculum",
+      "name": "Curriculum",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "education-curriculum"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "education-dashboard",
+      "name": "Education Dashboard",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core",
+        "education-curriculum",
+        "education-study",
+        "education-assignments"
+      ],
+      "contributionIds": {
+        "views": [
+          "education-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "education-study",
+      "name": "Study Planner",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "education-study"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "electronics-dashboard",
+      "name": "Workbench Dashboard",
+      "category": "electronics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "electronics-projects",
+        "electronics-parts",
+        "electronics-lab"
+      ],
+      "contributionIds": {
+        "views": [
+          "electronics-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "electronics-lab",
+      "name": "Prototype, Build & Test Lab",
+      "category": "electronics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "electronics-projects",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "electronics-lab"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "electronics-parts",
+      "name": "Components & Procurement",
+      "category": "electronics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "electronics-projects"
+      ],
+      "contributionIds": {
+        "views": [
+          "electronics-parts"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "electronics-projects",
+      "name": "Electronics Projects",
+      "category": "electronics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "electronics-projects"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "euer-datev",
+      "name": "Books (EÜR + DATEV)",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "rechnung"
+      ],
+      "contributionIds": {
+        "views": [
+          "books"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "evidence-claims",
+      "name": "Claims & Evidence Map",
+      "category": "evidence",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "evidence-claims"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "evidence-dashboard",
+      "name": "Evidence Lab Dashboard",
+      "category": "evidence",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "evidence-library",
+        "evidence-claims",
+        "evidence-reproducibility"
+      ],
+      "contributionIds": {
+        "views": [
+          "evidence-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "evidence-library",
+      "name": "Sources & Bibliography",
+      "category": "evidence",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "evidence-library"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "evidence-reproducibility",
+      "name": "Reproducibility Records",
+      "category": "evidence",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "evidence-reproducibility"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "evidence-synthesis",
+      "name": "Evidence Synthesis",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-evidence"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "executable-runbooks",
+      "name": "Executable Runbooks",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "executable-runbooks"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [
+          "insert-runbook"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "feeds-reading-inbox",
+      "name": "Feeds & Reading Inbox",
+      "category": "knowledge",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "bookmark-read-later"
+      ],
+      "contributionIds": {
+        "views": [
+          "feeds-reading-inbox"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "finance-subscriptions",
+      "name": "Finance & Subscriptions",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "finance-subscriptions"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "findings-tracker",
+      "name": "Findings Tracker",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "findings"
+        ],
+        "notePanels": [],
+        "noteFences": [
+          "finding"
+        ],
+        "editorActions": [
+          "insert-finding"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "flashcards-spaced-repetition",
+      "name": "Flashcards & Spaced Repetition",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "flashcards-spaced-repetition"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "focus",
+      "name": "Focus Timer",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "focus"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "github-sync",
+      "name": "GitHub Sync",
+      "category": "sync",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "github-sync"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "gobd-vault",
+      "name": "GoBD Vault",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "vault"
+        ],
+        "notePanels": [
+          "gobd-retention"
+        ],
+        "noteFences": [],
+        "editorActions": [
+          "insert-verfahrensdokumentation"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "graph-stats",
+      "name": "Graph Analytics",
+      "category": "analytics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "graph-view"
+      ],
+      "contributionIds": {
+        "views": [
+          "graph-stats"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P14",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "graph-view",
+      "name": "Knowledge Graph",
+      "category": "analytics",
+      "builtin": true,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "graph"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P14",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "health-tracker",
+      "name": "Health Tracker",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "health-tracker"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "hobby-dashboard",
+      "name": "Hobby Command Center",
+      "category": "hobbies",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack",
+        "hobby-practice",
+        "hobby-fun"
+      ],
+      "contributionIds": {
+        "views": [
+          "hobby-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "hobby-fun",
+      "name": "Fun Menu",
+      "category": "hobbies",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "hobby-fun"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "hobby-practice",
+      "name": "Hobby Practice & Artifacts",
+      "category": "hobbies",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "hobby-practice"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "hobby-stack",
+      "name": "Hobby Stack",
+      "category": "hobbies",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "hobby-stack"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "hobby-studio",
+      "name": "Hobby Studio",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "hobby-studio"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "home-inventory",
+      "name": "Home Inventory",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "home-inventory"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "home-maintenance",
+      "name": "Home & Maintenance",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "home-maintenance"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "homelab-assets",
+      "name": "Homelab Infrastructure",
+      "category": "homelab",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "homelab-assets"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "homelab-dashboard",
+      "name": "Homelab Dashboard",
+      "category": "homelab",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "homelab-assets",
+        "homelab-operations"
+      ],
+      "contributionIds": {
+        "views": [
+          "homelab-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "homelab-operations",
+      "name": "Homelab Operations",
+      "category": "homelab",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "homelab-assets",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "homelab-operations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "information-dashboard",
+      "name": "Legacy research installation",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-workbench",
+        "information-outputs",
+        "research-workflow-engine"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "information-intake",
+      "name": "Information Intake Router",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "information-intake"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "information-outputs",
+      "name": "Information Outputs",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "information-outputs"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "information-workbench",
+      "name": "Mode Workbench",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake"
+      ],
+      "contributionIds": {
+        "views": [
+          "information-workbench"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "ipfs-attach",
+      "name": "IPFS Attachments",
+      "category": "web3",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "ipfs-attach"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "journal-reflection",
+      "name": "Journal & Reflection",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "journal-reflection"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "kanban",
+      "name": "Engagement Pipeline",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "pipeline"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "knowledge-experiments",
+      "name": "Experiments",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-iteration"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "knowledge-maintenance",
+      "name": "Knowledge Maintenance",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-maintenance"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "latex",
+      "name": "LaTeX Math",
+      "category": "render",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [
+          "math",
+          "latex"
+        ],
+        "editorActions": [
+          "insert-latex"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "learning-goals",
+      "name": "Learning Goals",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "education-core",
+        "para-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "learning-goals"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "life-os-dashboard",
+      "name": "Life OS Dashboard",
+      "category": "life-os",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "life-os-explorer",
+        "life-os-relations",
+        "life-os-review",
+        "life-os-portability"
+      ],
+      "contributionIds": {
+        "views": [
+          "life-os-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "life-os-explorer",
+      "name": "Universal Explorer",
+      "category": "life-os",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "life-os-explorer"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "life-os-portability",
+      "name": "Data Health & Portability",
+      "category": "life-os",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "life-os-explorer"
+      ],
+      "contributionIds": {
+        "views": [
+          "life-os-portability"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "life-os-relations",
+      "name": "Cross-Plugin Relations",
+      "category": "life-os",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "life-os-explorer"
+      ],
+      "contributionIds": {
+        "views": [
+          "life-os-relations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "life-os-review",
+      "name": "Integrated Weekly Review",
+      "category": "life-os",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "life-os-explorer"
+      ],
+      "contributionIds": {
+        "views": [
+          "life-os-review"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "lists-rankings",
+      "name": "Lists & Rankings",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "lists-rankings"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "living-documents",
+      "name": "Living Documents",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "living-documents"
+        ],
+        "notePanels": [],
+        "noteFences": [
+          "living-query",
+          "living-note"
+        ],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "local-folder-bridge",
+      "name": "Local Folder Bridge",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "local-folder-bridge"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "managed-files",
+      "name": "Managed Files",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "universal-attachments"
+      ],
+      "contributionIds": {
+        "views": [
+          "managed-files"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "meal-planner",
+      "name": "Meal Planner",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "meal-planner"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-albums",
+      "name": "Albums",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-albums"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-articles",
+      "name": "Articles",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-articles"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-audiobooks",
+      "name": "Audiobooks",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-audiobooks"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-books",
+      "name": "Books",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-books"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-comics-graphic-novels",
+      "name": "Comics & graphic novels",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-comics-graphic-novels"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-courses",
+      "name": "Courses",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-courses"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-diary-reviews",
+      "name": "Media Diary & Reviews",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-diary-reviews"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-ebooks",
+      "name": "Ebooks",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-ebooks"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-essays",
+      "name": "Essays",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-essays"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-library",
+      "name": "Media Library",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "media-library"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-live-performances",
+      "name": "Live performances",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-live-performances"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-magazines-zines",
+      "name": "Magazines & zines",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-magazines-zines"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-manga",
+      "name": "Manga",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-manga"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-movies",
+      "name": "Movies",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-movies"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-novellas",
+      "name": "Novellas",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-novellas"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-podcasts",
+      "name": "Podcasts",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-podcasts"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-short-stories",
+      "name": "Short stories",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-short-stories"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-songs",
+      "name": "Songs",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-songs"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-tv-series",
+      "name": "TV series",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-tv-series"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-video-games",
+      "name": "Video games",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-video-games"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "media-youtube-videos",
+      "name": "YouTube videos",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "media-youtube-videos"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "mermaid",
+      "name": "Mermaid Diagrams",
+      "category": "render",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [
+          "mermaid"
+        ],
+        "editorActions": [
+          "insert-mermaid"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "metadata-artwork-resolver",
+      "name": "Metadata & Artwork Resolver",
+      "category": "media",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "metadata-artwork-resolver"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "mobility-dashboard",
+      "name": "Travel & Mobility Dashboard",
+      "category": "mobility",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "mobility-vehicles",
+        "mobility-operations",
+        "mobility-documents",
+        "travel-planner"
+      ],
+      "contributionIds": {
+        "views": [
+          "mobility-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "mobility-documents",
+      "name": "Permits & Transport Passes",
+      "category": "mobility",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "mobility-documents"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "mobility-operations",
+      "name": "Mileage & Maintenance",
+      "category": "mobility",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "mobility-operations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "mobility-vehicles",
+      "name": "Vehicles",
+      "category": "mobility",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "mobility-vehicles"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "music-dashboard",
+      "name": "Music Dashboard",
+      "category": "music",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "music-track-lab",
+        "music-practice",
+        "music-studio-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "music-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "music-practice",
+      "name": "Instrument Practice",
+      "category": "music",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "music-track-lab",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "music-practice"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "music-studio-library",
+      "name": "Music Library & Studio",
+      "category": "music",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "music-track-lab"
+      ],
+      "contributionIds": {
+        "views": [
+          "music-library"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "music-track-lab",
+      "name": "Track Lab",
+      "category": "music",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "music-track-lab"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "newsletter-inbox",
+      "name": "Newsletter Inbox",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "newsletter-inbox"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "noesis-brief",
+      "name": "Noesis Daily Brief",
+      "category": "automation",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": [
+          "action.noesis.brief"
+        ]
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "notes-editor",
+      "name": "Markdown Notes",
+      "category": "productivity",
+      "builtin": true,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "notes"
+        ],
+        "notePanels": [
+          "attachment-text",
+          "record-backlinks"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": [
+          "trigger.note.saved",
+          "trigger.link.created",
+          "action.note.create",
+          "action.tag.add",
+          "action.note.anchor",
+          "action.ai.summarize",
+          "logic.notes.filter"
+        ]
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "notion-database",
+      "name": "Embedded Databases",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [
+          "database"
+        ],
+        "editorActions": [
+          "insert-database"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P14",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "obsidian-outline",
+      "name": "Obsidian Outline",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "outline"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-capture",
+      "name": "PARA Capture & Router",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core",
+        "para-tasks"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-capture"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-core",
+      "name": "Modified PARA Core",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "para-projects",
+          "para-areas",
+          "para-resources",
+          "para-archive"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-dashboard",
+      "name": "Life Command Center",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core",
+        "para-tasks",
+        "para-goals",
+        "para-review"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-goals",
+      "name": "Goals & Arcs",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-goals"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-notion-migration",
+      "name": "Notion PARA Migrator",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core",
+        "para-tasks",
+        "para-goals",
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-migration"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-review",
+      "name": "PARA Review Engine",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core",
+        "para-tasks",
+        "para-goals"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-review"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "para-tasks",
+      "name": "PARA Tasks",
+      "category": "para",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "para-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "para-tasks"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "pdf-export",
+      "name": "PDF Export",
+      "category": "export",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "pdf-export"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P17",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "pdf-toolkit",
+      "name": "PDF Toolkit",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "universal-attachments"
+      ],
+      "contributionIds": {
+        "views": [
+          "pdf-toolkit"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P17",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "personal-crm",
+      "name": "Personal CRM",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "personal-crm"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "personal-sops",
+      "name": "Personal SOPs",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "personal-sops"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "places-library",
+      "name": "Places Library",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "places-library"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "practice-plans",
+      "name": "Practice Plans",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-learning"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "problem-solving",
+      "name": "Problem Solver",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-problems"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "procedure-design",
+      "name": "Procedure Design",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-externalization"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "project-workspaces",
+      "name": "Project Workspaces",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor",
+        "decision-journal",
+        "executable-runbooks",
+        "workspace-capsules"
+      ],
+      "contributionIds": {
+        "views": [
+          "project-workspaces"
+        ],
+        "notePanels": [
+          "project-membership"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "reading-annotations",
+      "name": "Reading Annotations",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "media-library"
+      ],
+      "contributionIds": {
+        "views": [
+          "reading-annotations"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "rechnung",
+      "name": "Rechnung (German Invoicing)",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "invoices"
+        ],
+        "notePanels": [],
+        "noteFences": [
+          "invoice"
+        ],
+        "editorActions": [
+          "insert-invoice"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "reminders-notifications",
+      "name": "Reminders & Notifications",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "reminders-notifications"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "remote-notification-gateway",
+      "name": "Remote Notification Gateway",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "reminders-notifications"
+      ],
+      "contributionIds": {
+        "views": [
+          "remote-notification-gateway"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P17",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "research-projects-trails",
+      "name": "Research Projects & Trails",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "information-intake",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [
+          "research-projects"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "research-workflow-engine",
+      "name": "Legacy research installation",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-briefing",
+        "research-projects-trails",
+        "evidence-synthesis",
+        "decision-cases",
+        "problem-solving",
+        "creation-briefs",
+        "procedure-design",
+        "practice-plans",
+        "knowledge-experiments",
+        "knowledge-maintenance",
+        "information-intake",
+        "information-workbench",
+        "information-outputs"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "routines-habits",
+      "name": "Routines & Habits",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "routines-habits"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "saved-searches",
+      "name": "Saved Searches",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "saved-searches"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "scheduled-digest",
+      "name": "Scheduled Digest",
+      "category": "automation",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": [
+          "action.audit.digest"
+        ]
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "security-dashboard",
+      "name": "Security Command Center",
+      "category": "security",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "security-inventory",
+        "security-resilience",
+        "security-incidents"
+      ],
+      "contributionIds": {
+        "views": [
+          "security-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "security-incidents",
+      "name": "Incidents & Procedures",
+      "category": "security",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "security-incidents"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "security-inventory",
+      "name": "Security Inventory",
+      "category": "security",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "security-inventory"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "security-resilience",
+      "name": "Keys, Backups & Recovery",
+      "category": "security",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "security-resilience"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "semantic-search",
+      "name": "Semantic Search",
+      "category": "ai",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "semantic-search"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "skill-tree",
+      "name": "Skill Tree",
+      "category": "education",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "skill-tree"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "style-studio",
+      "name": "Style Studio",
+      "category": "style",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "wardrobe-closet",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "style-studio"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "tag-explorer",
+      "name": "Tag Explorer",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "tags"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "tax-automation",
+      "name": "Tax Automation",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": [
+          "action.tax.deadline.reminder",
+          "action.invoice.chase",
+          "action.vies.check"
+        ]
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "timeline-view",
+      "name": "Timeline",
+      "category": "analytics",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "timeline"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "timestamp-proofs",
+      "name": "Timestamp Proofs",
+      "category": "web3",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [
+          "timestamp-proofs"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "todo-lists",
+      "name": "Todo Lists",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "todo"
+        ],
+        "notePanels": [
+          "note-tasks"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "topic-watchlists",
+      "name": "Topic Watchlists",
+      "category": "research",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "newsletter-inbox",
+        "feeds-reading-inbox",
+        "web-watch",
+        "para-core"
+      ],
+      "contributionIds": {
+        "views": [
+          "topic-watchlists"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "travel-planner",
+      "name": "Travel Planner",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "travel-planner"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "ttrpg-campaigns",
+      "name": "TTRPG Campaigns",
+      "category": "ttrpg",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "ttrpg-campaigns"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "ttrpg-dashboard",
+      "name": "Campaign Dashboard",
+      "category": "ttrpg",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "ttrpg-campaigns",
+        "ttrpg-world",
+        "ttrpg-sessions"
+      ],
+      "contributionIds": {
+        "views": [
+          "ttrpg-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "ttrpg-sessions",
+      "name": "TTRPG Sessions",
+      "category": "ttrpg",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "ttrpg-campaigns",
+        "daily-notes"
+      ],
+      "contributionIds": {
+        "views": [
+          "ttrpg-sessions"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "ttrpg-world",
+      "name": "World & Characters",
+      "category": "ttrpg",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "ttrpg-campaigns"
+      ],
+      "contributionIds": {
+        "views": [
+          "ttrpg-world"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "universal-attachments",
+      "name": "Universal Attachments",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "universal-attachments"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "universal-inbox",
+      "name": "Universal Inbox",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "universal-inbox"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "vuln-kb",
+      "name": "Vulnerability Knowledge Base",
+      "category": "audit",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "findings-tracker"
+      ],
+      "contributionIds": {
+        "views": [
+          "vuln-kb"
+        ],
+        "notePanels": [
+          "related-findings"
+        ],
+        "noteFences": [],
+        "editorActions": [
+          "insert-vuln-class-note"
+        ],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wardrobe-closet",
+      "name": "Wardrobe",
+      "category": "style",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "hobby-stack"
+      ],
+      "contributionIds": {
+        "views": [
+          "wardrobe-closet"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wardrobe-dashboard",
+      "name": "Style Dashboard",
+      "category": "style",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "wardrobe-closet",
+        "style-studio"
+      ],
+      "contributionIds": {
+        "views": [
+          "wardrobe-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wealth-balance-sheet",
+      "name": "Accounts, Assets & Liabilities",
+      "category": "wealth",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "wealth-balance-sheet"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wealth-cashflow",
+      "name": "Cash Flow & Savings",
+      "category": "wealth",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "wealth-cashflow"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wealth-dashboard",
+      "name": "Wealth Dashboard",
+      "category": "wealth",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "wealth-balance-sheet",
+        "wealth-cashflow",
+        "wealth-investments-goals"
+      ],
+      "contributionIds": {
+        "views": [
+          "wealth-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wealth-investments-goals",
+      "name": "Investments & Goals",
+      "category": "wealth",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "wealth-investments-goals"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "web-archive-read-later",
+      "name": "Web Archive & Read Later",
+      "category": "knowledge",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "bookmark-read-later",
+        "universal-attachments"
+      ],
+      "contributionIds": {
+        "views": [
+          "web-archive-read-later"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P17",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "web-watch",
+      "name": "Web Watch",
+      "category": "knowledge",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "reminders-notifications"
+      ],
+      "contributionIds": {
+        "views": [
+          "web-watch"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "web3-id",
+      "name": "Web3 Identity",
+      "category": "web3",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "web3-id"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "category": "automation",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": [
+          "trigger.webhook",
+          "action.audit.reaudit"
+        ]
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "wishlist-purchases",
+      "name": "Wishlist & Purchases",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "wishlist-purchases"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "workout-planner",
+      "name": "Workout Planner",
+      "category": "life",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "workout-planner"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P06"
+    },
+    {
+      "id": "workspace-briefings",
+      "name": "What Changed?",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "workspace-briefings"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "workspace-capsules",
+      "name": "Workspace Capsules",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "workspace-capsules"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "workspace-time-machine",
+      "name": "Workspace Time Machine",
+      "category": "productivity",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "notes-editor"
+      ],
+      "contributionIds": {
+        "views": [
+          "workspace-time-machine"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P05"
+    },
+    {
+      "id": "writing-dashboard",
+      "name": "Writing Dashboard",
+      "category": "writing",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [
+        "writing-manuscripts",
+        "writing-editorial",
+        "writing-publishing"
+      ],
+      "contributionIds": {
+        "views": [
+          "writing-dashboard"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "writing-editorial",
+      "name": "Editorial Workflow",
+      "category": "writing",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "writing-editorial"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "writing-manuscripts",
+      "name": "Manuscripts",
+      "category": "writing",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "writing-manuscripts"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "writing-publishing",
+      "name": "Submissions & Publishing",
+      "category": "writing",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "writing-publishing"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    },
+    {
+      "id": "zeiterfassung",
+      "name": "Zeiterfassung (Time Tracking)",
+      "category": "business",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributionIds": {
+        "views": [
+          "time"
+        ],
+        "notePanels": [
+          "time-logged"
+        ],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "androidIssue": "P13",
+      "storageIssue": "P07"
+    }
+  ],
+  "storageAccesses": [
+    {
+      "file": "frontend/src/features/workspace/FoundationToolView.tsx",
+      "line": 156,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/FoundationToolView.tsx",
+      "line": 188,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/FoundationToolView.tsx",
+      "line": 225,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/FoundationToolView.tsx",
+      "line": 227,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/SelfHostedToolView.tsx",
+      "line": 31,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/SelfHostedToolView.tsx",
+      "line": 35,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/WorkspaceCommandPalette.tsx",
+      "line": 89,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/businessAdmin.ts",
+      "line": 51,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/database.ts",
+      "line": 235,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/education.ts",
+      "line": 122,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/electronicsWorkbench.ts",
+      "line": 37,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/entityNavigation.ts",
+      "line": 9,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 46,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 61,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 69,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 82,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 234,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 247,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/gobd.ts",
+      "line": 31,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/gobd.ts",
+      "line": 55,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/hobbies.ts",
+      "line": 124,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/homelab.ts",
+      "line": 16,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/informationIntake.ts",
+      "line": 338,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/invoicing.ts",
+      "line": 265,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/invoicing.ts",
+      "line": 279,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 183,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 294,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 321,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 329,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 364,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 383,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 390,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 397,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 398,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 399,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 400,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeStore.ts",
+      "line": 69,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/mealPlanner.ts",
+      "line": 205,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/mealPlanner.ts",
+      "line": 207,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/mediaLibrary.ts",
+      "line": 119,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/mediaLibrary.ts",
+      "line": 121,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/musicStudio.ts",
+      "line": 35,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteDrafts.ts",
+      "line": 40,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteDrafts.ts",
+      "line": 124,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteDrafts.ts",
+      "line": 127,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteTree.ts",
+      "line": 31,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/para.ts",
+      "line": 113,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/pipeline.ts",
+      "line": 52,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/pipeline.ts",
+      "line": 66,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/PluginProvider.tsx",
+      "line": 48,
+      "api": "sessionStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/legacyInstallationMigration.ts",
+      "line": 9,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/legacyInstallationMigration.ts",
+      "line": 18,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/routines.ts",
+      "line": 97,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/sops.ts",
+      "line": 52,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/timeTracking.ts",
+      "line": 24,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/timeTracking.ts",
+      "line": 42,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/todos.ts",
+      "line": 28,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/todos.ts",
+      "line": 43,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/ttrpg.ts",
+      "line": 12,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCanvasState.ts",
+      "line": 27,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCanvasState.ts",
+      "line": 81,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCanvasState.ts",
+      "line": 84,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/wardrobe.ts",
+      "line": 14,
+      "api": "localStorage",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/workoutPlanner.ts",
+      "line": 65,
+      "api": "localStorage",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 29,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 102,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 158,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 172,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 173,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 175,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 181,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 182,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceStorage.ts",
+      "line": 18,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceStorage.ts",
+      "line": 20,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceStorage.ts",
+      "line": 21,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceStorage.ts",
+      "line": 24,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceStorage.ts",
+      "line": 25,
+      "api": "localStorage",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceTools/DecisionJournalView.tsx",
+      "line": 18,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/services/legacyOfflineNotesImport.ts",
+      "line": 5,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/services/legacyOfflineNotesImport.ts",
+      "line": 47,
+      "api": "localStorage",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/services/legacyStateImport.ts",
+      "line": 44,
+      "api": "localStorage",
+      "issue": "P04"
+    },
+    {
+      "file": "frontend/src/services/legacyStateImport.ts",
+      "line": 48,
+      "api": "localStorage",
+      "issue": "P04"
+    },
+    {
+      "file": "frontend/src/services/legacyStateImport.ts",
+      "line": 57,
+      "api": "localStorage",
+      "issue": "P04"
+    }
+  ],
+  "storeKeys": [
+    {
+      "file": "frontend/src/features/workspace/SelfHostedToolView.tsx",
+      "line": 28,
+      "name": "SETTINGS_KEY",
+      "value": "modulo-self-hosted-settings-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/businessAdmin.ts",
+      "line": 4,
+      "name": "BUSINESS_ADMIN_STORE_KEY",
+      "value": "modulo-business-admin-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/canvasSync.ts",
+      "line": 5,
+      "name": "LEGACY_CANVAS_KEY",
+      "value": "modulo-canvas",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/databaseSync.ts",
+      "line": 4,
+      "name": "DATABASE_LEGACY_KEY",
+      "value": "modulo-databases",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/education.ts",
+      "line": 4,
+      "name": "EDUCATION_STORE_KEY",
+      "value": "modulo-education-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/electronicsWorkbench.ts",
+      "line": 4,
+      "name": "ELECTRONICS_STORE_KEY",
+      "value": "modulo-electronics-workbench-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 35,
+      "name": "EXPENSES_KEY",
+      "value": "modulo-euer-expenses",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 36,
+      "name": "CATEGORIES_KEY",
+      "value": "modulo-euer-categories",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/euer.ts",
+      "line": 37,
+      "name": "EXPORTED_KEY",
+      "value": "modulo-euer-exported",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/gobd.ts",
+      "line": 27,
+      "name": "CLASSES_KEY",
+      "value": "modulo-gobd-classes",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/hobbies.ts",
+      "line": 4,
+      "name": "HOBBY_STORE_KEY",
+      "value": "modulo-hobbies-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/homelab.ts",
+      "line": 3,
+      "name": "HOMELAB_STORE_KEY",
+      "value": "modulo-homelab-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/informationIntake.ts",
+      "line": 4,
+      "name": "INFORMATION_INTAKE_STORE_KEY",
+      "value": "modulo-information-intake-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/invoicing.ts",
+      "line": 261,
+      "name": "SELLER_KEY",
+      "value": "modulo-invoice-seller",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 12,
+      "name": "LIFE_OS_STORE_KEY",
+      "value": "modulo-life-os-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/mealPlanner.ts",
+      "line": 4,
+      "name": "MEAL_PLANNER_STORE_KEY",
+      "value": "modulo-meal-planner-v2",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/mealPlanner.ts",
+      "line": 5,
+      "name": "LEGACY_MEAL_PLANNER_STORE_KEY",
+      "value": "modulo-meal-planner-v1",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/mediaLibrary.ts",
+      "line": 2,
+      "name": "MEDIA_LIBRARY_STORE_KEY",
+      "value": "modulo-media-library-v2",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/mediaLibrary.ts",
+      "line": 3,
+      "name": "LEGACY_MEDIA_LIBRARY_STORE_KEY",
+      "value": "modulo-media-library-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/musicStudio.ts",
+      "line": 4,
+      "name": "MUSIC_STORE_KEY",
+      "value": "modulo-music-studio-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteTree.ts",
+      "line": 25,
+      "name": "TREE_KEY",
+      "value": "modulo-note-tree",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteTree.ts",
+      "line": 26,
+      "name": "COLLAPSE_KEY",
+      "value": "modulo-note-collapsed",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/para.ts",
+      "line": 7,
+      "name": "PARA_STORE_KEY",
+      "value": "modulo-modified-para-v1",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/pipeline.ts",
+      "line": 48,
+      "name": "STAGES_KEY",
+      "value": "modulo-pipeline-stages",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
+      "line": 139,
+      "name": "GITHUB_CONFIG_KEY",
+      "value": "modulo-github-sync-config-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
+      "line": 207,
+      "name": "IDENTITY_KEY",
+      "value": "modulo-web3-identity-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
+      "line": 243,
+      "name": "FOCUS_KEY",
+      "value": "modulo-focus-sessions-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/routines.ts",
+      "line": 5,
+      "name": "ROUTINES_STORE_KEY",
+      "value": "modulo-routines-habits-v1",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/sops.ts",
+      "line": 3,
+      "name": "SOPS_STORE_KEY",
+      "value": "modulo-personal-sops-v1",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/timeTracking.ts",
+      "line": 20,
+      "name": "STORE_KEY",
+      "value": "modulo-time-entries",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/todos.ts",
+      "line": 24,
+      "name": "STORE_KEY",
+      "value": "modulo-todos",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/ttrpg.ts",
+      "line": 3,
+      "name": "TTRPG_STORE_KEY",
+      "value": "modulo-ttrpg-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/wardrobe.ts",
+      "line": 3,
+      "name": "WARDROBE_STORE_KEY",
+      "value": "modulo-wardrobe-v1",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/workoutPlanner.ts",
+      "line": 4,
+      "name": "WORKOUT_PLANNER_STORE_KEY",
+      "value": "modulo-workout-planner-v1",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 2,
+      "name": "RECOVERY_KEY",
+      "value": "modulo-workspace-recovery-v1",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 3,
+      "name": "NOTE_TRASH_KEY",
+      "value": "modulo-note-trash-v1",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/workspaceRecovery.ts",
+      "line": 4,
+      "name": "NOTE_REVISIONS_KEY",
+      "value": "modulo-note-revisions-v1",
+      "issue": "P08"
+    }
+  ],
+  "sharedWrites": [
+    {
+      "file": "frontend/src/features/workspace/MealPlannerView.tsx",
+      "line": 49,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/MediaLibraryView.tsx",
+      "line": 59,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/PersonalSopsView.tsx",
+      "line": 10,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/WorkoutPlannerView.tsx",
+      "line": 23,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/WorkspaceCommandPalette.tsx",
+      "line": 57,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/businessAdmin.ts",
+      "line": 53,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/education.ts",
+      "line": 130,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/electronicsWorkbench.ts",
+      "line": 39,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/hobbies.ts",
+      "line": 129,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/homelab.ts",
+      "line": 18,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/informationIntake.ts",
+      "line": 346,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 208,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeOs.ts",
+      "line": 393,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/lifeStore.ts",
+      "line": 87,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/mealPlanner.ts",
+      "line": 216,
+      "helper": "writeWorkspaceJson",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/mediaLibrary.ts",
+      "line": 130,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/musicStudio.ts",
+      "line": 37,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteDrafts.ts",
+      "line": 74,
+      "helper": "writeWorkspaceJson",
+      "issue": "P08"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteTree.ts",
+      "line": 37,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/noteTree.ts",
+      "line": 114,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/para.ts",
+      "line": 118,
+      "helper": "writeWorkspaceJson",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/routines.ts",
+      "line": 105,
+      "helper": "writeWorkspaceJson",
+      "issue": "P05"
+    },
+    {
+      "file": "frontend/src/features/workspace/sops.ts",
+      "line": 60,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/ttrpg.ts",
+      "line": 13,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/useBusinessAdminStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCoreWorkspace.ts",
+      "line": 64,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCoreWorkspace.ts",
+      "line": 164,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useCoreWorkspace.ts",
+      "line": 302,
+      "helper": "writeWorkspaceJson",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useEducationStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useElectronicsStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useHobbyStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useHomelabStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useInformationIntakeStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useLifeOsStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useMusicStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useParaStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useRoutinesStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useTtrpgStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/useWardrobeStore.ts",
+      "line": 5,
+      "helper": "useWorkspaceStore",
+      "issue": "P07"
+    },
+    {
+      "file": "frontend/src/features/workspace/wardrobe.ts",
+      "line": 15,
+      "helper": "writeWorkspaceJson",
+      "issue": "P06"
+    },
+    {
+      "file": "frontend/src/features/workspace/workoutPlanner.ts",
+      "line": 74,
+      "helper": "writeWorkspaceJson",
+      "issue": "P05"
+    }
+  ],
+  "note": "Static discovery baseline. Runtime-computed keys, aliases and capabilities require P01 manual review before closure."
+}

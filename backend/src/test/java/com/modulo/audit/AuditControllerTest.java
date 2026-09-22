@@ -37,7 +37,7 @@ class AuditControllerTest {
     @DisplayName("query returns page of events for the requesting user")
     void queryReturnsEvents() {
         var page = new PageImpl<>(List.of(event), PageRequest.of(0, 50), 1);
-        when(service.filter(any(), eq("alice"), any(), any(), any(), eq(0), eq(50)))
+        when(service.filter(any(), isNull(), any(), any(), any(), eq(0), eq(50)))
             .thenReturn(page);
 
         var resp = controller.query(null, null, null, null, null, 0, 50, "alice");
@@ -50,11 +50,11 @@ class AuditControllerTest {
     }
 
     @Test
-    @DisplayName("non-admin requester cannot override userId filter")
+    @DisplayName("requester header cannot select an admin bypass")
     void nonAdminSeesOnlyOwnEvents() {
         var page = new PageImpl<>(List.of(event), PageRequest.of(0, 50), 1);
-        // controller forces effectiveUserId = requesterId for non-admins
-        when(service.filter(any(), eq("bob"), any(), any(), any(), eq(0), eq(50)))
+        // The service receives the filter and independently resolves the authenticated actor.
+        when(service.filter(any(), eq("alice"), any(), any(), any(), eq(0), eq(50)))
             .thenReturn(page);
 
         // bob tries to query for alice's events — should be ignored
@@ -78,7 +78,7 @@ class AuditControllerTest {
     @DisplayName("filter by noteId is passed through")
     void filterByNoteId() {
         var page = new PageImpl<>(List.of(event), PageRequest.of(0, 50), 1);
-        when(service.filter(eq(1L), eq("alice"), any(), any(), any(), anyInt(), anyInt()))
+        when(service.filter(eq(1L), isNull(), any(), any(), any(), anyInt(), anyInt()))
             .thenReturn(page);
 
         var resp = controller.query(1L, null, null, null, null, 0, 50, "alice");

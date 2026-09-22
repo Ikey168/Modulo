@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -44,7 +51,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: .node-version
         cache: 'npm'
         # Workspaces monorepo: the lockfile lives at the repo root, not in frontend/.
         cache-dependency-path: package-lock.json
@@ -73,7 +80,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: .node-version
 
     - name: Build AssemblyScript example
       working-directory: examples/wasm-nodes/assemblyscript
@@ -93,3 +100,133 @@ jobs:
             backend/src/test/resources/wasm/titlecase.wasm
         cmp examples/wasm-nodes/rust/target/wasm32-unknown-unknown/release/modulo_wasm_node_wordstats.wasm \
             backend/src/test/resources/wasm/wordstats.wasm
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: node frontend/scripts/verifyMobileInventory.mjs
+      - run: npm run lint:ci --workspace=frontend
+      - run: npm run test:run --workspace=frontend -- --maxWorkers=2
+      - run: npm run build:strict --workspace=frontend
+      - run: npm ci --prefix mobile/app
+      - run: npm run sync --prefix mobile/app
+      - run: npm ci --ignore-scripts
+        working-directory: desktop
+      - run: npm test
+        working-directory: desktop
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.smoke.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: frontend-smoke-results
+          path: frontend/test-results/
+          retention-days: 7
+
+  android-debug:
+    name: Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run build:strict --workspace=frontend
+      - run: npm ci --prefix mobile/app
+      - run: npm run sync --prefix mobile/app
+      - name: Install Android SDK Platform 36 and Build Tools
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/android -o "$RUNNER_TEMP/android"
+          chmod +x "$RUNNER_TEMP/android"
+          "$RUNNER_TEMP/android" --sdk="$ANDROID_HOME" sdk install platforms/android-36 build-tools/36.0.0 platform-tools
+      - name: Compile packaged Android app
+        working-directory: mobile/app/android
+        run: ./gradlew assembleDebug --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modulo-android-debug
+          path: mobile/app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  android-emulator:
+    name: Android 36 packaged-app smoke
+    needs: android-debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v4
+        with:
+          name: modulo-android-debug
+          path: mobile/app/android/app/build/outputs/apk/debug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Boot Android and test packaged app
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_4
+          emulator-build: 15004761
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            trap 'adb logcat -d -t 2000 > mobile/app/android-smoke-logcat.txt' EXIT
+            adb install -r mobile/app/android/app/build/outputs/apk/debug/app-debug.apk
+            npm run smoke:android --prefix mobile/app
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-smoke-logcat
+          path: mobile/app/android-smoke-logcat.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  operations:
+    name: Operations checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/verify-repository-contract.py
+      - run: python3 scripts/verify-device-inventory.py
+      - run: python3 scripts/verify-data-inventory.py
+      - run: python3 -m unittest discover -s deploy/oci/tests -v
+      - run: deploy/oci/tests/restore-drill-integration.sh
+      - run: for script in deploy/oci/*.sh; do bash -n "$script"; done
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck deploy/oci/{backup,restore-drill,offsite-drill,release,rollback,status,schema}.sh
+
+  required:
+    name: Required checks
+    if: always()
+    needs: [build, boundary-lint, wasm-node-examples, frontend, operations]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: python3 -c 'import json,os; assert all(r == "success" for r in json.loads(os.environ["RESULTS"]))'

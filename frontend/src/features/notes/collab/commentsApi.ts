@@ -1,3 +1,4 @@
+import { authenticatedRequest } from '../../../services/authenticatedRequest';
 const BASE = '/api/notes';
 
 export interface NoteComment {
@@ -32,13 +33,13 @@ async function getHeaders(userId: string, userName: string) {
 
 export const commentsApi = {
   async list(noteId: number): Promise<NoteComment[]> {
-    const res = await fetch(`${BASE}/${noteId}/comments`);
+    const res = await authenticatedRequest(`${BASE}/${noteId}/comments`);
     if (!res.ok) throw new Error('Failed to fetch comments');
     return res.json();
   },
 
   async create(noteId: number, req: CreateCommentRequest, userId: string, userName: string): Promise<NoteComment> {
-    const res = await fetch(`${BASE}/${noteId}/comments`, {
+    const res = await authenticatedRequest(`${BASE}/${noteId}/comments`, {
       method: 'POST',
       headers: await getHeaders(userId, userName),
       body: JSON.stringify(req),
@@ -48,7 +49,7 @@ export const commentsApi = {
   },
 
   async resolve(noteId: number, commentId: number, userId: string): Promise<NoteComment> {
-    const res = await fetch(`${BASE}/${noteId}/comments/${commentId}/resolve`, {
+    const res = await authenticatedRequest(`${BASE}/${noteId}/comments/${commentId}/resolve`, {
       method: 'PATCH',
       headers: { 'X-User-Id': userId },
     });
@@ -57,7 +58,7 @@ export const commentsApi = {
   },
 
   async delete(noteId: number, commentId: number, userId: string): Promise<void> {
-    const res = await fetch(`${BASE}/${noteId}/comments/${commentId}`, {
+    const res = await authenticatedRequest(`${BASE}/${noteId}/comments/${commentId}`, {
       method: 'DELETE',
       headers: { 'X-User-Id': userId },
     });

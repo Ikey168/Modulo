@@ -47,6 +47,7 @@ public class OfflineNoteController {
             
             return ResponseEntity.status(HttpStatus.CREATED).body(note);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error creating offline note", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -61,6 +62,7 @@ public class OfflineNoteController {
             List<OfflineNote> notes = offlineSyncService.getAllOfflineNotes();
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error retrieving offline notes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
@@ -89,6 +91,7 @@ public class OfflineNoteController {
             log.error("Error updating offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error updating offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -104,6 +107,7 @@ public class OfflineNoteController {
             offlineSyncService.deleteOfflineNote(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error deleting offline note: {}", LogSanitizer.sanitizeId(id), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -119,6 +123,7 @@ public class OfflineNoteController {
             List<OfflineNote> notes = offlineSyncService.searchOfflineNotes(query);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error searching offline notes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
@@ -134,6 +139,7 @@ public class OfflineNoteController {
             List<OfflineNote> notes = offlineSyncService.getOfflineNotesByTag(tagName);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error getting offline notes by tag", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
@@ -148,6 +154,7 @@ public class OfflineNoteController {
             OfflineSyncService.SyncStatus status = offlineSyncService.getSyncStatus();
             return ResponseEntity.ok(status);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error getting sync status", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -168,6 +175,7 @@ public class OfflineNoteController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error forcing sync", e);
             
             Map<String, String> response = new HashMap<>();

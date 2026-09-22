@@ -12,9 +12,11 @@ import { CATEGORY_ORDER, categoryMeta } from './categoryMeta';
 interface NodePaletteProps {
   catalog: NodeCatalog;
   onAdd: (descriptor: NodeDescriptor) => void;
+  /** Overrides the fixed-width rail, e.g. when the phone shows it as a sheet. */
+  className?: string;
 }
 
-export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
+export function NodePalette({ catalog, onAdd, className }: NodePaletteProps) {
   const [query, setQuery] = useState('');
 
   const grouped = useMemo(() => {
@@ -35,7 +37,7 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
 
   return (
     <div
-      className="flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-border"
+      className={cn('flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-border', className)}
       role="complementary"
       aria-label="Node palette"
     >
@@ -48,7 +50,7 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search nodes"
-            className="h-8 pl-8 text-xs"
+            className="h-8 pl-8 text-xs coarse:h-11 coarse:pl-10 coarse:text-[15px]"
           />
         </div>
       </div>
@@ -58,14 +60,14 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
         )}
         {grouped.map((group) => (
           <div key={group.category}>
-            <div className="mx-1 mb-1.5 mt-2.5 text-[10.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            <div className="mx-1 mb-1.5 mt-2.5 text-[10.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground coarse:mt-4 coarse:text-xs">
               {categoryMeta(group.category).label}
             </div>
             {group.nodes.map((node) => (
               <button
                 key={`${node.type}@${node.version}`}
                 type="button"
-                className="group mb-0.5 flex w-full cursor-grab items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:cursor-grabbing"
+                className="group mb-0.5 flex w-full cursor-grab items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:cursor-grabbing coarse:min-h-touch coarse:gap-3 coarse:rounded-lg coarse:px-3 coarse:active:bg-surface-2"
                 title={node.description}
                 draggable
                 onDragStart={(e) => {
@@ -79,8 +81,8 @@ export function NodePalette({ catalog, onAdd }: NodePaletteProps) {
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-foreground">{node.title}</span>
-                  <span className="block truncate font-mono text-[10.5px] text-muted-foreground/80">{node.type}</span>
+                  <span className="block truncate text-[13px] font-medium text-foreground coarse:text-[15px]">{node.title}</span>
+                  <span className="block truncate font-mono text-[10.5px] text-muted-foreground/80 coarse:text-xs">{node.type}</span>
                 </span>
               </button>
             ))}

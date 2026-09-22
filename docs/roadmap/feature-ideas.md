@@ -1,239 +1,53 @@
 # Feature ideas & roadmap
 
-Status: **proposal** · Owner: TBD · Last updated: 2026-06-30
+Last reviewed: **2026-09-05** · Owner: repository maintainers · Tracking: [#451](https://github.com/Ikey168/Modulo/issues/451)
 
-This document scopes candidate features for Modulo, grouped by the existing
-capability each one builds on, with enough detail to turn each into a GitHub
-issue. It is a planning artifact, **not** an approved roadmap — priorities and
-sequencing are still open.
+This inventory separates existing code from verified delivery. “Implemented” means
+there is a working implementation in the repository; it does not assert deployment.
+“Partial” names a remaining delivery gap. “Planned” means the stated outcome has
+not been demonstrated. “Superseded” points to its current tracking issue. Local,
+uncommitted workspace additions are not counted as shipped GitHub capabilities.
 
-## Why these and not others
+## Current capabilities and remaining gaps
 
-Modulo already covers the note-app basics (Markdown editor, full-text search,
-tags, `[[wiki-links]]`, the knowledge graph) and a lot more: real-time collab
-(Yjs presence/comments/notifications), AI summaries, tasks + Google Calendar,
-the Blueprint automation engine, a plugin marketplace, encrypted sharing, and
-on-chain / IPFS provenance. The highest-leverage *new* features are therefore
-the ones that exploit what makes Modulo different from a plain note app — its
-**knowledge graph**, its **provenance infrastructure**, and its **Blueprint
-automation engine** — plus the few table-stakes PKM features it is still
-missing.
+| Capability | Status and evidence | Remaining work / tracking |
+|---|---|---|
+| Planner and daily notes | Implemented UI and date helpers: [PlannerView](../../frontend/src/features/workspace/PlannerView.tsx), [planner](../../frontend/src/features/workspace/planner.ts). The original proposal to introduce a Planner is superseded. | Authenticated ownership and multi-client correctness still require [#415](https://github.com/Ikey168/Modulo/issues/415) and [#423](https://github.com/Ikey168/Modulo/issues/423). A dedicated atomic daily-note API is not established. |
+| Canvas / spatial boards | Partial: [CanvasView](../../frontend/src/features/workspace/CanvasView.tsx) and [canvasStore](../../frontend/src/features/workspace/canvasStore.ts) provide boards, cards and connections. | Browser-local layouts need versioned server state, migration, offline conflict handling and two-client acceptance: [#420](https://github.com/Ikey168/Modulo/issues/420). |
+| Embedded Database, Todos and time tracking | Partial: [Database](../../frontend/src/features/workspace/database.ts), [Todos](../../frontend/src/features/workspace/todos.ts), [time tracking](../../frontend/src/features/workspace/timeTracking.ts). | Durable synchronized records and migration: [#421](https://github.com/Ikey168/Modulo/issues/421), [#422](https://github.com/Ikey168/Modulo/issues/422). |
+| Note and schedule Blueprint triggers | Partial: [interpreter](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintInterpreterService.java) registers note events and cron jobs. The proposal to introduce triggers is superseded. | In-process schedules lack durable leases, waiting-run resume and dead-letter handling: [#428](https://github.com/Ikey168/Modulo/issues/428). Request-to-event coverage and ownership remain part of [#415](https://github.com/Ikey168/Modulo/issues/415). |
+| Execution history | Partial: [BlueprintExecution](../../backend/src/main/java/com/modulo/blueprint/BlueprintExecution.java) exposes log summaries and executed nodes. | Persist structured run/step traces, redaction, retry, cancellation, alerts and operational UI: [#410](https://github.com/Ikey168/Modulo/issues/410). |
+| External plugins | Implemented in merged [PR #407](https://github.com/Ikey168/Modulo/pull/407); [ADR 0004](../architecture/adr-0004-external-plugin-tier.md). | [#388](https://github.com/Ikey168/Modulo/issues/388) records completion and deliberately deferred register-on-sync, durable broker delivery, signature enforcement and mTLS. Signature enforcement is tracked in [#441](https://github.com/Ikey168/Modulo/issues/441). |
+| WASM sandbox | Partial: [WasmScriptSandbox](../../backend/src/main/java/com/modulo/blueprint/sandbox/WasmScriptSandbox.java) exists; [selection](../../backend/src/main/java/com/modulo/blueprint/sandbox/ScriptSandboxConfig.java) still defaults to Rhino. | Staging release-cycle evidence, default flip, escape-hatch release, subsequent Rhino retirement and Pi verification: [#401](https://github.com/Ikey168/Modulo/issues/401). |
+| Installable packs | Partial: [PackManifest](../../backend/src/main/java/com/modulo/pack/PackManifest.java) contributes nodes and Blueprints; [PackService](../../backend/src/main/java/com/modulo/pack/PackService.java) handles existing packs. | Complete workspace contributions, transactional lifecycle, authoring and guided audit journey: [#412](https://github.com/Ikey168/Modulo/issues/412). |
+| Marketplace trust | Partial: [submission validation](../../backend/src/main/java/com/modulo/plugin/submission/PluginValidationService.java) enforces the external-plugin submission foundation. | Digest-bound signature/SBOM/scan evidence, publisher verification and safe upgrades: [#413](https://github.com/Ikey168/Modulo/issues/413). |
+| Human approvals and portable workflow evidence | Planned: existing provenance services do not establish a resumable approval state machine or signed decisions. | [#411](https://github.com/Ikey168/Modulo/issues/411). |
+| Typed note properties and query views | Planned: metadata and embedded Database records do not establish a typed, indexed note-property API. | [#445](https://github.com/Ikey168/Modulo/issues/445)–[#447](https://github.com/Ikey168/Modulo/issues/447). |
+| Embeddings and semantic search | Planned delivery: closed [#255](https://github.com/Ikey168/Modulo/issues/255) is a prior input, not acceptance evidence; no working embedding pipeline was located in the reviewed backend. | Provider controls, pgvector schema, resumable backfill and evaluated owner-scoped retrieval: [#448](https://github.com/Ikey168/Modulo/issues/448), [#449](https://github.com/Ikey168/Modulo/issues/449). |
+| Ask your notes / RAG | Planned delivery: closed [#256](https://github.com/Ikey168/Modulo/issues/256) does not demonstrate cited retrieval. [OpenAIService](../../backend/src/main/java/com/modulo/service/OpenAIService.java) implements summaries, not this outcome. | Sentence-level citations, privacy controls, authorized retrieval and injection tests: [#450](https://github.com/Ikey168/Modulo/issues/450). |
+| Suggested links and AI tags | Partial foundation: [UnlinkedMentionsService](../../backend/src/main/java/com/modulo/service/UnlinkedMentionsService.java) matches titles. Closed [#257](https://github.com/Ikey168/Modulo/issues/257) does not establish semantic link/tag suggestions. | Explainable accept/reject link suggestions: [#449](https://github.com/Ikey168/Modulo/issues/449). Content-derived tag suggestions remain a proposal grounded in [OpenAIService](../../backend/src/main/java/com/modulo/service/OpenAIService.java) and [TagService](../../backend/src/main/java/com/modulo/service/TagService.java), without demonstrated delivery. |
+| Verifiable revision history | Partial foundation: [BlockchainService](../../backend/src/main/java/com/modulo/service/BlockchainService.java) and [IpfsService](../../backend/src/main/java/com/modulo/service/IpfsService.java) support provenance. | A per-revision hash chain, historical diff/restore and verification UI remain proposals; single-content anchoring is not revision history. |
+| Public digital garden | Partial foundation: [ShareController](../../backend/src/main/java/com/modulo/sharing/ShareController.java) supports sharing. | Publishing selected notes as an indexed content-addressed site remains a proposal; single-note sharing does not establish a garden. |
 
-## Priority summary
+## Recommended delivery order
 
-| # | Feature | Builds on | Effort | Differentiation | Suggested priority |
-|---|---------|-----------|--------|-----------------|--------------------|
-| 1 | Daily notes / journaling | Templates, CalendarView | S | Low (table stakes) | **P0 — quickest win** |
-| 2 | Semantic search + AI auto-linking | OpenAIService, Neo4j, UnlinkedMentions | M–L | High | **P1** |
-| 3 | Verifiable version history | BlockchainService, IpfsService | M | Very high (unique) | **P1** |
-| 4 | "Ask your notes" (RAG chat) | #2 embeddings, AI summary | M | High | P2 |
-| 5 | Note automations / Blueprint triggers | Blueprint interpreter, NoteService | M–L | High | P2 |
-| 6 | Canvas / spatial view | Sigma/Graphology graph render | M | Medium | P2 |
-| 7 | Public "digital garden" publishing | IpfsService, sharing | M | High | P3 |
-| 8 | AI auto-tagging | OpenAIService, TagService | S | Low–Medium | P3 |
+1. [#409 — synchronized state and tenant isolation](https://github.com/Ikey168/Modulo/issues/409): establish principal ownership (#415), state contract (#416), REST persistence (#417), offline client (#418), migrations (#419–422), then acceptance (#423).
+2. [#410 — Execution Center](https://github.com/Ikey168/Modulo/issues/410): durable run/step model before instrumentation, UI, controls, scheduling and observability (#424–429).
+3. [#411 — approvals and evidence](https://github.com/Ikey168/Modulo/issues/411): state machine, resumable nodes, reviewer UI, signatures, portable verifier (#430–434).
+4. [#412 — Pack Studio](https://github.com/Ikey168/Modulo/issues/412): contract and recoverable install before authoring and the flagship audit/onboarding journey (#435–439). The audit journey also depends on #434.
+5. [#413 — Trust Center](https://github.com/Ikey168/Modulo/issues/413): evidence model before verification, upgrade consent and publisher/health UI (#440–444). Upgrade work depends on pack lifecycle; health UI depends on execution visibility.
+6. [#414 — structured knowledge](https://github.com/Ikey168/Modulo/issues/414): properties and frontmatter/query views (#445–447), then embeddings, retrieval and cited answers (#448–450). Property and embedding foundations can proceed after #415; query views also need #421.
 
-Effort: S ≈ days, M ≈ 1–2 weeks, L ≈ 3+ weeks for one engineer.
+This is a dependency order, not a dated delivery promise. Previous undated effort
+estimates have been removed. WASM rollout (#401) must retain its operational soak
+gate; code changes alone cannot establish a release cycle without regressions.
 
----
+## Maintenance convention
 
-## 1. Daily notes / journaling (P0)
-
-**What** Auto-created, date-stamped notes (`2026-06-30`) reachable from a
-calendar picker and a "Today" shortcut, optionally seeded from a template.
-Optional periodic notes (weekly/monthly).
-
-**Why** The single most-used feature in Obsidian/Roam/Logseq-style tools, and
-Modulo has none. It also gives tasks and meeting notes a natural home.
-
-**Architecture hooks**
-- Reuse `frontend/src/features/notes/editor/TemplateManager.tsx` +
-  `templateApi.ts` for the daily-note template.
-- Reuse `frontend/src/features/tasks/CalendarView.tsx` for the date picker;
-  surface a "Today" entry point in the workspace nav.
-- Backend: a `GET /api/notes/daily/{date}` "get-or-create" endpoint on
-  `NoteController` backed by `NoteService`; idempotent on date + owner.
-- Tag daily notes with a reserved tag (e.g. `daily`) so the graph and search
-  treat them as a first-class collection.
-
-**Scope cuts for v1** No periodic (weekly/monthly) notes; no rollover of
-unfinished tasks. Ship daily-only, add periodic later.
-
-**Open questions** Timezone source of truth (client vs. server)? Should an
-empty daily note be persisted on open, or only on first edit?
-
----
-
-## 2. Semantic search + AI auto-linking (P1)
-
-**What** Compute an embedding per note; offer (a) "search by meaning" that
-ranks notes by vector similarity and (b) *suggested* `[[links]]` based on
-semantic similarity rather than literal text matches.
-
-**Why** Direct successor to `UnlinkedMentionsService` (which only matches
-literal titles). Makes the knowledge graph fill itself in and is the
-foundation for #4 (RAG chat).
-
-**Architecture hooks**
-- Embeddings via `OpenAIService` (already wraps OpenAI) — add an
-  `embed(text)` path; make the provider pluggable for a local model.
-- Vector store: either `pgvector` in PostgreSQL (new Flyway migration +
-  `vector` column) or vectors on `:Note` nodes in Neo4j. **Recommendation:**
-  pgvector, since notes are already the PostgreSQL system of record and Neo4j
-  is the projection.
-- Recompute embedding on note save (debounced) via `NoteService`; backfill
-  job for existing notes.
-- New `POST /api/search/semantic` endpoint; a "suggested links" affordance in
-  the editor next to the existing unlinked-mentions UI.
-
-**Scope cuts for v1** Suggested links surfaced read-only in a side panel; no
-auto-insertion. Single embedding model, no re-ranking.
-
-**Open questions** Per-note embedding cost/rate limits on large vaults?
-Privacy: send note text to OpenAI vs. require a local embedding model for
-private deployments? (Ties into the data-protection model in the root README.)
-
----
-
-## 3. Verifiable version history (P1)
-
-**What** Full note revision history with a diff view, where each revision is
-hash-chained to the previous one and (optionally) anchored on-chain — turning
-the existing single-hash anchor into a verifiable timeline.
-
-**Why** The most differentiated feature in this list. Modulo already anchors a
-SHA-256 of note content via `BlockchainService`; almost no other note app can
-offer *tamper-evident history*. Plays directly to the provenance positioning.
-
-**Architecture hooks**
-- New `note_revision` table (Flyway migration): `note_id`, `seq`, `content`,
-  `content_hash`, `prev_hash`, `created_at`, `author`, optional `anchor_tx`.
-- Write a revision on save in `NoteService` (or via an entity listener);
-  compute `content_hash` and chain `prev_hash`.
-- Anchoring is opt-in per note and batched through the existing
-  `BlockchainService` / `BlockchainAccessControlService` path; store the tx
-  reference on the revision.
-- Frontend: a "History" tab on the note view with a revision list, a
-  side-by-side / inline diff (reuse an existing markdown-diff lib), "restore",
-  and a "verify chain" badge.
-
-**Scope cuts for v1** Off-chain hash chain first (verifiable locally); make
-on-chain anchoring a follow-up toggle. Diff for text only.
-
-**Open questions** Retention/compaction policy for long histories? Storage cost
-of full-content revisions vs. storing diffs.
-
----
-
-## 4. "Ask your notes" — RAG chat (P2)
-
-**What** A chat panel that answers questions grounded in the user's own notes,
-with citations linking back to source notes.
-
-**Why** Natural extension of the existing AI-summary feature; high user value;
-cheap to build *after* #2 provides embeddings + retrieval.
-
-**Architecture hooks**
-- Retrieval reuses the #2 vector store; generation reuses `OpenAIService`.
-- New `POST /api/ai/ask` endpoint: retrieve top-k notes → prompt with sources →
-  return answer + cited note IDs.
-- Frontend: a chat surface alongside `features/ai-summary`; render citations as
-  links into the workspace.
-
-**Dependencies** Best built on top of #2. **Scope cut:** no multi-turn memory
-in v1.
-
-**Open questions** Same provider/privacy trade-off as #2; per-user token
-budgeting.
-
----
-
-## 5. Note automations / Blueprint triggers (P2)
-
-**What** "When a note is tagged `X` (or created/updated), run Blueprint `Y`" —
-e.g. summarize it, create a task, or anchor it. Turns Blueprint from a
-standalone tool into an automation layer for the whole app.
-
-**Why** Connects two existing systems (Blueprint engine + note lifecycle) into
-something neither delivers alone, and is extensible via the plugin marketplace.
-
-**Architecture hooks**
-- Emit note lifecycle events (created/updated/tagged) — likely on
-  `WebSocketNotificationService` / a new internal event bus — and a
-  `trigger` registry mapping events → Blueprint IDs.
-- Execute via `BlueprintInterpreterService.java`; reuse the existing
-  `SandboxedScriptService` limits (500k instructions / 2s) for safety.
-- A "Trigger" node category in `nodeCatalog.ts` / `capabilities.ts`
-  (see the "Adding a blueprint node" checklist in `CLAUDE.md`).
-
-**Scope cuts for v1** Tag-added trigger only; synchronous, best-effort
-execution; per-user automation cap.
-
-**Open questions** Failure handling / retries / visibility into automation
-runs (an audit surface)? Guardrails against trigger loops.
-
----
-
-## 6. Canvas / spatial view (P2)
-
-**What** A free-form whiteboard (a 5th workspace view alongside Notes, Graph,
-Dashboard, Marketplace) where notes are arranged spatially with drawn
-connections — Obsidian-Canvas style.
-
-**Why** Reuses the Sigma/Graphology rendering already in the project; gives a
-spatial/visual-thinking mode the force-directed graph doesn't.
-
-**Architecture hooks**
-- New workspace view registered through the workspace route / `@modulo/core`
-  surface (respect the B0 boundary — no deep imports from `features/workspace`).
-- Persist canvas layout (node positions, free-floating cards, edges) in a new
-  table or as a note of a `canvas` type.
-
-**Open questions** Is canvas a *note type* or a separate entity? Reuse Sigma or
-introduce a dedicated canvas lib (e.g. tldraw)?
-
----
-
-## 7. Public "digital garden" publishing (P3)
-
-**What** Publish selected notes as a public, content-addressed mini-site.
-
-**Why** Turns the existing `IpfsService` provenance infra into a user-facing
-publishing flow — a differentiator most note apps can't match.
-
-**Architecture hooks**
-- Reuse `IpfsService` for content-addressed publishing and the existing
-  `features/notes/sharing` flows for selection/visibility.
-- Render a read-only public note view (already partially present:
-  `SharedNotePage.tsx`); generate an index page for a published set.
-
-**Open questions** Confidentiality caveat from the root README applies — IPFS
-content is **public and unencrypted**; the UI must make that unmistakable.
-Custom domains / ENS later.
-
----
-
-## 8. AI auto-tagging (P3)
-
-**What** Suggest tags from note content on save; user accepts/rejects.
-
-**Why** Small, self-contained, improves graph density and search.
-
-**Architecture hooks** `OpenAIService` for suggestion, `TagService` to apply;
-surface inline in the editor near the existing tag UI. Suggestions only — never
-auto-apply without confirmation.
-
----
-
-## Suggested sequencing
-
-1. **#1 Daily notes** — ship the quick win, validate the template/calendar reuse.
-2. **#2 Semantic search + auto-linking** — lands the vector store that #4 needs.
-3. **#3 Verifiable version history** — the flagship differentiator; independent
-   of #2, so it can run in parallel.
-4. Then #4 / #5 / #6 as capacity allows; #7 / #8 as polish.
-
-## Next step
-
-Convert the agreed-upon items into GitHub issues (one per feature, linked back
-to this doc). Each section above maps to an issue body: *What / Why /
-Architecture hooks / Scope cuts / Open questions*.
+The maintainer closing a child or tracking issue owns its roadmap update. In the
+same delivery change, update the affected row, name any remaining gap, link the
+implementation and acceptance evidence, and advance the review date. Close an
+epic only when every child is verified complete or explicitly removed with a
+recorded rationale. A closed historical issue alone is never evidence that a
+feature works end to end. Preserve superseded proposals as links to their current
+tracking issue instead of describing existing features as absent.

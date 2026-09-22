@@ -1,3 +1,4 @@
+import { authenticatedRequest } from '../../../services/authenticatedRequest';
 export interface AppNotification {
   id: number;
   userId: string;
@@ -11,7 +12,7 @@ export interface AppNotification {
 
 export const notificationApi = {
   async feed(userId: string): Promise<AppNotification[]> {
-    const res = await fetch('/api/notifications', {
+    const res = await authenticatedRequest('/api/notifications', {
       headers: { 'X-User-Id': userId },
     });
     if (!res.ok) throw new Error('Failed to fetch notifications');
@@ -19,7 +20,7 @@ export const notificationApi = {
   },
 
   async unreadCount(userId: string): Promise<number> {
-    const res = await fetch('/api/notifications/unread-count', {
+    const res = await authenticatedRequest('/api/notifications/unread-count', {
       headers: { 'X-User-Id': userId },
     });
     if (!res.ok) return 0;
@@ -28,7 +29,7 @@ export const notificationApi = {
   },
 
   async markRead(id: number, userId: string): Promise<AppNotification> {
-    const res = await fetch(`/api/notifications/${id}/read`, {
+    const res = await authenticatedRequest(`/api/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { 'X-User-Id': userId },
     });
@@ -37,14 +38,14 @@ export const notificationApi = {
   },
 
   async markAllRead(userId: string): Promise<void> {
-    await fetch('/api/notifications/read-all', {
+    await authenticatedRequest('/api/notifications/read-all', {
       method: 'POST',
       headers: { 'X-User-Id': userId },
     });
   },
 
   async delete(id: number, userId: string): Promise<void> {
-    await fetch(`/api/notifications/${id}`, {
+    await authenticatedRequest(`/api/notifications/${id}`, {
       method: 'DELETE',
       headers: { 'X-User-Id': userId },
     });

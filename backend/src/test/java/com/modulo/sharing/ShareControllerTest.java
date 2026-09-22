@@ -31,6 +31,7 @@ class ShareControllerTest {
     @Mock private ShareTokenRepository tokenRepository;
     @Mock private NoteRepository noteRepository;
     @Mock private AuditEventService auditService;
+    @Mock private com.modulo.security.AuthenticatedUserService users;
 
     @InjectMocks
     private ShareController controller;
@@ -46,7 +47,8 @@ class ShareControllerTest {
         token = new ShareToken();
         token.setId(10L);
         token.setNoteId(1L);
-        token.setOwnerId("alice");
+        token.setOwnerId("1");
+        token.setOwnerVerified(true);
         token.setToken("abc123");
     }
 
@@ -62,6 +64,7 @@ class ShareControllerTest {
     @Test
     @DisplayName("create saves token and records audit event")
     void createSavesToken() {
+        when(users.actor()).thenReturn("1");
         when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
         when(tokenRepository.save(any())).thenReturn(token);
 
@@ -71,13 +74,14 @@ class ShareControllerTest {
         ResponseEntity<ShareTokenDto> resp = controller.create(1L, req, "alice");
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        verify(tokenRepository).save(any(ShareToken.class));
+        verify(tokenRepository).save(argThat(saved -> saved.isOwnerVerified() && "1".equals(saved.getOwnerId())));
         verify(auditService).record(eq("SHARE_CREATED"), eq(1L), eq("alice"), any(), any(), any(), anyString());
     }
 
     @Test
     @DisplayName("create with password hashes it")
     void createHashesPassword() {
+        when(users.actor()).thenReturn("1");
         when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
         when(tokenRepository.save(any())).thenAnswer(inv -> {
             ShareToken t = inv.getArgument(0);
@@ -124,7 +128,7 @@ class ShareControllerTest {
     @DisplayName("renderShared returns 200 HTML for valid active token")
     void renderValid() {
         when(tokenRepository.findByToken("abc123")).thenReturn(Optional.of(token));
-        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+        when(noteRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(note));
 
         ResponseEntity<String> resp = controller.renderShared("abc123", null, new MockHttpServletRequest());
 
@@ -136,6 +140,7 @@ class ShareControllerTest {
     @Test
     @DisplayName("revoke sets revoked flag and records audit event")
     void revokeToken() {
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
         when(tokenRepository.findById(10L)).thenReturn(Optional.of(token));
 
         ResponseEntity<Void> resp = controller.revoke(10L, "alice");
@@ -144,5 +149,25 @@ class ShareControllerTest {
         assertThat(token.isRevoked()).isTrue();
         verify(tokenRepository).save(token);
         verify(auditService).record(eq("SHARE_REVOKED"), eq(1L), eq("alice"), any(), any(), any(), anyString());
+    }
+
+    @Test
+    void legacySpoofedOwnerCannotAuthorizePublicRead() {
+        token.setOwnerVerified(false);
+        when(tokenRepository.findByToken("abc123")).thenReturn(Optional.of(token));
+        assertThat(controller.renderShared("abc123", null, new MockHttpServletRequest()).getStatusCode())
+            .isEqualTo(HttpStatus.NOT_FOUND);
+        verifyNoInteractions(noteRepository);
+    }
+
+    @Test
+    void foreignNoteCannotListOrRevokeShares() {
+        when(noteRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThat(controller.list(1L, "admin").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(tokenRepository, never()).findByNoteIdOrderByCreatedAtDesc(any());
+        when(tokenRepository.findById(10L)).thenReturn(Optional.of(token));
+        assertThat(controller.revoke(10L, "admin").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(tokenRepository, never()).save(any());
+        assertThat(token.isRevoked()).isFalse();
     }
 }

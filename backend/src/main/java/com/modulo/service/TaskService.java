@@ -1,6 +1,9 @@
 package com.modulo.service;
 
 import com.modulo.entity.Task;
+import com.modulo.security.AuthenticatedUserService;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import com.modulo.entity.Note;
 import com.modulo.entity.Task.TaskStatus;
 import com.modulo.entity.Task.TaskPriority;
@@ -23,6 +26,28 @@ import java.util.Optional;
 @Service
 @Transactional
 public class TaskService {
+    @Autowired
+    private AuthenticatedUserService users;
+
+    private Task requireTask(Long id) {
+        if (id == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found");
+        return findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+    }
+
+    private Note requireNote(Long id) {
+        long owner = users.requireUserId();
+        return noteRepository.findById(id).filter(note -> java.util.Objects.equals(note.getUserId(), owner))
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+    }
+
+    private void validateRelationships(Task task) {
+        if (task.getParentTaskId() != null) {
+            if (task.getParentTaskId().equals(task.getId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A task cannot parent itself");
+            requireTask(task.getParentTaskId());
+        }
+        if (task.getLinkedNotes() != null) for (Note note : task.getLinkedNotes()) requireNote(note.getId());
+    }
+
     
     @Autowired
     private TaskRepository taskRepository;
@@ -34,6 +59,9 @@ public class TaskService {
      * Create a new task
      */
     public Task createTask(Task task) {
+        if (task.getId() != null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New task must not supply an ID");
+        task.setUserId(users.requireUserId());
+        validateRelationships(task);
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         return taskRepository.save(task);
@@ -43,6 +71,10 @@ public class TaskService {
      * Update an existing task
      */
     public Task updateTask(Task task) {
+        Task previous = requireTask(task.getId());
+        task.setUserId(previous.getUserId());
+        task.setCreatedAt(previous.getCreatedAt());
+        validateRelationships(task);
         task.setUpdatedAt(LocalDateTime.now());
         return taskRepository.save(task);
     }
@@ -52,7 +84,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public Optional<Task> findById(Long id) {
-        return taskRepository.findById(id);
+        return taskRepository.findByIdAndUserId(id, users.requireUserId());
     }
     
     /**
@@ -60,6 +92,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
     
@@ -68,6 +101,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findByUserIdAndStatus(Long userId, TaskStatus status) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndStatusOrderByDueDateAsc(userId, status);
     }
     
@@ -76,6 +110,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findByUserIdAndPriority(Long userId, TaskPriority priority) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndPriorityOrderByDueDateAsc(userId, priority);
     }
     
@@ -84,6 +119,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findOverdueTasksByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findOverdueTasksByUserId(userId, LocalDateTime.now());
     }
     
@@ -92,6 +128,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findTasksDueTodayByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findTasksDueTodayByUserId(userId, LocalDateTime.now());
     }
     
@@ -100,6 +137,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findTasksDueThisWeekByUserId(Long userId) {
+        userId = users.requireOwner(userId);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfWeek = now.truncatedTo(ChronoUnit.DAYS).minusDays(now.getDayOfWeek().getValue() - 1);
         LocalDateTime endOfWeek = startOfWeek.plusDays(6).withHour(23).withMinute(59).withSecond(59);
@@ -111,7 +149,7 @@ public class TaskService {
      * Mark task as completed
      */
     public Task completeTask(Long taskId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
         if (taskOpt.isPresent()) {
             Task task = taskOpt.get();
             task.setStatus(TaskStatus.COMPLETED);
@@ -126,7 +164,7 @@ public class TaskService {
      * Update task progress
      */
     public Task updateProgress(Long taskId, int progressPercentage) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
         if (taskOpt.isPresent()) {
             Task task = taskOpt.get();
             task.setProgressPercentage(progressPercentage);
@@ -147,11 +185,12 @@ public class TaskService {
      * Delete a task
      */
     public void deleteTask(Long taskId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
         if (taskOpt.isPresent()) {
             Task task = taskOpt.get();
             
             // Remove task links from all linked notes
+            for (Note note : task.getLinkedNotes()) requireNote(note.getId());
             for (Note note : task.getLinkedNotes()) {
                 note.removeTask(task);
             }
@@ -167,8 +206,8 @@ public class TaskService {
      * Link a task to a note
      */
     public void linkTaskToNote(Long taskId, Long noteId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
-        Optional<Note> noteOpt = noteRepository.findById(noteId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
+        Optional<Note> noteOpt = Optional.of(requireNote(noteId));
         
         if (taskOpt.isPresent() && noteOpt.isPresent()) {
             Task task = taskOpt.get();
@@ -186,8 +225,8 @@ public class TaskService {
      * Unlink a task from a note
      */
     public void unlinkTaskFromNote(Long taskId, Long noteId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
-        Optional<Note> noteOpt = noteRepository.findById(noteId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
+        Optional<Note> noteOpt = Optional.of(requireNote(noteId));
         
         if (taskOpt.isPresent() && noteOpt.isPresent()) {
             Task task = taskOpt.get();
@@ -206,7 +245,8 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findTasksLinkedToNote(Long noteId) {
-        return taskRepository.findByLinkedNoteId(noteId);
+        requireNote(noteId);
+        return taskRepository.findOwnedByLinkedNoteId(noteId, users.requireUserId());
     }
     
     /**
@@ -214,6 +254,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> searchTasks(Long userId, String searchText) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndTitleOrDescriptionContaining(userId, searchText);
     }
     
@@ -222,6 +263,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findRecurringTasks(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndIsRecurringTrue(userId);
     }
     
@@ -230,7 +272,8 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findSubtasks(Long parentTaskId) {
-        return taskRepository.findByParentTaskIdOrderByCreatedAtAsc(parentTaskId);
+        requireTask(parentTaskId);
+        return taskRepository.findByParentTaskIdAndUserIdOrderByCreatedAtAsc(parentTaskId, users.requireUserId());
     }
     
     /**
@@ -238,6 +281,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findRootTasks(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndParentTaskIdIsNullOrderByCreatedAtDesc(userId);
     }
     
@@ -246,6 +290,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public TaskStatistics getTaskStatistics(Long userId) {
+        userId = users.requireOwner(userId);
         TaskStatistics stats = new TaskStatistics();
         stats.setTotalTasks(taskRepository.countByUserIdAndStatus(userId, null));
         stats.setCompletedTasks(taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED));
@@ -260,6 +305,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findTasksByDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+        userId = users.requireOwner(userId);
         return taskRepository.findTasksByDateRange(userId, startDate, endDate);
     }
     
@@ -268,6 +314,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findRecentlyCompletedTasks(Long userId, int days) {
+        userId = users.requireOwner(userId);
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         return taskRepository.findRecentlyCompletedTasks(userId, since);
     }
@@ -277,6 +324,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findHighPriorityIncompleteTasks(Long userId) {
+        userId = users.requireOwner(userId);
         return taskRepository.findHighPriorityIncompleteTasks(userId);
     }
     
@@ -285,6 +333,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> findTasksByTag(Long userId, String tag) {
+        userId = users.requireOwner(userId);
         return taskRepository.findByUserIdAndTagsContaining(userId, tag);
     }
     
@@ -292,7 +341,7 @@ public class TaskService {
      * Set Google Calendar event ID for a task
      */
     public Task setGoogleCalendarEventId(Long taskId, String eventId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
+        Optional<Task> taskOpt = Optional.of(requireTask(taskId));
         if (taskOpt.isPresent()) {
             Task task = taskOpt.get();
             task.setGoogleCalendarEventId(eventId);
@@ -306,7 +355,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public Optional<Task> findByGoogleCalendarEventId(String eventId) {
-        return taskRepository.findByGoogleCalendarEventId(eventId);
+        return taskRepository.findByGoogleCalendarEventIdAndUserId(eventId, users.requireUserId());
     }
     
     /**

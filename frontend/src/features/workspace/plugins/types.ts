@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { CoreLink, CoreNote } from '@modulo/core';
 import type { NodeDescriptor } from '../../blueprint/nodeModel';
 import type { WorkspaceData } from '../useCoreWorkspace';
+import type { PluginStateClient } from '../../../services/pluginStateClient';
 
 // ── Props passed to contributed surfaces ─────────────────────────────────────
 
@@ -32,6 +33,8 @@ export interface WorkspaceViewProps {
   onOpenNote: (id: number) => void;
   graphLinks: CoreLink[];
   navigateView: (view: string) => void;
+  /** Current route id, including a child route folded into a combined view. */
+  currentView?: string;
   /** Aggregated contributions from all active plugins (e.g. so the notes view
    *  can render outline panels / database fences contributed by other plugins). */
   contributions: Contributions;
@@ -40,6 +43,11 @@ export interface WorkspaceViewProps {
 /** A section rendered in the note details panel (e.g. the document Outline). */
 export interface NotePanelProps {
   note: CoreNote;
+  allNotes?: CoreNote[];
+  outgoing?: CoreNote[];
+  onCreateLink?: (targetId: number) => void;
+  onSelectNote?: (id: number) => void;
+  onLinksChanged?: () => Promise<void>;
 }
 
 /** Renders a fenced ```lang block in a note (e.g. ```database). */
@@ -61,11 +69,16 @@ export interface ViewContribution {
   icon: LucideIcon;
   order: number;
   component: ComponentType<WorkspaceViewProps>;
-  /** Workspace mode this view belongs to (#369). Undefined renders the view in
-   *  the classic Workspace sidebar; a hub mode id (`'productivity'`, `'audit'`,
-   *  `'business'`) renders it as a tab in that mode's hub instead — the view
-   *  then adds no sidebar item of its own. */
+  /** Workspace domain this view belongs to (#369). Undefined renders the view
+   *  directly in the Workspace sidebar. Domain ids such as `productivity`,
+   *  `audit`, and `music` are grouped into durable umbrella hubs, where this
+   *  view becomes a secondary-sidebar item instead of a main-rail item. */
   mode?: string;
+  /** Fold this route into another view's secondary-sidebar entry. The route
+   *  remains addressable and lets the parent choose the appropriate surface. */
+  parentViewId?: string;
+  /** Optional group heading inside a mode's secondary sidebar. */
+  section?: string;
 }
 
 export interface NotePanelContribution {
@@ -73,6 +86,8 @@ export interface NotePanelContribution {
   title: string;
   order: number;
   component: ComponentType<NotePanelProps>;
+  /** The component owns its own disclosure/heading and should not be wrapped. */
+  standalone?: boolean;
 }
 
 export interface NoteFenceContribution {
@@ -105,6 +120,8 @@ export interface Contributions {
  *  registration is tracked so uninstalling disposes exactly this plugin's
  *  contributions with no residue. */
 export interface PluginContext {
+  /** Bound to this plugin's namespace and the current authenticated account. */
+  state: () => Promise<PluginStateClient>;
   addView: (v: ViewContribution) => void;
   addNotePanel: (p: NotePanelContribution) => void;
   addNoteFence: (f: NoteFenceContribution) => void;

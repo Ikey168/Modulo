@@ -1,0 +1,14 @@
+---
+- name: Require the container runtime on the production profile
+  ansible.builtin.command: docker version --format '{{.Server.Version}}'
+  register: docker_version
+  changed_when: false
+  check_mode: false
+
+- name: Record the discovered container runtime
+  ansible.builtin.copy:
+    dest: "{{ modulo_config_root }}/container-runtime.version"
+    owner: root
+    group: root
+    mode: '0644'
+    content: "docker={{ docker_version.stdout | trim }}\n"

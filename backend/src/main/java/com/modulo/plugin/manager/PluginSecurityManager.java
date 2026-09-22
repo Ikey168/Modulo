@@ -19,6 +19,8 @@ public class PluginSecurityManager {
     
     // Define valid permissions
     private static final Set<String> VALID_PERMISSIONS = Set.of(
+        "state.read",
+        "state.write",
         // Note permissions
         "notes.read",
         "notes.write",
@@ -109,7 +111,7 @@ public class PluginSecurityManager {
      * @param permissions Permissions to grant
      */
     public void grantPermissions(String pluginId, List<String> permissions) {
-        Set<String> pluginPerms = pluginPermissions.computeIfAbsent(pluginId, k -> new HashSet<>());
+        Set<String> pluginPerms = pluginPermissions.computeIfAbsent(pluginId, k -> ConcurrentHashMap.newKeySet());
         
         for (String permission : permissions) {
             if (isValidPermission(permission)) {

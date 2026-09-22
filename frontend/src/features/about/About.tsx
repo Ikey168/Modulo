@@ -33,7 +33,7 @@ const CAPABILITIES: Capability[] = [
 
 const About: React.FC = () => {
   return (
-    <div className="min-h-screen bg-background px-4 py-10">
+    <div className="min-h-app bg-background px-4 py-10">
       <div className="mx-auto max-w-3xl animate-fade-in space-y-6">
         <section className="text-center">
           <div className="mb-4 flex justify-center">

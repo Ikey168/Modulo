@@ -1,0 +1,44 @@
+---
+- name: Require a supported Linux family
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: 'The personal baseline supports Linux hosts in the Debian or RedHat families.'
+
+- name: Install non-secret baseline packages on Debian-family hosts
+  ansible.builtin.apt:
+    name: "{{ baseline_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+
+- name: Install non-secret baseline packages on RedHat-family hosts
+  ansible.builtin.package:
+    name: "{{ baseline_packages }}"
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Create protected configuration and backup roots
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ modulo_config_root }}", mode: '0750' }
+    - { path: "{{ modulo_backup_root }}", mode: '0700' }
+
+- name: Install bounded journald retention policy
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/50-modulo-retention.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Journal]
+      SystemMaxUse={{ modulo_journald_max_use }}
+      MaxRetentionSec=30day
+  notify: Restart journald

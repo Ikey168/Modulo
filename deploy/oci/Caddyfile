@@ -1,0 +1,78 @@
+{$MODULO_SITE} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	handle /api/* {
+		@androidOrigin header Origin https://localhost
+		@androidPreflight {
+			method OPTIONS
+			header Origin https://localhost
+		}
+		header @androidOrigin Access-Control-Allow-Origin https://localhost
+		header @androidOrigin Access-Control-Allow-Credentials true
+		header @androidOrigin Vary Origin
+		header @androidPreflight Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header @androidPreflight Access-Control-Allow-Headers "{http.request.header.Access-Control-Request-Headers}"
+		header @androidPreflight Access-Control-Max-Age 3600
+		respond @androidPreflight "" 204
+		reverse_proxy backend:8080 {
+			header_up -Origin
+		}
+	}
+	handle /ws* {
+		reverse_proxy backend:8080
+	}
+	# Local copies of cover images (fetched once from Wikimedia; avoids hotlink throttling).
+	handle /media-cache/* {
+		header Cache-Control "public, max-age=2592000, immutable"
+		root * /srv
+		file_server
+	}
+	handle /auth/callback {
+		reverse_proxy frontend:80
+	}
+	handle /auth/silent-callback {
+		reverse_proxy frontend:80
+	}
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+	handle {
+		reverse_proxy frontend:80
+	}
+}
+
+# Temporary Cloudflare account-recovery proofs. Keep these host-scoped so the
+# tokens are not returned for unrelated domains served by this proxy.
+http://krasnjanski-mail.com {
+	header X-Content-Type-Options nosniff
+	respond /.well-known/cf-2fa-verify.txt "1ag9dku3235tpl2m" 200
+	respond 404
+}
+
+http://krasnjanski.com {
+	header X-Content-Type-Options nosniff
+	respond /.well-known/cf-2fa-verify.txt "kafskko3eykyzexq" 200
+	respond 404
+}
+
+{$NOESIS_SITE} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	reverse_proxy noesis:8000
+}
+
+{$PRAXIS_SITE} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	reverse_proxy praxis:8000
+}

@@ -5,6 +5,7 @@ import com.modulo.service.OfflineSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
@@ -25,6 +26,12 @@ import java.util.Map;
 public class HealthController {
 
     private static final Logger logger = LoggerFactory.getLogger(HealthController.class);
+
+    @Value("${modulo.deployed.version:unknown}")
+    private String deployedVersion;
+
+    @Value("${modulo.source.revision:unmanaged}")
+    private String sourceRevision;
 
     @Autowired(required = false)
     private DataSource dataSource;
@@ -47,7 +54,8 @@ public class HealthController {
             response.put("status", "UP");
             response.put("application", "modulo");
             response.put("timestamp", System.currentTimeMillis());
-            response.put("version", "1.0.0");
+            response.put("version", deployedVersion);
+            response.put("source_revision", sourceRevision);
             
             return ResponseEntity.ok(response);
             
@@ -100,7 +108,8 @@ public class HealthController {
             response.put("status", overallHealthy ? "UP" : "DOWN");
             response.put("application", "modulo");
             response.put("timestamp", System.currentTimeMillis());
-            response.put("version", "1.0.0");
+            response.put("version", deployedVersion);
+            response.put("source_revision", sourceRevision);
             response.put("checks", checks);
             
             return ResponseEntity.status(overallHealthy ? 200 : 503).body(response);

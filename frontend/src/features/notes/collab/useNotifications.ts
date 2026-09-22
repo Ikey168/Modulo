@@ -1,6 +1,8 @@
+import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from '../../../services/workspaceSocketUrl';
 import { AppNotification, notificationApi } from './notificationApi';
 
 export function useNotifications(userId: string) {
@@ -29,10 +31,10 @@ export function useNotifications(userId: string) {
   useEffect(() => {
     if (!userId || userId === 'anonymous') return;
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+    const client = authenticatedStomp({
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
       onConnect: () => {
-        client.subscribe(`/topic/users/${userId}/notifications`, (frame) => {
+        client.subscribe('/user/queue/notifications', (frame) => {
           const notif: AppNotification = JSON.parse(frame.body);
           setNotifications(prev => [notif, ...prev]);
           setUnreadCount(prev => prev + (notif.read ? 0 : 1));

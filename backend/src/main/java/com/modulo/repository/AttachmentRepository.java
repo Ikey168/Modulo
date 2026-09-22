@@ -10,6 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
+    Optional<Attachment> findByIdAndNoteUserId(Long id, Long userId);
 
     List<Attachment> findByNoteIdAndIsActiveTrue(Long noteId);
 

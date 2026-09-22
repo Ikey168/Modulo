@@ -42,6 +42,7 @@ import java.util.Optional;
 @RequestMapping("/api/graph")
 @CrossOrigin(originPatterns = "*")
 public class GraphController {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
 
     private static final Logger logger = LoggerFactory.getLogger(GraphController.class);
     private static final int SNIPPET_LENGTH = 160;
@@ -87,6 +88,7 @@ public class GraphController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             logger.error("Unlinked mentions failed for note {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -128,11 +130,12 @@ public class GraphController {
         try {
             NoteLink link = noteLinkService.createLink(sourceId, id, linkType);
             webSocketNotificationService.broadcastNoteLinkCreated(
-                link.getId(), sourceId, id, linkType, "current-user");
+                link.getId(), sourceId, id, linkType, users.actor());
             return ResponseEntity.status(HttpStatus.CREATED).body(link);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             logger.error("link-from {} -> {} failed", sourceId, id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

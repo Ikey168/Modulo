@@ -8,11 +8,11 @@ import {
   formatEur,
   isInvoiceError,
   parseInvoice,
-  readSellerProfile,
   validateInvoice,
   VAT_MODES,
   type InvoiceStatus,
 } from './invoicing';
+import { useSellerProfileStore } from './usePluginDataStores';
 
 export const INVOICE_STATUS_CHIP: Record<InvoiceStatus, string> = {
   draft: 'border-border text-muted-foreground',
@@ -50,7 +50,7 @@ export function InvoiceCard({ source }: { source: string }) {
     );
   }
 
-  const seller = readSellerProfile();
+  const [seller] = useSellerProfileStore();
   const totals = computeTotals(parsed);
   const info = VAT_MODES[parsed.vatMode];
   const missing = validateInvoice(parsed, seller);

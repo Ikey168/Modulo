@@ -70,6 +70,7 @@ function toLink(id: string, linkType: string, sourceNoteId: number, targetNoteId
 
 export class CoreAPIImpl implements ModuloCoreAPI {
   private readonly bus = new CoreEventBus();
+  private readonly reviewedNotes = new Map<number, CoreNote>();
   /** Capabilities declared by this pack instance via requestCapabilities(). */
   private readonly grantedCaps = new Set<CoreCapability>();
 
@@ -77,7 +78,9 @@ export class CoreAPIImpl implements ModuloCoreAPI {
 
   async notes(): Promise<CoreNote[]> {
     const list = await notesApi.list();
-    return (Array.isArray(list) ? list : []).map(toNote);
+    const notes = (Array.isArray(list) ? list : []).map(toNote);
+    notes.forEach(note => this.reviewedNotes.set(note.id, note));
+    return notes;
   }
 
   async getNote(id: number): Promise<CoreNote> {
@@ -93,6 +96,7 @@ export class CoreAPIImpl implements ModuloCoreAPI {
   async createNote(title: string, content: string, tags?: string[]): Promise<CoreNote> {
     const created = await notesApi.create({ title, content, tagNames: tags });
     const note = toNote(created);
+    this.reviewedNotes.set(note.id, note);
     this.bus.emit('note.saved', note);
     return note;
   }
@@ -101,14 +105,17 @@ export class CoreAPIImpl implements ModuloCoreAPI {
     id: number,
     patch: { title?: string; content?: string; markdownContent?: string },
   ): Promise<CoreNote> {
-    const existing = await notesApi.get(id);
+    const existing = this.reviewedNotes.get(id) ?? await notesApi.get(id);
     const updated = await notesApi.update(id, {
       title: patch.title ?? existing.title,
       content: patch.content ?? existing.content,
       markdownContent: patch.markdownContent ?? existing.markdownContent,
       version: existing.version,
+      tagNames: existing.tags?.map(tag => tag.name),
+      expectedLocal: { title: existing.title, content: existing.content, markdownContent: existing.markdownContent },
     });
     const note = toNote(updated);
+    this.reviewedNotes.set(note.id, note);
     this.bus.emit('note.saved', note);
     return note;
   }

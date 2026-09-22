@@ -1,0 +1,1 @@
+import { LayoutDashboard } from 'lucide-react'; import { TtrpgDashboardView } from '../../TtrpgViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'ttrpg-dashboard',label:'Dashboard',icon:LayoutDashboard,order:10,mode:'ttrpg',component:TtrpgDashboardView})}};export default plugin;

@@ -1,5 +1,8 @@
-import { Client, StompSubscription, IMessage } from '@stomp/stompjs';
+import { authService } from '../features/auth/authService';
+import { authenticatedStomp } from './authenticatedStomp';
+import { Client, StompSubscription, IMessage, ReconnectionTimeMode } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from './workspaceSocketUrl';
 
 // Types for WebSocket messages
 export interface NoteUpdateMessage {
@@ -20,67 +23,92 @@ export interface NoteUpdateMessage {
 
 export type NoteUpdateCallback = (message: NoteUpdateMessage) => void;
 
+export interface PluginStateUpdateMessage {
+  eventId: number;
+  ownerId: number;
+  workspace: string;
+  namespace: string;
+  key: string;
+  operation: string;
+  version: number;
+  schemaId: string;
+  schemaVersion: number;
+  plugin: string;
+  requestId: string;
+}
+
+export type PluginStateUpdateCallback = (message: PluginStateUpdateMessage) => void;
+
 class WebSocketService {
   private client: Client | null = null;
-  private subscription: StompSubscription | null = null;
+  private noteSubscription: StompSubscription | null = null;
+  private stateSubscription: StompSubscription | null = null;
   private isConnected = false;
   private callbacks: Set<NoteUpdateCallback> = new Set();
+  private stateCallbacks: Set<PluginStateUpdateCallback> = new Set();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000; // Start with 1 second
+
+
 
   constructor() {
-    this.initializeClient();
-  }
-
-  private initializeClient() {
-    this.client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
-      debug: (str) => {
-        console.log('WebSocket Debug:', str);
-      },
-      onConnect: () => {
-        console.log('WebSocket connected');
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.reconnectDelay = 1000;
-        this.subscribeToNotes();
-      },
-      onDisconnect: () => {
-        console.log('WebSocket disconnected');
-        this.isConnected = false;
-        this.subscription = null;
-      },
-      onStompError: (frame) => {
-        console.error('WebSocket STOMP error:', frame);
-        this.handleReconnect();
-      },
-      onWebSocketClose: () => {
-        console.log('WebSocket connection closed');
-        this.isConnected = false;
-        this.handleReconnect();
-      },
-      onWebSocketError: (error) => {
-        console.error('WebSocket error:', error);
-        this.handleReconnect();
-      }
+    let identity = this.account();
+    authService.subscribeSession(() => {
+      const next = this.account();
+      if (next === identity) return;
+      identity = next;
+      this.disconnect();
+      if (next) void this.connect();
     });
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`Attempting to reconnect WebSocket (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectDelay}ms`);
-      
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay);
-      
-      // Exponential backoff
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
-    } else {
-      console.error('Max WebSocket reconnection attempts reached');
-    }
+  private account(): string {
+    const session = authService.stateSession();
+    return session ? JSON.stringify([session.issuer, session.subject]) : '';
+  }
+
+  private initializeClient() {
+    const client = authenticatedStomp({
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
+      reconnectDelay: 1000,
+      reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL,
+      maxReconnectDelay: 30000,
+      debug: () => {},
+      onConnect: () => {
+        if (this.client !== client) return;
+        console.log('WebSocket connected');
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+
+        this.subscribeToNotes();
+        this.subscribeToPluginState();
+      },
+      onDisconnect: () => {
+        if (this.client !== client) return;
+        console.log('WebSocket disconnected');
+        this.isConnected = false;
+        this.noteSubscription = null;
+        this.stateSubscription = null;
+      },
+      onStompError: (frame) => {
+        if (this.client !== client) return;
+        console.error('WebSocket STOMP error:', frame);
+        this.reconnectAttempts++;
+      },
+      onWebSocketClose: () => {
+        if (this.client !== client) return;
+        console.log('WebSocket connection closed');
+        this.isConnected = false;
+        this.noteSubscription = null;
+        this.stateSubscription = null;
+        this.reconnectAttempts++;
+      },
+      onWebSocketError: (error) => {
+        if (this.client !== client) return;
+        console.error('WebSocket error:', error);
+        this.reconnectAttempts++;
+      }
+    });
+    this.client = client;
   }
 
   private subscribeToNotes() {
@@ -88,10 +116,10 @@ class WebSocketService {
       return;
     }
 
-    this.subscription = this.client.subscribe('/topic/notes', (message: IMessage) => {
+    this.noteSubscription = this.client.subscribe('/user/queue/notes', (message: IMessage) => {
       try {
         const noteUpdate: NoteUpdateMessage = JSON.parse(message.body);
-        console.log('Received note update:', noteUpdate);
+
         
         // Notify all registered callbacks
         this.callbacks.forEach(callback => {
@@ -107,49 +135,43 @@ class WebSocketService {
     });
   }
 
-  public connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected || !this.client) {
-        resolve();
-        return;
-      }
+  private subscribeToPluginState() {
+    if (!this.client || !this.isConnected) return;
 
-      const originalOnConnect = this.client.onConnect;
-      const originalOnError = this.client.onStompError;
-
-      const onConnect = () => {
-        this.client!.onConnect = originalOnConnect;
-        resolve();
-      };
-
-      const onError = (error: any) => {
-        this.client!.onStompError = originalOnError;
-        reject(error);
-      };
-
-      this.client.onConnect = onConnect;
-      this.client.onStompError = onError;
-
+    this.stateSubscription = this.client.subscribe('/user/queue/state', (message: IMessage) => {
       try {
-        this.client.activate();
+        const update: PluginStateUpdateMessage = JSON.parse(message.body);
+        this.stateCallbacks.forEach(callback => {
+          try {
+            callback(update);
+          } catch (error) {
+            console.error('Error in plugin state WebSocket callback:', error);
+          }
+        });
       } catch (error) {
-        reject(error);
+        console.error('Error parsing plugin state WebSocket message:', error);
       }
     });
   }
 
+  public async connect(): Promise<void> {
+    if (!this.account() || this.isConnected || this.client?.active) return;
+    if (!this.client) this.initializeClient();
+    this.client!.activate();
+  }
+
   public disconnect() {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
+    this.noteSubscription?.unsubscribe();
+    this.noteSubscription = null;
+    this.stateSubscription?.unsubscribe();
+    this.stateSubscription = null;
 
     if (this.client) {
-      this.client.deactivate();
+      void this.client.deactivate();
+      this.client = null;
     }
 
     this.isConnected = false;
-    this.callbacks.clear();
   }
 
   public subscribe(callback: NoteUpdateCallback): () => void {
@@ -161,6 +183,13 @@ class WebSocketService {
     };
   }
 
+  public subscribeState(callback: PluginStateUpdateCallback): () => void {
+    this.stateCallbacks.add(callback);
+    return () => {
+      this.stateCallbacks.delete(callback);
+    };
+  }
+
   public isWebSocketConnected(): boolean {
     return this.isConnected;
   }
@@ -169,7 +198,7 @@ class WebSocketService {
     if (this.isConnected) {
       return 'Connected';
     } else if (this.reconnectAttempts > 0) {
-      return `Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
+      return `Reconnecting... (${this.reconnectAttempts})`;
     } else {
       return 'Disconnected';
     }

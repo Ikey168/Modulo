@@ -50,6 +50,11 @@ export function weekGrid(date: Date, weekStartsOn = 1): Date[] {
   return Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
 }
 
+/** Twelve Monday-first month grids for a complete year view. */
+export function yearGrid(year: number): Date[][] {
+  return Array.from({ length: 12 }, (_, month) => monthGrid(year, month));
+}
+
 export interface PeriodGroup {
   key: string;
   label: string;

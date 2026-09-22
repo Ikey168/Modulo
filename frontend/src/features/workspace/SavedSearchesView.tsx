@@ -1,17 +1,19 @@
 // Saved Searches - named smart folders. Each saved search is a query (text plus
 // required tags) evaluated live over the current notes. Searches persist in
-// localStorage; opening a result switches to the notes view.
-import { useEffect, useMemo, useState } from 'react';
+// synchronized plugin state; opening a result switches to the notes view.
+import { useMemo, useState } from 'react';
+import { useDurableRecord } from './plugins/useDurableRecord';
+import { PluginStateNotice } from './plugins/PluginStateNotice';
+import { SAVED_SEARCHES_PLUGIN_ID } from './plugins';
 import { FolderSearch, Plus, Search, Trash2 } from 'lucide-react';
 import { Button, EmptyState, Input, ScrollArea, cn } from '@/ui';
 import type { CoreNote } from '@modulo/core';
 import { relativeTime } from './workspaceUtils';
 import {
   addSearch,
-  loadSavedSearches,
+  validateSavedSearches,
   matchNotes,
   removeSearch,
-  saveSavedSearches,
   updateSearch,
   type SavedSearch,
 } from './savedSearchesStore';
@@ -22,14 +24,10 @@ interface SavedSearchesViewProps {
 }
 
 export function SavedSearchesView({ notes, onOpenNote }: SavedSearchesViewProps) {
-  const [list, setList] = useState<SavedSearch[]>(() => loadSavedSearches());
-  const [selectedId, setSelectedId] = useState<string | null>(() => loadSavedSearches()[0]?.id ?? null);
-
-  // Persist, debounced so typing a query name/text writes once it settles.
-  useEffect(() => {
-    const t = setTimeout(() => saveSavedSearches(list), 150);
-    return () => clearTimeout(t);
-  }, [list]);
+  const synced = useDurableRecord<SavedSearch[]>(SAVED_SEARCHES_PLUGIN_ID, 'queries',
+    'modulo.saved-searches', [], validateSavedSearches, 'modulo-saved-searches');
+  const list = synced.value; const setList = synced.set;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selected = list.find((s) => s.id === selectedId) ?? null;
   const results = useMemo(() => (selected ? matchNotes(notes, selected) : []), [notes, selected]);
@@ -60,7 +58,15 @@ export function SavedSearchesView({ notes, onOpenNote }: SavedSearchesViewProps)
   };
 
   return (
-    <div className="flex flex-1 animate-fade-in overflow-hidden bg-background">
+    <div className="flex flex-1 flex-col overflow-hidden bg-background">
+      <PluginStateNotice {...synced} />
+      {synced.legacy && <div className="flex items-center gap-3 border-b px-3 py-2 text-sm">
+        <span>Saved searches are available in this browser.</span>
+        <Button size="sm" variant="outline" disabled={!synced.ready} onClick={() => void synced.importLegacy()}>Import into this account</Button>
+        <Button size="sm" variant="ghost" onClick={synced.exportRecovery}>Export recovery data</Button>
+      </div>}
+      {synced.error && !synced.legacy && <Button variant="ghost" onClick={synced.exportRecovery}>Export recovery data</Button>}
+    <div className="flex min-h-0 flex-1 animate-fade-in overflow-hidden">
       {/* Saved search list */}
       <aside className="flex w-60 shrink-0 flex-col border-r border-border">
         <header className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border px-3">
@@ -208,6 +214,7 @@ export function SavedSearchesView({ notes, onOpenNote }: SavedSearchesViewProps)
           </>
         )}
       </section>
+    </div>
     </div>
   );
 }

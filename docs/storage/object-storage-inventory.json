@@ -1,0 +1,169 @@
+{
+  "format": "modulo.object-storage.v1",
+  "reviewedAt": "2026-09-21",
+  "ownerArea": "Digital Systems / Cloud Services & Sync",
+  "decision": {
+    "cloudflareR2RequiredNow": false,
+    "status": "deferred-until-workload",
+    "rationale": [
+      "No deployed Modulo or Noesis component currently consumes an S3-compatible object API.",
+      "Modulo attachments retain their existing attachment-storage authority; migrating that implementation is a separate application change.",
+      "Backups remain owned by restic plus Backblaze B2 and must not be mixed with application-object retention.",
+      "Creating empty buckets and durable credentials would add cost, review burden and attack surface without serving a current workload."
+    ],
+    "activationTriggers": [
+      "A dataset or research output exceeds 100 MiB per object or 10 GiB in aggregate and is not a working file, backup or Git artifact.",
+      "A deployed application needs durable binary objects through an S3-compatible API.",
+      "Generated artifacts need independent retention or distribution outside GitHub releases and the container registry.",
+      "A reviewed Modulo attachment-storage abstraction selects S3 as its backend.",
+      "A measured public distribution workload benefits from R2 egress economics and has an approved publication boundary."
+    ],
+    "decisionOwner": "Cloud Services & Sync area owner",
+    "reviewCadenceDays": 180
+  },
+  "providerProfile": {
+    "preferredWhenActivated": "cloudflare-r2",
+    "interface": "s3-compatible",
+    "endpointTemplate": "https://<account-id>.r2.cloudflarestorage.com",
+    "region": "auto",
+    "defaultStorageClass": "STANDARD",
+    "publicAccessDefault": false,
+    "corsDefault": [],
+    "client": "rclone",
+    "credentialCustody": "Bitwarden or the workload's approved external secret store; never Git, Modulo notes or shell history"
+  },
+  "naming": {
+    "pattern": "kf-<purpose>-<environment>-<location>",
+    "allowed": "^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$",
+    "environmentValues": [
+      "dev",
+      "prod"
+    ],
+    "locationValue": "eu"
+  },
+  "objectKeyPattern": "<producer>/<dataset-or-project>/<yyyy>/<mm>/<immutable-id>/<filename>",
+  "classes": [
+    {
+      "id": "datasets",
+      "candidateBucket": "kf-datasets-prod-eu",
+      "currentlyApplicable": false,
+      "authority": "Object storage after explicit dataset registration",
+      "allowedContent": "Large immutable source or derived datasets that are not working files or backups",
+      "forbiddenContent": "Secrets, live databases, ordinary synchronized files and backup repositories",
+      "publicAccess": false,
+      "cors": [],
+      "lifecycle": [
+        {
+          "prefix": "staging/",
+          "expireAfterDays": 30
+        },
+        {
+          "prefix": "objects/",
+          "expireAfterDays": null,
+          "reviewAfterDays": 365
+        }
+      ]
+    },
+    {
+      "id": "generated-artifacts",
+      "candidateBucket": "kf-artifacts-prod-eu",
+      "currentlyApplicable": false,
+      "authority": "Producing CI or application manifest",
+      "allowedContent": "Reproducible generated outputs not already owned by GitHub Releases or a container registry",
+      "forbiddenContent": "Signing keys, deployment credentials and sole copies of source material",
+      "publicAccess": false,
+      "cors": [],
+      "lifecycle": [
+        {
+          "prefix": "tmp/",
+          "expireAfterDays": 7
+        },
+        {
+          "prefix": "artifacts/",
+          "expireAfterDays": 90
+        }
+      ]
+    },
+    {
+      "id": "application-objects",
+      "candidateBucket": "kf-app-objects-prod-eu",
+      "currentlyApplicable": false,
+      "authority": "Owning application's metadata database",
+      "allowedContent": "Application-managed binary objects whose metadata and deletion state are authoritative elsewhere",
+      "forbiddenContent": "Untracked files, credentials, database data directories and independent backups",
+      "publicAccess": false,
+      "cors": [],
+      "lifecycle": [
+        {
+          "prefix": "tmp/",
+          "expireAfterDays": 7
+        },
+        {
+          "prefix": "objects/",
+          "expireAfterDays": null,
+          "deletionAuthority": "owning application"
+        },
+        {
+          "prefix": "quarantine/orphans/",
+          "expireAfterDays": 30
+        }
+      ]
+    },
+    {
+      "id": "research-outputs",
+      "candidateBucket": "kf-research-prod-eu",
+      "currentlyApplicable": false,
+      "authority": "Research project manifest",
+      "allowedContent": "Large exports, corpora and reproducible research outputs",
+      "forbiddenContent": "Unredacted sensitive source material without a recorded threat review",
+      "publicAccess": false,
+      "cors": [],
+      "lifecycle": [
+        {
+          "prefix": "scratch/",
+          "expireAfterDays": 30
+        },
+        {
+          "prefix": "outputs/",
+          "expireAfterDays": 365,
+          "reviewBeforeDeletion": true
+        }
+      ]
+    },
+    {
+      "id": "archives",
+      "candidateBucket": "kf-archives-prod-eu",
+      "currentlyApplicable": false,
+      "authority": "Archive manifest and retention decision",
+      "allowedContent": "Intentional immutable archives with a documented source and retention owner",
+      "forbiddenContent": "Restic repositories, ad hoc dumps and data with no deletion owner",
+      "publicAccess": false,
+      "cors": [],
+      "lifecycle": [
+        {
+          "prefix": "archives/",
+          "expireAfterDays": null,
+          "reviewAfterDays": 365
+        }
+      ]
+    }
+  ],
+  "credentialPolicy": {
+    "oneCredentialPerServiceEnvironment": true,
+    "bucketScoped": true,
+    "accountWideCredentialsOnWorkloads": false,
+    "browserCredentialsAllowed": false,
+    "administrativeCredentialSeparate": true,
+    "rotationCadenceDays": 180,
+    "rotateOnRoleChangeOrSuspectedExposure": true
+  },
+  "migrationPolicy": {
+    "tool": "rclone",
+    "copyNotSync": true,
+    "sourceRetentionAfterCutoverDays": 30,
+    "verification": "rclone check --download --one-way",
+    "metadataManifestRequired": true,
+    "maximumRecoveryTimeHours": 24,
+    "maximumDataLossHours": 24
+  }
+}

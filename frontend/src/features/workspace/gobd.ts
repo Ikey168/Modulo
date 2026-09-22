@@ -24,38 +24,19 @@ export const DEFAULT_RETENTION_CLASSES: RetentionClass[] = [
   { id: 'briefe', label: 'Handels- & Geschäftsbriefe', years: 6 },
 ];
 
-const CLASSES_KEY = 'modulo-gobd-classes';
+export const GOBD_CLASSES_KEY = 'modulo-gobd-classes';
 
-export function readRetentionClasses(): RetentionClass[] {
-  try {
-    const raw = localStorage.getItem(CLASSES_KEY);
-    if (!raw) return DEFAULT_RETENTION_CLASSES;
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      Array.isArray(parsed) &&
-      parsed.length > 0 &&
-      parsed.every(
-        (c) =>
-          typeof c === 'object' &&
-          c !== null &&
-          typeof (c as RetentionClass).id === 'string' &&
-          typeof (c as RetentionClass).years === 'number',
-      )
-    ) {
-      return parsed as RetentionClass[];
-    }
-    return DEFAULT_RETENTION_CLASSES;
-  } catch {
-    return DEFAULT_RETENTION_CLASSES;
-  }
-}
-
-export function writeRetentionClasses(classes: RetentionClass[]): void {
-  try {
-    localStorage.setItem(CLASSES_KEY, JSON.stringify(classes));
-  } catch {
-    // Storage unavailable — defaults apply next load.
-  }
+export function parseRetentionClasses(value: unknown): RetentionClass[] {
+  if (!Array.isArray(value) || value.length === 0) return DEFAULT_RETENTION_CLASSES.map(item => ({ ...item }));
+  const parsed = value.filter((item): item is RetentionClass =>
+    typeof item === 'object' && item !== null
+    && typeof (item as RetentionClass).id === 'string'
+    && typeof (item as RetentionClass).label === 'string'
+    && typeof (item as RetentionClass).years === 'number'
+    && Number.isFinite((item as RetentionClass).years)
+    && (item as RetentionClass).years >= 0,
+  );
+  return parsed.length === value.length ? parsed : DEFAULT_RETENTION_CLASSES.map(item => ({ ...item }));
 }
 
 /** Retention ends with the calendar year: doc date + years → 31 Dec. */

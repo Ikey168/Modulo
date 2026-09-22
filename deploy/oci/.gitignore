@@ -1,0 +1,4 @@
+.env
+generated/
+deployment-manifest.json
+restore-drill-report.json

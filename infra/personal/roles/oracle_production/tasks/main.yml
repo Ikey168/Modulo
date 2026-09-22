@@ -1,0 +1,22 @@
+---
+- name: Require an explicit Oracle production target
+  ansible.builtin.assert:
+    that:
+      - oracle_production | default(false) | bool
+    fail_msg: 'The Oracle profile refuses to run without oracle_production: true.'
+
+- name: Create the production service root
+  ansible.builtin.file:
+    path: "{{ modulo_service_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Write a non-secret production role marker
+  ansible.builtin.copy:
+    dest: "{{ modulo_config_root }}/role"
+    owner: root
+    group: root
+    mode: '0644'
+    content: "oracle-production\n"

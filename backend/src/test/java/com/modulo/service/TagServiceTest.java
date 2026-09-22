@@ -22,6 +22,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Tag Service Tests")
 class TagServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
+    @Mock private com.modulo.repository.NoteRepository notes;
 
     @Mock
     private TagRepository tagRepository;
@@ -34,9 +36,17 @@ class TagServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(tagService, "users", users);
+        org.springframework.test.util.ReflectionTestUtils.setField(tagService, "notes", notes);
+
+        lenient().when(users.requireUserId()).thenReturn(1L);
+        lenient().when(users.actor()).thenReturn("1");
+        lenient().when(users.requireOwner(any())).thenReturn(1L);
         id = UUID.randomUUID();
         tag = new Tag("work");
         tag.setId(id);
+        lenient().when(tagRepository.findById(id)).thenReturn(Optional.of(tag));
+        lenient().when(notes.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(new com.modulo.entity.Note()));
     }
 
     @Test
@@ -97,7 +107,7 @@ class TagServiceTest {
     @Test
     void deleteById() {
         tagService.deleteById(id);
-        verify(tagRepository).deleteById(id);
+        verify(tagRepository).delete(tag);
     }
 
     @Test

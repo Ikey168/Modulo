@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## Unreleased
+
+### Changed
+
+* **blueprints:** `action.code.execute` now uses QuickJS-on-WASM exclusively. The Rhino engine and dependency are removed; `wasm` is the default for server, dev, Kubernetes, and Pi deployments. See `docs/blueprint/wasm-sandbox-drift.md` for the JavaScript semantics differences and hard memory-cap behavior.
+* **knowledge:** add provider-neutral, owner-scoped semantic indexing, hybrid search, reviewable suggested links, and cited local Ask Modulo answers.
+* **plugins:** add digest-pinned marketplace trust evidence, publisher verification history, permission-diff upgrade consent, rollback history, and install-time verification.
+* **packs:** add the guided Security Audit first-run journey with resumable onboarding, privacy-safe demo records, explicit demo removal, and reproducible Playwright acceptance coverage.
+
 ## 1.0.0 (2025-08-16)
 
 ### Features

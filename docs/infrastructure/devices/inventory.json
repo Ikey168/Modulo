@@ -1,0 +1,82 @@
+{
+  "format": "modulo.device-inventory.v1",
+  "review": {
+    "owner": "account-owner",
+    "cadence": "quarterly-and-on-change",
+    "lastReviewed": "2026-09-21"
+  },
+  "devices": [
+    {
+      "name": "desktop",
+      "boundary": "personal",
+      "role": "physical-engineering-workstation",
+      "purpose": "FPGA, electronics, audio, USB/JTAG and experimental engineering work",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["Git repositories", "versioned infrastructure", "local hardware project exports"],
+      "rebuildProfile": "personal-linux-desktop",
+      "productionOnly": false,
+      "evidence": {"status": "partial", "summary": "Runtime and private administration evidence exists; local-state authority review remains open."}
+    },
+    {
+      "name": "laptop",
+      "boundary": "personal",
+      "role": "thin-portable-workstation",
+      "purpose": "Portable terminal and workstation; no unique services or irreplaceable state",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["Git repositories", "Modulo", "approved backup and sync services"],
+      "rebuildProfile": "personal-linux-laptop",
+      "productionOnly": false,
+      "evidence": {"status": "pending", "summary": "Owner-authorized physical inspection is still required."}
+    },
+    {
+      "name": "phone",
+      "boundary": "personal",
+      "role": "communications-authentication-capture",
+      "purpose": "Communications, passkeys, two-factor authentication and mobile capture",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["Approved account providers", "Modulo", "owner-controlled device backup"],
+      "rebuildProfile": "personal-mobile",
+      "productionOnly": false,
+      "evidence": {"status": "pending", "summary": "Physical device, backup and recovery-factor evidence is still required."}
+    },
+    {
+      "name": "edge-pi",
+      "boundary": "home-infrastructure",
+      "role": "always-on-home-services-and-records-host",
+      "purpose": "Paperless, communications, monitoring and home records services",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["Versioned service definitions", "service data backups", "home-network configuration"],
+      "rebuildProfile": "debian-home-services",
+      "productionOnly": false,
+      "evidence": {"status": "partial", "summary": "Runtime and private-network presence are known; service-specific recovery gates remain open."}
+    },
+    {
+      "name": "dev-netcup",
+      "boundary": "development",
+      "role": "canonical-remote-development-compute",
+      "purpose": "Development, agents, builds and integration tests",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["Git repositories", "versioned infrastructure", "disposable development data"],
+      "rebuildProfile": "debian-development-server",
+      "productionOnly": false,
+      "evidence": {"status": "partial", "summary": "Key-only access and runtime evidence exist; provider, private-network and rebuild gates remain open."}
+    },
+    {
+      "name": "prod-oracle",
+      "boundary": "production",
+      "role": "modulo-noesis-production",
+      "purpose": "Modulo and Noesis production plus the documented home-network relay",
+      "owner": "account-owner",
+      "lifecycle": "active",
+      "stateAuthorities": ["CI-produced immutable images", "deploy/oci", "verified production backups"],
+      "rebuildProfile": "ubuntu-arm64-production",
+      "productionOnly": true,
+      "evidence": {"status": "partial", "summary": "The production stack and local restore drill are verified; immutable CI promotion and off-host restore remain open."}
+    }
+  ]
+}

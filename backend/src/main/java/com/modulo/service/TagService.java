@@ -13,6 +13,9 @@ import java.util.UUID;
 @Service
 @Transactional
 public class TagService {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
+    @Autowired private com.modulo.repository.NoteRepository notes;
+
 
     private final TagRepository tagRepository;
 
@@ -37,7 +40,22 @@ public class TagService {
         return tagRepository.findByNameContainingIgnoreCase(query);
     }
 
+    /** Resolve existing relationships from owned rows, never merge caller-supplied tag entities. */
+    public java.util.Set<Tag> resolveOwned(java.util.Set<Tag> requested) {
+        java.util.Set<Tag> result = new java.util.HashSet<>();
+        if (requested == null) return result;
+        for (Tag tag : requested) {
+            result.add(tag.getId() == null ? createOrGetTag(tag.getName()) :
+                findById(tag.getId()).orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Tag not found")));
+        }
+        return result;
+    }
+
     public Tag save(Tag tag) {
+        if (tag.getId() != null) tagRepository.findById(tag.getId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Tag not found"));
+        tag.setUserId(users.requireUserId());
         return tagRepository.save(tag);
     }
 
@@ -48,18 +66,22 @@ public class TagService {
         }
         
         return tagRepository.findByName(trimmedName)
-                .orElseGet(() -> tagRepository.save(new Tag(trimmedName)));
+                .orElseGet(() -> save(new Tag(trimmedName)));
     }
 
     public void deleteById(UUID id) {
-        tagRepository.deleteById(id);
+        Tag tag = findById(id).orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Tag not found"));
+        tagRepository.delete(tag);
     }
 
     public List<Tag> findTagsByNoteId(Long noteId) {
+        notes.findByIdAndUserId(noteId, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found"));
         return tagRepository.findByNoteId(noteId);
     }
 
     public Long countNotesByTagId(UUID tagId) {
+        findById(tagId).orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Tag not found"));
         return tagRepository.countNotesByTagId(tagId);
     }
 

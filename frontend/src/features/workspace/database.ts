@@ -1,12 +1,9 @@
-// Notion-style embedded databases, modelled entirely on the client. A note
-// embeds a database with a ```database fence that carries only an id / title /
-// optional column seed; the actual rows and edits live in localStorage (keyed
-// by database id), layered over the note the same way the note tree and plugin
-// install state are. This keeps the feature frontend-only — the backend has no
-// structured-data tables — at the cost of the data not travelling with the note
-// markdown itself.
+// Embedded database records synchronize by fence identity within the authenticated account.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useDurableRecord } from './plugins/useDurableRecord';
+import { DATABASE_PLUGIN_ID } from './plugins';
+import { DATABASE_SCHEMA, DATABASE_LEGACY_KEY, validateDatabase, importLegacyDatabases } from './databaseSync';
 import { slugify } from './outline';
 
 export type ColumnKind = 'text' | 'number' | 'select' | 'checkbox' | 'date';
@@ -26,6 +23,7 @@ export interface Row {
 }
 
 export interface Database {
+  view?: 'table' | 'board';
   id: string;
   title: string;
   columns: Column[];
@@ -45,28 +43,7 @@ export interface DatabaseConfig {
   seedColumns?: ColumnSpec[];
 }
 
-const STORE_KEY = 'modulo-databases';
 const KINDS: ColumnKind[] = ['text', 'number', 'select', 'checkbox', 'date'];
-
-// ── Persistence ──────────────────────────────────────────────────────────────
-
-type Store = Record<string, Database>;
-
-function loadStore(): Store {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    return raw ? (JSON.parse(raw) as Store) : {};
-  } catch {
-    return {};
-  }
-}
-function saveStore(store: Store) {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(store));
-  } catch {
-    /* storage full/unavailable — edits still apply for this session */
-  }
-}
 
 // ── Config parsing ───────────────────────────────────────────────────────────
 
@@ -140,21 +117,6 @@ export function createDatabase(id: string, title: string, seed?: ColumnSpec[]): 
     options: s.kind === 'select' ? s.options ?? [] : undefined,
   }));
   return { id, title, columns, rows: [] };
-}
-
-/** Defensively coerce a stored value into a valid database shape. */
-function normalize(db: Database): Database {
-  return {
-    id: db.id,
-    title: db.title || 'Untitled database',
-    columns: (db.columns ?? []).map((c) => ({
-      id: c.id,
-      name: c.name ?? 'Column',
-      kind: KINDS.includes(c.kind) ? c.kind : 'text',
-      options: c.kind === 'select' ? c.options ?? [] : undefined,
-    })),
-    rows: (db.rows ?? []).map((r) => ({ id: r.id, cells: r.cells ?? {} })),
-  };
 }
 
 export function addColumn(db: Database, name: string, kind: ColumnKind): Database {
@@ -252,6 +214,8 @@ export function firstSelectColumn(db: Database): Column | undefined {
 
 export interface DatabaseApi {
   db: Database;
+  sync: ReturnType<typeof useDurableRecord<Database>>;
+  setView: (view: 'table' | 'board') => void;
   addRow: (preset?: Record<string, CellValue>) => void;
   deleteRow: (rowId: string) => void;
   updateCell: (rowId: string, colId: string, value: CellValue) => void;
@@ -265,39 +229,21 @@ export interface DatabaseApi {
 export function useDatabase(source: string): DatabaseApi {
   const cfg = useMemo(() => parseDatabaseConfig(source), [source]);
 
-  const [db, setDb] = useState<Database>(() => {
-    const store = loadStore();
-    const existing = store[cfg.id];
-    if (existing) return normalize(existing);
-    const created = createDatabase(cfg.id, cfg.title, cfg.seedColumns);
-    store[cfg.id] = created;
-    saveStore(store);
-    return created;
-  });
-
-  const update = useCallback((fn: (d: Database) => Database) => {
-    setDb((prev) => {
-      const next = fn(prev);
-      if (next === prev) return prev;
-      const store = loadStore();
-      store[next.id] = next;
-      saveStore(store);
-      return next;
-    });
-  }, []);
-
-  return useMemo<DatabaseApi>(
-    () => ({
-      db,
-      addRow: (preset) => update((d) => addRow(d, preset)),
-      deleteRow: (rowId) => update((d) => deleteRow(d, rowId)),
-      updateCell: (rowId, colId, value) => update((d) => updateCell(d, rowId, colId, value)),
-      addColumn: (name, kind) => update((d) => addColumn(d, name, kind)),
-      deleteColumn: (colId) => update((d) => deleteColumn(d, colId)),
-      renameColumn: (colId, name) => update((d) => renameColumn(d, colId, name)),
-      setColumnKind: (colId, kind) => update((d) => setColumnKind(d, colId, kind)),
-      addSelectOption: (colId, option) => update((d) => addSelectOption(d, colId, option)),
-    }),
-    [db, update],
-  );
+  const initial = useMemo(() => createDatabase(cfg.id, cfg.title, cfg.seedColumns), [cfg]);
+  const sync = useDurableRecord(DATABASE_PLUGIN_ID, `database.${cfg.id}`, DATABASE_SCHEMA, initial,
+    value => { const db = validateDatabase(value); if (db.id !== cfg.id) throw new Error('Database fence identity mismatch'); return db; },
+    DATABASE_LEGACY_KEY, client => importLegacyDatabases(client, localStorage));
+  const update = sync.set;
+  return {
+    db: sync.value, sync,
+    setView: view => update(db => ({ ...db, view })),
+    addRow: preset => update(db => addRow(db, preset)),
+    deleteRow: rowId => update(db => deleteRow(db, rowId)),
+    updateCell: (rowId, colId, value) => update(db => updateCell(db, rowId, colId, value)),
+    addColumn: (name, kind) => update(db => addColumn(db, name, kind)),
+    deleteColumn: colId => update(db => deleteColumn(db, colId)),
+    renameColumn: (colId, name) => update(db => renameColumn(db, colId, name)),
+    setColumnKind: (colId, kind) => update(db => setColumnKind(db, colId, kind)),
+    addSelectOption: (colId, option) => update(db => addSelectOption(db, colId, option)),
+  };
 }

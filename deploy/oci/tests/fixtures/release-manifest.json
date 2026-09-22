@@ -1,0 +1,11 @@
+{
+  "format": "modulo.oracle.release.v1",
+  "sourceRevision": "0123456789abcdef0123456789abcdef01234567",
+  "deployedAt": "2026-09-21T00:00:00Z",
+  "images": {
+    "backend": "ghcr.io/example/modulo-backend@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "frontend": "ghcr.io/example/modulo-frontend@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "noesis": "ghcr.io/example/noesis@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "praxis": "ghcr.io/example/praxis@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  }
+}

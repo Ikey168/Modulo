@@ -1,17 +1,7 @@
-# Build stage - Multi-arch compatible with Java 17
-FROM eclipse-temurin:17-jdk AS build
+# syntax=docker/dockerfile:1
+# Java bytecode is architecture independent; build once on the native builder.
+FROM --platform=$BUILDPLATFORM maven:3.9.9-eclipse-temurin-17@sha256:f58d59b6273e785ac0a4477f6e9b5ba1d7731c75b906c0f7b34076f1851318cc AS build
 WORKDIR /workspace/app
-
-# Set JAVA_HOME for Java 17
-ENV JAVA_HOME=/opt/java/openjdk
-
-# Install Maven in a single optimized layer with better mirror
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends maven && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean && \
-    mkdir -p /root/.m2 && \
-    echo '<settings><mirrors><mirror><id>central</id><url>https://repo1.maven.org/maven2</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>' > /root/.m2/settings.xml
 
 # Copy pom.xml first for better layer caching
 COPY pom.xml .
@@ -26,16 +16,13 @@ COPY src src
 RUN mvn clean install -DskipTests -T 2C --batch-mode --quiet -Dmaven.compiler.source=17 -Dmaven.compiler.target=17
 
 # Runtime stage - Multi-arch with enhanced security (Java 17 for consistency)
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:17-jre-jammy@sha256:e17d77fb030dd4b642dc078d048a5fb9efcb3676ee20305d905949105a6ccd5a
 
-# Install required packages and clean up in single layer for efficiency
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        ca-certificates \
-        tzdata && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
+# Temurin includes curl and CA certificates; fail if the base contract changes.
+RUN command -v curl
+
+# Local document extraction used by Document Inbox and attachment text review.
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with specific UID/GID for consistency across platforms
 RUN groupadd -r -g 1001 springuser && \
@@ -62,10 +49,13 @@ EXPOSE 8080
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Set JVM options for better container performance and Java 11 compatibility
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom -Dspring.profiles.active=production"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+
+ENV SPRING_PROFILES_ACTIVE=production
+ENV SERVER_SERVLET_CONTEXT_PATH=/
 
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /home/springuser/app/app.jar"]

@@ -102,7 +102,7 @@ const MobileLoginPage: React.FC = () => {
     // text-base keeps the effective font-size at 16px on this mobile-only page
     // so any form control inherits it and iOS Safari does not zoom on focus
     // (replaces the old global rule from styles/mobile.css).
-    <div className="flex min-h-screen flex-col items-center bg-background px-4 py-10 text-base text-foreground sm:text-sm">
+    <div className="flex min-h-app flex-col items-center bg-background px-4 py-10 text-base text-foreground sm:text-sm">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-6 flex flex-col items-center text-center">

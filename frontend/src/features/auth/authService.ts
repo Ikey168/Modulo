@@ -1,5 +1,8 @@
-import { UserManager, User, WebStorageStateStore } from 'oidc-client-ts';
+import { UserManager, User, WebStorageStateStore, InMemoryWebStorage, type INavigator } from 'oidc-client-ts';
+import { Capacitor } from '@capacitor/core';
+import { InAppBrowser, DefaultWebViewOptions } from '@capacitor/inappbrowser';
 import { oidcConfig, ROLE_MAPPINGS, UserRole } from './oidcConfig';
+import type { StateSession } from '../../services/pluginStateTransport';
 
 export interface AuthUser {
   id: string;
@@ -16,15 +19,61 @@ class AuthService {
   private userManager: UserManager;
   private user: User | null = null;
   private refreshTimer: NodeJS.Timeout | null = null;
+  private readonly sessionListeners = new Set<() => void>();
+  private nativeReturnTo = '/app/dashboard';
+
+  setNativeReturnTo(path: string): void {
+    this.nativeReturnTo = path.startsWith('/app/') ? path : '/app/dashboard';
+  }
+
+  takeNativeReturnTo(): string {
+    const path = this.nativeReturnTo;
+    this.nativeReturnTo = '/app/dashboard';
+    return path;
+  }
+
+  stateSession(): StateSession | null {
+    return this.user && !this.user.expired ? { issuer: oidcConfig.authority,
+      subject: this.user.profile.sub, accessToken: this.user.access_token } : null;
+  }
+
+  subscribeSession(listener: () => void): () => void {
+    this.sessionListeners.add(listener);
+    return () => { this.sessionListeners.delete(listener); };
+  }
+
+  private notifySession(): void {
+    for (const listener of this.sessionListeners) { try { listener(); } catch { /* observer isolation */ } }
+  }
 
   constructor() {
-    // Use sessionStorage for state store (more secure than localStorage)
-    const stateStore = new WebStorageStateStore({ store: window.sessionStorage });
+    // Native PKCE state stays in memory. A killed app must retry login; no
+    // verifier or token is written to browser Storage.
+    const native = Capacitor.getPlatform() === 'android';
+    const stateStore = new WebStorageStateStore({ store: native ? new InMemoryWebStorage() : window.sessionStorage });
+    const redirectNavigator: INavigator | undefined = native ? {
+      prepare: async () => ({
+        navigate: async ({ url }) => {
+          await InAppBrowser.openInWebView({ url, options: {
+            ...DefaultWebViewOptions,
+            showURL: false,
+            showNavigationButtons: false,
+            closeButtonText: 'Cancel',
+            clearCache: false,
+            clearSessionCache: false,
+            android: { ...DefaultWebViewOptions.android, isIsolated: true },
+          } });
+          return { url };
+        },
+        close: () => { void InAppBrowser.close(); },
+      }),
+      callback: async () => {},
+    } : undefined;
     
     this.userManager = new UserManager({
       ...oidcConfig,
       stateStore
-    });
+    }, redirectNavigator);
 
     this.setupEventHandlers();
     this.initializeAuth();
@@ -33,12 +82,14 @@ class AuthService {
   private setupEventHandlers() {
     this.userManager.events.addUserLoaded((user) => {
       this.user = user;
+      this.notifySession();
       this.scheduleTokenRefresh(user);
       console.log('User loaded:', user.profile);
     });
 
     this.userManager.events.addUserUnloaded(() => {
       this.user = null;
+      this.notifySession();
       this.clearRefreshTimer();
       console.log('User unloaded');
     });
@@ -51,6 +102,7 @@ class AuthService {
     this.userManager.events.addAccessTokenExpired(() => {
       console.log('Access token expired');
       this.user = null;
+      this.notifySession();
       this.clearRefreshTimer();
     });
 
@@ -64,6 +116,7 @@ class AuthService {
     try {
       // Check if user is already authenticated
       this.user = await this.userManager.getUser();
+      this.notifySession();
       if (this.user && !this.user.expired) {
         this.scheduleTokenRefresh(this.user);
       }
@@ -101,10 +154,11 @@ class AuthService {
     }
   }
 
-  async handleCallback(): Promise<AuthUser> {
+  async handleCallback(url?: string): Promise<AuthUser> {
     try {
-      const user = await this.userManager.signinRedirectCallback();
+      const user = await this.userManager.signinRedirectCallback(url);
       this.user = user;
+      this.notifySession();
       return this.mapUserToAuthUser(user);
     } catch (error) {
       console.error('Callback handling failed:', error);
@@ -112,10 +166,15 @@ class AuthService {
     }
   }
 
+  async handleNativeLogout(url: string): Promise<void> {
+    await this.userManager.signoutRedirectCallback(url);
+  }
+
   async silentRenew(): Promise<void> {
     try {
       const user = await this.userManager.signinSilent();
       this.user = user;
+      this.notifySession();
       if (user) {
         this.scheduleTokenRefresh(user);
       }
@@ -126,6 +185,8 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
+    this.user = null;
+    this.notifySession();
     try {
       this.clearRefreshTimer();
       await this.userManager.signoutRedirect();

@@ -9,8 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@/ui';
 
-/** Menu order — dark-first, then light, then the tinted themes. */
-const THEME_ORDER = ['dark', 'light', 'blue', 'green', 'purple'];
+/** Menu order — desktop-matching first, then dark, light, then the tinted themes. */
+const THEME_ORDER = ['bart', 'dark', 'light', 'blue', 'green', 'purple'];
 
 interface ThemeToggleProps {
   className?: string;

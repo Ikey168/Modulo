@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,6 +35,17 @@ public class AttachmentService {
     private final BlobServiceClient blobServiceClient;
     private final AttachmentRepository attachmentRepository;
     private final NoteRepository noteRepository;
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
+
+    private Note requireNote(Long id) {
+        return noteRepository.findByIdAndUserId(id, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found"));
+    }
+    private Attachment requireAttachment(Long id) {
+        return attachmentRepository.findByIdAndNoteUserId(id, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Attachment not found"));
+    }
+
 
     @Value("${azure.storage.container-name:attachments}")
     private String containerName;
@@ -44,17 +56,18 @@ public class AttachmentService {
     @Value("${azure.storage.max-file-size:10485760}") // 10MB default
     private long maxFileSize;
 
-    @Value("${azure.storage.allowed-content-types:image/jpeg,image/png,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}")
+    @Value("${azure.storage.allowed-content-types:image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,message/rfc822,audio/webm,audio/ogg,audio/mpeg,audio/mp4,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}")
     private String allowedContentTypes;
 
     public AttachmentUploadResponse uploadAttachment(MultipartFile file, Long noteId, String uploadedBy) {
+        uploadedBy = users.actor();
+        requireNote(noteId);
         try {
             // Validate file
             validateFile(file);
 
             // Check if note exists
-            Note note = noteRepository.findById(noteId)
-                    .orElseThrow(() -> new IllegalArgumentException("Note not found with id: " + noteId));
+            Note note = requireNote(noteId);
 
             // Generate unique blob name
             String blobName = generateBlobName(file.getOriginalFilename());
@@ -108,6 +121,7 @@ public class AttachmentService {
                     .success(false)
                     .build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Unexpected error uploading file: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return AttachmentUploadResponse.builder()
                     .message("Unexpected error: " + e.getMessage())
@@ -117,6 +131,7 @@ public class AttachmentService {
     }
 
     public List<AttachmentDto> getAttachmentsByNoteId(Long noteId) {
+        requireNote(noteId);
         return attachmentRepository.findByNoteIdAndIsActiveTrue(noteId)
                 .stream()
                 .map(this::convertToDto)
@@ -124,19 +139,19 @@ public class AttachmentService {
     }
 
     public List<Attachment> findByNoteId(Long noteId) {
+        requireNote(noteId);
         return attachmentRepository.findByNoteIdAndIsActiveTrue(noteId);
     }
 
     public AttachmentDto getAttachmentById(Long attachmentId) {
-        Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Attachment not found with id: " + attachmentId));
+        Attachment attachment = requireAttachment(attachmentId);
         return convertToDto(attachment);
     }
 
     public boolean deleteAttachment(Long attachmentId, String deletedBy) {
+        deletedBy = users.actor();
         try {
-            Attachment attachment = attachmentRepository.findById(attachmentId)
-                    .orElseThrow(() -> new IllegalArgumentException("Attachment not found with id: " + attachmentId));
+            Attachment attachment = requireAttachment(attachmentId);
 
             // Soft delete - mark as inactive
             attachment.setIsActive(false);
@@ -146,15 +161,16 @@ public class AttachmentService {
             return true;
 
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return false;
         }
     }
 
     public boolean hardDeleteAttachment(Long attachmentId, String deletedBy) {
+        deletedBy = users.actor();
         try {
-            Attachment attachment = attachmentRepository.findById(attachmentId)
-                    .orElseThrow(() -> new IllegalArgumentException("Attachment not found with id: " + attachmentId));
+            Attachment attachment = requireAttachment(attachmentId);
 
             // Delete from Azure Blob Storage
             BlobClient blobClient = blobServiceClient
@@ -173,17 +189,32 @@ public class AttachmentService {
             return true;
 
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error hard deleting attachment {}: {}", LogSanitizer.sanitizeId(attachmentId), LogSanitizer.sanitizeMessage(e.getMessage()), e);
             return false;
         }
     }
 
     public String getDownloadUrl(Long attachmentId) {
-        Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Attachment not found with id: " + attachmentId));
+        Attachment attachment = requireAttachment(attachmentId);
 
-        // Return CDN URL if available, otherwise blob URL
-        return attachment.getCdnUrl() != null ? attachment.getCdnUrl() : attachment.getBlobUrl();
+        if (!Boolean.TRUE.equals(attachment.getIsActive())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Attachment not found");
+        if ("local".equals(attachment.getContainerName())) return "/api/files/" + attachment.getNote().getId() + "/" + attachment.getBlobName();
+
+        // Short-lived bearer grant, issued only after the ownership check.
+        BlobClient blob = blobServiceClient.getBlobContainerClient(attachment.getContainerName()).getBlobClient(attachment.getBlobName());
+        var permissions = new com.azure.storage.blob.sas.BlobSasPermission().setReadPermission(true);
+        var expires = java.time.OffsetDateTime.now().plusMinutes(5);
+        var signature = new com.azure.storage.blob.sas.BlobServiceSasSignatureValues(expires, permissions)
+            .setProtocol(com.azure.storage.common.sas.SasProtocol.HTTPS_ONLY);
+        String sas;
+        if (com.azure.storage.common.StorageSharedKeyCredential.getSharedKeyCredentialFromPipeline(blob.getHttpPipeline()) != null) {
+            sas = blob.generateSas(signature);
+        } else {
+            var delegation = blobServiceClient.getUserDelegationKey(java.time.OffsetDateTime.now().minusMinutes(1), expires);
+            sas = blob.generateUserDelegationSas(signature, delegation);
+        }
+        return blob.getBlobUrl() + "?" + sas;
     }
 
     private void validateFile(MultipartFile file) {
@@ -208,7 +239,7 @@ public class AttachmentService {
         
         String[] allowed = allowedContentTypes.split(",");
         for (String type : allowed) {
-            if (contentType.trim().equalsIgnoreCase(type.trim())) {
+            if (contentType.split(";", 2)[0].trim().equalsIgnoreCase(type.trim())) {
                 return true;
             }
         }
@@ -248,11 +279,13 @@ public class AttachmentService {
     public void ensureContainerExists() {
         try {
             var containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            if (containerClient.exists()) containerClient.setAccessPolicy(null, null);
             if (!containerClient.exists()) {
-                containerClient.createWithResponse(null, PublicAccessType.BLOB, null, null);
+                containerClient.createWithResponse(null, null, null, null);
                 log.info("Created blob container: {}", LogSanitizer.sanitize(containerName));
             }
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             log.error("Error ensuring container exists: {}", LogSanitizer.sanitizeMessage(e.getMessage()), e);
         }
     }

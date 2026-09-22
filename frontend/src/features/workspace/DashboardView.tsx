@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { listRuns, getRunSummary, type WorkflowRun } from '../executions/runService';
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Store, FileText, ArrowRight } from 'lucide-react';
 import type { CoreNote } from '@modulo/core';
@@ -34,6 +36,17 @@ interface ActivityEvent {
 }
 
 export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNote, onOpenBlueprints, onOpenMarketplace }: DashboardViewProps) {
+  const navigate = useNavigate();
+  const [runs,setRuns] = useState<WorkflowRun[]>([]);
+  const [runCount,setRunCount] = useState<number | null>(null);
+  const [runError,setRunError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.all([listRuns(new URLSearchParams({size:'9'}), controller.signal), getRunSummary(controller.signal)])
+      .then(([page,summary]) => { if(!controller.signal.aborted) {setRuns(page.items);setRunCount(summary.counts.reduce((sum,row) => sum+Number(row.count),0));} })
+      .catch(() => {if(!controller.signal.aborted) setRunError(true);});
+    return () => controller.abort();
+  },[]);
   const [workflows, setWorkflows] = useState<BlueprintListItem[] | null>(null);
 
   useEffect(() => {
@@ -52,17 +65,13 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
 
   const anchoredCount = useMemo(() => notes.filter(isAnchored).length, [notes]);
 
-  // Presentational activity log synthesized from what the client knows:
-  // workflow updates, note saves, and on-chain anchors, newest first.
+  // Workflow activity comes from persisted executions.
   const activity = useMemo<ActivityEvent[]>(() => {
     const events: ActivityEvent[] = [];
-    (workflows ?? []).forEach((w) => {
-      events.push({
-        at: new Date(w.updatedAt).getTime(),
-        kind: 'workflow',
-        text: `workflow updated · ${w.name}`,
-        onClick: onOpenBlueprints,
-      });
+    runs.forEach((run) => {
+      events.push({ at: new Date(run.created_at).getTime(), kind: 'workflow',
+        text: `${run.state.toLowerCase()} · ${run.blueprint_name ?? 'Deleted Blueprint'}`,
+        onClick: () => navigate(`/app/executions?run=${encodeURIComponent(run.id)}`) });
     });
     notes.forEach((n) => {
       const at = new Date(n.updatedAt ?? 0).getTime();
@@ -75,7 +84,7 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
       .filter((e) => Number.isFinite(e.at) && e.at > 0)
       .sort((a, b) => b.at - a.at)
       .slice(0, 9);
-  }, [workflows, notes, onOpenBlueprints, onOpenNote]);
+  }, [runs, notes, navigate, onOpenNote]);
 
   const activePlugins = useMemo(
     () => [...installedPlugins].map((id) => PLUGINS.find((p) => p.id === id)?.name ?? id),
@@ -92,13 +101,15 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
 
   return (
     <div className="flex-1 animate-fade-in overflow-y-auto">
-      <div className="mx-auto max-w-5xl p-5 md:px-10 md:py-10">
+      <div className="mx-auto max-w-5xl p-5 phone:px-4 phone:pb-4 phone:pt-3 md:px-10 md:py-10">
         {/* Masthead: date + inline mono stats instead of stat tiles. */}
-        <header className="mb-9">
+        <header className="mb-9 phone:mb-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="mb-1.5 text-xs text-muted-foreground">{today}</p>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+              {/* The phone app bar already says "Dashboard" one line above
+                  this; repeating it costs a fifth of the fold. */}
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground phone:sr-only">Dashboard</h1>
             </div>
             <Button size="sm" onClick={onOpenBlueprints}>
               <Plus className="size-4" />
@@ -106,7 +117,7 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
             </Button>
           </div>
           <p className="mt-3 font-mono text-xs text-muted-foreground">
-            <span className="text-primary-hover">{workflows?.length ?? '–'}</span> workflows ·{' '}
+            <span className="text-primary-hover">{runCount ?? '–'}</span> retained workflow runs ·{' '}
             <span className="text-foreground">{installedPlugins.size}</span> plugins ·{' '}
             <span className="text-foreground">{notes.length}</span> notes ·{' '}
             <span className={anchoredCount > 0 ? 'text-success' : undefined}>{anchoredCount}</span> anchored on-chain
@@ -185,7 +196,8 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
         <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_260px]">
           {/* Activity: terminal-style log. */}
           <section aria-label="Recent activity">
-            <SectionRule label="Activity" />
+            <SectionRule label="Activity" right={<button className="text-sm underline" onClick={() => navigate('/app/executions')}>All executions</button>} />
+            {runError && <p role="alert">Workflow activity is unavailable.</p>}
             {activity.length === 0 ? (
               <p className="px-2 font-mono text-xs text-muted-foreground">— no activity yet</p>
             ) : (

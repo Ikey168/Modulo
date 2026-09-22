@@ -2,6 +2,8 @@ package com.modulo.plugin.manager;
 
 import com.modulo.plugin.api.*;
 import com.modulo.plugin.event.PluginEventBus;
+import com.modulo.plugin.event.PluginEvent;
+import com.modulo.plugin.event.PluginEventListener;
 import com.modulo.plugin.event.SystemEvent;
 import com.modulo.plugin.registry.PluginRegistry;
 import com.modulo.plugin.registry.PluginRegistryEntry;
@@ -26,6 +28,7 @@ public class PluginManager {
     
     private final Map<String, Plugin> activePlugins = new ConcurrentHashMap<>();
     private final Map<String, PluginStatus> pluginStatuses = new ConcurrentHashMap<>();
+    private final Map<String, Map<String,PluginEventListener<PluginEvent>>> pluginSubscriptions = new ConcurrentHashMap<>();
     
     @Autowired
     private PluginRegistry pluginRegistry;
@@ -38,6 +41,9 @@ public class PluginManager {
     
     @Autowired
     private PluginSecurityManager securityManager;
+
+    @Autowired(required = false)
+    private com.modulo.plugin.trust.MarketplaceTrustService marketplaceTrust;
     
     /**
      * Initialize plugin manager on application startup
@@ -191,6 +197,20 @@ public class PluginManager {
             PluginInfo info = proxy.getInfo();
             String pluginId = info.getName();
 
+            // Marketplace workloads are re-verified against the exact reviewed
+            // digest immediately before attachment (#441/#442). First-party or
+            // development workloads with no marketplace release remain on the
+            // existing explicit endpoint path.
+            if (marketplaceTrust != null) {
+                try {
+                    marketplaceTrust.assertRuntimeRelease(pluginId, info.getVersion(),
+                        config == null ? null : config.get("imageDigest"));
+                    marketplaceTrust.assertRuntimePermissions(pluginId,info.getVersion(),proxy.getRequiredPermissions());
+                } catch (RuntimeException failure) {
+                    throw new PluginException("Marketplace trust check failed: " + failure.getMessage(), failure);
+                }
+            }
+
             validatePlugin(proxy);
             if (!securityManager.canInstallPlugin(pluginId, proxy.getRequiredPermissions())) {
                 throw new PluginException("Insufficient permissions to install external plugin: " + pluginId);
@@ -320,6 +340,7 @@ public class PluginManager {
         try {
             plugin.start();
             pluginStatuses.put(pluginId, PluginStatus.ACTIVE);
+            pluginRegistry.updatePluginStatus(pluginId, PluginStatus.ACTIVE);
             subscribeToEvents(plugin);
             logger.info("Plugin {} started", pluginId);
         } catch (Exception e) {
@@ -344,6 +365,7 @@ public class PluginManager {
             unsubscribeFromEvents(plugin);
             plugin.stop();
             pluginStatuses.put(pluginId, PluginStatus.INACTIVE);
+            pluginRegistry.updatePluginStatus(pluginId, PluginStatus.INACTIVE);
             logger.info("Plugin {} stopped", pluginId);
         } catch (Exception e) {
             pluginStatuses.put(pluginId, PluginStatus.ERROR);
@@ -515,31 +537,36 @@ public class PluginManager {
      * Subscribe plugin to its declared events
      */
     private void subscribeToEvents(Plugin plugin) {
+        unsubscribeFromEvents(plugin);
+        String pluginId=plugin.getInfo().getName();
+        Map<String,PluginEventListener<PluginEvent>> listeners=new HashMap<>();
         List<String> subscribedEvents = plugin.getSubscribedEvents();
         if (subscribedEvents != null) {
-            for (String eventType : subscribedEvents) {
-                eventBus.subscribe(eventType, event -> {
+            for (String eventType : new HashSet<>(subscribedEvents)) {
+                PluginEventListener<PluginEvent> listener=event -> {
                     try {
                         // Notify plugin of event (if it implements event handling)
-                        if (plugin instanceof PluginEventHandler) {
+                        if (pluginStatuses.get(pluginId)==PluginStatus.ACTIVE && plugin instanceof PluginEventHandler) {
                             ((PluginEventHandler) plugin).handleEvent(event);
                         }
                     } catch (Exception e) {
                         logger.error("Plugin {} failed to handle event {}", 
                                    plugin.getInfo().getName(), eventType, e);
                     }
-                });
+                };
+                listeners.put(eventType,listener);
+                eventBus.subscribe(eventType,listener);
             }
         }
+        pluginSubscriptions.put(pluginId,listeners);
     }
     
     /**
      * Unsubscribe plugin from events
      */
     private void unsubscribeFromEvents(Plugin plugin) {
-        // Note: In a real implementation, we'd need to track listeners per plugin
-        // For now, this is a placeholder
-        logger.debug("Unsubscribing plugin {} from events", plugin.getInfo().getName());
+        Map<String,PluginEventListener<PluginEvent>> listeners=pluginSubscriptions.remove(plugin.getInfo().getName());
+        if(listeners!=null)listeners.forEach((type,listener)->eventBus.unsubscribe(type,listener));
     }
     
     /**

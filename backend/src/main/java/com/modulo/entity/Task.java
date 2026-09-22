@@ -48,6 +48,7 @@ public class Task {
     @Column(name = "google_calendar_event_id")
     private String googleCalendarEventId;
     
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToMany(mappedBy = "tasks", fetch = FetchType.LAZY)
     private List<Note> linkedNotes = new ArrayList<>();
     

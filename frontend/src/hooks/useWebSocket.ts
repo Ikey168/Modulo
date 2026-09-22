@@ -45,12 +45,6 @@ export const useNotesSync = (onNoteUpdate?: (message: NoteUpdateMessage) => void
     if (!onNoteUpdate) return;
 
     const unsubscribe = subscribe((message: NoteUpdateMessage) => {
-      // Filter out updates from the current user to avoid duplicate operations
-      // In a real app, you'd compare with the actual current user ID
-      if (message.userId === 'current-user') {
-        return;
-      }
-      
       onNoteUpdate(message);
     });
 

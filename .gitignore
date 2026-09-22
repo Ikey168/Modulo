@@ -115,3 +115,25 @@ smart-contracts/deployments/localhost*
 smart-contracts/deployments/*test*
 # Runtime logs (regenerated on every test run)
 backend/logs/
+
+# Local deployment state and credentials
+deploy/oci/.releases/
+deploy/oci/backup.env
+/.verification/
+/media-cache/
+/.browse-agentic-*/
+/.deploy-backups/
+/backups/
+/tools/modulo_mcp/.venv/
+/scripts/__pycache__/
+/frontend/test-results/
+/.agents/
+/.codex/
+/.claude/settings.local.json
+/deploy/oci/.deploy-backups/
+/deploy/oci/backups/
+/deploy/oci/*.bak*
+/deploy/oci/*.pre-*
+**/__pycache__/
+/tools/modulo_mcp/backups/
+/frontend/*.bak-*

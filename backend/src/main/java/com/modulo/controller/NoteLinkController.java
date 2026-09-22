@@ -16,6 +16,7 @@ import java.util.UUID;
 @RequestMapping("/api/note-links")
 @CrossOrigin(originPatterns = "*")
 public class NoteLinkController {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
 
     private final NoteLinkService noteLinkService;
     private final WebSocketNotificationService webSocketNotificationService;
@@ -45,13 +46,14 @@ public class NoteLinkController {
                 link.getSourceNote().getId(),
                 link.getTargetNote().getId(),
                 link.getLinkType(),
-                "current-user" // TODO: Get actual user ID from security context
+                users.actor() // TODO: Get actual user ID from security context
             );
             
             return ResponseEntity.status(HttpStatus.CREATED).body(link);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -67,6 +69,7 @@ public class NoteLinkController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -80,6 +83,7 @@ public class NoteLinkController {
             List<NoteLink> links = noteLinkService.getOutgoingLinks(noteId);
             return ResponseEntity.ok(links);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -93,6 +97,7 @@ public class NoteLinkController {
             List<NoteLink> links = noteLinkService.getIncomingLinks(noteId);
             return ResponseEntity.ok(links);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -106,6 +111,7 @@ public class NoteLinkController {
             List<NoteLink> links = noteLinkService.getLinksByType(linkType);
             return ResponseEntity.ok(links);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -119,6 +125,7 @@ public class NoteLinkController {
             List<NoteLink> links = noteLinkService.getAllLinks();
             return ResponseEntity.ok(links);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -133,6 +140,7 @@ public class NoteLinkController {
             return link.map(ResponseEntity::ok)
                       .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -148,6 +156,7 @@ public class NoteLinkController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -170,12 +179,13 @@ public class NoteLinkController {
                     link.getId(),
                     link.getSourceNote().getId(),
                     link.getTargetNote().getId(),
-                    "current-user" // TODO: Get actual user ID from security context
+                    users.actor() // TODO: Get actual user ID from security context
                 );
             }
             
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -189,6 +199,7 @@ public class NoteLinkController {
             noteLinkService.deleteAllLinksBetweenNotes(sourceNoteId, targetNoteId);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -202,6 +213,7 @@ public class NoteLinkController {
             boolean exists = noteLinkService.linkExists(sourceNoteId, targetNoteId);
             return ResponseEntity.ok(exists);
         } catch (Exception e) {
+            if (e instanceof org.springframework.web.server.ResponseStatusException) throw (org.springframework.web.server.ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

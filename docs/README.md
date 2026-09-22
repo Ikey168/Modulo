@@ -17,10 +17,10 @@ section at the bottom.
 - [B2 — Core/Experience boundary audit](architecture/B2-boundary-audit.md)
 - [ADR 0001 — Encryption key derivation](architecture/adr-0001-encryption-key-derivation.md)
 - [ADR 0002 — Core keeps first-class note/link/tag/user types](architecture/adr-0002-core-keeps-first-class-types.md)
-- [Knowledge graph milestone](knowledge-graph.md)
+- [Knowledge graph milestone](plugins/knowledge/knowledge-graph.md)
 
 ## Plugins
-
+- [Knowledge Base — note properties, property queries, and semantic knowledge](plugins/knowledge/README.md)
 - [Plugin system architecture & API design](plugins/architecture.md)
 - [Plugin development guide](plugins/development-guide.md)
 - [Plugin system summary](plugins/system-summary.md)
@@ -52,6 +52,7 @@ section at the bottom.
 ## Attachments & storage
 
 - [Azure Blob Storage for attachments](storage/azure-blob-storage.md)
+- [Cloud object-storage policy and migration runbook](storage/object-storage.md)
 
 ## Authentication & authorization
 
@@ -66,6 +67,7 @@ section at the bottom.
 
 ## Security
 
+- [Personal incident-response playbooks](security/incident-response/README.md)
 - [Encrypted note sharing — security model](security/encrypted-sharing.md)
 - [Security testing & cloud deployment hardening](security/testing-and-cloud-hardening.md)
 - [Security testing guide](SECURITY_TESTING_GUIDE.md)

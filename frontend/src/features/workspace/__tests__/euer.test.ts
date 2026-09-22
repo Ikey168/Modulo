@@ -3,15 +3,12 @@ import type { NoteInvoice } from '../invoicing';
 import {
   datevCsv,
   expenseGross,
-  markExported,
   periodKey,
-  readCategories,
-  readExpenses,
-  readExportedPeriods,
+  parseExpenseCategories,
+  parseExpenses,
+  parseExportedPeriods,
   shiftPeriod,
   summarizePeriod,
-  writeCategories,
-  writeExpenses,
   type ExpenseRecord,
 } from '../euer';
 
@@ -109,14 +106,11 @@ describe('datevCsv', () => {
 
 describe('persistence', () => {
   it('round-trips expenses, categories, and export marks', () => {
-    writeExpenses([expense('a')]);
-    expect(readExpenses()).toHaveLength(1);
-    writeCategories(['X', 'Y']);
-    expect(readCategories()).toEqual(['X', 'Y']);
-    expect(readExportedPeriods().has('2026-07')).toBe(false);
-    markExported('2026-07');
-    expect(readExportedPeriods().has('2026-07')).toBe(true);
-    localStorage.setItem('modulo-euer-expenses', 'nope');
-    expect(readExpenses()).toEqual([]);
+    const json = <T,>(value: T): unknown => JSON.parse(JSON.stringify(value));
+    expect(parseExpenses(json([expense('a')]))).toHaveLength(1);
+    expect(parseExpenseCategories(json(['X', 'Y']))).toEqual(['X', 'Y']);
+    expect(parseExportedPeriods(json(['2026-07']))).toContain('2026-07');
+    expect(parseExportedPeriods('nope')).toEqual([]);
+    expect(parseExpenses('nope')).toEqual([]);
   });
 });

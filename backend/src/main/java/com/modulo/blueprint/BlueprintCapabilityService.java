@@ -33,6 +33,7 @@ public class BlueprintCapabilityService {
      * Used by the backend to derive requirements without depending on the TS source.
      */
     public static final Map<String, String> NODE_CAPABILITY_MAP = Map.ofEntries(
+        Map.entry("action.approval.request",     "approval:request"),
         Map.entry("action.note.create",          "notes:write"),
         Map.entry("action.tag.add",              "notes:write"),
         Map.entry("action.note.anchor",          "blockchain:anchor"),

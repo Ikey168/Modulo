@@ -4,7 +4,7 @@ import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Card
 
 const Contracts: React.FC = () => {
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
+    <div className="min-h-app bg-background px-4 py-8">
       <div className="mx-auto max-w-6xl animate-fade-in space-y-8">
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Smart Contracts</h1>

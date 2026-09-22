@@ -22,6 +22,12 @@ public class ShareToken {
     @Column(name = "owner_id", length = 128)
     private String ownerId;
 
+    @Column(name = "owner_verified", nullable = false)
+    private boolean ownerVerified;
+
+    public boolean isOwnerVerified() { return ownerVerified; }
+    public void setOwnerVerified(boolean value) { ownerVerified = value; }
+
     @Column(name = "expires_at")
     private Instant expiresAt;
 
@@ -70,6 +76,6 @@ public class ShareToken {
     }
 
     public boolean isActive() {
-        return !revoked && !isExpired();
+        return ownerVerified && !revoked && !isExpired();
     }
 }

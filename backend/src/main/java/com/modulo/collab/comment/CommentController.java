@@ -19,6 +19,13 @@ import java.util.stream.Collectors;
 @CrossOrigin(originPatterns = "*")
 @RequiredArgsConstructor
 public class CommentController {
+    @org.springframework.beans.factory.annotation.Autowired private com.modulo.security.AuthenticatedUserService users;
+    @ModelAttribute
+    public void requireOwnedNote(@PathVariable Long noteId) {
+        noteRepository.findByIdAndUserId(noteId, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+    }
+
 
     private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\S+)");
 
@@ -46,14 +53,16 @@ public class CommentController {
 
         NoteComment comment = new NoteComment();
         comment.setNoteId(noteId);
-        comment.setAuthorId(userId);
-        comment.setAuthorName(userName);
+        comment.setAuthorId(users.actor());
+        comment.setAuthorName(users.actor());
         comment.setContent(req.getContent());
+        if (req.getParentId() != null && commentRepository.findById(req.getParentId()).filter(parent -> parent.getNoteId().equals(noteId)).isEmpty())
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found");
         comment.setParentId(req.getParentId());
         comment.setAnchorStart(req.getAnchorStart());
         comment.setAnchorEnd(req.getAnchorEnd());
 
-        List<String> mentioned = extractMentions(req.getContent());
+        List<String> mentioned = extractMentions(req.getContent()).stream().filter(users.actor()::equals).collect(Collectors.toList());
         comment.setMentionedUserIds(mentioned);
 
         NoteComment saved = commentRepository.save(comment);
@@ -64,7 +73,7 @@ public class CommentController {
 
         // Notify mentioned users
         if (!mentioned.isEmpty()) {
-            notificationService.notifyMentions(mentioned, userName, noteId, saved.getId());
+            notificationService.notifyMentions(mentioned, users.actor(), noteId, saved.getId());
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
@@ -91,7 +100,7 @@ public class CommentController {
                                        @PathVariable Long commentId,
                                        @RequestHeader(value = "X-User-Id", defaultValue = "anonymous") String userId) {
         var found = commentRepository.findById(commentId)
-            .filter(c -> c.getNoteId().equals(noteId) && c.getAuthorId().equals(userId));
+            .filter(c -> c.getNoteId().equals(noteId) && c.getAuthorId().equals(users.actor()));
         if (found.isEmpty()) {
             return ResponseEntity.notFound().build();
         }

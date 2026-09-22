@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Offline Sync Service Tests")
 class OfflineSyncServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
 
     @Mock
     private OfflineNoteRepository offlineNoteRepository;
@@ -40,6 +41,11 @@ class OfflineSyncServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "users", users);
+
+        lenient().when(users.requireUserId()).thenReturn(1L);
+        lenient().when(users.actor()).thenReturn("1");
+        lenient().when(users.requireOwner(any())).thenReturn(1L);
         when(offlineNoteRepository.save(any(OfflineNote.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -47,6 +53,8 @@ class OfflineSyncServiceTest {
     void saveOfflineConvertsNote() {
         Note note = new Note("Title", "Content");
         note.setId(5L);
+        note.setUserId(1L);
+        when(noteRepository.findByIdAndUserId(5L,1L)).thenReturn(Optional.of(note));
 
         OfflineNote result = service.saveOffline(note);
 

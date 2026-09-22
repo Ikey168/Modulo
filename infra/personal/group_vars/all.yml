@@ -1,0 +1,13 @@
+---
+baseline_packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - rsync
+  - unzip
+
+modulo_service_root: /srv/modulo
+modulo_backup_root: /srv/backups/modulo
+modulo_config_root: /etc/modulo
+modulo_journald_max_use: 512M

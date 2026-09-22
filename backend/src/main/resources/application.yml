@@ -54,10 +54,9 @@ springdoc:
 # Modulo application-specific configuration
 modulo:
   blueprint:
-    # Script engine for action.code.execute: rhino (default) | wasm (#397/#401).
-    # 'wasm' runs user JS inside QuickJS-on-WASM (hard memory cap, deny-by-default
-    # isolation). Canaried in the dev profile; default flips to wasm after the soak.
-    sandbox: rhino
+    # action.code.execute runs only in QuickJS-on-WASM. The retired Rhino
+    # engine is intentionally not a valid configuration value (#401).
+    sandbox: wasm
   plugins:
     broker:
       # NATS bridge for external plugin workloads (#391). Off by default —
@@ -119,7 +118,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   h2:
     console:
       enabled: false
@@ -204,7 +203,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   h2:
     console:
       enabled: false

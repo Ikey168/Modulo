@@ -24,9 +24,8 @@ import type {
   ViewContribution,
 } from './types';
 import { isRunnable } from './types';
-
-const STORE_KEY = 'modulo-plugins-installed';
-const LEGACY_KEY = 'modulo-plugins';
+import type { PluginStateClient } from '../../../services/pluginStateClient';
+import type { WorkspaceStateHost } from '../../../services/workspaceStateHost';
 
 interface ActiveEntry {
   views: ViewContribution[];
@@ -37,7 +36,13 @@ interface ActiveEntry {
   deactivate?: () => void | Promise<void>;
 }
 
+export interface InstallationStorage {
+  load: () => InstalledRecord[];
+  save: (records: InstalledRecord[]) => Promise<void>;
+}
+
 export class PluginRuntime {
+  private disposed = false;
   private readonly catalog = new Map<string, PluginManifest>();
   private readonly installed = new Map<string, InstalledRecord>();
   private readonly active = new Map<string, ActiveEntry>();
@@ -45,9 +50,43 @@ export class PluginRuntime {
   private readonly errors = new Map<string, string>();
   private readonly listeners = new Set<() => void>();
 
-  constructor(catalog: PluginManifest[]) {
+  constructor(catalog: PluginManifest[], private stateHost?: WorkspaceStateHost, private installationStorage?: InstallationStorage) {
     for (const m of catalog) this.catalog.set(m.id, m);
     this.restoreInstalled();
+  }
+
+  setStateHost(host: WorkspaceStateHost | undefined): void { this.stateHost = host; this.emit(); }
+
+  state(id: string): Promise<PluginStateClient> {
+    if (this.disposed || !this.isInstalled(id) || !this.isEnabled(id)) return Promise.reject(new Error('Plugin is not enabled'));
+    if (!this.stateHost) return Promise.reject(new Error('Workspace synchronization is unavailable'));
+    return this.stateHost.open(id);
+  }
+
+  installationRecords(): InstalledRecord[] { return [...this.installed.values()].map(record => ({ ...record })); }
+
+  async applyInstallations(records: InstalledRecord[]): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
+    const recordsUnchanged = JSON.stringify(records) === JSON.stringify(this.installationRecords());
+    const activeEntriesConsistent = [...this.active.keys()].every((id) => this.isEnabled(id));
+    if (recordsUnchanged && activeEntriesConsistent) return;
+    // Reconcile active entries as well as install records. An activation can
+    // finish after another tab removed its record; leaving that entry alive
+    // would keep its views, panels, or blueprint nodes visible indefinitely.
+    const currentIds = new Set([...this.installed.keys(), ...this.active.keys()]);
+    for (const id of currentIds) {
+      const next = records.find(record => record.id === id);
+      if (!next?.enabled) await this.deactivate(id);
+    }
+    this.installed.clear();
+    for (const record of records) this.installed.set(record.id, { ...record });
+    await this.init();
+  }
+
+  async dispose(): Promise<void> {
+    this.disposed = true;
+    for (const id of [...this.active.keys()]) await this.deactivate(id);
+    this.listeners.clear();
   }
 
   // ── Subscription ───────────────────────────────────────────────────────────
@@ -100,7 +139,11 @@ export class PluginRuntime {
     const noteFences: NoteFenceContribution[] = [];
     const editorActions: EditorActionContribution[] = [];
     const blueprintNodes: BlueprintNodeContribution[] = [];
-    for (const entry of this.active.values()) {
+    for (const [id, entry] of this.active.entries()) {
+      // The install record is the authority for visibility. A lazy activation
+      // or a cross-tab update can leave an entry briefly present while its
+      // record has already been removed; never leak that entry to consumers.
+      if (!this.isEnabled(id)) continue;
       views.push(...entry.views);
       notePanels.push(...entry.notePanels);
       noteFences.push(...entry.noteFences);
@@ -124,43 +167,32 @@ export class PluginRuntime {
   }
 
   private loadRecords(): InstalledRecord[] {
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (raw) return JSON.parse(raw) as InstalledRecord[];
-    } catch {
-      /* fall through to migration / defaults */
-    }
-    // Migrate the old flat id list, or seed built-in defaults on first run.
-    let ids: string[] | null = null;
-    try {
-      const legacy = localStorage.getItem(LEGACY_KEY);
-      if (legacy) ids = JSON.parse(legacy) as string[];
-    } catch {
-      /* ignore */
-    }
-    if (!ids) {
-      ids = this.getCatalog()
-        .filter((m) => m.builtin && isRunnable(m))
-        .map((m) => m.id);
-    }
-    return ids
+    if (this.installationStorage) return this.installationStorage.load();
+    // Unbound runtimes are ephemeral (used by catalog tooling and unit tests).
+    // Production always supplies server-backed installationStorage.
+    return this.getCatalog()
+      .filter((m) => m.builtin && isRunnable(m))
+      .map((m) => m.id)
       .map((id) => this.catalog.get(id))
       .filter((m): m is PluginManifest => Boolean(m) && isRunnable(m!))
       .map((m) => ({ id: m.id, enabled: true }));
   }
 
-  private persist() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify([...this.installed.values()]));
-    } catch {
-      /* storage full/unavailable — state still applies for this session */
-    }
+  private async persist(): Promise<void> {
+    if (this.installationStorage) await this.installationStorage.save([...this.installed.values()]);
   }
 
   // ── Activation ─────────────────────────────────────────────────────────────
 
   /** Activate every installed + enabled plugin. Call once on boot. */
   async init(): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
+    // Manifests can gain dependencies as an installed plugin evolves. Repair
+    // those graphs on startup so existing vaults receive compatible expansion
+    // modules without resetting their install state or application data.
+    for (const record of [...this.installed.values()]) {
+      if (record.enabled) await this.ensureDependencies(record.id, new Set());
+    }
     await Promise.all(
       [...this.installed.values()]
         .filter((r) => r.enabled)
@@ -169,13 +201,24 @@ export class PluginRuntime {
     this.emit();
   }
 
+  private async ensureDependencies(id: string, visiting: Set<string>): Promise<void> {
+    if (visiting.has(id)) throw new Error(`Circular plugin dependency involving '${id}'`);
+    visiting.add(id);
+    for (const depId of this.catalog.get(id)?.dependencies ?? []) {
+      if (!this.installed.has(depId)) await this.install(depId);
+      await this.ensureDependencies(depId, new Set(visiting));
+    }
+  }
+
   private async activate(id: string): Promise<void> {
+    if (this.disposed || !this.isEnabled(id)) return;
     if (this.active.has(id)) return;
     const manifest = this.catalog.get(id);
     if (!manifest?.load) return;
 
     const entry: ActiveEntry = { views: [], notePanels: [], noteFences: [], editorActions: [], blueprintNodes: [] };
     const ctx: PluginContext = {
+      state: () => this.state(id),
       addView: (v) => entry.views.push(v),
       addNotePanel: (p) => entry.notePanels.push(p),
       addNoteFence: (f) => entry.noteFences.push(f),
@@ -183,14 +226,24 @@ export class PluginRuntime {
       addBlueprintNode: (node) => entry.blueprintNodes.push(node),
     };
 
+    let plugin: PluginModule | undefined;
     try {
       const mod = await manifest.load();
-      const plugin: PluginModule = 'default' in mod ? mod.default : mod;
+      if (this.disposed || !this.isEnabled(id)) return;
+      plugin = 'default' in mod ? mod.default : mod;
       await plugin.activate(ctx);
+      // Uninstall/disable may happen while the lazy module is activating. Do
+      // not publish an entry after that transition, and tear down any partial
+      // plugin setup the module performed.
+      if (this.disposed || !this.isEnabled(id)) { await plugin.deactivate?.(); return; }
       entry.deactivate = plugin.deactivate;
       this.active.set(id, entry);
       this.errors.delete(id);
     } catch (err) {
+      if (this.disposed || !this.isEnabled(id)) {
+        try { await plugin?.deactivate?.(); } catch { /* teardown is best effort */ }
+        return;
+      }
       // Isolation: a failed activation must not break the host or other plugins.
       this.errors.set(id, err instanceof Error ? err.message : 'Activation failed');
       this.setPhase(id, 'error');
@@ -198,6 +251,7 @@ export class PluginRuntime {
   }
 
   private async deactivate(id: string): Promise<void> {
+    this.stateHost?.revoke(id);
     const entry = this.active.get(id);
     if (!entry) return;
     this.active.delete(id);
@@ -221,6 +275,7 @@ export class PluginRuntime {
    * install record, then activate it. Idempotent for already-installed plugins.
    */
   async install(id: string): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     const manifest = this.catalog.get(id);
     if (!manifest) throw new Error(`Unknown plugin '${id}'`);
     if (!isRunnable(manifest)) throw new Error(`Plugin '${id}' is not installable`);
@@ -232,12 +287,12 @@ export class PluginRuntime {
         if (!this.installed.has(depId)) await this.install(depId);
       }
       this.installed.set(id, { id, enabled: true });
-      this.persist();
+      await this.persist();
       await this.activate(id);
       this.setPhase(id, this.errors.has(id) ? 'error' : 'idle');
     } catch (err) {
       this.installed.delete(id);
-      this.persist();
+      if (!this.installationStorage) await this.persist();
       this.errors.set(id, err instanceof Error ? err.message : 'Install failed');
       this.setPhase(id, 'error');
       throw err;
@@ -249,26 +304,31 @@ export class PluginRuntime {
    * the dependency graph never breaks underneath an active plugin.
    */
   async uninstall(id: string): Promise<void> {
-    if (!this.installed.has(id)) return;
+    if (this.disposed) throw new Error('Plugin runtime is closed');
+    // Clean up an active orphan too. This can occur when another tab removes
+    // the installation record while a lazy activation is still settling.
+    if (!this.installed.has(id) && !this.active.has(id)) return;
     const blockers = this.dependents(id);
     if (blockers.length > 0) {
       const names = blockers.map((b) => this.catalog.get(b)?.name ?? b).join(', ');
       throw new Error(`Uninstall ${names} first — ${names} depend${blockers.length > 1 ? '' : 's'} on this plugin.`);
     }
     this.setPhase(id, 'uninstalling');
-    await this.deactivate(id);
+    const previous = this.installed.get(id)!;
     this.installed.delete(id);
+    try { await this.persist(); } catch (error) { this.installed.set(id, previous); this.setPhase(id, 'error'); throw error; }
+    await this.deactivate(id);
     this.errors.delete(id);
-    this.persist();
     this.setPhase(id, 'idle');
   }
 
   /** Enable/disable without uninstalling (keeps the install record). */
   async setEnabled(id: string, enabled: boolean): Promise<void> {
+    if (this.disposed) throw new Error('Plugin runtime is closed');
     const rec = this.installed.get(id);
     if (!rec || rec.enabled === enabled) return;
     rec.enabled = enabled;
-    this.persist();
+    try { await this.persist(); } catch (error) { rec.enabled = !enabled; throw error; }
     if (enabled) await this.activate(id);
     else await this.deactivate(id);
     this.emit();

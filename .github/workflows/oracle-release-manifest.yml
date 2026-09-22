@@ -1,0 +1,107 @@
+name: Oracle release manifest
+
+on:
+  workflow_call:
+    inputs:
+      source_revision:
+        required: true
+        type: string
+      backend_image:
+        required: true
+        type: string
+      frontend_image:
+        required: true
+        type: string
+      noesis_image:
+        required: true
+        type: string
+      praxis_image:
+        required: true
+        type: string
+      noesis_source_revision:
+        required: false
+        type: string
+      praxis_source_revision:
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      source_revision:
+        description: Full Modulo Git SHA
+        required: true
+        type: string
+      backend_image:
+        description: Digest-pinned backend image
+        required: true
+        type: string
+      frontend_image:
+        description: Digest-pinned frontend image
+        required: true
+        type: string
+      noesis_image:
+        description: Digest-pinned Noesis image
+        required: true
+        type: string
+      praxis_image:
+        description: Digest-pinned Praxis image
+        required: true
+        type: string
+      noesis_source_revision:
+        description: Optional full Noesis Git SHA recorded in the manifest
+        required: false
+        type: string
+      praxis_source_revision:
+        description: Optional full Praxis Git SHA recorded in the manifest
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    name: Validate and publish Oracle release manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_revision }}
+          fetch-depth: 1
+      - name: Generate immutable release manifest
+        env:
+          SOURCE_REVISION: ${{ inputs.source_revision }}
+          BACKEND_IMAGE: ${{ inputs.backend_image }}
+          FRONTEND_IMAGE: ${{ inputs.frontend_image }}
+          NOESIS_IMAGE: ${{ inputs.noesis_image }}
+          PRAXIS_IMAGE: ${{ inputs.praxis_image }}
+          NOESIS_SOURCE_REVISION: ${{ inputs.noesis_source_revision }}
+          PRAXIS_SOURCE_REVISION: ${{ inputs.praxis_source_revision }}
+        run: |
+          set -Eeuo pipefail
+          manifest_args=(
+            "$SOURCE_REVISION"
+            "$BACKEND_IMAGE"
+            "$FRONTEND_IMAGE"
+            "$NOESIS_IMAGE"
+            "$PRAXIS_IMAGE"
+          )
+          if [[ -n "$NOESIS_SOURCE_REVISION" || -n "$PRAXIS_SOURCE_REVISION" ]]; then
+            [[ -n "$NOESIS_SOURCE_REVISION" && -n "$PRAXIS_SOURCE_REVISION" ]] || {
+              echo 'both external source revisions are required' >&2
+              exit 1
+            }
+            manifest_args+=("$NOESIS_SOURCE_REVISION" "$PRAXIS_SOURCE_REVISION")
+          fi
+          deploy/oci/manifest.sh --check deployment-manifest.json \
+            "${manifest_args[@]}"
+          deploy/oci/manifest.sh deployment-manifest.json \
+            "${manifest_args[@]}"
+          jq -e '.format == "modulo.oracle.release.v1" and (.sourceRevision | length == 40) and (.images | length == 4)' deployment-manifest.json
+      - name: Upload deployment manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-deployment-manifest-${{ inputs.source_revision }}
+          path: deployment-manifest.json
+          if-no-files-found: error
+          retention-days: 90

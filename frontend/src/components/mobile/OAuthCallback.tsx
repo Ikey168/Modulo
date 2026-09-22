@@ -75,7 +75,7 @@ export const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
       // text-base keeps the effective font-size at 16px on this mobile-only
       // page so any form control inherits it and iOS Safari does not zoom on
       // focus (replaces the old global rule from styles/mobile.css).
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
+      <div className="flex min-h-app items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
             <CardTitle>Completing {providerName} sign in</CardTitle>
@@ -98,7 +98,7 @@ export const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
+      <div className="flex min-h-app items-center justify-center bg-background px-4 text-base text-foreground sm:text-sm">
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <CardTitle>Sign in failed</CardTitle>

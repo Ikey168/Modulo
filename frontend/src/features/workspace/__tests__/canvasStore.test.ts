@@ -1,21 +1,17 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   addBoard,
   addCard,
   addConnection,
   defaultState,
   emptyBoard,
-  loadCanvasState,
   moveCard,
   removeBoard,
   removeCard,
   removeConnection,
   renameBoard,
-  saveCanvasState,
   setActiveBoard,
 } from '../canvasStore';
-
-beforeEach(() => localStorage.clear());
 
 describe('canvasStore - boards', () => {
   it('starts with a single active board', () => {
@@ -105,28 +101,5 @@ describe('canvasStore - cards and connections', () => {
     b = addConnection(b, 1, 2);
     b = removeConnection(b, b.connections[0].id);
     expect(b.connections).toHaveLength(0);
-  });
-});
-
-describe('canvasStore - persistence', () => {
-  it('round-trips through localStorage', () => {
-    let s = defaultState();
-    s = renameBoard(s, s.activeId, 'Work');
-    saveCanvasState(s);
-    const loaded = loadCanvasState();
-    expect(loaded.boards[0].name).toBe('Work');
-    expect(loaded.activeId).toBe(s.activeId);
-  });
-
-  it('falls back to a default when storage is empty or corrupt', () => {
-    expect(loadCanvasState().boards).toHaveLength(1);
-    localStorage.setItem('modulo-canvas', '{ not json');
-    expect(loadCanvasState().boards).toHaveLength(1);
-  });
-
-  it('normalizes an active id that no longer exists', () => {
-    localStorage.setItem('modulo-canvas', JSON.stringify({ boards: [emptyBoard('A')], activeId: 'gone' }));
-    const s = loadCanvasState();
-    expect(s.activeId).toBe(s.boards[0].id);
   });
 });

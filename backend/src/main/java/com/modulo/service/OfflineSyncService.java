@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.offline.database.enabled", havingValue = "true", matchIfMissing = true)
 public class OfflineSyncService {
+    @Autowired private com.modulo.security.AuthenticatedUserService users;
 
     private static final Logger log = LoggerFactory.getLogger(OfflineSyncService.class);
     
@@ -39,7 +40,7 @@ public class OfflineSyncService {
     @Autowired(required = false)
     private NetworkDetectionService networkDetectionService;
 
-    private volatile boolean syncInProgress = false;
+    private final java.util.Set<Long> syncingOwners = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /**
      * Save a note to offline storage when online operations fail
@@ -48,6 +49,9 @@ public class OfflineSyncService {
     public OfflineNote saveOffline(Note note) {
         log.info("Saving note to offline storage: {}", note.getTitle());
         
+        users.requireOwner(note.getUserId());
+        if (note.getId() != null) noteRepository.findByIdAndUserId(note.getId(), users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found"));
         OfflineNote offlineNote = convertToOfflineNote(note);
         return offlineNoteRepository.save(offlineNote);
     }
@@ -60,6 +64,7 @@ public class OfflineSyncService {
         log.info("Creating new offline note: {}", title);
         
         OfflineNote offlineNote = new OfflineNote(title, content);
+        offlineNote.setUserId(users.requireUserId());
         offlineNote.setTagsFromSet(tags);
         offlineNote.setSyncStatus(OfflineNote.SyncStatus.PENDING_SYNC);
         
@@ -130,22 +135,23 @@ public class OfflineSyncService {
      * Synchronize offline changes with online database
      * Only runs if network is available
      */
-    @Async
     @Scheduled(fixedDelay = 30000) // Run every 30 seconds
     public void syncOfflineChanges() {
+        // Background threads have no authority to replay another account's queue.
+        if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null) return;
+        long owner = users.requireUserId();
         // Skip sync if network is not available
         if (networkDetectionService != null && !networkDetectionService.isOnline()) {
             log.debug("Network not available, skipping sync");
             return;
         }
         
-        if (syncInProgress) {
+        if (!syncingOwners.add(owner)) {
             log.debug("Sync already in progress, skipping");
             return;
         }
 
         try {
-            syncInProgress = true;
             log.info("Starting offline sync process (network-aware)");
 
             // Sync pending creations/updates
@@ -164,7 +170,7 @@ public class OfflineSyncService {
         } catch (Exception e) {
             log.error("Error during offline sync", e);
         } finally {
-            syncInProgress = false;
+            syncingOwners.remove(owner);
         }
     }
 
@@ -218,7 +224,9 @@ public class OfflineSyncService {
         for (OfflineNote offlineNote : pendingDeletes) {
             try {
                 if (offlineNote.getServerId() != null) {
-                    noteRepository.deleteById(offlineNote.getServerId());
+                    Note owned = noteRepository.findByIdAndUserId(offlineNote.getServerId(), users.requireUserId()).orElseThrow(() ->
+                        new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Note not found"));
+                    noteRepository.delete(owned);
                     log.info("Deleted server note: {}", offlineNote.getServerId());
                 }
                 
@@ -280,6 +288,7 @@ public class OfflineSyncService {
      */
     private OfflineNote convertToOfflineNote(Note note) {
         OfflineNote offlineNote = new OfflineNote();
+        offlineNote.setUserId(users.requireUserId());
         offlineNote.setServerId(note.getId());
         offlineNote.setTitle(note.getTitle());
         offlineNote.setContent(note.getContent());
@@ -298,7 +307,10 @@ public class OfflineSyncService {
      * Convert OfflineNote to server Note
      */
     private Note convertToServerNote(OfflineNote offlineNote) {
+        users.requireOwner(offlineNote.getUserId());
         Note note = new Note();
+        note.setUserId(users.requireUserId());
+        note.setLastEditor(users.actor());
         note.setTitle(offlineNote.getTitle());
         note.setContent(offlineNote.getContent());
         note.setMarkdownContent(offlineNote.getMarkdownContent());
@@ -347,7 +359,6 @@ public class OfflineSyncService {
      * Handle network reconnection events - trigger immediate sync
      */
     @EventListener
-    @Async
     public void handleNetworkReconnected(NetworkDetectionService.NetworkReconnectedEvent event) {
         log.info("Network reconnected event received - triggering priority sync");
         prioritySync();
@@ -365,15 +376,16 @@ public class OfflineSyncService {
      * Priority sync that runs immediately when network reconnects
      * This bypasses the normal scheduling to quickly sync pending changes
      */
-    @Async
     public void prioritySync() {
-        if (syncInProgress) {
+        // Background threads have no authority to replay another account's queue.
+        if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null) return;
+        long owner = users.requireUserId();
+        if (!syncingOwners.add(owner)) {
             log.debug("Sync already in progress, skipping priority sync");
             return;
         }
 
         try {
-            syncInProgress = true;
             log.info("Starting PRIORITY sync after network reconnection");
 
             // Get count of pending changes before sync
@@ -400,7 +412,7 @@ public class OfflineSyncService {
         } catch (Exception e) {
             log.error("Error during priority sync after network reconnection", e);
         } finally {
-            syncInProgress = false;
+            syncingOwners.remove(owner);
         }
     }
 
@@ -408,7 +420,7 @@ public class OfflineSyncService {
      * Check if sync is currently in progress
      */
     public boolean isSyncInProgress() {
-        return syncInProgress;
+        return syncingOwners.contains(users.requireUserId());
     }
 
     /**
@@ -449,7 +461,7 @@ public class OfflineSyncService {
         } catch (Exception e) {
             log.error("Error getting sync status details", e);
         }
-        return new SyncStatus(pendingSync, pendingDelete, syncInProgress, lastSyncTime, totalSynced);
+        return new SyncStatus(pendingSync, pendingDelete, isSyncInProgress(), lastSyncTime, totalSynced);
     }
 
     /**

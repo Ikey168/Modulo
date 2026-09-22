@@ -18,7 +18,7 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
 
     @Query("""
         SELECT e FROM AuditEvent e
-        WHERE (:noteId IS NULL OR e.noteId = :noteId)
+        WHERE e.actorVerified = true AND (:noteId IS NULL OR e.noteId = :noteId)
           AND (:userId IS NULL OR e.userId = :userId)
           AND (:eventType IS NULL OR e.eventType = :eventType)
           AND (:from IS NULL OR e.createdAt >= :from)

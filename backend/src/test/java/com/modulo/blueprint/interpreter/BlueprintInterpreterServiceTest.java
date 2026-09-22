@@ -43,6 +43,7 @@ class BlueprintInterpreterServiceTest {
 
     @Mock private BlueprintRepository blueprintRepository;
     @Mock private BlueprintCapabilityService capabilityService;
+    @Mock private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
     @Mock private PluginEventBus eventBus;
     @Mock private NoteService noteService;
     @Mock private TagService tagService;
@@ -60,7 +61,9 @@ class BlueprintInterpreterServiceTest {
         // Real ObjectMapper so convertValue() works as in production.
         org.springframework.test.util.ReflectionTestUtils.setField(
             interpreter, "objectMapper", new ObjectMapper());
-        interpreter.initScheduler();
+        when(workflowRuns.create(anyLong(),anyLong(),anyString(),anyString(),anyString(),anyString(),anyString()))
+            .thenAnswer(call -> new com.modulo.blueprint.execution.WorkflowRunService.Lease(java.util.UUID.randomUUID(),1L,true));
+        when(workflowRuns.asOwner(any(),any())).thenAnswer(call -> ((java.util.function.Supplier<?>)call.getArgument(1)).get());
 
         // Record note.created / note.updated subscriptions.
         doAnswer(inv -> {
@@ -82,12 +85,51 @@ class BlueprintInterpreterServiceTest {
         when(capabilityService.isGranted(anyLong(), any())).thenReturn(true);
     }
 
+    private Note owned(Note note) {
+        note.setUserId(1L); return note;
+    }
+
     private BlueprintEntry entry(Map<String, Object> ir) {
         BlueprintEntry e = new BlueprintEntry();
         e.setId(1L);
+        e.setOwnerId(1L);
         e.setName("test-bp");
         e.setIr(ir);
         return e;
+    }
+
+    @Test
+    void manualTriggerUsesTheOwnedNoteAndStableRequestKey() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("manual", "trigger.manual", 1, null)), "edges", List.of()));
+        Note note = owned(new Note("Procedure", "Inspect inputs"));
+        var request = java.util.UUID.randomUUID();
+        var result = interpreter.fireManual(blueprint, "manual", note, request);
+        assertThat(result).isNotNull();
+        verify(workflowRuns).create(eq(1L), eq(1L), eq("1"), anyString(), eq("manual"), eq("trigger.manual"), eq("manual:" + request));
+        verify(workflowRuns).finishStep(any(), any(), eq("SUCCEEDED"), eq(Map.of("note", note)), isNull(), anyLong());
+        verify(workflowRuns).transition(any(), eq("RUNNING"), eq("SUCCEEDED"), isNull());
+    }
+
+    @Test
+    void repeatedManualRequestDoesNotRunTheGraphAgain() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("manual", "trigger.manual", 1, null)), "edges", List.of()));
+        var existing = java.util.UUID.randomUUID();
+        when(workflowRuns.create(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()))
+            .thenReturn(new com.modulo.blueprint.execution.WorkflowRunService.Lease(existing, 1L, false));
+        assertThat(interpreter.fireManual(blueprint, "manual", owned(new Note("Procedure", "Body")), java.util.UUID.randomUUID())).isEqualTo(existing);
+        verify(workflowRuns, never()).begin(any());
+        verify(workflowRuns, never()).startStep(any(), anyInt(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void manualRequestsCannotFireAnotherTriggerTypeOrReadAForeignNote() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("saved", "trigger.note.saved", 1, null)), "edges", List.of()));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> interpreter.fireManual(blueprint, "saved", owned(new Note("Procedure", "Body")), java.util.UUID.randomUUID()))
+            .isInstanceOf(IllegalArgumentException.class);
+        Note foreign = new Note("Private", "Body"); foreign.setUserId(2L);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> interpreter.fireManual(blueprint, "saved", foreign, java.util.UUID.randomUUID()))
+            .isInstanceOf(IllegalArgumentException.class);
+        verify(workflowRuns, never()).create(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     /** trigger.note.saved → action.note.create: firing the trigger runs the action and logs success. */
@@ -109,12 +151,12 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(7L);
         note.setTitle("Hello");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // The action.note.create node executed (a new note was saved) ...
         verify(noteService, atLeastOnce()).save(any(Note.class));
         // ... and a success execution log was written.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("success"), anyString(), any(), any());
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("SUCCEEDED"),isNull());
     }
 
     /** AI summary feeds the tag value of action.tag.add. */
@@ -144,7 +186,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(7L);
         note.setContent("Some long content to summarize.");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // The summary "short-summary" should have become a tag.
         verify(tagService).createOrGetTag("short-summary");
@@ -173,19 +215,18 @@ class BlueprintInterpreterServiceTest {
 
         Note note = new Note();
         note.setId(7L);
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
-        // Loop guard fires → an error log is written.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("error"), contains("Loop guard"), any(), any());
+        // Loop guard has a structured terminal classification.
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("FAILED"),eq("LOOP_GUARD"));
         // noteService.save was called many times but bounded (≤ MAX_STEPS).
         verify(noteService, atMost(BlueprintExecutionContext.MAX_STEPS + 1)).save(any(Note.class));
     }
 
-    /** action.code.execute runs through whichever ScriptSandbox engine is configured (#397/#400). */
+    /** action.code.execute runs through the supported WASM ScriptSandbox engine (#397/#400/#401). */
     @Test
     void codeExecuteRunsThroughConfiguredSandboxEngine() {
         for (com.modulo.blueprint.sandbox.ScriptSandbox engine : List.of(
-                new com.modulo.blueprint.sandbox.RhinoScriptSandbox(),
                 new com.modulo.blueprint.sandbox.WasmScriptSandbox())) {
             org.springframework.test.util.ReflectionTestUtils.setField(interpreter, "scriptSandbox", engine);
 
@@ -211,7 +252,7 @@ class BlueprintInterpreterServiceTest {
             Note note = new Note();
             note.setId(7L);
             note.setTitle("hello " + engine.getClass().getSimpleName());
-            noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+            noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
             // The script's output fed the tag node — uppercased by the engine under test.
             verify(tagService, atLeastOnce())
@@ -248,7 +289,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("wasm module output");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         // titlecase.wasm title-cased the note title and fed it to the tag node.
         verify(tagService, atLeastOnce()).createOrGetTag("Wasm Module Output");
@@ -256,7 +297,7 @@ class BlueprintInterpreterServiceTest {
 
     /** An invalid module (undeclared imports) degrades to empty output, not a failed run (#403). */
     @Test
-    void wasmExecuteWithInvalidModuleDegradesGracefully() throws Exception {
+    void wasmExecuteWithInvalidModuleRecordsFailure() throws Exception {
         String moduleB64;
         try (java.io.InputStream in = getClass().getResourceAsStream("/wasm/imports.wasm")) {
             moduleB64 = java.util.Base64.getEncoder().encodeToString(in.readAllBytes());
@@ -279,10 +320,10 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("x");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
-        // The run completed (success log) despite the rejected module.
-        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), eq("success"), anyString(), any(), any());
+        // Rejected modules must produce a failed trace and run.
+        verify(workflowRuns).transition(any(),eq("RUNNING"),eq("FAILED"),eq("NODE_FAILURE"));
     }
 
     // --- IR builder helpers (plain maps mirroring the JSON IR) ---
@@ -315,7 +356,7 @@ class BlueprintInterpreterServiceTest {
         Note note = new Note();
         note.setId(9L);
         note.setTitle("anything");
-        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(note));
+        noteListeners.get("note.created").handleEvent(new NoteEvent.NoteCreated(owned(note)));
 
         verify(noesisBriefService).fetchBrief(isNull(), isNull());
         org.mockito.ArgumentCaptor<Note> saved = org.mockito.ArgumentCaptor.forClass(Note.class);

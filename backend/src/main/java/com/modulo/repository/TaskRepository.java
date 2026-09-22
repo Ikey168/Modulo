@@ -17,6 +17,12 @@ import java.util.Optional;
  */
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
+    Optional<Task> findByIdAndUserId(Long id, Long userId);
+    Optional<Task> findByGoogleCalendarEventIdAndUserId(String eventId, Long userId);
+    List<Task> findByParentTaskIdAndUserIdOrderByCreatedAtAsc(Long parentTaskId, Long userId);
+    @Query("SELECT t FROM Task t JOIN t.linkedNotes n WHERE n.id = :noteId AND n.userId = :owner AND t.userId = :owner")
+    List<Task> findOwnedByLinkedNoteId(@Param("noteId") Long noteId, @Param("owner") Long owner);
+
     
     /**
      * Find all tasks for a specific user

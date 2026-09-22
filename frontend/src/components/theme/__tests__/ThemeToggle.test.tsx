@@ -66,6 +66,7 @@ describe('ThemeToggle Component', () => {
 
     const items = within(menu).getAllByRole('menuitemcheckbox');
     expect(items.map((item) => item.textContent)).toEqual([
+      'Bart (KDE)',
       'Dark Mode',
       'Light Mode',
       'Ocean Blue',

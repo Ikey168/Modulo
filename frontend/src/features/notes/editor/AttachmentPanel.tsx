@@ -1,3 +1,5 @@
+import { authenticatedRequest } from '../../../services/authenticatedRequest';
+import { PrivateAttachmentImage, PrivateAttachmentLink } from '../rendering/PrivateAttachment';
 import React, { useState, useEffect, useRef, useCallback, DragEvent, ClipboardEvent } from 'react';
 import { FileText, CornerDownLeft, X, Paperclip } from 'lucide-react';
 import { Button, cn } from '@/ui';
@@ -26,7 +28,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/notes/${noteId}/files`);
+      const res = await authenticatedRequest(`/api/notes/${noteId}/files`);
       if (res.ok) setAttachments(await res.json());
     } catch {
       // ignore
@@ -42,7 +44,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
       for (const file of list) {
         const fd = new FormData();
         fd.append('file', file);
-        const res = await fetch(`/api/notes/${noteId}/files`, { method: 'POST', body: fd });
+        const res = await authenticatedRequest(`/api/notes/${noteId}/files`, { method: 'POST', body: fd });
         if (res.ok) {
           const info: AttachmentInfo = await res.json();
           setAttachments(prev => [info, ...prev]);
@@ -83,7 +85,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
   }, [handlePaste]);
 
   const deleteAttachment = async (id: number) => {
-    const res = await fetch(`/api/notes/${noteId}/files/${id}`, { method: 'DELETE' });
+    const res = await authenticatedRequest(`/api/notes/${noteId}/files/${id}`, { method: 'DELETE' });
     if (res.ok || res.status === 204) {
       setAttachments(prev => prev.filter(a => a.id !== id));
     }
@@ -133,7 +135,7 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
           {attachments.map(a => (
             <li key={a.id} className="flex items-center gap-2 text-[13px]">
               {a.isImage ? (
-                <img
+                <PrivateAttachmentImage
                   src={a.url}
                   alt={a.originalFilename}
                   className="size-10 shrink-0 rounded-md border border-border object-cover"
@@ -143,14 +145,14 @@ const AttachmentPanel: React.FC<Props> = ({ noteId, onInsertMarkdown }) => {
                   <FileText className="size-5" />
                 </span>
               )}
-              <a
+              <PrivateAttachmentLink
                 href={a.url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-primary-hover hover:underline"
               >
                 {a.originalFilename}
-              </a>
+              </PrivateAttachmentLink>
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {formatSize(a.fileSize)}
               </span>

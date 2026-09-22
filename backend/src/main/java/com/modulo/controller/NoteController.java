@@ -1,6 +1,8 @@
 package com.modulo.controller;
 
 import com.modulo.entity.Note;
+import com.modulo.security.AuthenticatedUserService;
+import org.springframework.web.server.ResponseStatusException;
 import com.modulo.entity.Tag;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.ConflictResolutionService;
@@ -22,6 +24,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/notes")
 @CrossOrigin(originPatterns = "*")
 public class NoteController {
+    @Autowired private AuthenticatedUserService users;
+
+    @ModelAttribute
+    public void requireAuthenticatedOwner() { users.requireUserId(); }
+
 
     private final NoteRepository noteRepository;
     private final TagService tagService;
@@ -48,6 +55,8 @@ public class NoteController {
     public ResponseEntity<Note> createNote(@RequestBody NoteCreateRequest request) {
         try {
             Note note = new Note(request.getTitle(), request.getContent(), request.getMarkdownContent());
+            note.setUserId(users.requireUserId());
+            note.setLastEditor(users.actor());
             
             // Handle tags
             if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
@@ -68,11 +77,12 @@ public class NoteController {
                 savedNote.getTitle(), 
                 savedNote.getContent(), 
                 tagNames, 
-                "current-user" // TODO: Get actual user ID from security context
+                users.actor()
             );
             
             return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             // Fallback to offline storage if online operation fails
             if (offlineSyncService != null) {
                 try {
@@ -100,6 +110,7 @@ public class NoteController {
             List<Note> notes = noteRepository.findAllWithTags();
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
     }
@@ -111,6 +122,7 @@ public class NoteController {
             return note.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -130,7 +142,7 @@ public class NoteController {
                     request.getContent(),
                     request.getMarkdownContent(),
                     tagNames,
-                    request.getEditor() != null ? request.getEditor() : "unknown-user"
+                    users.actor()
                 );
                 
                 // Broadcast the note update via WebSocket
@@ -142,7 +154,7 @@ public class NoteController {
                     updatedNote.getTitle(), 
                     updatedNote.getContent(), 
                     finalTagNames, 
-                    request.getEditor() != null ? request.getEditor() : "unknown-user"
+                    users.actor()
                 );
                 
                 return ResponseEntity.ok(updatedNote);
@@ -162,7 +174,7 @@ public class NoteController {
                 request.getTitle(),
                 request.getContent(),
                 tagNames,
-                request.getEditor() != null ? request.getEditor() : "unknown-user"
+                users.actor()
             );
             
             return ResponseEntity.status(HttpStatus.CONFLICT).body(conflict);
@@ -170,6 +182,7 @@ public class NoteController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             // Try offline fallback if main database is unavailable
             try {
                 offlineSyncService.updateOfflineNote(id, request.getTitle(), request.getContent(), request.getTagNames());
@@ -197,8 +210,8 @@ public class NoteController {
             if (request.getMarkdownContent() != null) {
                 note.setMarkdownContent(request.getMarkdownContent());
             }
-            if (request.getEditor() != null) {
-                note.setLastEditor(request.getEditor());
+            {
+                note.setLastEditor(users.actor());
             }
 
             // Handle tags update
@@ -221,11 +234,12 @@ public class NoteController {
                 savedNote.getTitle(), 
                 savedNote.getContent(), 
                 tagNames, 
-                request.getEditor() != null ? request.getEditor() : "unknown-user"
+                users.actor()
             );
             
             return ResponseEntity.ok(savedNote);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             // Fallback to offline storage if online operation fails
             if (offlineSyncService != null) {
                 try {
@@ -262,11 +276,12 @@ public class NoteController {
             // Broadcast the note deletion via WebSocket
             webSocketNotificationService.broadcastNoteDeleted(
                 id, 
-                "current-user" // TODO: Get actual user ID from security context
+                users.actor()
             );
             
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             // Try offline fallback if main database is unavailable
             try {
                 offlineSyncService.deleteOfflineNote(id);
@@ -292,6 +307,7 @@ public class NoteController {
             Note savedNote = noteRepository.save(note);
             return ResponseEntity.ok(savedNote);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -313,6 +329,7 @@ public class NoteController {
             Note savedNote = noteRepository.save(note);
             return ResponseEntity.ok(savedNote);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -323,6 +340,7 @@ public class NoteController {
             List<Note> notes = noteRepository.findByTagName(tagName);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -333,6 +351,7 @@ public class NoteController {
             List<Note> notes = noteRepository.findByTitleOrContentContainingIgnoreCase(query);
             return ResponseEntity.ok(notes);
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -365,6 +384,7 @@ public class NoteController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());

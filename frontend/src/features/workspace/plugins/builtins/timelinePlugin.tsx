@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- lazy plugin module exports a descriptor beside its private React surface */
 // Timeline - contributes a chronological stream of notes grouped by period.
 // Installable (not pre-installed); lazy-loaded.
 import { History } from 'lucide-react';
@@ -10,7 +11,7 @@ function TimelineSurface(p: WorkspaceViewProps) {
 
 const timelinePlugin: PluginModule = {
   activate(ctx) {
-    ctx.addView({ id: 'timeline', label: 'Timeline', icon: History, order: 80, component: TimelineSurface });
+    ctx.addView({ id: 'timeline', label: 'Timeline', icon: History, order: 40, mode: 'knowledge', section: 'Explore', component: TimelineSurface });
   },
 };
 

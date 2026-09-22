@@ -60,7 +60,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
+    <div className="min-h-app bg-background px-4 py-8">
       <div className="mx-auto max-w-5xl animate-fade-in space-y-6">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">Settings</h1>
 

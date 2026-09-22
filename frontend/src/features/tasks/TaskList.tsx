@@ -160,7 +160,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+      <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
         <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
           <Spinner className="size-10 text-primary" />
           <p className="text-[13px] text-muted-foreground">Loading tasks...</p>
@@ -171,7 +171,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (error) {
     return (
-      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+      <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
         <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
           <p className="text-sm text-destructive">{error}</p>
           <Button onClick={loadTasks}>
@@ -183,7 +183,7 @@ const TaskList: React.FC<TaskListProps> = ({
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+    <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
       {tasks.length === 0 ? (
         <EmptyState
           icon={<ListTodo />}

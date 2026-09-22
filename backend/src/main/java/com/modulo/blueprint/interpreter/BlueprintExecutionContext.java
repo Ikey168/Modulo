@@ -15,7 +15,11 @@ public class BlueprintExecutionContext {
 
     static final int MAX_STEPS = 100;
 
-    private final String executionId = UUID.randomUUID().toString();
+    private final String executionId;
+    private com.modulo.blueprint.execution.WorkflowRunService.Lease lease;
+    public BlueprintExecutionContext() { this.executionId = UUID.randomUUID().toString(); }
+    public BlueprintExecutionContext(com.modulo.blueprint.execution.WorkflowRunService.Lease lease) { this.lease = lease; this.executionId = lease.id().toString(); }
+    public com.modulo.blueprint.execution.WorkflowRunService.Lease getLease() { return lease; }
     private final Map<String, Object> pinValues = new HashMap<>();
     private final List<String> executedNodes = new ArrayList<>();
     private int stepCount = 0;
@@ -54,6 +58,9 @@ public class BlueprintExecutionContext {
                 "Blueprint exceeded " + MAX_STEPS + " execution steps — possible infinite loop");
         }
     }
+
+    public Map<String,Object> checkpointPins() { return new HashMap<>(pinValues); }
+    public void restorePins(Map<String,Object> pins,int completedSteps) { pinValues.clear();pinValues.putAll(pins);stepCount=completedSteps; }
 
     public int getStepCount() { return stepCount; }
 }

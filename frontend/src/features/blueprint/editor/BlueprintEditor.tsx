@@ -20,6 +20,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './editor.css';
+import { Plus } from 'lucide-react';
 import {
   Button,
   Input,
@@ -28,10 +29,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   cn,
 } from '@/ui';
+import { usePhoneLayout } from '../../workspace/mobile/usePhoneLayout';
 
-import { BlueprintIR } from '../blueprintIR';
+import { BlueprintIR, type BlueprintAutonomyLevel } from '../blueprintIR';
 import { createCoreCatalog } from '../nodeCatalog';
 import { NodeDescriptor } from '../nodeModel';
 import {
@@ -43,7 +50,7 @@ import {
   updateBlueprint,
   type BlueprintListItem,
 } from '../blueprintService';
-import { getLocalBlueprint, listLocalBlueprints } from '../localBlueprints';
+import { getLocalBlueprint, listLocalBlueprints, usePackBlueprints } from '../localBlueprints';
 import { deriveRequiredCapabilities } from '../capabilities';
 import { CapabilityConsentScreen } from './CapabilityConsentScreen';
 import { BlueprintNodeView } from './BlueprintNodeView';
@@ -56,6 +63,7 @@ import {
   irToFlow,
   makeId,
   parseHandle,
+  pruneFlowNodes,
 } from './reactFlowAdapter';
 
 const nodeTypes = { blueprintNode: BlueprintNodeView };
@@ -79,11 +87,15 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [name, setName] = useState('Untitled Blueprint');
   const [description, setDescription] = useState('');
+  const [autonomyLevel, setAutonomyLevel] = useState<BlueprintAutonomyLevel>('SUPERVISED');
   const [loadedName, setLoadedName] = useState<string | null>(null);
   const [saved, setSaved] = useState<BlueprintListItem[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
   const [showConsent, setShowConsent] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const phoneLayout = usePhoneLayout();
+  const previousCatalogKeys = useRef<Set<string>>();
 
   const { screenToFlowPosition } = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -104,14 +116,41 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
     [nodes, highlighted],
   );
 
+  const [packBlueprints] = usePackBlueprints();
+
+  // Plugin nodes are stored in the canvas state as descriptors. When their
+  // plugin is disabled or uninstalled, the catalog changes but React Flow
+  // would otherwise keep rendering the old descriptor until the blueprint is
+  // reloaded. Reconcile nodes that disappeared from a previously live
+  // catalog, while preserving genuinely unknown nodes from older blueprints so
+  // a slow plugin activation cannot erase a loaded graph.
+  useEffect(() => {
+    const currentCatalogKeys = new Set(catalog.list().map((node) => `${node.type}@${node.version}`));
+    const previousKeys = previousCatalogKeys.current;
+    previousCatalogKeys.current = currentCatalogKeys;
+    if (!previousKeys) return;
+    const removedKeys = new Set([...previousKeys].filter((key) => !currentCatalogKeys.has(key)));
+    if (removedKeys.size === 0) return;
+    const pruned = pruneFlowNodes(nodes, edges, (node) => !removedKeys.has(`${node.data.descriptor.type}@${node.data.nodeVersion}`));
+    if (pruned.nodes === nodes) return;
+    const removed = nodes.length - pruned.nodes.length;
+    setNodes(pruned.nodes);
+    setEdges(pruned.edges);
+    setHighlighted((current) => {
+      const kept = new Set(pruned.nodes.map((node) => node.id));
+      return new Set([...current].filter((id) => kept.has(id)));
+    });
+    setStatus({ kind: 'info', text: `Removed ${removed} unavailable plugin node${removed === 1 ? '' : 's'}.` });
+  }, [catalog, edges, nodes, setEdges, setNodes]);
+
   const refreshList = useCallback(() => {
     // Pack-installed blueprints (client-side) are merged ahead of backend rows,
     // and remain listed even when the backend is unavailable.
-    const local = listLocalBlueprints();
+    const local = listLocalBlueprints(packBlueprints);
     listBlueprints()
       .then((remote) => setSaved([...local, ...remote.filter((r) => !local.some((l) => l.name === r.name))]))
       .catch(() => setSaved(local));
-  }, []);
+  }, [packBlueprints]);
 
   useEffect(() => {
     refreshList();
@@ -193,10 +232,11 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
     return flowToIR(nodes, edges, {
       name,
       description: description || undefined,
+      autonomyLevel,
       createdAt: now,
       updatedAt: now,
     });
-  }, [nodes, edges, name, description]);
+  }, [nodes, edges, name, description, autonomyLevel]);
 
   const handleSave = useCallback(async () => {
     const ir = buildIR();
@@ -221,12 +261,13 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
   const handleLoad = useCallback(
     async (toLoad: string) => {
       try {
-        const bp = getLocalBlueprint(toLoad) ?? (await loadBlueprint(toLoad));
+        const bp = getLocalBlueprint(packBlueprints, toLoad) ?? (await loadBlueprint(toLoad));
         const flow = irToFlow(bp.ir, catalog);
         setNodes(flow.nodes);
         setEdges(flow.edges);
         setName(bp.name);
         setDescription(bp.description ?? '');
+        setAutonomyLevel(bp.ir.metadata.autonomyLevel ?? 'SUPERVISED');
         setLoadedName(bp.name);
         setHighlighted(new Set());
         setShowConsent(false);
@@ -235,7 +276,7 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
         setStatus({ kind: 'error', text: `Load failed: ${(err as Error).message}` });
       }
     },
-    [catalog, setNodes, setEdges],
+    [catalog, setNodes, setEdges, packBlueprints],
   );
 
   const handleNew = useCallback(() => {
@@ -243,6 +284,7 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
     setEdges([]);
     setName('Untitled Blueprint');
     setDescription('');
+    setAutonomyLevel('SUPERVISED');
     setLoadedName(null);
     setHighlighted(new Set());
     setShowConsent(false);
@@ -307,24 +349,43 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-background font-sans text-[13px] text-foreground">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
-        <div className="flex items-center gap-2">
+      {/* Two 200px+ fields side by side is 428px of header on a 412px screen:
+          the description ran off the edge and took the toolbar with it. Below
+          `sm` the fields stack full-width and the actions become a strip that
+          scrolls instead of overflowing. */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2 phone:gap-2 phone:px-2">
+        <div className="flex items-center gap-2 phone:w-full phone:flex-col phone:items-stretch phone:gap-1">
           <Input
-            className="h-8 w-[200px] border-transparent bg-transparent px-1.5 font-semibold hover:border-border focus-visible:border-primary"
+            className="h-8 w-[200px] border-transparent bg-transparent px-1.5 font-semibold hover:border-border focus-visible:border-primary phone:h-11 phone:w-full phone:border-border phone:px-2.5 phone:text-base"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Blueprint name"
             aria-label="Blueprint name"
           />
           <Input
-            className="h-8 w-[220px] border-transparent bg-transparent px-1.5 text-muted-foreground hover:border-border focus-visible:border-primary"
+            className="h-8 w-[220px] border-transparent bg-transparent px-1.5 text-muted-foreground hover:border-border focus-visible:border-primary phone:h-11 phone:w-full phone:border-border phone:px-2.5 phone:text-[15px]"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)"
             aria-label="Blueprint description"
           />
+          <Select value={autonomyLevel} onValueChange={(value) => setAutonomyLevel(value as BlueprintAutonomyLevel)}>
+            <SelectTrigger className="h-8 w-[132px] text-xs phone:h-11 phone:w-full phone:text-[15px]" aria-label="Autonomy level">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MANUAL">Manual only</SelectItem>
+              <SelectItem value="SUPERVISED">Supervised</SelectItem>
+              <SelectItem value="AUTONOMOUS">Autonomous</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 phone:scroll-strip phone:-mx-2 phone:w-[calc(100%+1rem)] phone:px-2">
+          {/* The palette is a rail on a desktop and a bottom sheet here: a
+              220px sidebar would leave the canvas 190px wide. */}
+          <Button type="button" variant="outline" size="sm" className="hidden phone:inline-flex" onClick={() => setPaletteOpen(true)}>
+            <Plus aria-hidden="true" /> Add node
+          </Button>
           <Button type="button" variant="ghost" size="sm" onClick={handleNew}>New</Button>
           {/* Action select: value stays "" so the trigger always reads "Load…". */}
           <Select value="" onValueChange={(val) => { if (val) handleLoad(val); }}>
@@ -365,7 +426,20 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <NodePalette catalog={catalog} onAdd={(d) => addNode(d)} />
+        <NodePalette catalog={catalog} onAdd={(d) => addNode(d)} className="phone:hidden" />
+        <Sheet open={paletteOpen} onOpenChange={setPaletteOpen}>
+          <SheetContent side="bottom" className="h-[70dvh] gap-0 rounded-t-2xl bg-surface p-0 pt-3">
+            <SheetHeader className="px-4 pb-1 text-left">
+              <SheetTitle className="text-sm">Add a node</SheetTitle>
+              <SheetDescription className="sr-only">Choose a node to place on the canvas</SheetDescription>
+            </SheetHeader>
+            <NodePalette
+              catalog={catalog}
+              onAdd={(d) => { addNode(d); setPaletteOpen(false); }}
+              className="w-full flex-1 border-r-0"
+            />
+          </SheetContent>
+        </Sheet>
         <div className="relative flex-1" ref={wrapperRef} onDragOver={onDragOver} onDrop={onDrop}>
           <ReactFlow
             nodes={styledNodes}
@@ -381,7 +455,9 @@ function EditorInner({ extraNodes }: { extraNodes: NodeDescriptor[] }) {
             {/* Pattern colour comes from --xy-background-pattern-color (token-driven, editor.css). */}
             <Background gap={18} />
             <Controls />
-            <MiniMap pannable zoomable />
+            {/* A minimap of a canvas that is itself barely bigger than the
+                minimap is not orientation, it is occlusion. */}
+            {!phoneLayout && <MiniMap pannable zoomable />}
           </ReactFlow>
         </div>
       </div>

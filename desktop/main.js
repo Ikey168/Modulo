@@ -25,11 +25,16 @@
  */
 
 const path = require('path');
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, shell } = require('electron');
 const { createAppServer } = require('./serve');
+const { registerNativeServices } = require('./native-services');
 
 const DEV_MODE = process.argv.includes('--dev') || !!process.env.ELECTRON_START_URL;
 const DEV_URL = process.env.ELECTRON_START_URL || 'http://localhost:3000';
+// Remote mode: a deployed Modulo origin that serves the frontend and /api,
+// /auth, /ws same-origin behind one HTTPS host (e.g. the Oracle deployment).
+// When set, the shell loads it directly and needs no local server/proxy.
+const APP_URL = process.env.MODULO_APP_URL || '';
 const BACKEND_URL = process.env.MODULO_BACKEND_URL || 'http://localhost:8080';
 const KEYCLOAK_URL = process.env.MODULO_KEYCLOAK_URL || 'http://localhost:8180';
 const DESKTOP_PORT = Number(process.env.MODULO_DESKTOP_PORT || 3000);
@@ -37,6 +42,8 @@ const SMOKE_TEST_PATH = process.env.MODULO_SMOKE_TEST || '';
 
 let mainWindow = null;
 let appServer = null;
+let tray = null;
+let quitting = false;
 
 // When packaged, electron-builder copies the frontend build into
 // resources/app-dist (see "extraResources" in package.json). In a repo
@@ -54,6 +61,13 @@ function resolveStartUrl() {
   if (!startUrlPromise) {
     startUrlPromise = (async () => {
       if (DEV_MODE) return DEV_URL;
+      // Remote mode: load the deployed origin directly. Its Keycloak realm
+      // (redirectUris/webOrigins) and backend CORS already trust this origin,
+      // so OIDC login and API calls work with no local proxy.
+      if (APP_URL) {
+        console.log(`Modulo desktop loading remote deployment at ${APP_URL}`);
+        return APP_URL;
+      }
       appServer = await createAppServer({
         distDir: distDir(),
         backendUrl: BACKEND_URL,
@@ -94,7 +108,7 @@ async function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'Modulo',
-    backgroundColor: '#0a0a0b', // matches the pre-React splash in index.html
+    backgroundColor: '#151414', // matches the pre-React splash in index.html
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -106,6 +120,12 @@ async function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+  mainWindow.on('close', (event) => {
+    if (quitting || SMOKE_TEST_PATH) return;
+    if (!tray) { quitting = true; app.quit(); return; }
+    event.preventDefault();
+    mainWindow.hide();
   });
 
   // Everything outside the app/Keycloak opens in the system browser.
@@ -161,16 +181,29 @@ if (!gotLock) {
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
     }
   });
 
-  app.whenReady().then(() =>
-    createWindow().catch((err) => {
+  app.whenReady().then(() => {
+    registerNativeServices({ app, getWindow: () => mainWindow });
+    const icon = nativeImage.createFromPath(path.join(distDir(), 'favicon.svg'));
+    if (!icon.isEmpty()) {
+      tray = new Tray(icon.resize({ width: 18, height: 18 }));
+      tray.setToolTip('Modulo');
+      tray.setContextMenu(Menu.buildFromTemplate([
+        { label: 'Open Modulo', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } else void createWindow(); } },
+        { type: 'separator' },
+        { label: 'Quit', click: () => { quitting = true; app.quit(); } },
+      ]));
+      tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
+    }
+    return createWindow().catch((err) => {
       console.error(err.message);
       app.exit(1);
-    })
-  );
+    });
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -178,11 +211,13 @@ if (!gotLock) {
     }
   });
 
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-  });
+  // Keep the main process alive for scheduled reminders and file watching.
+  // The tray menu provides an explicit Quit action on every platform.
+  app.on('window-all-closed', () => { if (!tray) app.quit(); });
 
   app.on('quit', () => {
+    quitting = true;
+    if (tray) tray.destroy();
     if (appServer) appServer.close();
   });
 }

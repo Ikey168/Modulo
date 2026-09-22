@@ -1,6 +1,8 @@
+import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from '../../../services/workspaceSocketUrl';
 import { accentColor } from '../theme/tokens';
 
 export interface Participant {
@@ -54,8 +56,8 @@ export function usePresence(noteId: number | undefined, userId: string, userName
   useEffect(() => {
     if (!noteId) return;
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+    const client = authenticatedStomp({
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
       onConnect: () => {
         client.subscribe(`/topic/notes/${noteId}/presence`, (frame) => {
           const msg: PresenceMessage = JSON.parse(frame.body);

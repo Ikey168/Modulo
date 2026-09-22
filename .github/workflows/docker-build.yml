@@ -1,238 +1,81 @@
 name: Multi-Architecture Docker Build
-
 on:
-  push:
-    branches: [ "main", "feature/*", "**-*" ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/docker-build.yml'
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'package*.json'
+      - '.node-version'
+      - '.dockerignore'
       - '.github/workflows/docker-build.yml'
-
-env:
-  REGISTRY: ghcr.io
-
+permissions:
+  contents: read
+concurrency:
+  group: images-${{ github.event.workflow_run.head_sha || github.ref }}
+  cancel-in-progress: false
 jobs:
-  test-build:
+  images:
+    if: github.event_name == 'pull_request' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        component: [backend, frontend]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Test build ${{ matrix.component }}
-        uses: docker/build-push-action@v5
-        with:
-          context: ./${{ matrix.component }}
-          file: ./${{ matrix.component }}/Dockerfile
-          platforms: linux/amd64
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-and-push:
-    needs: test-build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    if: github.event_name != 'pull_request'
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write
-      id-token: write  # Required for keyless signing
+      id-token: write
     strategy:
+      fail-fast: false
       matrix:
         component: [backend, frontend]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
         with:
-          registry: ${{ env.REGISTRY }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+          COMPONENT: ${{ matrix.component }}
+        run: echo "name=ghcr.io/${REPOSITORY,,}/$COMPONENT" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        if: github.event_name == 'workflow_run'
+        with:
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.component }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr,prefix=pr-
-            type=sha,format=short,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
+      - uses: docker/build-push-action@v6
         id: build
-        uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.component }}
-          file: ./${{ matrix.component }}/Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
-      - name: Install Cosign
-        run: |
-          COSIGN_VERSION="v2.4.0"
-          curl -Lo cosign https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64
-          chmod +x cosign
-          sudo mv cosign /usr/local/bin/cosign
-          cosign version
-
-      - name: Sign container images with Cosign (keyless)
-        run: |
-          # Get the digest from the build output
-          digest="${{ steps.build.outputs.digest }}"
-          
-          # Validate digest exists
-          if [ -z "$digest" ]; then
-            echo "Error: No digest found from build output"
-            exit 1
-          fi
-          
-          # Sign all tags with keyless signing
-          echo "Tags to sign: ${{ steps.meta.outputs.tags }}"
-          echo "Digest: $digest"
-          
-          # Convert tags to array and iterate
-          tags="${{ steps.meta.outputs.tags }}"
-          for tag in $tags; do
-            echo "Signing image: ${tag}@${digest}"
-            cosign sign --yes "${tag}@${digest}"
-          done
+          context: ${{ matrix.component == 'frontend' && '.' || './backend' }}
+          file: ${{ matrix.component }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'workflow_run' }}
+          tags: ${{ steps.image.outputs.name }}:sha-${{ github.event.workflow_run.head_sha || github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          provenance: mode=max
+          sbom: true
+      - uses: sigstore/cosign-installer@v3
+        if: github.event_name == 'workflow_run'
+      - name: Sign and verify immutable image
+        if: github.event_name == 'workflow_run'
         env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Install Syft for SBOM generation
+          IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/docker-build.yml@refs/heads/main
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Generate SBOM
-        run: |
-          # Get main tag and digest
-          tags="${{ steps.meta.outputs.tags }}"
-          main_tag=$(echo "$tags" | head -1)
-          digest="${{ steps.build.outputs.digest }}"
-          
-          echo "Generating SBOM for: ${main_tag}@${digest}"
-          syft "${main_tag}@${digest}" -o cyclonedx-json="${{ matrix.component }}-sbom.json"
-
-      - name: Sign SBOM with Cosign
-        run: |
-          # Get main tag and digest
-          tags="${{ steps.meta.outputs.tags }}"
-          main_tag=$(echo "$tags" | head -1)
-          digest="${{ steps.build.outputs.digest }}"
-          
-          echo "Attaching SBOM to: ${main_tag}@${digest}"
-          
-          # Attach SBOM to image
-          cosign attach sbom --sbom "${{ matrix.component }}-sbom.json" "${main_tag}@${digest}"
-          
-          # Sign the SBOM
-          echo "Signing SBOM for: ${main_tag}@${digest}"
-          cosign sign --yes "${main_tag}@${digest}"
-        env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Generate SLSA Attestation
-        run: |
-          # Get main tag and digest
-          tags="${{ steps.meta.outputs.tags }}"
-          main_tag=$(echo "$tags" | head -1)
-          digest="${{ steps.build.outputs.digest }}"
-          
-          echo "Generating SLSA attestation for: ${main_tag}@${digest}"
-          
-          # Create attestation predicate
-          cat > slsa-predicate.json <<EOF
-          {
-            "buildType": "https://github.com/Ikey168/Modulo/.github/workflows/docker-build.yml@${{ github.ref }}",
-            "builder": {
-              "id": "https://github.com/actions/runner"
-            },
-            "invocation": {
-              "configSource": {
-                "uri": "${{ github.repositoryUrl }}",
-                "digest": {
-                  "sha1": "${{ github.sha }}"
-                }
-              }
-            },
-            "materials": [
-              {
-                "uri": "${{ github.repositoryUrl }}",
-                "digest": {
-                  "sha1": "${{ github.sha }}"
-                }
-              }
-            ]
-          }
-          EOF
-          
-          # Attach SLSA attestation
-          cosign attest --predicate slsa-predicate.json "${main_tag}@${digest}" --yes
-        env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Verify signed images
-        run: |
-          # Get digest and tags
-          digest="${{ steps.build.outputs.digest }}"
-          tags="${{ steps.meta.outputs.tags }}"
-          
-          echo "Verifying signatures for images with digest: $digest"
-          
-          # Verify signatures for all tags
-          for tag in $tags; do
-            echo "Verifying signature for: ${tag}@${digest}"
-            cosign verify "${tag}@${digest}" \
-              --certificate-identity-regexp=".*" \
-              --certificate-oidc-issuer-regexp=".*" || \
-              echo "⚠️  Verification failed for ${tag}@${digest} (expected in some cases)"
-          done
-        env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Upload SBOM as artifact
-        uses: actions/upload-artifact@v4
+          cosign sign --yes "$IMAGE"
+          cosign verify "$IMAGE" --certificate-identity "$IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          printf '%s\n' "$IMAGE" > image-${{ matrix.component }}.txt
+          printf '%s\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_run'
         with:
-          name: ${{ matrix.component }}-sbom
-          path: ${{ matrix.component }}-sbom.json
-          retention-days: 30
-
-  generate-summary:
-    needs: build-and-push
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate build summary
-        run: |
-          echo "# 🐳 Multi-Architecture Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Multi-arch builds completed successfully**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Images signed with Cosign (keyless)**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **SBOM generation and attachment completed**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Image signature verification passed**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Images pushed to registry**" >> $GITHUB_STEP_SUMMARY
+          name: image-${{ matrix.component }}
+          path: image-${{ matrix.component }}.txt
+          retention-days: 90

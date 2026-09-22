@@ -1,0 +1,287 @@
+name: modulo-oci
+
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MODULO_SITE: ${MODULO_SITE:?set MODULO_SITE in .env}
+      NOESIS_SITE: ${NOESIS_SITE:?set NOESIS_SITE in .env}
+      PRAXIS_SITE: ${PRAXIS_SITE:?set PRAXIS_SITE in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/modulo/media-cache:/srv/media-cache:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+    mem_limit: 128m
+    restart: unless-stopped
+    networks:
+      - edge
+      - internal
+
+  frontend:
+    image: ${MODULO_FRONTEND_IMAGE:-modulo-oci-frontend}
+    environment:
+      MODULO_OIDC_ISSUER: ${MODULO_URL}/auth/realms/modulo
+      MODULO_OIDC_CLIENT_ID: modulo-frontend
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: ${MODULO_URL:?set MODULO_URL in .env}
+        VITE_KEYCLOAK_URL: ${MODULO_URL}/auth/realms/modulo
+        VITE_KEYCLOAK_CLIENT_ID: modulo-frontend
+    labels:
+      com.modulo.component: frontend
+      com.modulo.source-revision: ${MODULO_RELEASE_SOURCE_REVISION:-unmanaged}
+    mem_limit: 160m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edge
+      - internal
+
+  backend:
+    image: ${MODULO_BACKEND_IMAGE:-modulo-oci-backend}
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_SERVLET_CONTEXT_PATH: /
+      MODULO_DEPLOYED_VERSION: ${MODULO_DEPLOYED_VERSION:-browse-20260921}
+      MODULO_SOURCE_REVISION: ${MODULO_RELEASE_SOURCE_REVISION:-unmanaged}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-modulo}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      SPRING_NEO4J_URI: bolt://neo4j:7687
+      SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+      MODULO_GRAPH_ENABLED: "true"
+      MODULO_GRAPH_BACKFILL_ON_STARTUP: "true"
+      MODULO_SECURITY_JWT_SECRET: ${MODULO_SECURITY_JWT_SECRET:?set MODULO_SECURITY_JWT_SECRET in .env}
+      MODULO_SECURITY_API_KEY: ${MODULO_SECURITY_API_KEY:?set MODULO_SECURITY_API_KEY in .env}
+      MODULO_SECURITY_ENCRYPTION_KEY: ${MODULO_SECURITY_ENCRYPTION_KEY:?set MODULO_SECURITY_ENCRYPTION_KEY in .env}
+      MODULO_SECURITY_KEYCLOAK_JWK_SET_URI: http://keycloak:8080/auth/realms/modulo/protocol/openid-connect/certs
+      MODULO_SECURITY_KEYCLOAK_ISSUER_URI: ${MODULO_URL}/auth/realms/modulo
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${MODULO_URL}/auth/realms/modulo
+      # Per-item workspace state (e.g. one record per media item) needs more than the 100/min default.
+      MODULO_SECURITY_RATE_LIMIT_REQUESTS_PER_MINUTE: "300"
+      MODULO_SECURITY_RATE_LIMIT_BURST_CAPACITY: "60"
+      OTEL_SDK_DISABLED: "true"
+      MODULO_INTEGRATIONS_IPFS_ENABLED: "false"
+      BLOCKCHAIN_RPC_URL: ${BLOCKCHAIN_RPC_URL:-http://127.0.0.1:8545}
+      BLOCKCHAIN_NETWORK: ${BLOCKCHAIN_NETWORK:-mainnet}
+      JAVA_OPTS: -XX:+UseContainerSupport -Xms256m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
+    labels:
+      com.modulo.component: backend
+      com.modulo.source-revision: ${MODULO_RELEASE_SOURCE_REVISION:-unmanaged}
+    depends_on:
+      db:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    mem_limit: 1536m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 90s
+    networks:
+      - internal
+      - egress
+
+  keycloak:
+    build:
+      context: .
+      dockerfile: keycloak.Containerfile
+    command:
+      - start
+      - --optimized
+      - --import-realm
+      - --http-enabled=true
+      - --http-relative-path=/auth
+      - --hostname=${MODULO_URL}/auth
+      - --proxy-headers=xforwarded
+      - --proxy-trusted-addresses=172.28.0.0/24
+      - --server-async-bootstrap=false
+      - --cache=local
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?set KEYCLOAK_ADMIN in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in .env}
+      KC_HEALTH_ENABLED: "true"
+      KC_SPI_THEME_CACHE_THEMES: "false"
+      KC_SPI_THEME_CACHE_TEMPLATES: "false"
+      KC_SPI_THEME_STATIC_MAX_AGE: "-1"
+      JAVA_OPTS_KC_HEAP: -XX:InitialRAMPercentage=30 -XX:MaxRAMPercentage=65
+    volumes:
+      - ./generated/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro
+      - ../../keycloak/themes:/opt/keycloak/themes:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 1280m
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000;
+          printf 'GET /auth/health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3;
+          grep -q '200 OK' <&3
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
+    networks:
+      - internal
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-modulodb}
+      POSTGRES_USER: ${POSTGRES_USER:-modulo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /srv/backups/modulo/wal:/var/lib/postgresql/wal-archive
+      - ./postgres-init/10-keycloak.sh:/docker-entrypoint-initdb.d/10-keycloak.sh:ro
+      - ../../database/init/02-plugin-registry.sql:/docker-entrypoint-initdb.d/20-plugin-registry.sql:ro
+    mem_limit: 768m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-modulo} -d ${POSTGRES_DB:-modulodb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  neo4j:
+    image: neo4j:5.26.12-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 128m
+      NEO4J_server_default__listen__address: 0.0.0.0
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    mem_limit: 1280m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    networks:
+      - internal
+
+  noesis:
+    image: ${NOESIS_IMAGE:-modulo-oci-noesis}
+    build:
+      context: ${NOESIS_CONTEXT:-../../../Noesis}
+      dockerfile: deploy/oci/Dockerfile
+    environment:
+      NOESIS_DB_PATH: /data/noesis.duckdb
+      NEURONEWS_DB_PATH: /data/noesis.duckdb
+      NEURONEWS_LOG_DIR: /data/logs
+      NOESIS_PACK_REGISTRY: /data/packs
+      NOESIS_MCP_HOST: "off"
+      NOESIS_PACKS_ADMIN: "off"
+      NEURONEWS_DEV_MODE: "false"
+      JWT_SECRET_KEY: ${NOESIS_JWT_SECRET:?set NOESIS_JWT_SECRET in .env}
+      API_KEY_SALT: ${NOESIS_API_KEY_SALT:?set NOESIS_API_KEY_SALT in .env}
+      HF_HOME: /models-cache
+      TRANSFORMERS_CACHE: /models-cache
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    ports:
+      - "127.0.0.1:8012:8000"
+    volumes:
+      - noesis_data:/data
+      - noesis_models:/models-cache
+    labels:
+      com.modulo.component: noesis
+      com.modulo.source-revision: ${MODULO_RELEASE_SOURCE_REVISION:-unmanaged}
+    mem_limit: 5g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 90s
+    networks:
+      - internal
+      - egress
+
+  praxis:
+    image: ${PRAXIS_IMAGE:-modulo-oci-praxis}
+    build:
+      context: ${PRAXIS_CONTEXT:-/srv/praxis}
+      dockerfile: deploy/oci/Dockerfile
+    environment:
+      PRAXIS_API_TOKEN: ${PRAXIS_API_TOKEN:?set PRAXIS_API_TOKEN in .env}
+      PRAXIS_DATA: /data
+    volumes:
+      - praxis_data:/data
+    labels:
+      com.modulo.component: praxis
+      com.modulo.source-revision: ${MODULO_RELEASE_SOURCE_REVISION:-unmanaged}
+    mem_limit: 256m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${PRAXIS_API_TOKEN}\" http://localhost:8000/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - internal
+
+volumes:
+  praxis_data:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  noesis_data:
+  noesis_models:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  internal:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+  egress:

@@ -36,6 +36,13 @@ import java.util.stream.Collectors;
 @CrossOrigin(originPatterns = "*")
 @RequiredArgsConstructor
 public class LocalFileController {
+    @org.springframework.beans.factory.annotation.Autowired private com.modulo.security.AuthenticatedUserService users;
+    @ModelAttribute
+    public void requireOwnedNote(@PathVariable Long noteId) {
+        noteRepository.findByIdAndUserId(noteId, users.requireUserId()).orElseThrow(() ->
+            new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+    }
+
 
     private static final Logger log = LoggerFactory.getLogger(LocalFileController.class);
 
@@ -78,6 +85,7 @@ public class LocalFileController {
             String orig = file.getOriginalFilename();
             if (orig != null && orig.contains("."))
                 ext = orig.substring(orig.lastIndexOf('.'));
+            if (!ext.matches("\\.[A-Za-z0-9]{1,10}")) ext = "";
             String storedName = UUID.randomUUID() + ext;
             Path dest = dir.resolve(storedName);
             Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
@@ -92,7 +100,7 @@ public class LocalFileController {
                 .containerName("local")
                 .blobUrl(localUrl)
                 .uploadedAt(LocalDateTime.now())
-                .uploadedBy(userId)
+                .uploadedBy(users.actor())
                 .note(note)
                 .isActive(true)
                 .build();
@@ -117,13 +125,19 @@ public class LocalFileController {
 
     @GetMapping("/api/files/{noteId}/{filename:.+}")
     public ResponseEntity<Resource> serve(@PathVariable Long noteId, @PathVariable String filename) {
-        Path file = Paths.get(uploadDir, String.valueOf(noteId), filename);
+        Path directory = Paths.get(uploadDir, String.valueOf(noteId)).toAbsolutePath().normalize();
+        Path file = directory.resolve(filename).normalize();
+        if (!file.startsWith(directory) || !file.getFileName().toString().equals(filename)) return ResponseEntity.notFound().build();
+        if (attachmentRepository.findByBlobName(filename).filter(a -> Boolean.TRUE.equals(a.getIsActive()) && a.getNote().getId().equals(noteId)).isEmpty()) return ResponseEntity.notFound().build();
         if (!Files.exists(file)) return ResponseEntity.notFound().build();
         try {
+            if (!file.toRealPath().startsWith(directory.toRealPath())) return ResponseEntity.notFound().build();
             Resource resource = new FileSystemResource(file);
             String contentType = Files.probeContentType(file);
             if (contentType == null) contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff")
                 .contentType(MediaType.parseMediaType(contentType))
                 .body(resource);
         } catch (IOException e) {

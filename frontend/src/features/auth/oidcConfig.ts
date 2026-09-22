@@ -1,15 +1,22 @@
-import { UserManagerSettings } from 'oidc-client-ts';
+import { InMemoryWebStorage, WebStorageStateStore, type UserManagerSettings } from 'oidc-client-ts';
+import { Capacitor } from '@capacitor/core';
+
+const issuer = window.__MODULO_CONFIG__?.oidcIssuer || import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo';
+const clientId = window.__MODULO_CONFIG__?.oidcClientId || import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'modulo-frontend';
+const android = Capacitor.getPlatform() === 'android';
+const redirectOrigin = android ? window.__MODULO_CONFIG__?.serverOrigin : window.location.origin;
+if (android && !redirectOrigin) throw new Error('Select a Modulo server before signing in.');
 
 // OIDC configuration for Keycloak with PKCE
 export const oidcConfig: UserManagerSettings = {
-  authority: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo',
-  client_id: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'modulo-frontend',
-  redirect_uri: `${window.location.origin}/auth/callback`,
-  post_logout_redirect_uri: `${window.location.origin}/`,
+  authority: issuer,
+  client_id: clientId,
+  redirect_uri: `${redirectOrigin}/auth/callback`,
+  post_logout_redirect_uri: android ? 'com.modulo:/logout' : `${window.location.origin}/`,
   response_type: 'code',
   scope: 'openid profile email roles',
-  automaticSilentRenew: true,
-  silent_redirect_uri: `${window.location.origin}/auth/silent-callback`,
+  automaticSilentRenew: !android,
+  silent_redirect_uri: android ? undefined : `${window.location.origin}/auth/silent-callback`,
   includeIdTokenInSilentRenew: true,
   // Don't call the UserInfo endpoint. Keycloak already puts everything we read
   // (sub, email, name, preferred_username, realm_access/resource_access roles)
@@ -23,23 +30,17 @@ export const oidcConfig: UserManagerSettings = {
   
   // Security settings
   filterProtocolClaims: true,
-  userStore: {
-    // Use memory storage instead of localStorage for security
-    set: () => Promise.resolve(),
-    get: () => Promise.resolve(null),
-    remove: () => Promise.resolve(null),
-    getAllKeys: () => Promise.resolve([])
-  },
+  userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
   
   // Metadata configuration
   metadata: {
-    issuer: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo',
-    authorization_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/auth`,
-    token_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/token`,
-    userinfo_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/userinfo`,
-    end_session_endpoint: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/logout`,
-    jwks_uri: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/certs`,
-    check_session_iframe: `${import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo'}/protocol/openid-connect/login-status-iframe.html`,
+    issuer: issuer,
+    authorization_endpoint: `${issuer}/protocol/openid-connect/auth`,
+    token_endpoint: `${issuer}/protocol/openid-connect/token`,
+    userinfo_endpoint: `${issuer}/protocol/openid-connect/userinfo`,
+    end_session_endpoint: `${issuer}/protocol/openid-connect/logout`,
+    jwks_uri: `${issuer}/protocol/openid-connect/certs`,
+    check_session_iframe: `${issuer}/protocol/openid-connect/login-status-iframe.html`,
   }
 };
 

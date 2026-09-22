@@ -13,12 +13,11 @@ import { SEVERITY_BADGE } from './FindingCard';
 import {
   engagementLabel,
   groupByStage,
-  readStages,
   stageTag,
   STAGE_TAG_PREFIX,
   toStageId,
-  writeStages,
 } from './pipeline';
+import { usePipelineStagesStore } from './usePluginDataStores';
 
 function openFindingsFor(all: NoteFinding[], engagement: string | null): NoteFinding[] {
   if (!engagement) return [];
@@ -72,7 +71,7 @@ function Card({
 }
 
 export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
-  const [stages, setStages] = useState<string[]>(() => readStages());
+  const [stages, setStages] = usePipelineStagesStore();
   const [adding, setAdding] = useState(false);
   const [newColumn, setNewColumn] = useState('');
   const [dragOver, setDragOver] = useState<string | null>(null);
@@ -102,7 +101,6 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
     if (!id || stages.includes(id)) return;
     const next = [...stages, id];
     setStages(next);
-    writeStages(next);
     setNewColumn('');
     setAdding(false);
   };
@@ -112,7 +110,6 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
     if ((groups[stage] ?? []).length > 0 || stages.length <= 1) return;
     const next = stages.filter((s) => s !== stage);
     setStages(next);
-    writeStages(next);
   };
 
   if (total === 0) {

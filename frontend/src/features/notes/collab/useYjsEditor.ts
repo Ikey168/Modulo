@@ -1,7 +1,9 @@
+import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import { useEffect, useRef, useCallback } from 'react';
 import * as Y from 'yjs';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from '../../../services/workspaceSocketUrl';
 
 function uint8ToBase64(arr: Uint8Array): string {
   return btoa(Array.from(arr, b => String.fromCharCode(b)).join(''));
@@ -24,6 +26,7 @@ export function useYjsEditor({ noteId, userId, initialContent, onContentChange }
   const initialized = useRef(false);
 
   useEffect(() => {
+    const clientId = crypto.randomUUID();
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
 
@@ -38,12 +41,12 @@ export function useYjsEditor({ noteId, userId, initialContent, onContentChange }
       initialized.current = true;
     }
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+    const client = authenticatedStomp({
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
       onConnect: () => {
         client.subscribe(`/topic/notes/${noteId}/ydoc`, (frame) => {
           const msg = JSON.parse(frame.body);
-          if (msg.userId === userId || !msg.update) return;
+          if (msg.clientId === clientId || !msg.update) return;
           try {
             const update = base64ToUint8(msg.update);
             Y.applyUpdate(ydoc, update);
@@ -68,6 +71,7 @@ export function useYjsEditor({ noteId, userId, initialContent, onContentChange }
             type: 'UPDATE',
             noteId,
             userId,
+            clientId,
             update: uint8ToBase64(update),
           }),
         });

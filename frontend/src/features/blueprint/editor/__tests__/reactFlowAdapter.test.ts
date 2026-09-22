@@ -12,6 +12,7 @@ import {
   flowToIR,
   irToFlow,
   parseHandle,
+  pruneFlowNodes,
 } from '../reactFlowAdapter';
 
 const catalog = createCoreCatalog();
@@ -90,6 +91,14 @@ describe('irToFlow / flowToIR', () => {
     };
     const flow = irToFlow(ir, catalog);
     expect(flow.nodes[0].data.descriptor.title).toContain('unknown');
+  });
+
+  it('removes unavailable plugin nodes and their attached edges', () => {
+    const flow = irToFlow(IR, catalog);
+    const result = pruneFlowNodes(flow.nodes, flow.edges, (node) => node.data.descriptor.type === 'trigger.note.saved');
+
+    expect(result.nodes.map((node) => node.data.descriptor.type)).toEqual(['trigger.note.saved']);
+    expect(result.edges).toHaveLength(0);
   });
 });
 

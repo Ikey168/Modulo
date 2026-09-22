@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Conflict Resolution Service Tests")
 class ConflictResolutionServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
 
     @Mock
     private NoteRepository noteRepository;
@@ -41,6 +42,8 @@ class ConflictResolutionServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "users", users);
+        when(users.actor()).thenReturn("1");
         note = new Note("Title", "Content");
         note.setId(1L);
         note.setVersion(2L);
@@ -78,7 +81,7 @@ class ConflictResolutionServiceTest {
 
         assertThat(updated.getTitle()).isEqualTo("Updated");
         assertThat(updated.getContent()).isEqualTo("Body");
-        assertThat(updated.getLastEditor()).isEqualTo("bob");
+        assertThat(updated.getLastEditor()).isEqualTo("1");
         verify(noteRepository).save(note);
     }
 
@@ -101,7 +104,7 @@ class ConflictResolutionServiceTest {
                 1L, "Forced", "Body", "# Body", List.of("tag"), "bob");
 
         assertThat(updated.getTitle()).isEqualTo("Forced");
-        assertThat(updated.getLastEditor()).isEqualTo("bob");
+        assertThat(updated.getLastEditor()).isEqualTo("1");
         verify(noteRepository).save(note);
     }
 

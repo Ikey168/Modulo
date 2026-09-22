@@ -1,12 +1,15 @@
+import { isWorkspaceShortcut } from './workspaceKeyboard';
 // Canvas - a freeform, pan-and-zoom board where note cards are arranged
 // spatially and connected. The pan/zoom/drag interaction mirrors the knowledge
 // graph's `view {x,y,k}` transform, but cards are DOM nodes (they carry text
 // and buttons) laid out in a scaled "world" layer, with connections drawn as
 // SVG lines in the same world coordinates so they track pan and zoom for free.
 //
-// Layout (cards and connections) persists per board in localStorage; several
+// Layout (cards and connections) persists per board in synchronized plugin state; several
 // named boards can coexist and the last-open one is restored on reload.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCanvasState } from './useCanvasState';
+import { PluginStateNotice } from './plugins/PluginStateNotice';
 import { Frame, Maximize2, Minus, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react';
 import {
   AlertDialog,
@@ -55,17 +58,14 @@ import {
   addBoard,
   addCard,
   addConnection,
-  loadCanvasState,
   moveCard,
   removeBoard,
   removeCard,
   removeConnection,
   renameBoard,
-  saveCanvasState,
   setActiveBoard,
   updateBoard,
   type CanvasBoard,
-  type CanvasState,
 } from './canvasStore';
 
 interface View {
@@ -88,7 +88,8 @@ interface CanvasViewProps {
 }
 
 export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
-  const [state, setState] = useState<CanvasState>(() => loadCanvasState());
+  const synced = useCanvasState();
+  const { state, setState } = synced;
   const [view, setView] = useState<View>({ x: 0, y: 0, k: 1 });
   const [selectedConn, setSelectedConn] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<{ from: number; x: number; y: number } | null>(null);
@@ -118,11 +119,7 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     [notes, board.cards],
   );
 
-  // Persist, debounced so a card drag (many state updates) writes once it ends.
-  useEffect(() => {
-    const t = setTimeout(() => saveCanvasState(state), 150);
-    return () => clearTimeout(t);
-  }, [state]);
+  // Local queue writes are durable; the shared client debounces network traffic during dragging.
 
   const mutateActive = (fn: (b: CanvasBoard) => CanvasBoard) =>
     setState((s) => {
@@ -170,8 +167,8 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (!selectedConn) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!isWorkspaceShortcut(e)) return;
+      e.preventDefault();
       mutateActive((b) => removeConnection(b, selectedConn));
       setSelectedConn(null);
     };
@@ -326,6 +323,14 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
 
   return (
     <div className="flex flex-1 animate-fade-in flex-col overflow-hidden bg-background">
+      <PluginStateNotice {...synced} />
+      {synced.legacy && <div className="flex flex-wrap items-center gap-3 border-b px-3 py-2 text-sm">
+        <span>Canvas boards are saved in this browser.</span>
+        <Button size="sm" variant="outline" disabled={!synced.ready} onClick={() => void synced.importLegacy()}>Import into this account</Button>
+        <Button size="sm" variant="ghost" onClick={synced.exportRecovery}>Export recovery data</Button>
+      </div>}
+      {synced.error && !synced.legacy && <Button size="sm" variant="ghost" onClick={synced.exportRecovery}>Export recovery data</Button>}
+      {!synced.ready && !synced.error && <p role="status" className="px-3 py-2 text-sm">Loading canvas cache…</p>}
       {/* Toolbar: board switcher + actions on the left, add-note on the right. */}
       <header className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border px-3">
         <Frame className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

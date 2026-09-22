@@ -15,63 +15,70 @@ import java.util.Optional;
  */
 @Repository
 public interface OfflineNoteRepository extends JpaRepository<OfflineNote, Long> {
+    @Override
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.id = :id AND n.userId = :#{tenant.ownerId}")
+    Optional<OfflineNote> findById(@Param("id") Long id);
+
 
     // Find by server ID (for sync purposes)
-    Optional<OfflineNote> findByServerId(Long serverId);
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.serverId = :serverId AND n.userId = :#{tenant.ownerId}")
+    Optional<OfflineNote> findByServerId(@Param("serverId") Long serverId);
 
     // Find all notes that need to be synced
-    @Query("SELECT n FROM OfflineNote n WHERE n.syncStatus = 'PENDING_SYNC' AND n.isDeleted = false")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus = 'PENDING_SYNC' AND n.isDeleted = false")
     List<OfflineNote> findPendingSyncNotes();
 
     // Find all notes marked for deletion
-    @Query("SELECT n FROM OfflineNote n WHERE n.syncStatus = 'PENDING_DELETE' AND n.isDeleted = true")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus = 'PENDING_DELETE' AND n.isDeleted = true")
     List<OfflineNote> findPendingDeleteNotes();
 
     // Find all synced notes
-    @Query("SELECT n FROM OfflineNote n WHERE n.syncStatus = 'SYNCED' AND n.isDeleted = false")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus = 'SYNCED' AND n.isDeleted = false")
     List<OfflineNote> findSyncedNotes();
 
     // Find all active (non-deleted) notes
-    @Query("SELECT n FROM OfflineNote n WHERE n.isDeleted = false ORDER BY n.updatedAt DESC")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.isDeleted = false ORDER BY n.updatedAt DESC")
     List<OfflineNote> findAllActiveNotes();
 
     // Search notes by title or content
-    @Query("SELECT n FROM OfflineNote n WHERE n.isDeleted = false AND " +
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.isDeleted = false AND " +
            "(LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(n.content) LIKE LOWER(CONCAT('%', :query, '%'))) " +
            "ORDER BY n.updatedAt DESC")
     List<OfflineNote> searchNotes(@Param("query") String query);
 
     // Find notes by tag (using simple string search in tags field)
-    @Query("SELECT n FROM OfflineNote n WHERE n.isDeleted = false AND " +
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.isDeleted = false AND " +
            "LOWER(n.tags) LIKE LOWER(CONCAT('%', :tag, '%')) " +
            "ORDER BY n.updatedAt DESC")
     List<OfflineNote> findByTagContaining(@Param("tag") String tag);
 
     // Find notes modified after a certain date
-    @Query("SELECT n FROM OfflineNote n WHERE n.updatedAt > :since ORDER BY n.updatedAt DESC")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.updatedAt > :since ORDER BY n.updatedAt DESC")
     List<OfflineNote> findModifiedAfter(@Param("since") LocalDateTime since);
 
     // Count pending sync notes
-    @Query("SELECT COUNT(n) FROM OfflineNote n WHERE n.syncStatus = 'PENDING_SYNC' AND n.isDeleted = false")
+    @Query("SELECT COUNT(n) FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus = 'PENDING_SYNC' AND n.isDeleted = false")
     long countPendingSyncNotes();
 
     // Count pending delete notes
-    @Query("SELECT COUNT(n) FROM OfflineNote n WHERE n.syncStatus = 'PENDING_DELETE' AND n.isDeleted = true")
+    @Query("SELECT COUNT(n) FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus = 'PENDING_DELETE' AND n.isDeleted = true")
     long countPendingDeleteNotes();
 
     // Find notes that haven't been synced for a while
-    @Query("SELECT n FROM OfflineNote n WHERE n.lastSynced IS NULL OR n.lastSynced < :threshold")
+    @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND (n.lastSynced IS NULL OR n.lastSynced < :threshold)")
     List<OfflineNote> findNotSyncedSince(@Param("threshold") LocalDateTime threshold);
 
     // Get sync statistics
-    @Query("SELECT n.syncStatus, COUNT(n) FROM OfflineNote n WHERE n.isDeleted = false GROUP BY n.syncStatus")
+    @Query("SELECT n.syncStatus, COUNT(n) FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.isDeleted = false GROUP BY n.syncStatus")
     List<Object[]> getSyncStatistics();
 
     // Delete notes that are marked for deletion and already synced
-    @Query("DELETE FROM OfflineNote n WHERE n.isDeleted = true AND n.syncStatus = 'SYNCED'")
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.isDeleted = true AND n.syncStatus = 'SYNCED'")
     void cleanupDeletedSyncedNotes();
     
        // Find notes by a list of sync statuses
-       List<OfflineNote> findBySyncStatusIn(List<OfflineNote.SyncStatus> statuses);
+       @Query("SELECT n FROM OfflineNote n WHERE n.userId = :#{tenant.ownerId} AND n.syncStatus IN :statuses")
+       List<OfflineNote> findBySyncStatusIn(@Param("statuses") List<OfflineNote.SyncStatus> statuses);
 }

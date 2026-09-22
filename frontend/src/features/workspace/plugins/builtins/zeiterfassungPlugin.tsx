@@ -3,7 +3,8 @@
 // panel showing time logged against the current note's engagement.
 import { Timer } from 'lucide-react';
 import { TimeTrackingView } from '../../TimeTrackingView';
-import { formatMinutes, readEntries } from '../../timeTracking';
+import { formatMinutes } from '../../timeTracking';
+import { useTimeEntriesStore } from '../../usePluginDataStores';
 import { formatEur } from '../../invoicing';
 import { ENGAGEMENT_TAG_PREFIX } from '../../pipeline';
 import type { NotePanelProps, PluginModule, WorkspaceViewProps } from '../types';
@@ -19,7 +20,8 @@ function TimePanel({ note }: NotePanelProps) {
   if (engagements.length === 0) {
     return <p className="px-0.5 py-1 text-xs text-muted-foreground">Not an engagement note.</p>;
   }
-  const entries = readEntries().filter((e) => engagements.includes(e.engagement));
+  const [allEntries] = useTimeEntriesStore();
+  const entries = allEntries.filter((e) => engagements.includes(e.engagement));
   const minutes = entries.reduce((n, e) => n + e.minutes, 0);
   const unbilled = entries
     .filter((e) => e.billable && !e.billed)

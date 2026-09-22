@@ -1,0 +1,8 @@
+all:
+  children:
+    oracle:
+      hosts:
+        oracle-production:
+          ansible_host: oracle.example.invalid
+          ansible_user: deploy
+          oracle_production: true

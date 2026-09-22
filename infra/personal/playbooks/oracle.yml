@@ -1,0 +1,9 @@
+---
+- name: Apply the Oracle production baseline
+  hosts: oracle
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - container_host
+    - oracle_production

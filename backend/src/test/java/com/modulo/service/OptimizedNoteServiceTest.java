@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Optimized Note Service Tests")
 class OptimizedNoteServiceTest {
+    @Mock private com.modulo.security.AuthenticatedUserService users;
 
     @Mock
     private OptimizedNoteRepository noteRepository;
@@ -42,10 +43,15 @@ class OptimizedNoteServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(users.requireUserId()).thenReturn(100L);
+        lenient().when(users.actor()).thenReturn("100");
+        lenient().when(users.requireOwner(any())).thenReturn(100L);
         note = new Note();
         note.setId(1L);
         note.setTitle("Title");
         note.setUserId(100L);
+        when(noteRepository.findByIdAndUserId(1L,100L)).thenReturn(Optional.of(note));
+        when(tagService.resolveOwned(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

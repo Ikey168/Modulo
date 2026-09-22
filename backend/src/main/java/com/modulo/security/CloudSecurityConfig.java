@@ -53,6 +53,8 @@ public class CloudSecurityConfig {
 
             // Enhanced authorization rules
             .authorizeRequests(authz -> authz
+                // The STOMP interceptor authenticates CONNECT; public shares validate their stored grant.
+                .antMatchers("/ws", "/ws/**", "/api/s/**", "/api/plugin-state/callback/**").permitAll()
                 // Public health and monitoring endpoints (with restrictions)
                 .antMatchers("/api/health/status", "/api/simple-health").permitAll()
                 .antMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -160,7 +162,9 @@ public class CloudSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allowed origins from configuration
-        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
+        java.util.List<String> corsOrigins = new java.util.ArrayList<>(Arrays.asList(allowedOrigins));
+        corsOrigins.add("https://localhost");
+        configuration.setAllowedOriginPatterns(corsOrigins);
         
         // Allowed methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

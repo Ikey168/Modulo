@@ -149,7 +149,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-app flex-col bg-background text-foreground">
       <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Task Manager</h1>
