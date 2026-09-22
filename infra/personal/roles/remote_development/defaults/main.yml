@@ -1,3 +1,7 @@
 ---
 remote_development_disk_warning_percent: 90
 remote_development_private_ssh_only: false
+remote_development_admin_user: "{{ ansible_user }}"
+remote_development_checkout_root: "/home/{{ remote_development_admin_user }}/Development"
+remote_development_admin_firewall_unit: netcup-ssh-zerotier-firewall.service
+remote_development_health_push_url_file: /etc/dev-netcup-health/uptime-kuma-push-url

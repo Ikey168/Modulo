@@ -5,6 +5,8 @@
       - device_role == 'disposable-development-compute'
       - canonical_name == 'dev-netcup'
       - ansible_facts.os_family == 'Debian'
+      - remote_development_admin_user is match('^[a-z_][a-z0-9_-]*$')
+      - remote_development_admin_user != 'root'
     fail_msg: Refusing to apply the Netcup development profile to another role.
 
 - name: Install remote development and container packages
@@ -15,14 +17,19 @@
       - docker-compose
       - docker.io
       - extrepo
+      - fzf
       - gh
       - gnupg
+      - bat
       - maven
       - ninja-build
       - nftables
       - pkg-config
       - python3-venv
+      - rustup
       - shellcheck
+      - zoxide
+      - zsh
     state: present
     update_cache: true
 
@@ -35,7 +42,7 @@
 
 - name: Allow the named development administrator to use Docker
   ansible.builtin.user:
-    name: "{{ ansible_user }}"
+    name: "{{ remote_development_admin_user }}"
     groups: docker
     append: true
   when: not ansible_check_mode
@@ -130,17 +137,17 @@
 
 - name: Create the development checkout root
   ansible.builtin.file:
-    path: "/home/{{ ansible_user }}/ChatGPT"
+    path: "{{ remote_development_checkout_root }}"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ remote_development_admin_user }}"
+    group: "{{ remote_development_admin_user }}"
     mode: '0750'
 
 - name: Activate mise for interactive Bash sessions
   ansible.builtin.blockinfile:
-    path: "/home/{{ ansible_user }}/.bashrc"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    path: "/home/{{ remote_development_admin_user }}/.bashrc"
+    owner: "{{ remote_development_admin_user }}"
+    group: "{{ remote_development_admin_user }}"
     mode: '0644'
     marker: '# {mark} MODULO MISE'
     block: |
@@ -158,82 +165,6 @@
       This is disposable development compute.
       Production credentials and authoritative personal data are forbidden.
       Source belongs in Git; non-regenerable state requires an explicit backup.
-
-- name: Install the ZeroTier repository signing key
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg
-    dest: /usr/share/keyrings/zerotier.asc
-    owner: root
-    group: root
-    mode: '0644'
-  when: not ansible_check_mode
-
-- name: Read the ZeroTier signing-key fingerprints
-  ansible.builtin.command: gpg --show-keys --with-colons --fingerprint /usr/share/keyrings/zerotier.asc
-  register: zerotier_key
-  changed_when: false
-  check_mode: false
-  when: not ansible_check_mode
-
-- name: Refuse an unexpected ZeroTier signing key
-  ansible.builtin.assert:
-    that:
-      - "'74A5E9C458E1A431F1DA57A71657198823E52A61' in zerotier_key.stdout"
-    fail_msg: The downloaded ZeroTier repository key did not match the pinned fingerprint.
-  when: not ansible_check_mode
-
-- name: Configure the signed ZeroTier Debian repository
-  ansible.builtin.copy:
-    dest: /etc/apt/sources.list.d/zerotier.sources
-    owner: root
-    group: root
-    mode: '0644'
-    content: |
-      Types: deb
-      URIs: https://download.zerotier.com/debian/trixie
-      Suites: trixie
-      Components: main
-      Signed-By: /usr/share/keyrings/zerotier.asc
-  when: not ansible_check_mode
-
-- name: Install ZeroTier
-  ansible.builtin.apt:
-    name: zerotier-one
-    state: present
-    update_cache: true
-  when: not ansible_check_mode
-
-- name: Enable and start ZeroTier
-  ansible.builtin.service:
-    name: zerotier-one
-    enabled: true
-    state: started
-  when: not ansible_check_mode
-
-- name: Inspect current ZeroTier memberships
-  ansible.builtin.command: zerotier-cli listnetworks
-  register: zerotier_networks
-  changed_when: false
-  check_mode: false
-  when: not ansible_check_mode
-
-- name: Join the declared private network
-  ansible.builtin.command: "zerotier-cli join {{ zerotier_network_id }}"
-  when:
-    - not ansible_check_mode
-    - zerotier_network_id not in zerotier_networks.stdout
-  register: zerotier_join
-  changed_when: "'OK' in zerotier_join.stdout"
-
-- name: Keep the private network from replacing host routing or DNS
-  ansible.builtin.command: "zerotier-cli set {{ zerotier_network_id }} {{ item }}"
-  loop:
-    - allowManaged=1
-    - allowGlobal=0
-    - allowDefault=0
-    - allowDNS=0
-  changed_when: false
-  when: not ansible_check_mode
 
 - name: Record the disposable backup scope
   ansible.builtin.copy:
@@ -266,19 +197,30 @@
       #!/bin/sh
       set -eu
 
+      PATH=/usr/sbin:/usr/bin:/sbin:/bin
       state_dir=/var/lib/dev-netcup-health
       output="$state_dir/last.json"
       temporary="$state_dir/.last.json.$$"
+      zerotier_cli=/usr/sbin/zerotier-cli
+      network_id='{{ private_network_id }}'
+      push_url_file='{{ remote_development_health_push_url_file }}'
       disk_percent="$(df -P / | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }')"
       ssh_state="$(systemctl is-active ssh 2>/dev/null || true)"
       docker_state="$(systemctl is-active docker 2>/dev/null || true)"
       zerotier_state="$(systemctl is-active zerotier-one 2>/dev/null || true)"
-      network_state="$(zerotier-cli -j listnetworks 2>/dev/null | jq -r --arg id '{{ zerotier_network_id }}' '.[] | select(.nwid == $id) | .status' | head -n 1)"
-      [ -n "$network_state" ] || network_state=NOT_JOINED
+      admin_firewall_state="$(systemctl is-active {{ remote_development_admin_firewall_unit }} 2>/dev/null || true)"
+      network_state=NOT_JOINED
+      if [ -x "$zerotier_cli" ]; then
+        network_state="$($zerotier_cli -j listnetworks 2>/dev/null \
+          | jq -r --arg id "$network_id" '.[] | select(.nwid == $id) | .status' \
+          | head -n 1 || true)"
+        [ -n "$network_state" ] || network_state=NOT_JOINED
+      fi
       healthy=true
       [ "$ssh_state" = active ] || healthy=false
       [ "$docker_state" = active ] || healthy=false
       [ "$zerotier_state" = active ] || healthy=false
+      [ "$admin_firewall_state" = active ] || healthy=false
       [ "$network_state" = OK ] || healthy=false
       [ "$disk_percent" -lt {{ remote_development_disk_warning_percent }} ] || healthy=false
 
@@ -288,12 +230,27 @@
         --arg ssh "$ssh_state" \
         --arg docker "$docker_state" \
         --arg zerotier "$zerotier_state" \
+        --arg adminFirewall "$admin_firewall_state" \
         --arg network "$network_state" \
         --argjson diskPercent "$disk_percent" \
         --argjson healthy "$healthy" \
-        '{checkedAt: $checkedAt, healthy: $healthy, services: {ssh: $ssh, docker: $docker, zerotier: $zerotier}, zerotierNetwork: $network, rootDiskPercent: $diskPercent}' > "$temporary"
+        '{checkedAt: $checkedAt, healthy: $healthy, services: {ssh: $ssh, docker: $docker, zerotier: $zerotier, adminFirewall: $adminFirewall}, zerotierNetwork: $network, rootDiskPercent: $diskPercent}' \
+        > "$temporary"
       chmod 0600 "$temporary"
       mv "$temporary" "$output"
+
+      if [ -r "$push_url_file" ]; then
+        push_url="$(tr -d '\r\n' < "$push_url_file")"
+        push_status=down
+        [ "$healthy" = true ] && push_status=up
+        push_msg="dev-netcup-health healthy=$healthy disk=${disk_percent}% zerotier=$network_state"
+        if ! curl -fsS --max-time 10 --get \
+          --data-urlencode "status=$push_status" \
+          --data-urlencode "msg=$push_msg" \
+          "$push_url" >/dev/null 2>&1; then
+          logger -p daemon.warning -t dev-netcup-health "Uptime Kuma push failed; inspect $output"
+        fi
+      fi
 
       if [ "$healthy" != true ]; then
         logger -p daemon.warning -t dev-netcup-health "development host health check is degraded; inspect $output"
@@ -309,7 +266,7 @@
     content: |
       [Unit]
       Description=Check Netcup development host health
-      After=docker.service zerotier-one.service
+      After=docker.service zerotier-one.service {{ remote_development_admin_firewall_unit }}
 
       [Service]
       Type=oneshot

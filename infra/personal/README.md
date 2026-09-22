@@ -42,6 +42,41 @@ uv run --project infra/personal ansible-playbook --check --diff \
   -i /secure/path/inventory.yml infra/personal/playbooks/site.yml
 ```
 
+For Netcup, connect through the separately proven, source-restricted root
+break-glass key and keep `remote_development_admin_user: ik`. This lets Ansible
+manage the host after passwordless sudo is removed without turning the root SSH
+session into the day-to-day developer account:
+
+```sh
+ANSIBLE_CONFIG=infra/personal/ansible.cfg \
+uv run --project infra/personal ansible-playbook --check --diff \
+  -i /secure/path/inventory.yml \
+  infra/personal/playbooks/development-server.yml
+
+ANSIBLE_CONFIG=infra/personal/ansible.cfg \
+uv run --project infra/personal ansible-playbook --diff \
+  -i /secure/path/inventory.yml \
+  infra/personal/playbooks/development-server.yml
+```
+
+The Netcup inventory explicitly sets `baseline_ssh_permit_root_login` to
+`prohibit-password`; the authorized key remains source-restricted. All other
+managed hosts default to denying root SSH entirely.
+
+After cloning Modulo into the managed checkout root, trust its reviewed mise
+configuration, install the declared runtimes as the unprivileged administrator,
+and run the root-readable host acceptance:
+
+```sh
+ssh netcup 'mise trust /home/ik/Development/Modulo/.mise.toml && \
+  mise install --cd /home/ik/Development/Modulo && \
+  rustup toolchain install 1.94.1 --profile minimal \
+    --target wasm32-unknown-unknown'
+ssh -l root netcup \
+  'python3 /home/ik/Development/Modulo/scripts/verify-netcup-development.py \
+    --project /home/ik/Development/Modulo --admin-user ik'
+```
+
 Apply one host at a time only after the audit succeeds and a second
 administrative path is available:
 
@@ -103,9 +138,10 @@ hostnames.
 - validation that Docker is present where a container role requires it.
 
 The `development_servers` group additionally receives Docker/Compose, build
-tools, GitHub CLI, Maven and `mise`. Exact project runtimes remain declared by
+tools, GitHub CLI, Maven, `mise` and `rustup`. Exact project runtimes remain declared by
 each repository (for Modulo, `.mise.toml`) instead of drifting into an
-unversioned host-global toolchain. The profile records that production
+unversioned host-global toolchain; the Rust WASM example pins its compiler and
+target in `rust-toolchain.toml`. The profile records that production
 credentials and authoritative personal data are forbidden on disposable DEV.
 It also installs a 15-minute health timer; its latest machine-readable result
 is retained at `/var/lib/dev-netcup-health/last.json`.

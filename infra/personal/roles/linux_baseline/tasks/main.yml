@@ -88,6 +88,13 @@
     state: present
   when: ansible_facts.distribution == 'Fedora'
 
+- name: Validate the declared root SSH policy
+  ansible.builtin.assert:
+    that:
+      - baseline_ssh_permit_root_login in ['no', 'prohibit-password']
+    fail_msg: Root SSH must be disabled or restricted to public-key authentication.
+  when: manage_ssh | bool
+
 - name: Install the SSH hardening drop-in
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/60-personal-baseline.conf
@@ -98,7 +105,7 @@
     content: |
       PasswordAuthentication no
       KbdInteractiveAuthentication no
-      PermitRootLogin no
+      PermitRootLogin {{ baseline_ssh_permit_root_login }}
       PubkeyAuthentication yes
   notify: reload sshd
   when: manage_ssh | bool

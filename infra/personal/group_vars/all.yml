@@ -14,4 +14,5 @@ baseline_common_packages:
   - tmux
   - unzip
 manage_ssh: false
+baseline_ssh_permit_root_login: 'no'
 requires_container_runtime: false

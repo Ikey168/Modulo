@@ -34,6 +34,8 @@ all:
           device_role: disposable-development-compute
           canonical_name: dev-netcup
           manage_ssh: true
+          baseline_ssh_permit_root_login: prohibit-password
+          remote_development_admin_user: ik
           requires_container_runtime: true
           private_network_id: 88c5b1f339774e42
     production_servers:
