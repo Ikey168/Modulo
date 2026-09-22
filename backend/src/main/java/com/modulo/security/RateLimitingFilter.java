@@ -82,7 +82,7 @@ public class RateLimitingFilter implements Filter {
 
         // Skip rate limiting for health checks and static resources
         String requestURI = httpRequest.getRequestURI();
-        if (isExemptFromRateLimit(requestURI)) {
+        if (isExemptFromRateLimit(requestURI) || isStorageGenerationRead(httpRequest)) {
             chain.doFilter(request, response);
             return;
         }
@@ -129,6 +129,18 @@ public class RateLimitingFilter implements Filter {
                requestURI.endsWith(".jpg") ||
                requestURI.endsWith(".gif") ||
                requestURI.equals("/favicon.ico");
+    }
+
+    /**
+     * Generation is one immutable, authenticated database-history identifier. The workspace host
+     * requests it once per open namespace before synchronization, so charging these read-only
+     * probes to the ordinary API burst bucket can deadlock every client in synchronized retries.
+     */
+    private boolean isStorageGenerationRead(HttpServletRequest request) {
+        return "GET".equals(request.getMethod())
+                && request.getRequestURI().startsWith("/api/workspaces/")
+                && request.getRequestURI().contains("/plugin-state/")
+                && request.getParameterMap().containsKey("generation");
     }
 
     /**
