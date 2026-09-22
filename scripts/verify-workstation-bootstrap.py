@@ -140,10 +140,16 @@ def main() -> None:
                 failures.append(name)
 
     role_marker = Path("/etc/motd.d/60-personal-role")
-    backup_boundary = Path("/etc/personal-backup/README")
+    backup_boundary = Path("/etc/personal-backup")
     if not role_marker.is_file():
         failures.append("role-marker")
-    if not backup_boundary.is_file():
+    # The boundary directory is root-only (0700), so an unprivileged verifier
+    # checks its ownership and mode rather than reading the README inside it.
+    try:
+        boundary = backup_boundary.stat()
+        if not backup_boundary.is_dir() or boundary.st_uid != 0 or boundary.st_mode & 0o077:
+            failures.append("backup-secret-boundary")
+    except OSError:
         failures.append("backup-secret-boundary")
 
     project_markers: list[str] = []
