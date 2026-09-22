@@ -1,6 +1,6 @@
 ---
 - name: Apply the common Linux baseline
-  hosts: all:!laptop
+  hosts: all
   gather_facts: true
   become: true
   roles:
@@ -22,14 +22,14 @@
     - private_network
 
 - name: Validate required container runtimes
-  hosts: all:!laptop
+  hosts: all
   gather_facts: true
   become: true
   roles:
     - container_host
 
 - name: Apply workstation development tooling
-  hosts: workstations:!laptop
+  hosts: workstations
   gather_facts: true
   become: true
   roles:
