@@ -24,6 +24,7 @@ SYSTEM_COMMANDS = (
     "mvn",
     "ninja",
     "rg",
+    "rustup",
     "shellcheck",
     "tmux",
 )
@@ -192,8 +193,10 @@ def main() -> None:
         "check",
         "check-backend",
         "check-frontend",
+        "check-frontend-strict-lint",
         "check-infrastructure",
         "check-repository",
+        "check-wasm",
     ):
         if task not in tasks.stdout:
             failures.append(f"mise-task:{task}")

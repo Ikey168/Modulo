@@ -26,6 +26,7 @@
       - nftables
       - pkg-config
       - python3-venv
+      - rustup
       - shellcheck
       - zoxide
       - zsh

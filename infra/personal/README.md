@@ -69,7 +69,9 @@ and run the root-readable host acceptance:
 
 ```sh
 ssh netcup 'mise trust /home/ik/Development/Modulo/.mise.toml && \
-  mise install --cd /home/ik/Development/Modulo'
+  mise install --cd /home/ik/Development/Modulo && \
+  rustup toolchain install 1.94.1 --profile minimal \
+    --target wasm32-unknown-unknown'
 ssh -l root netcup \
   'python3 /home/ik/Development/Modulo/scripts/verify-netcup-development.py \
     --project /home/ik/Development/Modulo --admin-user ik'
@@ -136,9 +138,10 @@ hostnames.
 - validation that Docker is present where a container role requires it.
 
 The `development_servers` group additionally receives Docker/Compose, build
-tools, GitHub CLI, Maven and `mise`. Exact project runtimes remain declared by
+tools, GitHub CLI, Maven, `mise` and `rustup`. Exact project runtimes remain declared by
 each repository (for Modulo, `.mise.toml`) instead of drifting into an
-unversioned host-global toolchain. The profile records that production
+unversioned host-global toolchain; the Rust WASM example pins its compiler and
+target in `rust-toolchain.toml`. The profile records that production
 credentials and authoritative personal data are forbidden on disposable DEV.
 It also installs a 15-minute health timer; its latest machine-readable result
 is retained at `/var/lib/dev-netcup-health/last.json`.
