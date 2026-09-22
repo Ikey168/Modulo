@@ -1,0 +1,7 @@
+factor_or_channel,identity_or_quantity,state,intended_role,safe_notes
+FIDO2 security key,1,In use,Primary phishing-resistant factor,"Model/serial suffix/firmware/purchase date/custody reference not yet recorded"
+Additional FIDO2 security keys,2,To order,Redundant enrolled keys,"Target total: 3 keys"
+Ente Auth on phone,1 installation,In use for TOTP,Supplemental TOTP factor,"Login alias admin-ente@krasnjanski-mail.com routes to admin@krasnjanski.com; no TOTP seeds"
+Recovery phone,+4915142094656,Current klarmobil line,SMS/voice recovery where unavoidable,"Not the sole recovery path; carrier confirmed as klarmobil"
+Independent recovery mailbox,paleport@proton.me,Current,Independent recovery for ilja@krasnjanski.com,"Protected by active YubiKey per supplied diagram"
+Primary/domain mailbox,ilja@krasnjanski.com,Current,Primary identity and SimpleLogin recovery/contact,"Depends on krasnjanski.com DNS and Google mail routing"

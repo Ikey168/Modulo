@@ -1,0 +1,30 @@
+import { useMemo, useState } from 'react';
+import { CheckCircle2, Plus, Smile, Trash2 } from 'lucide-react';
+import { Button, Checkbox, Input, Textarea } from '@/ui';
+import { DAY_BLOCKS } from './dayBlocks';
+import { HOBBY_ENERGIES, SOCIAL_MODES, newHobbyId, type FunActivity, type HobbySession } from './hobbies';
+import { isoDay } from './para';
+import { useHobbyStore } from './useHobbyStore';
+import { PopoverEditor } from './EntryPopover';
+import { Choice, ChoiceInline, Field } from './viewkit';
+
+const blankActivity = (): FunActivity => ({ id: newHobbyId('fun'), title: '', energy: 'Medium', socialMode: 'Flexible', restorative: true, screenBased: false, defaultMinutes: 60, notes: '' });
+
+export function HobbyFunView() {
+  const [data, setData] = useHobbyStore();
+  const [draft, setDraft] = useState(blankActivity);
+  const [energy, setEnergy] = useState<'All' | FunActivity['energy']>('All');
+  const [blockId, setBlockId] = useState<HobbySession['blockId']>('early-evening');
+  const filtered = useMemo(() => data.funMenu.filter((item) => energy === 'All' || item.energy === energy), [data.funMenu, energy]);
+  const add = () => { if (!draft.title.trim()) return; setData((current) => ({ ...current, funMenu: [...current.funMenu, { ...draft, title: draft.title.trim() }] })); setDraft(blankActivity()); };
+  const log = (item: FunActivity) => {
+    const session: HobbySession = { id: newHobbyId('session'), funActivityId: item.id, date: isoDay(), durationMinutes: item.defaultMinutes, blockId, status: 'Done', energyBefore: item.energy, people: [], notes: '' };
+    setData((current) => ({ ...current, sessions: [...current.sessions, session] }));
+  };
+  return <div className="flex min-w-0 flex-1 flex-col overflow-y-auto"><header className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5"><h2 className="text-sm font-semibold">Fun menu</h2><ChoiceInline label="Filter by energy" prefix="Energy:" value={energy} onChange={(value) => setEnergy(value as typeof energy)} options={['All', ...HOBBY_ENERGIES]} className="ml-auto w-44" /><ChoiceInline label="Day block that logging writes to" prefix="Log into:" value={blockId} onChange={(value) => setBlockId(value as HobbySession['blockId'])} options={DAY_BLOCKS.map((item) => ({ value: item.id, label: item.label }))} className="w-60" /></header><div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+    <section><div className="divide-y divide-border border-y border-border">{filtered.length === 0 ? <div className="px-3 py-8 text-sm text-muted-foreground">Build a menu across low, medium, and high energy.</div> : filtered.map((item) => <div key={item.id} className="flex items-center gap-3 px-3 py-2.5"><Smile className="size-4 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-medium">{item.title}</h3>{item.notes && <p className="mt-0.5 truncate text-xs text-muted-foreground">{item.notes}</p>}</div><span className="text-xs text-muted-foreground">{item.energy} · {item.socialMode}{item.restorative ? ' · Restorative' : ''}{item.screenBased ? ' · Screen' : ''}</span><Button size="sm" variant="outline" onClick={() => log(item)}><CheckCircle2 className="size-3.5" />Log {item.defaultMinutes}m</Button><Button size="icon" variant="ghost" className="size-7" aria-label="Delete activity" onClick={() => setData((current) => ({ ...current, funMenu: current.funMenu.filter((candidate) => candidate.id !== item.id), sessions: current.sessions.filter((session) => session.funActivityId !== item.id) }))}><Trash2 className="size-3.5" /></Button></div>)}</div>
+      <div className="mt-4 rounded-md border border-border"><header className="border-b border-border bg-muted/20 px-3 py-2 text-sm font-medium">Recent fun & recovery</header><div className="divide-y divide-border">{data.sessions.filter((item) => item.funActivityId).length === 0 ? <p className="p-3 text-xs text-muted-foreground">Nothing logged yet.</p> : [...data.sessions].filter((item) => item.funActivityId).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12).map((session) => { const item = data.funMenu.find((candidate) => candidate.id === session.funActivityId); return <div key={session.id} className="flex items-center gap-2 px-3 py-2 text-xs"><span className="font-medium">{item?.title ?? 'Removed activity'}</span><span className="ml-auto text-muted-foreground">{session.date} · {session.durationMinutes}m{session.blockId ? ` · ${DAY_BLOCKS.find((block) => block.id === session.blockId)?.label}` : ''}</span></div>; })}</div></div>
+    </section>
+    <PopoverEditor title="Add activity"><Field label="Activity"><Input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Field><div className="grid grid-cols-2 gap-2"><Choice label="Energy" value={draft.energy} options={HOBBY_ENERGIES} onChange={(value) => setDraft({ ...draft, energy: value as FunActivity['energy'] })} /><Choice label="Company" value={draft.socialMode} options={SOCIAL_MODES} onChange={(value) => setDraft({ ...draft, socialMode: value as FunActivity['socialMode'] })} /></div><Field label="Default minutes"><Input type="number" min={5} step={5} value={draft.defaultMinutes} onChange={(event) => setDraft({ ...draft, defaultMinutes: Number(event.target.value) })} /></Field><div className="flex gap-4"><label className="flex items-center gap-2 text-xs"><Checkbox checked={draft.restorative} onCheckedChange={(checked) => setDraft({ ...draft, restorative: checked === true })} />Restorative</label><label className="flex items-center gap-2 text-xs"><Checkbox checked={draft.screenBased} onCheckedChange={(checked) => setDraft({ ...draft, screenBased: checked === true })} />Screen-based</label></div><Field label="Notes"><Textarea rows={3} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} /></Field><Button className="w-full" onClick={add} disabled={!draft.title.trim()}><Plus className="size-4" />Add activity</Button></PopoverEditor>
+  </div></div>;
+}

@@ -15,6 +15,12 @@ const ToastViewport = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      // A phone toast is a snackbar: it rises from the bottom edge, clearing
+      // the navigation bar, the floating action button and the soft keyboard.
+      // Dropping it from the top covered the app bar — the one strip that
+      // always has to say where you are and how to get out.
+      "phone:inset-x-0 phone:bottom-0 phone:top-auto phone:flex-col phone:p-3",
+      "phone:pb-[calc(0.75rem+var(--bottom-nav-height,0px)+var(--fab-inset,0px)+var(--keyboard-inset,0px))]",
       className
     )}
     {...props}
@@ -23,7 +29,10 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full " +
+    // Snackbar geometry: rises from the bottom edge, and short enough that a
+    // two-line message does not become a card sitting over the content.
+    "phone:rounded-xl phone:p-3 phone:pr-3 phone:text-[13px] phone:data-[state=open]:slide-in-from-bottom-full phone:data-[state=closed]:slide-out-to-bottom-full",
   {
     variants: {
       variant: {
@@ -75,7 +84,10 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 " +
+      // Touch has no hover, so a hover-revealed ✕ is simply not there. Swipe
+      // still dismisses; this makes the deliberate way visible and tappable.
+      "coarse:relative coarse:right-0 coarse:top-0 coarse:size-9 coarse:shrink-0 coarse:opacity-100 coarse:grid coarse:place-items-center",
       className
     )}
     toast-close=""

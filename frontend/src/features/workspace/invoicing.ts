@@ -258,28 +258,21 @@ export function extractInvoices(notes: CoreNote[]): NoteInvoice[] {
 
 // ── Seller profile persistence ───────────────────────────────────────────────
 
-const SELLER_KEY = 'modulo-invoice-seller';
+export const SELLER_PROFILE_KEY = 'modulo-invoice-seller';
 
-export function readSellerProfile(): SellerProfile | null {
-  try {
-    const raw = localStorage.getItem(SELLER_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const p = parsed as Record<string, unknown>;
-    if (typeof p.name !== 'string' || typeof p.address !== 'string') return null;
-    return p as unknown as SellerProfile;
-  } catch {
-    return null;
-  }
-}
-
-export function writeSellerProfile(profile: SellerProfile): void {
-  try {
-    localStorage.setItem(SELLER_KEY, JSON.stringify(profile));
-  } catch {
-    // Storage unavailable — validation will keep flagging the seller fields.
-  }
+export function parseSellerProfile(value: unknown): SellerProfile | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const profile = value as Record<string, unknown>;
+  if (typeof profile.name !== 'string' || typeof profile.address !== 'string') return null;
+  const optional = (key: string): string | undefined => typeof profile[key] === 'string' && profile[key] ? profile[key] as string : undefined;
+  return {
+    name: profile.name,
+    address: profile.address,
+    taxNumber: optional('taxNumber'),
+    vatId: optional('vatId'),
+    iban: optional('iban'),
+    email: optional('email'),
+  };
 }
 
 // ── EN 16931 (ZUGFeRD / Factur-X) XML ────────────────────────────────────────

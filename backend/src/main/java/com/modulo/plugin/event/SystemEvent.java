@@ -89,6 +89,40 @@ public abstract class SystemEvent extends PluginEvent {
         
         public String getPluginId() { return pluginId; }
     }
+
+    /** Event fired after a plugin has started and its runtime contributions are active. */
+    public static class PluginStarted extends SystemEvent {
+        private final String pluginId;
+        private final String version;
+
+        public PluginStarted(String pluginId, String version) {
+            super("system.plugin_started", "system");
+            this.pluginId = pluginId;
+            this.version = version;
+            addMetadata("pluginId", pluginId);
+            addMetadata("version", version);
+        }
+
+        public String getPluginId() { return pluginId; }
+        public String getVersion() { return version; }
+    }
+
+    /** Event fired after a plugin's runtime contributions have been removed. */
+    public static class PluginStopped extends SystemEvent {
+        private final String pluginId;
+        private final String version;
+
+        public PluginStopped(String pluginId, String version) {
+            super("system.plugin_stopped", "system");
+            this.pluginId = pluginId;
+            this.version = version;
+            addMetadata("pluginId", pluginId);
+            addMetadata("version", version);
+        }
+
+        public String getPluginId() { return pluginId; }
+        public String getVersion() { return version; }
+    }
     
     /**
      * Event fired when a remote plugin is installed

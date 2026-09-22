@@ -18,8 +18,9 @@ data:
   # Database configuration
   SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
   SPRING_JPA_DATABASE_PLATFORM: "org.hibernate.dialect.PostgreSQLDialect"
-  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
   SPRING_JPA_SHOW_SQL: "false"
+  MODULO_BLUEPRINT_SANDBOX: "wasm"
   
   # OpenTelemetry Configuration
   OTEL_SERVICE_NAME: "modulo-backend"

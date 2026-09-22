@@ -1,0 +1,1 @@
+import { LayoutDashboard } from 'lucide-react'; import { WardrobeDashboardView } from '../../WardrobeViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'wardrobe-dashboard',label:'Dashboard',icon:LayoutDashboard,order:10,mode:'style',component:WardrobeDashboardView})}};export default plugin;

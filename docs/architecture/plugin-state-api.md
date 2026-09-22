@@ -38,6 +38,16 @@ An installed EXTERNAL workload declares `state.read` and/or `state.write` in its
 required permissions. The backend registry and active runtime grant must agree.
 A workload token identifies the registered plugin; it does not identify a user.
 
+Outbound-only agents that cannot keep an inbound gRPC runtime connected use an
+owner-provisioned workload instead. An authenticated owner creates one with
+`POST /api/plugin-state/workloads`, supplying `pluginId`, permissions, and a
+lifetime between one hour and 90 days. The response contains metadata plus a
+one-time workload token; only its SHA-256 hash is stored. `GET` lists safe
+metadata and `DELETE /api/plugin-state/workloads/{id}` revokes the workload and
+its active grants. A maximum of ten active workloads is retained per owner and
+plugin. Reserved namespaces cannot receive a workload. Persistent workloads are
+owner-bound, so a grant belonging to any other owner is rejected.
+
 The authenticated owner consents with `POST /api/plugin-state/grants`:
 
 ```json
@@ -71,6 +81,13 @@ the host API. The namespace must equal the authenticated plugin ID. Reserved
 Reads require `state.read`; writes/deletes require `state.write`. A write-only
 version conflict returns the actual version but excludes the existing document.
 External callers cannot register schemas or issue their own owner grants.
+
+An owner-provisioned workload can rotate an otherwise valid grant before expiry
+with `POST /api/plugin-state/callback/grants/rotate` and the same two headers.
+The replacement inherits the old grant's workspace, namespace and permissions,
+is limited to one hour, and atomically revokes the old grant. The endpoint does
+not widen either the workload or grant permissions. This lets outbound agents
+stay unattended without storing an owner browser session or API token.
 
 Unknown, foreign, expired and revoked grants return 404 `STATE_ACCESS_DENIED`.
 The callback route permits the HTTP request to reach this dual-token check; it

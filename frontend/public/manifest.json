@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#0a0a0b",
-  "background_color": "#0a0a0b",
+  "theme_color": "#151414",
+  "background_color": "#151414",
   "categories": ["productivity", "developer", "blockchain"],
   "icons": [
     {
@@ -64,21 +64,21 @@
       "short_name": "New Note",
       "description": "Create a new note",
       "url": "/notes?action=new",
-      "icons": [{ "src": "/icons/shortcut-note.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "View dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/shortcut-dashboard.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Contracts",
       "short_name": "Contracts",
       "description": "View smart contracts",
       "url": "/contracts",
-      "icons": [{ "src": "/icons/shortcut-contracts.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [],

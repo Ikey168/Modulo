@@ -4,10 +4,9 @@ import {
   isDueThisWeek,
   isOverdue,
   listsOf,
-  readTodos,
+  parseTodos,
   sortTodos,
   todosForNote,
-  writeTodos,
   type TodoItem,
 } from '../todos';
 
@@ -67,9 +66,7 @@ describe('ordering and grouping', () => {
 
 describe('persistence', () => {
   it('round-trips and tolerates corrupt storage', () => {
-    writeTodos([todo('a')]);
-    expect(readTodos()).toHaveLength(1);
-    localStorage.setItem('modulo-todos', '???');
-    expect(readTodos()).toEqual([]);
+    expect(parseTodos(JSON.parse(JSON.stringify([todo('a')])))).toHaveLength(1);
+    expect(parseTodos('???')).toEqual([]);
   });
 });

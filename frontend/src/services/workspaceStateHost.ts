@@ -73,6 +73,14 @@ export class WorkspaceStateHost {
       await client.refreshAll(); await client.synchronize();
     }));
   }
+  /** Refresh one record announced by the private owner-scoped state change feed. */
+  async refresh(namespace: string, key: string): Promise<void> {
+    this.sessionChanged();
+    if (this.disposed || !this.identity) return;
+    const client = this.clients.get(namespace);
+    if (!client || client.status === 'closed') return;
+    await client.refresh(key);
+  }
   start(target: Pick<Window, 'addEventListener' | 'removeEventListener'>): () => void {
     const refresh = () => { void this.synchronize(); };
     target.addEventListener('online', refresh); target.addEventListener('focus', refresh);
@@ -91,7 +99,7 @@ export class WorkspaceStateHost {
   private emit(): void { for (const listener of this.listeners) { try { listener(); } catch { /* observer isolation */ } } }
 }
 
-/** Web Locks prevent cloned tabs from writing the same local queue. The lease is released on unload. */
+/** Web Locks prevent cloned tabs from writing the same offline queue. The lease is released on unload. */
 export function acquireStateReplica(storage: Storage, locks: LockManager): { replica: Promise<string>; close: () => void } {
   const abort = new AbortController();
   let release: (() => void) | undefined;
@@ -105,7 +113,11 @@ export function acquireStateReplica(storage: Storage, locks: LockManager): { rep
         storage.setItem('modulo.state.replica', id); resolve(id); await held;
       });
     };
-    void acquire(storage.getItem('modulo.state.replica') || crypto.randomUUID()).catch(reject);
+    // A React StrictMode setup can be disposed in this same task. Do not
+    // request a native lock until that cleanup has had a chance to cancel it:
+    // an already queued ifAvailable request can briefly occupy the old ID and
+    // make the replacement setup unnecessarily fork its persisted cache.
+    void Promise.resolve().then(() => acquire(storage.getItem('modulo.state.replica') || crypto.randomUUID())).catch(reject);
   });
   return { replica, close: () => { abort.abort(); release?.(); } };
 }

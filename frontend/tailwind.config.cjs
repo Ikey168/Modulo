@@ -8,6 +8,8 @@
  * (bg-primary/10) work and the alternate themes re-declare the variables
  * under [data-theme] selectors.
  */
+const plugin = require('tailwindcss/plugin');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -75,6 +77,26 @@ module.exports = {
           foreground: 'hsl(var(--info-foreground) / <alpha-value>)',
         },
       },
+      spacing: {
+        // Device chrome, published as CSS variables by styles/index.css and
+        // services/mobileViewport.ts. `pt-safe-top` / `pb-safe-bottom` are the
+        // only sanctioned way to clear a notch or a gesture bar.
+        'safe-top': 'var(--safe-top, 0px)',
+        'safe-bottom': 'var(--safe-bottom, 0px)',
+        'safe-left': 'var(--safe-left, 0px)',
+        'safe-right': 'var(--safe-right, 0px)',
+        /** Height of the phone bottom navigation, 0 when it is not mounted. */
+        'bottom-nav': 'var(--bottom-nav-height, 0px)',
+        /** Clearance for the floating action button, 0 when it is not mounted. */
+        fab: 'var(--fab-inset, 0px)',
+        /** Everything the phone docks over the content column, in one token. */
+        'app-bottom': 'calc(var(--bottom-nav-height, 0px) + var(--fab-inset, 0px))',
+        /** Soft-keyboard overlap reported by visualViewport. */
+        keyboard: 'var(--keyboard-inset, 0px)',
+        /** Material's 56dp app bar / 48dp minimum touch target. */
+        'app-bar': '3.5rem',
+        touch: '3rem',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
@@ -82,6 +104,15 @@ module.exports = {
       fontSize: {
         // App runs slightly tighter than the browser default (13.5px base).
         xxs: ['0.6875rem', { lineHeight: '1rem' }],
+      },
+      height: {
+        /** Visible viewport minus the device insets the body already pads for.
+         *  `h-screen` overflows on a phone because 100vh ignores both. */
+        app: 'calc(var(--app-viewport-height, 100vh) - var(--safe-top, 0px) - var(--safe-bottom, 0px))',
+      },
+      minHeight: {
+        app: 'calc(var(--app-viewport-height, 100vh) - var(--safe-top, 0px) - var(--safe-bottom, 0px))',
+        touch: '3rem',
       },
       borderRadius: {
         // All tiers follow the token so the corner language changes in one place.
@@ -124,5 +155,25 @@ module.exports = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    /**
+     * Input-modality and shell variants.
+     *
+     * The app is one codebase for a desktop pointer and an Android touch
+     * screen. Breakpoints alone cannot express the difference — a 1024px
+     * tablet is touch, a 700px desktop window is not — so control sizing keys
+     * off `coarse:` (the pointer) and layout keys off `md:` (the space).
+     */
+    plugin(({ addVariant }) => {
+      addVariant('coarse', '@media (pointer: coarse)');
+      addVariant('fine', '@media (pointer: fine)');
+      // Phone-shaped: below the tablet breakpoint AND touch-driven.
+      addVariant('phone', '@media (max-width: 767px) and (pointer: coarse)');
+      // Packaged Android shell (set on <html> by services/mobileViewport.ts).
+      addVariant('native', ':where(html[data-platform="android"]) &');
+      // Soft keyboard is covering part of the viewport.
+      addVariant('kb-open', ':where(html[data-keyboard="open"]) &');
+    }),
+  ],
 };

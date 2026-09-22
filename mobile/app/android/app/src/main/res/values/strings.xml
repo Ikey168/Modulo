@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Modulo</string>
+    <string name="title_activity_main">Modulo</string>
+    <string name="package_name">com.modulo</string>
+    <string name="custom_url_scheme">com.modulo</string>
+</resources>

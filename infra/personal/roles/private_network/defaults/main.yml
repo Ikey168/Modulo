@@ -1,0 +1,8 @@
+---
+private_network_zero_tier_key_url: https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg
+private_network_zero_tier_key_fingerprint: 74A5E9C458E1A431F1DA57A71657198823E52A61
+private_network_zero_tier_repository: https://download.zerotier.com/debian/{{ ansible_facts.distribution_release }}
+private_network_allow_managed: 1
+private_network_allow_global: 0
+private_network_allow_default: 0
+private_network_allow_dns: 0

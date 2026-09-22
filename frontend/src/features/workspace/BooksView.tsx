@@ -1,27 +1,23 @@
+import { dayKey } from './noteDates';
 // Books (EÜR) view (#366): per-month income from paid invoices, manually
 // recorded expenses by category, the USt-VA summary numbers, and the DATEV
 // Buchungsstapel CSV export with a double-export guard. Business hub tab.
 import { useMemo, useState } from 'react';
 import { BookText, ChevronLeft, ChevronRight, FileDown, Plus, Trash2 } from 'lucide-react';
 import { Button, Input, useToast } from '@/ui';
+import { ChoiceInline } from './viewkit';
 import type { WorkspaceViewProps } from './plugins/types';
 import { extractInvoices, formatEur, VAT_MODES, computeTotals } from './invoicing';
 import {
   datevCsv,
   expenseGross,
   inPeriod,
-  markExported,
   newExpenseId,
   periodKey,
-  readCategories,
-  readExpenses,
-  readExportedPeriods,
   shiftPeriod,
   summarizePeriod,
-  writeCategories,
-  writeExpenses,
-  type ExpenseRecord,
 } from './euer';
+import { useEuerStore } from './usePluginDataStores';
 
 function download(filename: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -36,22 +32,23 @@ const EMPTY_FORM = { date: '', vendor: '', description: '', net: '', vatRate: '1
 
 export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
-  const [period, setPeriod] = useState(() => periodKey(new Date().toISOString().slice(0, 10)));
-  const [expenses, setExpenses] = useState<ExpenseRecord[]>(() => readExpenses());
-  const [categories, setCategories] = useState<string[]>(() => readCategories());
-  const [form, setForm] = useState({ ...EMPTY_FORM, date: new Date().toISOString().slice(0, 10), category: '' });
-  const [exportedVersion, bumpExported] = useState(0);
+  const [period, setPeriod] = useState(() => periodKey(dayKey(new Date())));
+  const [books, setBooks] = useEuerStore();
+  const expenses = books.expenses;
+  const categories = books.categories;
+  const [form, setForm] = useState({ ...EMPTY_FORM, date: dayKey(new Date()), category: '' });
 
   const invoices = useMemo(() => extractInvoices(data.notes), [data.notes]);
   const summary = useMemo(() => summarizePeriod(invoices, expenses, period), [invoices, expenses, period]);
-  const exported = useMemo(() => readExportedPeriods(), [exportedVersion]);
+  // `exportedVersion` is a deliberate cache-buster, not a value the memo reads:
+  // bumping it is how an export re-reads the persisted period list.
+  const exported = useMemo(() => new Set(books.exportedPeriods), [books.exportedPeriods]);
 
   const periodIncome = invoices.filter((i) => i.invoice.status === 'paid' && inPeriod(i.invoice.date, period));
   const periodExpenses = expenses.filter((e) => inPeriod(e.date, period));
 
-  const persistExpenses = (next: ExpenseRecord[]) => {
-    setExpenses(next);
-    writeExpenses(next);
+  const persistExpenses = (next: typeof expenses) => {
+    setBooks((current) => ({ ...current, expenses: next }));
   };
 
   const addExpense = () => {
@@ -63,8 +60,7 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
     const category = form.category || categories[categories.length - 1];
     if (!categories.includes(category)) {
       const next = [...categories, category];
-      setCategories(next);
-      writeCategories(next);
+      setBooks((current) => ({ ...current, categories: next }));
     }
     persistExpenses([
       { id: newExpenseId(), date: form.date, vendor: form.vendor, description: form.description, netEur: net, vatRate: Number(form.vatRate), category },
@@ -82,8 +78,12 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
       toast({ title: `${period} was already exported`, description: 'Exporting again — tell your Steuerberater to replace the earlier file.' });
     }
     download(`DATEV-Buchungsstapel-${period}.csv`, datevCsv(invoices, expenses, period), 'text/csv');
-    markExported(period);
-    bumpExported((v) => v + 1);
+    setBooks((current) => ({
+      ...current,
+      exportedPeriods: current.exportedPeriods.includes(period)
+        ? current.exportedPeriods
+        : [...current.exportedPeriods, period],
+    }));
   };
 
   return (
@@ -130,7 +130,7 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
         </div>
         <div>
           <div className="text-xxs uppercase tracking-wide text-muted-foreground">USt-VA Zahllast</div>
-          <div className={`text-sm font-semibold tabular-nums ${summary.vatPayable < 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+          <div className={`text-sm font-semibold tabular-nums ${summary.vatPayable < 0 ? 'text-success' : ''}`}>
             {formatEur(summary.vatPayable)}
           </div>
         </div>
@@ -171,19 +171,27 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
             <Input value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} placeholder="Vendor" className="h-8 w-32 text-sm" />
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description" className="h-8 w-36 text-sm" />
             <Input value={form.net} onChange={(e) => setForm({ ...form, net: e.target.value })} placeholder="Net €" aria-label="Net amount" className="h-8 w-20 text-sm" />
-            <select value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: e.target.value })} aria-label="VAT rate" className="h-8 rounded-md border border-border bg-surface px-1.5 text-sm">
-              <option value="19">19%</option>
-              <option value="7">7%</option>
-              <option value="0">0%</option>
-            </select>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} aria-label="Category" className="h-8 rounded-md border border-border bg-surface px-1.5 text-sm">
-              <option value="">Category…</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <ChoiceInline
+              label="VAT rate"
+              value={form.vatRate}
+              onChange={(vatRate) => setForm({ ...form, vatRate })}
+              options={[
+                { value: '19', label: '19%' },
+                { value: '7', label: '7%' },
+                { value: '0', label: '0%' },
+              ]}
+              className="w-24"
+            />
+            <ChoiceInline
+              label="Category"
+              value={form.category}
+              onChange={(category) => setForm({ ...form, category })}
+              options={categories}
+              clearable
+              clearLabel="No category"
+              placeholder="Category…"
+              className="w-36"
+            />
             <Button size="sm" onClick={addExpense}>
               <Plus className="size-4" aria-hidden="true" />
               Add

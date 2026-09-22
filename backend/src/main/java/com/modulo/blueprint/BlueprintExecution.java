@@ -5,13 +5,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
- * One row of a blueprint's execution history (from plugin_execution_logs).
- * {@code executedNodes} is parsed from the interpreter's success message so the
- * editor can highlight the path a run took.
+ * Compatible execution-history view backed by structured runs and ordered steps.
+ * Historical plugin_execution_logs remain readable when no run ID exists.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BlueprintExecution {
 
+    private String runId;
+    public String getRunId() { return runId; }
+    public void setRunId(String runId) { this.runId = runId; }
     private String executionType;
     private String status;
     private String message;

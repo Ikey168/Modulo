@@ -31,7 +31,8 @@ public final class SemVer implements Comparable<SemVer> {
         if (v == null) return null;
         Matcher m = PATTERN.matcher(v.trim());
         if (!m.matches()) return null;
-        return new SemVer(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)), v.trim());
+        try {return new SemVer(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)), v.trim());}
+        catch(NumberFormatException invalid){return null;}
     }
 
     /**

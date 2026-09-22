@@ -1,0 +1,7 @@
+[Unit]
+Description=Capture encrypted OpenWrt AP configuration archive
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ik/ChatGPT/Modulo/scripts/openwrt-backup-capture.sh

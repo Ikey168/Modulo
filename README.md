@@ -143,6 +143,9 @@ docker compose up db
 The Vite dev server proxies `/api` to the backend, so the frontend can call the
 API with relative paths during development.
 
+To create server-backed plugin entries from an MCP client, use the repository's
+`modulo` MCP server. See [setup and tool usage](tools/modulo_mcp/README.md).
+
 ### Desktop app (Electron)
 
 The frontend also runs as a native desktop app. The Electron shell serves the

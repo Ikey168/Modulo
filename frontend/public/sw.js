@@ -1,21 +1,17 @@
 // Service Worker for Modulo PWA
 // Provides offline functionality and caching
 
-// Bumped to v1.2.0 so the activate handler purges the v1.1.0 caches, which
+// Bumped to v1.3.0 so the activate handler purges the v1.1.0 caches, which
 // were polluted with /api responses (incl. app-shell HTML) by the old logic.
-const CACHE_NAME = 'modulo-v1.2.0';
-const STATIC_CACHE_NAME = 'modulo-static-v1.2.0';
-const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.2.0';
+const CACHE_NAME = 'modulo-v1.3.0';
+const STATIC_CACHE_NAME = 'modulo-static-v1.3.0';
+const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.3.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/src/main.tsx',
-  '/src/styles/index.css',
-  '/src/styles/mobile.css',
-  '/src/styles/mobile-interactions.css',
 ];
 
 // Install event - cache static assets
@@ -73,12 +69,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Runtime configuration is public application bootstrap data. Prefer the
+  // server, but retain the same deployment's configuration for offline reloads.
+  if (url.origin === self.location.origin && url.pathname === '/runtime-config.js') {
+    event.respondWith(fetch(request).then(async response => {
+      if (response.ok) { const cache = await caches.open(STATIC_CACHE_NAME); await cache.put(request, response.clone()); }
+      return response;
+    }).catch(() => caches.match(request)));
+    return;
+  }
+
   // Never intercept API calls. The SW must not cache or fall back for /api:
   // doing so served stale responses and, for paths the app shell matched,
   // returned index.html for JSON endpoints (e.g. /api/network/status), and
   // hid live backend errors. Let these go straight to the network so the app
   // sees the real backend response. (The app manages its own offline state.)
-  if (url.pathname.startsWith('/api')) {
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api') || url.pathname === '/runtime-config.js') {
     return;
   }
 
@@ -98,7 +104,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle static assets (Cache First strategy)
-  if (STATIC_ASSETS.some(asset => request.url.includes(asset))) {
+  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request)
         .then((response) => {
@@ -106,7 +112,7 @@ self.addEventListener('fetch', (event) => {
             .then((fetchResponse) => {
               return caches.open(STATIC_CACHE_NAME)
                 .then((cache) => {
-                  cache.put(request, fetchResponse.clone());
+                  if (fetchResponse.ok) cache.put(request, fetchResponse.clone());
                   return fetchResponse;
                 });
             });
@@ -123,7 +129,7 @@ self.addEventListener('fetch', (event) => {
           .then((fetchResponse) => {
             caches.open(DYNAMIC_CACHE_NAME)
               .then((cache) => {
-                cache.put(request, fetchResponse.clone());
+                if (fetchResponse.ok) cache.put(request, fetchResponse.clone());
               });
             return fetchResponse;
           });
@@ -274,3 +280,14 @@ async function removeOfflineNote(noteId) {
   // Placeholder - implement removal logic
   console.log('Removing offline note:', noteId);
 }
+
+// The first page's scripts load before this worker controls it. Cache only
+// assets that this client actually loaded, preserving lazy plugin loading.
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'CACHE_LOADED_ASSETS' || !Array.isArray(event.data.urls)) return;
+  const urls = [...new Set(event.data.urls)].filter(value => {
+    try { const url = new URL(value, self.location.origin); return url.origin === self.location.origin && (url.pathname.startsWith('/assets/') || url.pathname === '/runtime-config.js'); }
+    catch { return false; }
+  }).slice(0, 1000);
+  event.waitUntil(caches.open(STATIC_CACHE_NAME).then(cache => Promise.allSettled(urls.map(url => cache.add(url)))));
+});

@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+profile=${1:-}
+case "$profile" in
+  Main|Development|Disposable) ;;
+  *)
+    printf 'Usage: %s {Main|Development|Disposable} [URL ...]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+shift
+
+runtime_root=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+policy_source=$HOME/.local/share/browser-environment/policies.json
+mkdir -p "$runtime_root/firefox"
+ln -sfn "$policy_source" "$runtime_root/firefox/policies.json"
+
+exec /usr/bin/firefox --no-remote -P "$profile" "$@"
+

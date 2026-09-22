@@ -3,11 +3,10 @@ import {
   entryAmountEur,
   formatMinutes,
   markBilled,
-  readEntries,
+  parseTimeEntries,
   summarizeByEngagement,
   toInvoiceLines,
   unbilledFor,
-  writeEntries,
   type TimeEntry,
 } from '../timeTracking';
 
@@ -27,12 +26,9 @@ beforeEach(() => localStorage.clear());
 
 describe('persistence', () => {
   it('round-trips entries and survives corrupt storage', () => {
-    writeEntries([entry('a')]);
-    expect(readEntries()).toHaveLength(1);
-    localStorage.setItem('modulo-time-entries', '{ nope');
-    expect(readEntries()).toEqual([]);
-    localStorage.setItem('modulo-time-entries', JSON.stringify([{ bad: true }, entry('ok')]));
-    expect(readEntries().map((e) => e.id)).toEqual(['ok']);
+    expect(parseTimeEntries(JSON.parse(JSON.stringify([entry('a')])))).toHaveLength(1);
+    expect(parseTimeEntries('{ nope')).toEqual([]);
+    expect(parseTimeEntries([{ bad: true }, entry('ok')]).map((e) => e.id)).toEqual(['ok']);
   });
 });
 

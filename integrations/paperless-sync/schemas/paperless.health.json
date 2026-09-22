@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lastSuccess", "lastIncremental", "lastFull", "documentCount", "changedCount", "restrictedCount", "tombstoneCount", "queueDepth", "failedActions", "failures", "schemaVersion", "grantExpiresAt", "workloadExpiresAt", "paperlessReachable", "mode"],
+  "properties": {
+    "lastSuccess": {"type": "string", "maxLength": 64},
+    "lastIncremental": {"type": "string", "maxLength": 64},
+    "lastFull": {"type": "string", "maxLength": 64},
+    "lastFailure": {"type": "string", "maxLength": 64},
+    "documentCount": {"type": "integer", "minimum": -1},
+    "changedCount": {"type": "integer", "minimum": 0},
+    "restrictedCount": {"type": "integer", "minimum": 0},
+    "tombstoneCount": {"type": "integer", "minimum": 0},
+    "queueDepth": {"type": "integer", "minimum": -1},
+    "failedActions": {"type": "integer", "minimum": -1},
+    "failures": {"type": "integer", "minimum": 0},
+    "schemaVersion": {"type": "integer", "minimum": 1},
+    "grantExpiresAt": {"type": "string", "maxLength": 64},
+    "workloadExpiresAt": {"type": "string", "maxLength": 64},
+    "paperlessReachable": {"type": "boolean"},
+    "mode": {"enum": ["full", "incremental", "failed"]}
+  }
+}

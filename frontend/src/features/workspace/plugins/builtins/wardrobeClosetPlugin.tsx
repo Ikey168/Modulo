@@ -1,0 +1,1 @@
+import { Shirt } from 'lucide-react'; import { WardrobeClosetView } from '../../WardrobeViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'wardrobe-closet',label:'Wardrobe',icon:Shirt,order:20,mode:'style',component:WardrobeClosetView})}};export default plugin;

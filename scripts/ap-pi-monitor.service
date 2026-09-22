@@ -1,0 +1,6 @@
+[Unit]
+Description=Metadata-only OpenWrt AP and Raspberry Pi health probe
+
+[Service]
+Type=oneshot
+ExecStart=%h/ChatGPT/Modulo/scripts/ap-pi-monitor.sh

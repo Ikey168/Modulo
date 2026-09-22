@@ -10,9 +10,11 @@ const tabsListVariants = cva('items-center', {
   variants: {
     variant: {
       /** shadcn default: pill triggers on an inset surface. */
-      default: 'inline-flex h-9 justify-center gap-1 rounded-lg border border-border bg-surface p-1 text-muted-foreground',
+      default: 'inline-flex h-9 justify-center gap-1 rounded-lg border border-border bg-surface p-1 text-muted-foreground coarse:h-11',
       /** Flat bar with an active underline (workspace chrome). */
-      underline: 'flex gap-1 border-b border-border text-muted-foreground',
+      // A tab row wider than the screen must scroll, not wrap into two rows or
+      // squeeze every label to three characters.
+      underline: 'flex gap-1 border-b border-border text-muted-foreground coarse:scroll-strip coarse:flex-nowrap',
     },
   },
   defaultVariants: { variant: 'default' },
@@ -24,9 +26,9 @@ const tabsTriggerVariants = cva(
     variants: {
       variant: {
         default:
-          'rounded-md px-3 py-1.5 hover:text-foreground data-[state=active]:bg-surface-3 data-[state=active]:text-foreground data-[state=active]:shadow-xs',
+          'rounded-md px-3 py-1.5 hover:text-foreground data-[state=active]:bg-surface-3 data-[state=active]:text-foreground data-[state=active]:shadow-xs coarse:min-h-9 coarse:px-4',
         underline:
-          'relative px-3 py-2.5 hover:text-foreground data-[state=active]:text-foreground data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:rounded-full data-[state=active]:after:bg-primary',
+          'relative px-3 py-2.5 hover:text-foreground data-[state=active]:text-foreground data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:rounded-full data-[state=active]:after:bg-primary coarse:min-h-touch coarse:shrink-0 coarse:snap-start coarse:px-4',
       },
     },
     defaultVariants: { variant: 'default' },

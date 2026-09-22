@@ -1,0 +1,19 @@
+---
+- name: Create protected backup-client configuration directory
+  ansible.builtin.file:
+    path: /etc/personal-backup
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Explain the external secret boundary
+  ansible.builtin.copy:
+    dest: /etc/personal-backup/README
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      Restic/rclone credentials are provisioned from protected custody.
+      This directory is intentionally not populated by the Git repository.
+      Verify a restore before enabling pruning or retiring an older repository.

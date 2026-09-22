@@ -10,8 +10,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins("http://localhost:3000")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
+            .allowedOrigins("http://localhost:3000", "https://localhost")
+            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")
             .allowedHeaders("*")
             .allowCredentials(true)
             .exposedHeaders("Authorization", "Content-Type")
@@ -19,14 +19,14 @@ public class WebConfig implements WebMvcConfigurer {
         
         // Explicitly configure CORS for OAuth2 endpoints
         registry.addMapping("/oauth2/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOrigins("http://localhost:3000", "https://localhost")
             .allowedMethods("GET", "POST", "OPTIONS")
             .allowedHeaders("*")
             .allowCredentials(true)
             .maxAge(3600);
         
         registry.addMapping("/login/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOrigins("http://localhost:3000", "https://localhost")
             .allowedMethods("GET", "POST", "OPTIONS")
             .allowedHeaders("*")
             .allowCredentials(true)

@@ -32,57 +32,35 @@ export const DEFAULT_CATEGORIES = [
   'Sonstige',
 ];
 
-const EXPENSES_KEY = 'modulo-euer-expenses';
-const CATEGORIES_KEY = 'modulo-euer-categories';
-const EXPORTED_KEY = 'modulo-euer-exported';
+export const EXPENSES_KEY = 'modulo-euer-expenses';
+export const CATEGORIES_KEY = 'modulo-euer-categories';
+export const EXPORTED_KEY = 'modulo-euer-exported';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export const expenseVat = (e: ExpenseRecord): number => round2((e.netEur * e.vatRate) / 100);
 export const expenseGross = (e: ExpenseRecord): number => round2(e.netEur + expenseVat(e));
 
-export function readExpenses(): ExpenseRecord[] {
-  try {
-    const raw = localStorage.getItem(EXPENSES_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (e): e is ExpenseRecord =>
-        typeof e === 'object' && e !== null && typeof (e as ExpenseRecord).id === 'string' && typeof (e as ExpenseRecord).netEur === 'number',
-    );
-  } catch {
-    return [];
-  }
+export function parseExpenses(value: unknown): ExpenseRecord[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (entry): entry is ExpenseRecord =>
+      typeof entry === 'object' && entry !== null
+      && typeof (entry as ExpenseRecord).id === 'string'
+      && typeof (entry as ExpenseRecord).date === 'string'
+      && typeof (entry as ExpenseRecord).vendor === 'string'
+      && typeof (entry as ExpenseRecord).description === 'string'
+      && typeof (entry as ExpenseRecord).netEur === 'number'
+      && Number.isFinite((entry as ExpenseRecord).netEur)
+      && typeof (entry as ExpenseRecord).vatRate === 'number'
+      && typeof (entry as ExpenseRecord).category === 'string',
+  );
 }
 
-export function writeExpenses(expenses: ExpenseRecord[]): void {
-  try {
-    localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
-  } catch {
-    // Storage unavailable — records live for the session only.
-  }
-}
-
-export function readCategories(): string[] {
-  try {
-    const raw = localStorage.getItem(CATEGORIES_KEY);
-    if (!raw) return DEFAULT_CATEGORIES;
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 && parsed.every((c) => typeof c === 'string')
-      ? parsed
-      : DEFAULT_CATEGORIES;
-  } catch {
-    return DEFAULT_CATEGORIES;
-  }
-}
-
-export function writeCategories(categories: string[]): void {
-  try {
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-  } catch {
-    // Storage unavailable.
-  }
+export function parseExpenseCategories(value: unknown): string[] {
+  return Array.isArray(value) && value.length > 0 && value.every(item => typeof item === 'string')
+    ? [...new Set(value)]
+    : [...DEFAULT_CATEGORIES];
 }
 
 // ── Periods ──────────────────────────────────────────────────────────────────
@@ -229,25 +207,10 @@ export function datevCsv(invoices: NoteInvoice[], expenses: ExpenseRecord[], per
 
 // ── Export marks (double-export guard) ───────────────────────────────────────
 
-export function readExportedPeriods(): Set<string> {
-  try {
-    const raw = localStorage.getItem(EXPORTED_KEY);
-    if (!raw) return new Set();
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? new Set(parsed.filter((p): p is string => typeof p === 'string')) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-export function markExported(period: string): void {
-  try {
-    const set = readExportedPeriods();
-    set.add(period);
-    localStorage.setItem(EXPORTED_KEY, JSON.stringify([...set]));
-  } catch {
-    // Storage unavailable — the re-export warning simply won't trigger.
-  }
+export function parseExportedPeriods(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [...new Set(value.filter((period): period is string => typeof period === 'string'))]
+    : [];
 }
 
 export function newExpenseId(): string {

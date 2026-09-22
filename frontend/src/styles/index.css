@@ -15,11 +15,34 @@
   :root {
     color-scheme: dark;
 
-    /* Safe-area insets (iOS notches, Android nav bars) */
-    --safe-area-inset-top: env(safe-area-inset-top);
-    --safe-area-inset-bottom: env(safe-area-inset-bottom);
-    --safe-area-inset-left: env(safe-area-inset-left);
-    --safe-area-inset-right: env(safe-area-inset-right);
+    /* Device chrome. `--safe-*` are the short names the Tailwind spacing
+       scale binds to (pt-safe-top, pb-safe-bottom, …); the long
+       `--safe-area-inset-*` aliases stay for hooks/useResponsive. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-top: var(--safe-top);
+    --safe-area-inset-bottom: var(--safe-bottom);
+    --safe-area-inset-left: var(--safe-left);
+    --safe-area-inset-right: var(--safe-right);
+
+    /* Visible viewport. 100vh is the *largest* possible viewport on Android,
+       so a 100vh shell hides its own last row behind the browser chrome and
+       does not shrink when the soft keyboard opens. dvh fixes the first
+       problem; services/mobileViewport.ts overwrites this with the measured
+       visualViewport height, which fixes the second. */
+    --app-viewport-height: 100vh;
+    /* How much of the viewport the soft keyboard is covering. */
+    --keyboard-inset: 0px;
+    /* Published by the phone bottom navigation while it is mounted, so views
+       can reserve room for it without knowing whether it exists. */
+    --bottom-nav-height: 0px;
+    /* Published by the floating action button while it is mounted. A 56dp
+       button docked over a scrolling list hides its last row otherwise —
+       reserving the height is what stops "New note" from sitting on top of
+       the newest note. */
+    --fab-inset: 0px;
 
     /* Structural surfaces */
     --background: 160 15% 4%;      /* #090e0c green-black canvas   */
@@ -61,7 +84,7 @@
     --info: 187 85% 43%;           /* #06b6d4 cyan-600             */
     --info-foreground: 0 0% 100%;
 
-    --radius: 0.25rem;             /* sharp, terminal-grade corners */
+    --radius: 0.5rem;              /* product-grade corners; all tiers derive from this */
 
     /* Elevation (referenced by tailwind boxShadow; re-declared per theme) */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -118,6 +141,57 @@
     --accent: 150 14% 95%;
     --primary: 161 94% 30%;
     --primary-hover: 163 94% 24%;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Bart — matches the KDE Plasma look-and-feel of the same name, so the
+   * desktop shell sits in the user's session instead of next to it.
+   * Values are taken from ~/.local/share/color-schemes/Bart.colors, with
+   * two substitutions noted below.
+   * ------------------------------------------------------------------ */
+  [data-theme='bart'] {
+    color-scheme: dark;
+
+    --background: 0 2% 8%;          /* #151414  Window/View BackgroundNormal   */
+    --foreground: 204 16% 94%;      /* #edf0f2  View ForegroundNormal          */
+    --surface: 0 3% 11%;            /* panels, lifted off the flat KDE canvas  */
+    --surface-2: 0 3% 15%;          /* elevated / hover                        */
+    --surface-3: 0 3% 19%;          /* #333030  Button BackgroundNormal        */
+    --border: 0 3% 17%;
+    --border-strong: 0 3% 24%;
+    --input: 0 3% 17%;
+    --ring: 38 98% 64%;             /* #fdbc4b  Selection ForegroundLink       */
+
+    --card: 0 3% 11%;
+    --card-foreground: 204 16% 94%;
+    --popover: 0 3% 15%;
+    --popover-foreground: 204 16% 94%;
+
+    --primary: 12 67% 54%;          /* #d95a3c  Selection BackgroundNormal     */
+    --primary-hover: 12 67% 62%;
+    --primary-foreground: 0 2% 8%;  /* Bart's own black; 4.8:1 on the accent,
+                                       where its pale yellow reaches only 3.4  */
+
+    --secondary: 0 3% 15%;
+    --secondary-foreground: 204 16% 94%;
+    --muted: 0 3% 15%;
+    --muted-foreground: 225 9% 58%;
+    --subtle-foreground: 225 9% 74%;/* #b7bac3  Window ForegroundNormal        */
+    --accent: 0 3% 15%;
+    --accent-foreground: 204 16% 94%;
+
+    /* Bart's ForegroundNegative is a pale blue-grey and its ForegroundPositive
+       is the same blue as Active, so neither reads as a status colour here.
+       Both are taken from the matching Bart konsole palette instead. */
+    --destructive: 359 75% 68%;     /* konsole Color0  #eb7072                 */
+    --destructive-foreground: 0 2% 8%;
+    --success: 124 27% 71%;         /* konsole Color3  #a2caa5                 */
+    --success-foreground: 0 2% 8%;
+    --warning: 38 98% 64%;          /* #fdbc4b, not #f67400: the neutral orange
+                                       is too near the primary to distinguish  */
+    --warning-foreground: 0 2% 8%;
+    --info: 201 80% 58%;            /* #3daee9  ForegroundActive               */
+    --info-foreground: 0 2% 8%;
   }
 
   [data-theme='blue'] {
@@ -185,26 +259,38 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.6;
-    padding-top: var(--safe-area-inset-top);
-    padding-bottom: var(--safe-area-inset-bottom);
-    padding-left: var(--safe-area-inset-left);
-    padding-right: var(--safe-area-inset-right);
+    /* The window is edge-to-edge on Android 15+, so every page is inset here
+       once. Shells that need chrome *under* the status bar opt out with a
+       negative margin rather than each page re-deriving the insets. */
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
   }
 
-  /* Terminal identity: display type is mono. Headings everywhere (incl.
-     Radix-rendered DialogTitle h2s) pick this up without per-screen edits;
-     utilities still override where a screen opts out. */
+  @supports (height: 100dvh) {
+    :root {
+      --app-viewport-height: 100dvh;
+    }
+  }
+
+  /* Headings use the text face. Mono is reserved for data — dates, counts,
+     ids, addresses — where a fixed advance actually helps; as a heading face
+     it made every panel title read as terminal output. Headings everywhere
+     (incl. Radix-rendered DialogTitle h2s) pick this up without per-screen
+     edits; utilities still override where a screen opts out. */
   h1,
   h2,
   h3,
   h4 {
-    @apply font-mono tracking-tight;
+    @apply font-sans font-semibold tracking-[-0.01em] text-foreground;
   }
 
   ::selection {
@@ -248,5 +334,197 @@
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Touch input. These rules are what separate "a website in a WebView"
+   * from an app: no 300ms tap delay, no grey flash on every tap, no
+   * rubber-banding the whole shell when an inner list hits its end, and
+   * no text cursor appearing when a nav row is long-pressed.
+   * ------------------------------------------------------------------ */
+  @media (pointer: coarse) {
+    html,
+    body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Removes the double-tap-to-zoom delay without disabling pinch zoom. */
+    button,
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='option'],
+    a,
+    label,
+    summary,
+    select {
+      touch-action: manipulation;
+    }
+
+    /* A pane that scrolls should consume the gesture, not hand the overflow
+       to the shell behind it. */
+    [class*='overflow-y-auto'],
+    [class*='overflow-auto'],
+    [class*='overflow-x-auto'] {
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Overlay scrollbars are drawn by the platform; the 8px gutter is desktop
+       furniture that steals width from a 360dp screen. */
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+    * {
+      scrollbar-width: none;
+    }
+  }
+
+  /* Chrome — not content — must not be selectable or offer a callout menu on
+     long press. Scoped to the packaged shell so the web build keeps ordinary
+     document behaviour. */
+  html[data-platform='android'] :is(nav, header, [role='tablist'], [role='toolbar']),
+  html[data-platform='android'] :is(button, [role='button'], [role='tab'], [role='menuitem']) {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* …but never at the cost of copying a record out of the app. */
+  html[data-platform='android'] :is(input, textarea, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Hidden while the soft keyboard is up: a fixed bottom bar otherwise sits on
+     top of the keyboard and eats a third of what is left of the screen. */
+  html[data-keyboard='open'] [data-hide-on-keyboard] {
+    display: none !important;
+  }
+}
+
+/* The phone bottom navigation is `position: fixed`, so the content column has
+   to reserve its height. Publishing it as a variable means the shell asks for
+   `pb-bottom-nav` once and gets 0 on a desktop, 56px on a phone, and 0 again
+   while the soft keyboard has replaced the bar. The device inset is not
+   included: `body` already pads for it. */
+@media (max-width: 767px) and (pointer: coarse) {
+  :root {
+    --bottom-nav-height: 3.5rem;
+  }
+
+  html[data-keyboard='open'] {
+    --bottom-nav-height: 0px;
+  }
+}
+
+/* The action button hides with the bottom bar when the keyboard is up, so the
+   room reserved for it goes back to the field being typed into. */
+html[data-keyboard='open'] {
+  --fab-inset: 0px;
+}
+
+/* While the keyboard is up there is no gesture bar inside the visible area to
+   avoid — it is behind the keyboard. Collapsing the inset at the source gives
+   that strip back to the page, the sheets and the floating action button in
+   one line instead of four. */
+html[data-keyboard='open'] {
+  --safe-bottom: 0px;
+}
+
+/* Side and edge sheets sit outside the padded body, so they carry the device
+   insets themselves. Class+attribute specificity survives a caller's `p-0`. */
+.sheet-safe-y[data-state] {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+.sheet-safe-t[data-state] {
+  padding-top: calc(1.5rem + var(--safe-top));
+}
+.sheet-safe-b[data-state] {
+  padding-bottom: calc(1.5rem + var(--safe-bottom) + var(--keyboard-inset));
+}
+
+/* ------------------------------------------------------------------ *
+ * Phone dialogs are bottom sheets.
+ *
+ * A centred 560px modal on a 360dp screen is a box with 16px of overlay
+ * around it, opening under the thumb's reach and closing by a 14px × in the
+ * far corner. The same dialog docked to the bottom edge is reachable, can be
+ * as tall as it needs, and reads as a sheet the platform would have drawn.
+ *
+ * Selectors are class+attribute (0,2,0) so they outrank the `animate-in`
+ * utilities on the same element without !important.
+ * ------------------------------------------------------------------ */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes sheet-down {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (max-width: 767px) and (pointer: coarse) {
+  .dialog-sheet[data-state] {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    max-height: min(88dvh, calc(var(--app-viewport-height) - 2.5rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-width: 1px 0 0 0;
+    border-radius: 1rem 1rem 0 0;
+    /* Clears the gesture bar, and rises above the soft keyboard instead of
+       hiding the field the user is typing into. */
+    padding: 0.75rem 1rem calc(1rem + var(--safe-bottom) + var(--keyboard-inset));
+    animation: sheet-up 0.22s cubic-bezier(0.05, 0.7, 0.1, 1);
+  }
+
+  .dialog-sheet[data-state='closed'] {
+    animation: sheet-down 0.16s ease-in;
+  }
+
+  /* Grab handle — the affordance that says "this drags/dismisses". */
+  .dialog-sheet[data-state]::before {
+    content: '';
+    display: block;
+    width: 2.25rem;
+    height: 0.25rem;
+    flex: none;
+    border-radius: 9999px;
+    background: hsl(var(--border-strong));
+    margin: 0 auto 0.5rem;
+  }
+
+  /* The corner ✕ is redundant next to a full-width dismiss target and steals
+     the top-right of the sheet from the title. */
+  .dialog-sheet[data-state] > .dialog-close {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* Horizontal chip/tab strips: swipeable, with no visible scrollbar. */
+  .scroll-strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+  .scroll-strip::-webkit-scrollbar {
+    display: none;
   }
 }

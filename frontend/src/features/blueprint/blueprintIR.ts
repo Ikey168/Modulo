@@ -9,6 +9,8 @@ import { NodeCatalog } from './nodeCatalog';
 
 export const IR_VERSION = 1 as const;
 
+export type BlueprintAutonomyLevel = 'MANUAL' | 'SUPERVISED' | 'AUTONOMOUS';
+
 /** A blueprint node instance inside a graph. References a NodeDescriptor by type + pinned version. */
 export interface BlueprintNode {
   id: string;
@@ -38,6 +40,8 @@ export interface BlueprintEdge {
 export interface BlueprintMetadata {
   name: string;
   description?: string;
+  /** Defaults to SUPERVISED when loading a legacy Blueprint. */
+  autonomyLevel?: BlueprintAutonomyLevel;
   createdAt: string;
   updatedAt: string;
 }

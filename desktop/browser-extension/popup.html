@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Modulo → Noesis</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header class="header">
+        <div>
+          <p class="eyebrow">Modulo research bridge</p>
+          <h1>Send to Noesis</h1>
+        </div>
+        <span id="queue-count" class="count" aria-label="Queued captures">0 queued</span>
+      </header>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <form id="capture-form" class="stack">
+        <label>
+          <span>Action</span>
+          <select id="action" required></select>
+          <small id="action-help"></small>
+        </label>
+        <label>
+          <span>Capture</span>
+          <select id="unit" required></select>
+          <small id="unit-help"></small>
+        </label>
+
+        <fieldset id="tab-picker" class="stack hidden">
+          <legend>Tabs to include</legend>
+          <div id="tabs"></div>
+          <small>Only the active tab's visible text is read. Other selected tabs contribute URL and title provenance.</small>
+        </fieldset>
+
+        <fieldset class="stack">
+          <legend>Modulo context (optional)</legend>
+          <label><span>Project ID</span><input id="project-id" autocomplete="off" maxlength="160" placeholder="project id"></label>
+          <label><span>Area ID</span><input id="area-id" autocomplete="off" maxlength="160" placeholder="area id"></label>
+          <label><span>Note ID</span><input id="note-id" autocomplete="off" maxlength="160" placeholder="note id"></label>
+          <label><span>Task ID</span><input id="task-id" autocomplete="off" maxlength="160" placeholder="task id"></label>
+          <label><span>Question or decision</span><textarea id="question" rows="3" maxlength="2000" placeholder="What should the research answer?"></textarea></label>
+        </fieldset>
+
+        <button class="primary" type="submit">Capture and send</button>
+      </form>
+
+      <details>
+        <summary>Connection and queue</summary>
+        <form id="settings-form" class="stack settings">
+          <label><span>Noesis ingest endpoint</span><input id="endpoint" type="url" required></label>
+          <label><span>Language</span><input id="language" pattern="[a-zA-Z]{2}" maxlength="2" required></label>
+          <label><span>API key</span><input id="api-key" type="password" autocomplete="off" placeholder="Leave blank to keep the saved key"></label>
+          <button type="submit">Save connection</button>
+          <button id="retry" type="button" class="secondary">Retry queued captures</button>
+          <p class="hint">The key is kept in extension storage and is never injected into a page. Remote endpoints must use HTTPS; plain HTTP is limited to localhost.</p>
+        </form>
+        <div id="queue" class="queue"></div>
+      </details>
+    </main>
+    <script type="module" src="popup.mjs"></script>
+  </body>
+</html>

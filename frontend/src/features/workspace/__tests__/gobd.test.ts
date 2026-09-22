@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { CoreNote } from '@modulo/core';
 import {
   DEFAULT_RETENTION_CLASSES,
-  readRetentionClasses,
+  parseRetentionClasses,
   retentionEnd,
   vaultEntries,
   VERFAHRENSDOKUMENTATION_TEMPLATE,
-  writeRetentionClasses,
 } from '../gobd';
 
 const note = (id: number, tags: string[], createdAt?: string, anchored = false): CoreNote => ({
@@ -52,12 +51,10 @@ describe('vaultEntries', () => {
 
 describe('class persistence', () => {
   it('round-trips edited periods and falls back to defaults on corrupt data', () => {
-    expect(readRetentionClasses()).toEqual(DEFAULT_RETENTION_CLASSES);
+    expect(parseRetentionClasses(undefined)).toEqual(DEFAULT_RETENTION_CLASSES);
     const edited = DEFAULT_RETENTION_CLASSES.map((c) => (c.id === 'belege' ? { ...c, years: 10 } : c));
-    writeRetentionClasses(edited);
-    expect(readRetentionClasses().find((c) => c.id === 'belege')?.years).toBe(10);
-    localStorage.setItem('modulo-gobd-classes', '[]');
-    expect(readRetentionClasses()).toEqual(DEFAULT_RETENTION_CLASSES);
+    expect(parseRetentionClasses(JSON.parse(JSON.stringify(edited))).find((c) => c.id === 'belege')?.years).toBe(10);
+    expect(parseRetentionClasses([])).toEqual(DEFAULT_RETENTION_CLASSES);
   });
 });
 

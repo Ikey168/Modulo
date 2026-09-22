@@ -1,7 +1,6 @@
 // Todo lists (#371) — tasks with due dates, priorities, lists, and note
 // links; Productivity hub tab plus a note panel showing (and adding) the
-// current note's tasks. Client-side persistence; the record shape mirrors the
-// tasks backend so a server store can adopt it later.
+// current note's tasks. Records use the shared server-authoritative workspace state.
 import { useState } from 'react';
 import { ListTodo } from 'lucide-react';
 import { Checkbox, Input } from '@/ui';
@@ -9,10 +8,9 @@ import { TodoView } from '../../TodoView';
 import {
   DEFAULT_LIST,
   newTodoId,
-  readTodos,
   todosForNote,
-  writeTodos,
 } from '../../todos';
+import { useTodosStore } from '../../usePluginDataStores';
 import type { NotePanelProps, PluginModule, WorkspaceViewProps } from '../types';
 
 function TodoSurface(p: WorkspaceViewProps) {
@@ -20,25 +18,20 @@ function TodoSurface(p: WorkspaceViewProps) {
 }
 
 function NoteTasksPanel({ note }: NotePanelProps) {
-  const [version, bump] = useState(0);
   const [title, setTitle] = useState('');
-  void version;
-  const todos = readTodos();
+  const [todos, setTodos] = useTodosStore();
   const linked = todosForNote(todos, note.id);
 
   const add = () => {
     if (!title.trim()) return;
-    writeTodos([
+    if (setTodos([
       { id: newTodoId(), title: title.trim(), priority: 'MEDIUM', done: false, list: DEFAULT_LIST, noteId: note.id },
       ...todos,
-    ]);
-    setTitle('');
-    bump((v) => v + 1);
+    ])) setTitle('');
   };
 
   const toggle = (id: string) => {
-    writeTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-    bump((v) => v + 1);
+    setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
   };
 
   return (

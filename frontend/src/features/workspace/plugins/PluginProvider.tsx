@@ -1,16 +1,22 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { PluginRuntime } from './runtime';
 import { CATALOG } from './catalog';
 import type { Contributions, InstallPhase, PluginManifest } from './types';
 import { authService } from '../../auth/authService';
 import { WorkspaceStateHost, acquireStateReplica } from '../../../services/workspaceStateHost';
-import { BrowserStatePersistence } from '../../../services/pluginStateTransport';
+import { androidStateReplica, createStatePersistence } from '../../../services/androidStatePersistence';
+import { Capacitor } from '@capacitor/core';
 import type { PluginStateClient } from '../../../services/pluginStateClient';
-import { installationStorage, importWorkspacePreferences } from './installationState';
+import { installationStorage } from './installationState';
+import { browserPluginSettings, hasBrowserPluginSettings, importBrowserPluginSettings } from './legacyInstallationMigration';
 import { PluginStateNotice } from './PluginStateNotice';
+import { SystemBanner } from '../mobile/SystemBanner';
+import { WorkspaceLegacyStateNotice } from '../WorkspaceLegacyStateNotice';
+import webSocketService from '../../../services/websocket';
 
 export interface PluginsApi {
   state: (id: string) => Promise<PluginStateClient>;
+  workspaceState: (namespace: string) => Promise<PluginStateClient>;
   stateSessionKey: string;
   preferences?: PluginStateClient;
   /** True once the initial activation of installed plugins has finished. */
@@ -40,25 +46,41 @@ export function PluginProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const lease = navigator.locks ? acquireStateReplica(sessionStorage, navigator.locks) : {
+    const lease = Capacitor.getPlatform() === 'android' ? { replica: androidStateReplica(), close: () => {} }
+      : navigator.locks ? acquireStateReplica(sessionStorage, navigator.locks) : {
       replica: Promise.reject<string>(new Error('This browser does not support safe offline cache locking')),
       close: () => {},
     };
     void lease.replica.catch(() => {});
-    const host = new WorkspaceStateHost({ origin: window.location.origin, replica: lease.replica,
-      persistence: new BrowserStatePersistence(localStorage), session: () => authService.stateSession() });
+    const persistence = createStatePersistence();
+    const host = new WorkspaceStateHost({ origin: window.__MODULO_CONFIG__?.serverOrigin ?? window.location.origin, replica: lease.replica,
+      persistence, session: () => authService.stateSession() });
     const unsubscribe = authService.subscribeSession(() => host.sessionChanged());
+    const unsubscribeState = webSocketService.subscribeState(event => {
+      if (event.workspace !== 'personal') return;
+      void host.refresh(event.namespace, event.key).catch(() => {
+        // Focus/reconnect polling remains the recovery path for a transient fetch failure.
+      });
+    });
+    void webSocketService.connect();
     const stop = host.start(window);
     const observe = host.subscribe(bump);
     setStateHost(host);
-    return () => { unsubscribe(); stop(); observe(); host.close(); lease.close(); };
+    // Release the tab lease before the next document starts. Otherwise an
+    // immediate reload can mistake its predecessor for a cloned tab and leave
+    // unacknowledged edits in a different replica partition.
+    const leave = () => { host.close(); lease.close(); };
+    const resume = (event: PageTransitionEvent) => { if (event.persisted) window.location.reload(); };
+    window.addEventListener('pagehide', leave);
+    window.addEventListener('pageshow', resume);
+    return () => { window.removeEventListener('pagehide', leave); window.removeEventListener('pageshow', resume); unsubscribe(); unsubscribeState(); stop(); observe(); leave(); };
   }, []);
 
   const identity = stateHost?.sessionKey ?? '';
   useEffect(() => {
     let disposed = false;
     setPreferences(undefined); setSettingsError(undefined);
-    try { setLegacySettings(['modulo-plugins-installed', 'modulo-plugins', 'modulo-hub-tabs'].some(key => localStorage.getItem(key) !== null)); } catch { setLegacySettings(false); }
+    setLegacySettings(Capacitor.getPlatform() !== 'android' && hasBrowserPluginSettings());
     if (stateHost && identity) void stateHost.open('workspace-settings').then(client => {
       if (!disposed) setPreferences(client);
     }).catch(reason => { if (!disposed) setSettingsError(String(reason)); });
@@ -75,11 +97,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }); }
   }, [activePreferences]);
 
-  const runOperation = useMemo(() => {
-    let queue = Promise.resolve();
-    return (action: () => Promise<void>) => {
-      const result = queue.then(action); queue = result.catch(() => {}); return result;
-    };
+  // A replacement account/runtime must not inherit pending work from the old one.
+  const operationQueues = useRef(new WeakMap<PluginRuntime, Promise<void>>());
+  const runOperation = useCallback((action: () => Promise<void>) => {
+    const queue = operationQueues.current.get(runtime) ?? Promise.resolve();
+    const result = queue.then(action);
+    operationQueues.current.set(runtime, result.catch(() => {}));
+    return result;
   }, [runtime]);
 
   useEffect(() => {
@@ -111,6 +135,11 @@ export function PluginProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PluginsApi>(
     () => ({
       state: (id) => runtime.state(id),
+      workspaceState: (namespace) => {
+        if (!stateHost?.sessionKey) return Promise.reject(new Error('Workspace synchronization is unavailable'));
+        if (!/^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,117}$/.test(namespace)) return Promise.reject(new Error('Invalid workspace state namespace'));
+        return stateHost.open('workspace-' + namespace);
+      },
       preferences: activePreferences,
       stateSessionKey: stateHost?.sessionKey ?? '',
       ready,
@@ -133,25 +162,30 @@ export function PluginProvider({ children }: { children: ReactNode }) {
   );
 
   return <PluginsContext.Provider value={value}>
+    <WorkspaceLegacyStateNotice />
     <PluginStateNotice status={settingsError ? 'error' : activePreferences?.status ?? 'loading'}
       error={settingsError ?? activePreferences?.error} conflict={activePreferences?.conflicts().length ? activePreferences.conflicts() : undefined}
       retry={async () => { if (activePreferences) { await activePreferences.refreshAll(); await activePreferences.synchronize(); setSettingsError(undefined); } }}
       resolve={async choice => { for (const entry of activePreferences?.conflicts() ?? []) await activePreferences?.resolve(entry.key, choice); }} />
-    {legacySettings && <div className="flex flex-wrap items-center gap-3 border-b px-3 py-2 text-sm">
-      <span>Plugin settings are available in this browser.</span>
-      <button type="button" className="underline" disabled={!activePreferences} onClick={() => {
-        if (!activePreferences) return;
-        void importWorkspacePreferences(activePreferences, localStorage, CATALOG).then(() => {
-          if (activePreferences.status !== 'closed') setLegacySettings(false);
-        }).catch(reason => { if (activePreferences.status !== 'closed') setSettingsError(String(reason)); });
-      }}>Import into this account</button>
-    </div>}
-    {(legacySettings || settingsError) && <button type="button" className="px-3 py-2 text-left text-sm underline" onClick={() => {
-      const legacy = Object.fromEntries(['modulo-plugins-installed', 'modulo-plugins', 'modulo-hub-tabs'].map(key => [key, localStorage.getItem(key)]));
-      const url = URL.createObjectURL(new Blob([JSON.stringify({ legacy, cache: activePreferences?.recoverySnapshot() }, null, 2)], { type: 'application/json' }));
-      const link = document.createElement('a'); link.href = url; link.download = 'workspace-settings-recovery.json'; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }}>Export settings recovery data</button>}
+    {/* One strip, not three stacked ones: on a 360dp screen each extra
+        full-width notice was another line of chrome ahead of the app bar. */}
+    {(legacySettings || settingsError) && <SystemBanner tone={settingsError ? 'alert' : 'neutral'} aria-label="Plugin settings recovery">
+      {legacySettings && <>
+        <span className="min-w-0 flex-1">Plugin settings are available in this browser.</span>
+        <button type="button" disabled={!activePreferences} onClick={() => {
+          if (!activePreferences) return;
+          void importBrowserPluginSettings(activePreferences, CATALOG).then(() => {
+            if (activePreferences.status !== 'closed') setLegacySettings(false);
+          }).catch(reason => { if (activePreferences.status !== 'closed') setSettingsError(String(reason)); });
+        }}>Import into this account</button>
+      </>}
+      <button type="button" onClick={() => {
+        const legacy = Capacitor.getPlatform() === 'android' ? null : browserPluginSettings();
+        const url = URL.createObjectURL(new Blob([JSON.stringify({ legacy, cache: activePreferences?.recoverySnapshot() }, null, 2)], { type: 'application/json' }));
+        const link = document.createElement('a'); link.href = url; link.download = 'workspace-settings-recovery.json'; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }}>Export settings recovery data</button>
+    </SystemBanner>}
     {children}
   </PluginsContext.Provider>;
 }

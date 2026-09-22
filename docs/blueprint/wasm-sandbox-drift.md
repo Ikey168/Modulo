@@ -1,11 +1,11 @@
 # JS semantics drift: Rhino → QuickJS-on-WASM
 
-The intentional, verified behavioral differences between the two
-`ScriptSandbox` engines (#400). Everything *not* listed here is required to
-behave identically — the mechanical gate is the drift corpus in
-`ScriptSandboxContractTest`, which asserts byte-identical output on both
-engines for realistic scripts. This log is the source material for the #401
-cutover release note.
+Historical comparison of the intentional, verified behavioral differences
+between the retired Rhino sandbox and the QuickJS-on-WASM implementation
+(#400/#401). Rhino is no longer selectable at runtime; this document remains as
+the migration reference for scripts written before the cutover. The current
+`ScriptSandboxContractTest` is WASM-only and protects the supported behavior and
+resource limits after retirement.
 
 ## Language semantics
 
@@ -28,18 +28,18 @@ per script feature.
 | Deep recursion | bounded at 1 000 interpreter frames (`setMaximumInterpreterStackDepth`) | bounded by QuickJS's internal stack guard (`InternalError: stack overflow`) |
 | Memory balloon | **no hard cap** — bounded only indirectly by the instruction limit | 32 MiB linear-memory cap; QuickJS internal guards (e.g. "string too long") usually trip first |
 
-Both engines surface every limit breach as `ScriptExecutionException`; the
-message wording differs (`instruction limit` / `stack depth` vs
-`wall-clock timeout` / guest error text). Blueprint behavior is identical —
-the interpreter treats any `ScriptExecutionException` as empty output.
+The supported WASM engine surfaces every limit breach as
+`ScriptExecutionException`; Blueprint execution treats that failure as empty
+output. Rhino wording in the table is retained only to help migrate historical
+scripts and logs.
 
 ## Findings credited to the contract suite
 
-- **Rhino recursion OOM (fixed):** before #400, `function f(n){return f(n)}`
+- **Rhino recursion OOM (historical):** before #400, `function f(n){return f(n)}`
   heap-OOMed the JVM after ~2 minutes — interpreter frames are heap-allocated,
   so the instruction limit never tripped and there was no stack-depth guard.
-  The suite's `deepRecursionFailsSafely` exposed it; `RhinoScriptSandbox` now
-  sets `setMaximumInterpreterStackDepth(1000)`.
+  The parity suite exposed it and the legacy engine gained a stack-depth guard
+  before being removed in #401.
 - **quickjs4j timeout leak (worked around):** the runner's `withTimeoutMs`
   abandons the caller but leaves the guest thread spinning forever.
   `WasmScriptSandbox` therefore enforces the deadline itself by interrupting

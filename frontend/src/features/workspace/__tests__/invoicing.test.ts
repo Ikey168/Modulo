@@ -6,9 +6,8 @@ import {
   isInvoiceError,
   nextInvoiceNumber,
   parseInvoice,
-  readSellerProfile,
+  parseSellerProfile,
   validateInvoice,
-  writeSellerProfile,
   zugferdXml,
   type Invoice,
   type SellerProfile,
@@ -127,11 +126,9 @@ describe('extractInvoices', () => {
 
 describe('seller profile persistence', () => {
   it('round-trips and rejects corrupt storage', () => {
-    expect(readSellerProfile()).toBeNull();
-    writeSellerProfile(SELLER);
-    expect(readSellerProfile()?.vatId).toBe('DE123456789');
-    localStorage.setItem('modulo-invoice-seller', '{ nope');
-    expect(readSellerProfile()).toBeNull();
+    expect(parseSellerProfile(null)).toBeNull();
+    expect(parseSellerProfile(JSON.parse(JSON.stringify(SELLER)))?.vatId).toBe('DE123456789');
+    expect(parseSellerProfile('{ nope')).toBeNull();
   });
 });
 

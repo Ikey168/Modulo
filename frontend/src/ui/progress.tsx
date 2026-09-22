@@ -10,7 +10,9 @@ const Progress = React.forwardRef<
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
-      "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
+      // Neutral track, not a tint of the fill: at 0% an accent-tinted track
+      // reads as a full bar, which made empty pipelines look complete.
+      "relative h-2 w-full overflow-hidden rounded-full bg-surface-3",
       className
     )}
     {...props}

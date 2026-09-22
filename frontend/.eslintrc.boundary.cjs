@@ -12,9 +12,9 @@ module.exports = {
   root: true,
   env: { browser: true, es2020: true },
   parser: '@typescript-eslint/parser',
-  // react-hooks plugin declared so eslint-disable-next-line comments that
-  // reference react-hooks/* rules don't produce "rule not found" errors.
-  plugins: ['react-hooks'],
+  // Load plugins referenced by inline directives without enabling their rules.
+  // The boundary-only gate must still understand those rule names.
+  plugins: ['react-hooks', 'react-refresh'],
   ignorePatterns: [
     'dist',
     'node_modules',

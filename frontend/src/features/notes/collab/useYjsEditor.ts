@@ -3,6 +3,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import * as Y from 'yjs';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from '../../../services/workspaceSocketUrl';
 
 function uint8ToBase64(arr: Uint8Array): string {
   return btoa(Array.from(arr, b => String.fromCharCode(b)).join(''));
@@ -41,7 +42,7 @@ export function useYjsEditor({ noteId, userId, initialContent, onContentChange }
     }
 
     const client = authenticatedStomp({
-      webSocketFactory: () => new SockJS('/ws'),
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
       onConnect: () => {
         client.subscribe(`/topic/notes/${noteId}/ydoc`, (frame) => {
           const msg = JSON.parse(frame.body);

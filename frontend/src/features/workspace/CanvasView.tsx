@@ -1,3 +1,4 @@
+import { isWorkspaceShortcut } from './workspaceKeyboard';
 // Canvas - a freeform, pan-and-zoom board where note cards are arranged
 // spatially and connected. The pan/zoom/drag interaction mirrors the knowledge
 // graph's `view {x,y,k}` transform, but cards are DOM nodes (they carry text
@@ -166,8 +167,8 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (!selectedConn) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!isWorkspaceShortcut(e)) return;
+      e.preventDefault();
       mutateActive((b) => removeConnection(b, selectedConn));
       setSelectedConn(null);
     };

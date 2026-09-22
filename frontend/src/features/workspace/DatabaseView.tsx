@@ -61,7 +61,7 @@ function pillColor(col: Column, value: string): string {
 }
 
 function Pill({ col, value }: { col: Column; value: string }) {
-  return <span className={cn('rounded px-1.5 py-0.5 text-[11px]', pillColor(col, value))}>{value}</span>;
+  return <span className={cn('rounded px-1.5 py-0.5 text-xxs', pillColor(col, value))}>{value}</span>;
 }
 
 const CELL_INPUT =
@@ -470,9 +470,9 @@ function BoardView({ api }: { api: DatabaseApi }) {
             {group.value ? (
               <Pill col={groupCol} value={group.value} />
             ) : (
-              <span className="text-[11px] text-muted-foreground">No {groupCol.name.toLowerCase()}</span>
+              <span className="text-xxs text-muted-foreground">No {groupCol.name.toLowerCase()}</span>
             )}
-            <span className="text-[11px] text-muted-foreground">{group.rows.length}</span>
+            <span className="text-xxs text-muted-foreground">{group.rows.length}</span>
           </div>
 
           <div className="flex flex-col gap-2">

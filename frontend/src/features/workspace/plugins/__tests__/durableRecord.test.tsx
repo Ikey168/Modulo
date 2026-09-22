@@ -58,7 +58,10 @@ describe('durable settings', () => {
     await waitFor(() => expect(hook.result.current.ready).toBe(true)); expect(hook.result.current.value).toEqual([]);
     act(() => hook.result.current.set(searches));
     await waitFor(() => expect(alice.client.get('queries')?.value).toEqual(searches));
-    alice.client.close(); api.stateSessionKey = 'bob'; api.state.mockResolvedValue(bob.client); hook.rerender();
+    api.stateSessionKey = 'bob'; api.state.mockResolvedValue(bob.client); hook.rerender();
+    expect(hook.result.current.value).toEqual([]);
+    expect(hook.result.current.ready).toBe(false);
+    alice.client.close();
     await waitFor(() => expect(hook.result.current.ready).toBe(true)); expect(hook.result.current.value).toEqual([]);
     hook.unmount();
   });

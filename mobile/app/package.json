@@ -1,0 +1,21 @@
+{
+  "name": "modulo-android-shell",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "smoke:android": "node scripts/smoke-android.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/inappbrowser": "^4.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2",
+    "typescript": "^5.2.2"
+  }
+}

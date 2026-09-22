@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Firefox — Development
+Comment=Browser profile for development and local HTTP services
+Exec=@HOME@/.local/bin/firefox-profile Development %u
+Icon=firefox-developer-icon
+Terminal=false
+Categories=Network;WebBrowser;
+StartupNotify=true
+StartupWMClass=firefox

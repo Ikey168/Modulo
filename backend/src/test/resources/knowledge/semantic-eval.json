@@ -1,0 +1,17 @@
+[
+  {
+    "query": "authentication boundary",
+    "positive": "We authenticate every privileged request at the authorization boundary.",
+    "distractor": "Quarterly revenue planning and customer interviews."
+  },
+  {
+    "query": "secure dependency updates",
+    "positive": "Security review requires dependencies to be updated and verified.",
+    "distractor": "Garden watering schedule and indoor plant notes."
+  },
+  {
+    "query": "authorization failures",
+    "positive": "Authorize each sensitive operation and record failed access checks.",
+    "distractor": "Trip packing list and train reservations."
+  }
+]

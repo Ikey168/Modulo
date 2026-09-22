@@ -10,6 +10,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,7 @@ public class OwnedSocketInterceptor implements ChannelInterceptor {
             if (authorization != null) {
                 if (!authorization.startsWith("Bearer ") || decoder.getIfAvailable() == null) throw new AccessDeniedException("Invalid authentication");
                 var jwt = decoder.getObject().decode(authorization.substring(7));
-                authentication = new JwtAuthenticationToken(jwt); expires = jwt.getExpiresAt();
+                authentication = new JwtAuthenticationToken(jwt, AuthorityUtils.NO_AUTHORITIES); expires = jwt.getExpiresAt();
             }
             OwnedSocketPrincipal principal = new OwnedSocketPrincipal(users.requireUser(authentication).getId(), expires);
             if (principal.expired()) throw new AccessDeniedException("Session expired");

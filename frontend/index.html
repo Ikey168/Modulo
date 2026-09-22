@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script src="/runtime-config.js"></script>
     <meta charset="UTF-8" />
     <!-- sockjs-client (STOMP/WebSocket transport) references the Node global
          `global`, which Vite does not define in the browser. Define it before
@@ -12,7 +13,7 @@
 
     <!-- PWA Meta Tags -->
     <meta name="description" content="Modulo is a knowledge-management app for notes that link together, with a knowledge graph, real-time sync, and on-chain anchoring." />
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="theme-color" content="#151414" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -40,12 +41,9 @@
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Microsoft Tiles -->
-    <meta name="msapplication-TileColor" content="#0a0a0b" />
+    <meta name="msapplication-TileColor" content="#151414" />
     <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
-    
-    <!-- Safe Area Support for iOS -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     
     <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -64,17 +62,18 @@
          login. style-src allows the Google Fonts stylesheet referenced below. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' http: https: ws: wss:;" />
 
-    <!-- Dark base + pre-React splash to avoid a white flash on load -->
+    <!-- Dark base + pre-React splash to avoid a white flash on load.
+         Colours mirror the app default theme (styles/index.css, bart). -->
     <style>
-      html, body { margin: 0; background: #0a0a0b; }
+      html, body { margin: 0; background: #151414; }
       #app-splash {
         position: fixed; inset: 0; display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 18px;
-        background: #0a0a0b; font-family: system-ui, sans-serif;
+        background: #151414; font-family: system-ui, sans-serif;
       }
       #app-splash .ring {
         width: 26px; height: 26px; border-radius: 50%;
-        border: 2px solid rgba(255,255,255,.15); border-top-color: #818cf8;
+        border: 2px solid rgba(255,255,255,.12); border-top-color: #d95a3c;
         animation: app-splash-spin .7s linear infinite;
       }
       @keyframes app-splash-spin { to { transform: rotate(360deg); } }
@@ -84,10 +83,9 @@
     <div id="root">
       <div id="app-splash">
         <svg width="34" height="34" viewBox="0 0 22 22" fill="none">
-          <rect x="1" y="1" width="9" height="9" rx="2" fill="#4f46e5" />
-          <rect x="12" y="1" width="9" height="9" rx="2" fill="#4f46e5" opacity=".4" />
-          <rect x="1" y="12" width="9" height="9" rx="2" fill="#4f46e5" opacity=".4" />
-          <rect x="12" y="12" width="9" height="9" rx="2" fill="#4f46e5" opacity=".7" />
+          <line x1="5" y1="17.5" x2="17" y2="4.5" stroke="#d95a3c" stroke-width="2.4" stroke-linecap="round" />
+          <circle cx="6.2" cy="6.2" r="3.4" fill="#d95a3c" />
+          <circle cx="15.8" cy="15.8" r="3.4" fill="#d95a3c" opacity=".7" />
         </svg>
         <div class="ring"></div>
       </div>

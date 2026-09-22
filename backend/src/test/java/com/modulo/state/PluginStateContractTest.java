@@ -21,7 +21,7 @@ import org.testcontainers.junit.jupiter.*;
 @Testcontainers
 class PluginStateContractTest {
   @Container
-  static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
 
   static DriverManagerDataSource source;
   JdbcTemplate jdbc;
@@ -38,7 +38,8 @@ class PluginStateContractTest {
     try (var connection = source.getConnection()) {
       connection.createStatement().execute("CREATE TABLE users(id BIGINT PRIMARY KEY)");
       for (String migration :
-          List.of("V3__Versioned_plugin_state.sql", "V5__Plugin_state_grants_and_delivery.sql"))
+          List.of("V3__Versioned_plugin_state.sql", "V5__Plugin_state_grants_and_delivery.sql",
+              "V25__Outbound_plugin_state_workloads.sql"))
         ScriptUtils.executeSqlScript(
             connection, new ClassPathResource("db/postgresql/" + migration));
     }
@@ -357,5 +358,28 @@ class PluginStateContractTest {
             () -> store.put("personal", "external", "record", 0, "test", 1, "{\"text\":\"a\"}"));
     assertEquals("STATE_EVENT_QUOTA_EXCEEDED", events.getReason());
     assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM plugin_state", Long.class));
+  }
+
+  @Test
+  void outboundWorkloadCanBeProvisionedRenewItsGrantAndBeRevoked() {
+    var issued = grants.createWorkload(new PluginStateGrantService.WorkloadRequest(
+        "paperless", Set.of("state.read", "state.write"), 86400));
+    var ownerGrant = grants.create("personal", new PluginStateGrantService.GrantRequest(
+        "paperless", Set.of("state.read", "state.write"), 300));
+    store.registerSchema("personal", "paperless", "test", 1,
+        "{\"type\":\"object\",\"required\":[\"text\"],\"properties\":{\"text\":{\"type\":\"string\"}},\"additionalProperties\":false}");
+    var worker = grants.delegate(store, issued.token(), ownerGrant.token());
+    worker.put("personal", "paperless", "record", 0, "test", 1, "{\"text\":\"saved\"}");
+
+    var renewed = grants.renew(issued.token(), ownerGrant.token(), 600);
+    assertThrows(ResponseStatusException.class,
+        () -> worker.get("personal", "paperless", "record"));
+    assertEquals("saved", grants.delegate(store, issued.token(), renewed.token())
+        .get("personal", "paperless", "record").value().get("text").asText());
+
+    grants.revokeWorkload(issued.workload().id());
+    assertThrows(ResponseStatusException.class,
+        () -> grants.delegate(store, issued.token(), renewed.token())
+            .get("personal", "paperless", "record"));
   }
 }

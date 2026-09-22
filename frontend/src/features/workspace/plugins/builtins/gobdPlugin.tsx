@@ -4,11 +4,11 @@
 import { Archive, ShieldCheck } from 'lucide-react';
 import { GobdVaultView } from '../../GobdVaultView';
 import {
-  readRetentionClasses,
   retentionEnd,
   RETAIN_TAG_PREFIX,
   VERFAHRENSDOKUMENTATION_TEMPLATE,
 } from '../../gobd';
+import { useGobdClassesStore } from '../../usePluginDataStores';
 import type { NotePanelProps, PluginModule, WorkspaceViewProps } from '../types';
 
 function VaultSurface(p: WorkspaceViewProps) {
@@ -24,7 +24,7 @@ function RetentionPanel({ note }: NotePanelProps) {
       </p>
     );
   }
-  const classes = readRetentionClasses();
+  const [classes] = useGobdClassesStore();
   const docDate = (note.createdAt ?? note.updatedAt ?? '').slice(0, 10);
   return (
     <div className="flex flex-col gap-1 py-1 text-xs">

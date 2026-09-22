@@ -12,7 +12,8 @@ import {
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { Button, Card, EmptyState, Separator, Tooltip, TooltipContent, TooltipTrigger } from '@/ui';
 import type { CoreNote, CoreLink } from '@modulo/core';
-import { isAnchored, relativeTime } from './workspaceUtils';
+import { createGraphViewInput } from './graphViewModel';
+import { relativeTime } from './workspaceUtils';
 
 interface GNode extends SimulationNodeDatum {
   id: number;
@@ -25,6 +26,13 @@ interface View {
   x: number;
   y: number;
   k: number;
+}
+
+interface GraphLayoutSnapshot {
+  positions: Map<number, Pick<GNode, 'x' | 'y' | 'vx' | 'vy'>>;
+  view: View | null;
+  width: number;
+  height: number;
 }
 
 const MIN_K = 0.3;
@@ -76,6 +84,11 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
   const hoverRef = useRef<number | null>(null);
   const onSelectRef = useRef(onSelectNode);
   const [graphSel, setGraphSel] = useState<number | null>(null);
+  const nextGraphInput = createGraphViewInput(notes, links);
+  const graphInputRef = useRef(nextGraphInput);
+  if (graphInputRef.current.key !== nextGraphInput.key) graphInputRef.current = nextGraphInput;
+  const graphInput = graphInputRef.current;
+  const layoutRef = useRef<GraphLayoutSnapshot>({ positions: new Map(), view: null, width: 0, height: 0 });
 
   // Imperative handles the zoom/fit controls call into (set inside the effect).
   const zoomByRef = useRef<(factor: number) => void>(() => {});
@@ -96,16 +109,22 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
     if (!ctx) return;
 
     const palette = createTokenPalette();
-    let W = 0;
-    let H = 0;
-    const view: View = { x: 0, y: 0, k: 1 };
-    let initialised = false;
+    const previousLayout = layoutRef.current;
+    let W = previousLayout.width;
+    let H = previousLayout.height;
+    const view: View = previousLayout.view ? { ...previousLayout.view } : { x: 0, y: 0, k: 1 };
+    let initialised = previousLayout.view != null;
+    // A restored view is already intentional. Never replace it with the
+    // delayed first-load fit when graph data changes underneath it.
+    let userAdjustedView = initialised;
 
-    const nodeData: GNode[] = notes.map((n) => ({ id: n.id, title: n.title, anchored: isAnchored(n) }));
+    const nodeData: GNode[] = graphInput.nodes.map((node) => ({
+      ...node,
+      ...previousLayout.positions.get(node.id),
+    }));
     const idSet = new Set(nodeData.map((n) => n.id));
-    const linkData: GLink[] = links
-      .filter((l) => idSet.has(l.sourceNoteId) && idSet.has(l.targetNoteId))
-      .map((l) => ({ source: l.sourceNoteId, target: l.targetNoteId }));
+    const linkData: GLink[] = graphInput.links.map((link) => ({ ...link }));
+    if (hoverRef.current != null && !idSet.has(hoverRef.current)) hoverRef.current = null;
 
     // Adjacency for hover-neighbourhood highlighting.
     const adj = new Map<number, Set<number>>();
@@ -262,18 +281,35 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
       draw();
     }
 
-    zoomByRef.current = (factor: number) => zoomAround(W / 2, H / 2, factor);
-    fitRef.current = fitView;
+    zoomByRef.current = (factor: number) => {
+      userAdjustedView = true;
+      zoomAround(W / 2, H / 2, factor);
+    };
+    fitRef.current = () => {
+      userAdjustedView = true;
+      fitView();
+    };
 
     function resize() {
       if (!container || !canvas || !ctx) return;
       const rect = container.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      W = rect.width;
-      H = rect.height;
+      const nextW = Math.max(1, Math.round(rect.width));
+      const nextH = Math.max(1, Math.round(rect.height));
+      if (initialised) {
+        view.x += (nextW - W) / 2;
+        view.y += (nextH - H) / 2;
+      }
+      W = nextW;
+      H = nextH;
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
+      const backingWidth = Math.max(1, Math.round(W * dpr));
+      const backingHeight = Math.max(1, Math.round(H * dpr));
+      // Assigning canvas.width/height clears the bitmap and resets all context
+      // state. ResizeObserver may report the same size repeatedly while nearby
+      // workspace panels settle, so only touch the backing store when needed.
+      if (canvas.width !== backingWidth) canvas.width = backingWidth;
+      if (canvas.height !== backingHeight) canvas.height = backingHeight;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!initialised) {
         initialised = true;
@@ -330,6 +366,7 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
     const onPointerMove = (e: PointerEvent) => {
       const p = localPos(e);
       if (mode === 'drag' && dragNode) {
+        userAdjustedView = true;
         const w = toWorld(p.x, p.y);
         dragNode.fx = w.x;
         dragNode.fy = w.y;
@@ -337,6 +374,7 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
         last = p;
         draw();
       } else if (mode === 'pan') {
+        userAdjustedView = true;
         view.x += p.x - last.x;
         view.y += p.y - last.y;
         moved += Math.abs(p.x - last.x) + Math.abs(p.y - last.y);
@@ -373,6 +411,7 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      userAdjustedView = true;
       const r = canvas.getBoundingClientRect();
       const factor = Math.exp(-e.deltaY * 0.0015);
       zoomAround(e.clientX - r.left, e.clientY - r.top, factor);
@@ -386,8 +425,8 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
 
     // Frame the graph once the layout has warmed, then let it cool.
     const settle = setTimeout(() => {
-      fitView();
-      if (simRef.current) simRef.current.alphaTarget(0);
+      if (!userAdjustedView) fitView();
+      sim.alphaTarget(0);
     }, 2500);
 
     return () => {
@@ -401,12 +440,21 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
       canvas.removeEventListener('wheel', onWheel);
       zoomByRef.current = () => {};
       fitRef.current = () => {};
-      if (simRef.current) {
-        simRef.current.stop();
-        simRef.current = null;
-      }
+      layoutRef.current = {
+        positions: new Map(nodeData.map((node) => [node.id, {
+          x: node.x,
+          y: node.y,
+          vx: node.vx,
+          vy: node.vy,
+        }])),
+        view: initialised ? { ...view } : null,
+        width: W,
+        height: H,
+      };
+      sim.stop();
+      if (simRef.current === sim) simRef.current = null;
     };
-  }, [notes, links]);
+  }, [graphInput]);
 
   const selNote = graphSel != null ? notes.find((n) => n.id === graphSel) ?? null : null;
 

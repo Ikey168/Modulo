@@ -1,0 +1,8 @@
+[Unit]
+Description=Read-only MikroTik health probe
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/ChatGPT/Modulo/scripts/mikrotik-health-monitor.sh
+

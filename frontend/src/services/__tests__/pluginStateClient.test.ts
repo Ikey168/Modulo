@@ -3,7 +3,7 @@ import {
   PluginStateClient, StateRequestError, type StatePersistence, type StateRecord,
   type StateScope, type StateSnapshot, type StateTransport,
 } from '../pluginStateClient';
-import { BrowserStatePersistence, createStateTransport } from '../pluginStateTransport';
+import { createStateTransport } from '../pluginStateTransport';
 
 const scope: StateScope = { origin: 'https://modulo.example', issuer: 'https://identity.example',
   subject: 'alice', workspace: 'personal', namespace: 'canvas', replica: 'device-a' };
@@ -166,17 +166,56 @@ describe('plugin state offline client', () => {
     storage.save = vi.fn();
     await expect(open(storage)).rejects.toThrow('Unsupported'); expect(storage.save).not.toHaveBeenCalled();
   });
-  it('browser persistence reports corruption and storage errors to callers', async () => {
-    const storage = { getItem: vi.fn(() => '{invalid'), setItem: vi.fn(() => { throw new Error('full'); }) };
-    const adapter = new BrowserStatePersistence(storage as unknown as Storage);
-    await expect(adapter.load('scope')).rejects.toThrow();
-    await expect(adapter.save('scope', { format: 1, partition: 'scope', sequence: 0, entries: [] })).rejects.toThrow('full');
-  });
   it('transport refuses to send an old account queue using a new account token', async () => {
     const fetcher = vi.fn();
     const transport = createStateTransport(scope,
       async () => ({ issuer: scope.issuer, subject: 'bob', accessToken: 'bob-token' }), fetcher);
     await expect(transport.get('a', new AbortController().signal)).rejects.toThrow('STATE_SESSION_CHANGED');
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('pins the server storage generation and sends it on mutations', async () => {
+    const generation = '00000000-0000-0000-0000-000000000001';
+    const record: StateRecord = { key: 'a', schemaId: 'number', schemaVersion: 1, version: 1,
+      value: 1, deleted: false, createdAt: '', updatedAt: '' };
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ generation }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => record } as Response);
+    const transport = createStateTransport(scope,
+      async () => ({ issuer: scope.issuer, subject: scope.subject, accessToken: 'token' }), fetcher);
+    const signal = new AbortController().signal;
+    const pinned = await transport.generation!(signal); transport.useGeneration!(pinned);
+    await transport.put('a', { expectedVersion: 0, schemaId: 'number', schemaVersion: 1, value: 1 }, signal);
+    expect(fetcher.mock.calls[0][0]).toBe('https://modulo.example/api/workspaces/personal/plugin-state/canvas?generation');
+    expect((fetcher.mock.calls[1][1] as RequestInit).headers).toMatchObject({
+      'X-Modulo-State-Generation': generation,
+    });
+  });
+  it('preserves a pending edit as a conflict when the server generation changes', async () => {
+    const first = '00000000-0000-0000-0000-000000000001';
+    const restored = '00000000-0000-0000-0000-000000000002';
+    let generation = first; let pinned: string | undefined;
+    const records = new Map<string, StateRecord>();
+    const remote: StateTransport = {
+      generation: vi.fn(async () => generation), useGeneration: value => { pinned = value; },
+      get: vi.fn(async key => records.get(key)),
+      list: vi.fn(async () => ({ records: [...records.values()] })),
+      put: vi.fn(async (key, request) => {
+        if (pinned !== generation) throw new StateRequestError(412, 'STATE_STORAGE_GENERATION_CHANGED');
+        const record: StateRecord = { key, schemaId: request.schemaId, schemaVersion: request.schemaVersion,
+          version: request.expectedVersion + 1, value: request.value, deleted: false,
+          createdAt: '', updatedAt: '' };
+        records.set(key, record); return record;
+      }),
+      delete: vi.fn(async () => { throw new Error('unused'); }),
+    };
+    const client = await open(persistence(), remote);
+    await client.set('a', 1, 'number', 1); await client.synchronize();
+    const restoredRecord = clone(records.get('a')!);
+    await client.set('a', 2, 'number', 1);
+    generation = restored; records.set('a', restoredRecord);
+    await client.refreshAll();
+    expect(client.status).toBe('conflict');
+    expect(client.get('a')).toMatchObject({ value: 2, pending: true, conflict: { remote: { value: 1 } } });
+    expect(remote.put).toHaveBeenCalledTimes(1);
   });
 });

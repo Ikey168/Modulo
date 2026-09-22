@@ -12,6 +12,9 @@ import java.util.Map;
 public class BlueprintEntry {
 
     private Long id;
+    private Long ownerId;
+    public Long getOwnerId() { return ownerId; }
+    public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
     private String name;
     private String description;
     private String version;
@@ -33,6 +36,8 @@ public class BlueprintEntry {
 
     public Map<String, Object> getIr() { return ir; }
     public void setIr(Map<String, Object> ir) { this.ir = ir; }
+
+    public String getAutonomyLevel() { return BlueprintAutonomyLevel.fromIr(ir).name(); }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

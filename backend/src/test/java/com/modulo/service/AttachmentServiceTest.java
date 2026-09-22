@@ -31,6 +31,14 @@ import static org.mockito.Mockito.*;
 @DisplayName("Attachment Service Tests")
 class AttachmentServiceTest {
 
+    @Test
+    void allowedAudioCodecParametersDoNotBypassMimeRestrictions() {
+        ReflectionTestUtils.setField(attachmentService, "allowedContentTypes", "audio/webm,message/rfc822,text/markdown");
+        assertThat((Boolean) ReflectionTestUtils.invokeMethod(attachmentService, "isAllowedContentType", "audio/webm;codecs=opus")).isTrue();
+        assertThat((Boolean) ReflectionTestUtils.invokeMethod(attachmentService, "isAllowedContentType", "text/html;audio/webm")).isFalse();
+        assertThat((Boolean) ReflectionTestUtils.invokeMethod(attachmentService, "isAllowedContentType", "message/rfc822")).isTrue();
+    }
+
     @Mock
     private AttachmentRepository attachmentRepository;
 

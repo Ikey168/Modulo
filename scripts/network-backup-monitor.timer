@@ -1,0 +1,10 @@
+[Unit]
+Description=Verify network backups hourly
+
+[Timer]
+OnBootSec=10m
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

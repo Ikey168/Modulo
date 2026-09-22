@@ -1,0 +1,6 @@
+[Unit]
+Description=Verify network backup freshness and checksums
+
+[Service]
+Type=oneshot
+ExecStart=/home/ik/ChatGPT/Modulo/scripts/network-backup-monitor.sh

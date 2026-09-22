@@ -52,6 +52,18 @@ class PackServiceTest {
             .thenReturn(1L);
     }
 
+    @Test void legacyManifestStillInstalls() {
+        assertThat(service.install(minimalManifest()).ok()).isTrue();
+        verify(capabilityService).syncPermissions(any(),eq(new java.util.LinkedHashSet<>()));
+    }
+
+    @Test void unsupportedManifestFailsBeforeMutation() {
+        var manifest=minimalManifest();manifest.setManifestVersion(99);
+        clearInvocations(jdbc,capabilityService);
+        assertThat(service.install(manifest).ok()).isFalse();
+        verifyNoInteractions(jdbc,capabilityService);
+    }
+
     // ---- validateManifest ----
 
     @Test

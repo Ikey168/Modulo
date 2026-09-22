@@ -128,7 +128,7 @@ const SharedNotePage: React.FC = () => {
 
   if (!CONTRACT_ADDRESS) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex min-h-app items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <EmptyState
@@ -143,7 +143,7 @@ const SharedNotePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-16">
+    <div className="min-h-app bg-background px-4 py-16">
       <div className="mx-auto w-full max-w-[720px] animate-fade-up">
         <Card>
           <CardHeader>

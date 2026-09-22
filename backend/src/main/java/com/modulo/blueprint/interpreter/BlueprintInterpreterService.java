@@ -3,7 +3,14 @@ package com.modulo.blueprint.interpreter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
+import com.modulo.blueprint.BlueprintNodeExecutionContext;
+import com.modulo.blueprint.BlueprintNodeHandler;
+import com.modulo.blueprint.BlueprintNodeRegistration;
+import com.modulo.blueprint.BlueprintNodeRegistry;
+import com.modulo.blueprint.BlueprintNodeResult;
 import com.modulo.blueprint.BlueprintRepository;
+import com.modulo.blueprint.BlueprintTriggerContext;
+import com.modulo.blueprint.BlueprintTriggerHandler;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.blueprint.wasm.WasmModuleValidator;
 import com.modulo.blueprint.wasm.WasmNodeExecutor;
@@ -25,16 +32,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -42,7 +45,7 @@ import java.util.stream.Collectors;
  * Blueprint interpreter (#273): executes blueprint IR when trigger events fire on the
  * PluginEventBus. Each saved blueprint is loaded on startup and its trigger nodes are
  * wired to the bus. Execution follows exec edges topologically and resolves data pin
- * values between nodes. Every run is traced in plugin_execution_logs.
+ * values between nodes. Every run has structured workflow_runs and workflow_steps records.
  *
  * Execution safety:
  * - MAX_STEPS (100) prevents infinite exec loops.
@@ -54,7 +57,12 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(BlueprintInterpreterService.class);
     private static final long ACTION_TIMEOUT_SECS = 30;
 
+    @Autowired private com.modulo.blueprint.execution.WorkflowCheckpointService checkpoints;
+    @Autowired private com.modulo.blueprint.approval.ApprovalService approvals;
+    @Autowired(required=false) private com.modulo.blueprint.execution.WorkflowScheduler workflowScheduler;
     @Autowired private BlueprintRepository blueprintRepository;
+    @Autowired private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
+    private final Map<Long, BlueprintEntry> runtimeEntries = new ConcurrentHashMap<>();
     @Autowired private BlueprintCapabilityService capabilityService;
     @Autowired private PluginEventBus eventBus;
     @Autowired private NoteService noteService;
@@ -64,33 +72,55 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private ScriptSandbox scriptSandbox;
     @Autowired private ViesService viesService;
     @Autowired private NoesisBriefService noesisBriefService;
-    @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
     // Per-blueprint listener registrations so they can be removed on unregister.
     private final Map<String, List<ListenerRegistration>> registeredListeners = new ConcurrentHashMap<>();
-    private final Map<String, List<ScheduledFuture<?>>> scheduledJobs = new ConcurrentHashMap<>();
 
     // Webhook trigger registrations (#363): "<registryId>:<nodeId>" → registration,
     // plus per-blueprint keys so unregister removes exactly its endpoints.
     private final Map<String, WebhookRegistration> webhooks = new ConcurrentHashMap<>();
     private final Map<String, List<String>> webhookKeysByBlueprint = new ConcurrentHashMap<>();
 
-    private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+    /** Attach the existing core switch to the registry used by plugin nodes. */
+    @PostConstruct
+    void registerCoreNodeHandlers() {
+        if (nodeRegistry == null) return;
+        Set<String> coreTypes = nodeRegistry.coreNodeTypes();
+        // Optional registries are mocked or supplied by plugins during startup. A
+        // missing result means there is nothing to register, not a failed application
+        // context.
+        if (coreTypes == null) return;
+        for (String type : coreTypes) {
+            if (type == null || type.startsWith("trigger.")) continue;
+            String capability = nodeRegistry.capability(type, 1).orElse(null);
+            nodeRegistry.register(
+                BlueprintNodeRegistry.CORE_OWNER,
+                BlueprintNodeRegistration.action(type, 1, capability, context -> {
+                    NodeResult result = executeBuiltInNode(
+                        context.node(), context.inputs(), context.blueprintId(), context.lease());
+                    return new BlueprintNodeResult(result.outputs(), result.nextExecOut(), result.skipped());
+                }));
+        }
+    }
 
     @PostConstruct
-    public void initScheduler() {
-        taskScheduler.setPoolSize(4);
-        taskScheduler.setThreadNamePrefix("blueprint-schedule-");
-        taskScheduler.initialize();
+    void subscribeToPluginLifecycle() {
+        eventBus.subscribe("system.plugin_started", event -> refreshRegisteredBlueprints());
+        eventBus.subscribe("system.plugin_stopped", event -> refreshRegisteredBlueprints());
+    }
+
+    private void refreshRegisteredBlueprints() {
+        new ArrayList<>(runtimeEntries.values()).forEach(this::registerBlueprint);
     }
 
     /** Load and register all blueprints when the application is ready. */
     @Override
     public void run(ApplicationArguments args) {
-        List<BlueprintEntry> blueprints = blueprintRepository.findAll();
+        List<BlueprintEntry> blueprints = blueprintRepository.findRunnable();
         blueprints.forEach(this::registerBlueprint);
-        logger.info("Blueprint interpreter started: {} blueprint(s) registered", blueprints.size());
+        logger.info("Blueprint interpreter started");
     }
 
     /**
@@ -99,28 +129,35 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      */
     public void registerBlueprint(BlueprintEntry entry) {
         // Remove previous registrations for this blueprint in case of re-register.
-        unregisterBlueprint(entry.getName());
+        unregisterBlueprint(Long.toString(entry.getId()));
+        if (entry.getOwnerId() == null) return;
+        runtimeEntries.put(entry.getId(),entry);
 
         BlueprintIRGraph graph;
         try {
             graph = objectMapper.convertValue(entry.getIr(), BlueprintIRGraph.class);
+            if(graph.getNodes()==null || graph.getEdges()==null || graph.getNodes().size()>1000 || graph.getEdges().size()>5000) throw new IllegalArgumentException("Invalid Blueprint graph");
         } catch (Exception e) {
-            logger.error("Blueprint '{}': failed to parse IR — {}", entry.getName(), e.getMessage());
+            logger.error("Blueprint IR rejected");
             return;
         }
 
         Long registryId = entry.getId();
+        boolean manualOnly = "MANUAL".equals(entry.getAutonomyLevel());
         List<ListenerRegistration> listeners = new ArrayList<>();
-        List<ScheduledFuture<?>> futures = new ArrayList<>();
 
         for (BlueprintIRGraph.IRNode node : graph.getNodes()) {
             if (!node.getType().startsWith("trigger.")) continue;
+            if (manualOnly && !"trigger.manual".equals(node.getType())) continue;
 
             switch (node.getType()) {
+                case "trigger.manual":
+                    // Manual triggers are invoked through fireManual().
+                    break;
                 case "trigger.note.saved": {
                     String triggerId = node.getId();
                     PluginEventListener<NoteEvent> listener = event ->
-                        executeBlueprint(graph, registryId, triggerId, Map.of("note", event.getNote()));
+                        { if (ownedNote(event.getNote(),entry.getOwnerId())) executeBlueprint(graph, registryId, triggerId, Map.of("note", event.getNote()),event.getId()); };
                     eventBus.subscribe("note.created", listener);
                     eventBus.subscribe("note.updated", listener);
                     listeners.add(new ListenerRegistration("note.created", listener));
@@ -130,11 +167,8 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 case "trigger.link.created": {
                     String triggerId = node.getId();
                     PluginEventListener<LinkEvent.LinkCreated> listener = event ->
-                        executeBlueprint(graph, registryId, triggerId, Map.of(
-                            "link",   event.getLink(),
-                            "source", event.getSourceNote(),
-                            "target", event.getTargetNote()
-                        ));
+                        { if (ownedNote(event.getSourceNote(),entry.getOwnerId()) && ownedNote(event.getTargetNote(),entry.getOwnerId())) executeBlueprint(graph, registryId, triggerId, Map.of(
+                            "link", event.getLink(), "source", event.getSourceNote(), "target", event.getTargetNote()),event.getId()); };
                     eventBus.subscribe("link.created", listener);
                     listeners.add(new ListenerRegistration("link.created", listener));
                     break;
@@ -143,57 +177,76 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     String cron = node.getConfig() != null
                         ? (String) node.getConfig().get("cron") : null;
                     if (cron == null || cron.isBlank()) {
-                        logger.warn("Blueprint '{}': trigger.schedule node '{}' missing 'cron' config",
-                            entry.getName(), node.getId());
+                        logger.warn("Blueprint schedule missing cron configuration");
                         break;
                     }
-                    String triggerId = node.getId();
-                    try {
-                        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
-                            String firedAt = LocalDateTime.now().toString();
-                            executeBlueprint(graph, registryId, triggerId, Map.of("firedAt", firedAt));
-                        }, new CronTrigger(cron));
-                        futures.add(future);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Blueprint '{}': invalid cron '{}' — {}", entry.getName(), cron, e.getMessage());
-                    }
+                    // Persisted scheduler registration occurs once the graph is registered.
                     break;
                 }
                 case "trigger.webhook": {
                     String secret = node.getConfig() != null
                         ? (String) node.getConfig().get("secret") : null;
                     if (secret == null || secret.isBlank()) {
-                        logger.warn("Blueprint '{}': trigger.webhook node '{}' missing 'secret' config — endpoint not registered",
-                            entry.getName(), node.getId());
+                        logger.warn("Blueprint webhook missing secret configuration");
                         break;
                     }
                     String key = registryId + ":" + node.getId();
                     webhooks.put(key, new WebhookRegistration(graph, registryId, node.getId(), secret));
-                    webhookKeysByBlueprint.computeIfAbsent(entry.getName(), k -> new ArrayList<>()).add(key);
-                    logger.info("Blueprint '{}': webhook endpoint registered at /api/public/blueprints/webhook/{}/{}",
-                        entry.getName(), registryId, node.getId());
+                    webhookKeysByBlueprint.computeIfAbsent(Long.toString(entry.getId()), k -> new ArrayList<>()).add(key);
+                    logger.info("Blueprint webhook registered");
                     break;
                 }
-                default:
-                    logger.warn("Blueprint '{}': unrecognised trigger type '{}'", entry.getName(), node.getType());
+                default: {
+                    if (!registerPluginTrigger(node, graph, registryId, entry.getOwnerId(), listeners)) {
+                        logger.warn("Blueprint trigger type unsupported");
+                    }
+                    break;
+                }
             }
         }
 
-        registeredListeners.put(entry.getName(), listeners);
-        if (!futures.isEmpty()) scheduledJobs.put(entry.getName(), futures);
-        logger.info("Blueprint '{}' registered ({} event listener(s), {} schedule(s))",
-            entry.getName(), listeners.size(), futures.size());
+        registeredListeners.put(Long.toString(entry.getId()), listeners);
+        if(workflowScheduler!=null) workflowScheduler.sync(entry,graph);
+        logger.info("Blueprint registered");
     }
 
-    /** Unregister a blueprint: unsubscribe listeners and cancel scheduled jobs. */
+    private boolean registerPluginTrigger(
+            BlueprintIRGraph.IRNode node,
+            BlueprintIRGraph graph,
+            Long registryId,
+            long ownerId,
+            List<ListenerRegistration> listeners) {
+        if (nodeRegistry == null) return false;
+        Optional<BlueprintNodeRegistration> registration =
+            nodeRegistry.trigger(node.getType(), node.getNodeVersion());
+        if (registration.isEmpty()) return false;
+
+        BlueprintTriggerHandler handler = registration.get().triggerHandler();
+        for (String eventType : registration.get().triggerEventTypes()) {
+            PluginEventListener<PluginEvent> listener = event -> {
+                Map<String, Object> outputs = handler.outputs(new BlueprintTriggerContext(
+                    event,
+                    node.getId(),
+                    node.getType(),
+                    node.getNodeVersion(),
+                    node.getConfig(),
+                    ownerId));
+                if (outputs != null) {
+                    executeBlueprint(graph, registryId, node.getId(), outputs, event.getId());
+                }
+            };
+            eventBus.subscribe(eventType, listener);
+            listeners.add(new ListenerRegistration(eventType, listener));
+        }
+        return true;
+    }
+
+    /** Unregister instance-local event and webhook listeners. */
     public void unregisterBlueprint(String name) {
+        try { runtimeEntries.remove(Long.parseLong(name)); } catch(NumberFormatException ignored) { return; }
         List<ListenerRegistration> listeners = registeredListeners.remove(name);
         if (listeners != null) {
             listeners.forEach(r -> eventBus.unsubscribe(r.eventType(), r.listener()));
-        }
-        List<ScheduledFuture<?>> futures = scheduledJobs.remove(name);
-        if (futures != null) {
-            futures.forEach(f -> f.cancel(false));
         }
         List<String> webhookKeys = webhookKeysByBlueprint.remove(name);
         if (webhookKeys != null) {
@@ -213,16 +266,20 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * to the caller.
      */
     public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload) {
+        return fireWebhook(registryId,nodeId,secret,payload,java.util.UUID.randomUUID().toString());
+    }
+    public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload,String deliveryId) {
+        if(deliveryId==null || deliveryId.isBlank() || deliveryId.length()>128 || deliveryId.chars().anyMatch(Character::isISOControl)) return WebhookResult.REJECTED;
         WebhookRegistration reg = webhooks.get(registryId + ":" + nodeId);
         if (reg == null || secret == null) return WebhookResult.REJECTED;
         boolean valid = java.security.MessageDigest.isEqual(
             reg.secret().getBytes(java.nio.charset.StandardCharsets.UTF_8),
             secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         if (!valid) {
-            logger.warn("Blueprint {}: webhook '{}' rejected — invalid secret", registryId, nodeId);
+            logger.warn("Blueprint webhook authentication rejected");
             return WebhookResult.REJECTED;
         }
-        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload));
+        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload),"webhook:"+deliveryId);
         return WebhookResult.ACCEPTED;
     }
 
@@ -230,31 +287,121 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     // Graph execution
     // -------------------------------------------------------------------------
 
-    private void executeBlueprint(BlueprintIRGraph graph, Long registryId,
-                                   String triggerNodeId, Map<String, Object> triggerOutputs) {
-        long startMs = System.currentTimeMillis();
-        BlueprintExecutionContext ctx = new BlueprintExecutionContext();
-        ctx.setRegistryId(registryId);
+    private boolean ownedNote(com.modulo.entity.Note note, Long owner) {
+        return note != null && java.util.Objects.equals(note.getUserId(),owner);
+    }
 
+    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, Long registryId,
+                                   String triggerNodeId, Map<String, Object> triggerOutputs, String triggerKey) {
+        BlueprintEntry entry=runtimeEntries.get(registryId);
+        if(entry==null || entry.getOwnerId()==null) return null;
+        return executeBlueprint(graph,entry,triggerNodeId,triggerOutputs,triggerKey);
+    }
+    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, BlueprintEntry entry,String triggerNodeId,Map<String,Object> triggerOutputs,String triggerKey) {
+        Long registryId=entry.getId();
+        String digest;
         try {
-            triggerOutputs.forEach((pin, value) -> ctx.setPinValue(triggerNodeId, pin, value));
-            ctx.recordExecutedNode(triggerNodeId);
-            executeExecFlow(graph, ctx, triggerNodeId, "then");
+            String canonical=objectMapper.copy().enable(com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).writeValueAsString(entry.getIr());
+            digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch(Exception invalid) { throw new IllegalArgumentException("Invalid Blueprint snapshot",invalid); }
+        var trigger=graph.getNodes().stream().filter(node->node.getId().equals(triggerNodeId)).findFirst().orElseThrow();
+        var lease=workflowRuns.create(registryId,entry.getOwnerId(),entry.getVersion()==null?"1":entry.getVersion(),digest,triggerNodeId,trigger.getType(),triggerKey);
+        if(!lease.created()) return lease.id();
+        workflowRuns.begin(lease);
+        BlueprintExecutionContext ctx=new BlueprintExecutionContext(lease);
+        ctx.setRegistryId(registryId);
+        try {
+            workflowRuns.asOwner(lease,()->{
+                try (var trace = com.modulo.observability.ExecutionTraceContext.open(lease.id(), java.util.UUID.randomUUID(), true)) {
+                long started = System.nanoTime();
+                var step=workflowRuns.startStep(lease,1,triggerNodeId,trigger.getType(),Map.of());
+                triggerOutputs.forEach((pin,value)->ctx.setPinValue(triggerNodeId,pin,value));
+                ctx.recordExecutedNode(triggerNodeId);
+                workflowRuns.finishStep(lease,step,"SUCCEEDED",triggerOutputs,null,elapsed(started));
+                }
+                if(checkpoints!=null) checkpoints.save(lease,0,graph,triggerNodeId,"then",ctx.checkpointPins());
+                workflowRuns.checkCancellation(lease);
+                executeExecFlow(graph,ctx,triggerNodeId,"then");
+                return null;
+            });
+            workflowRuns.checkCancellation(lease);
+            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+            logger.info("Workflow run {} finished",lease.id());
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // The scheduler will resume the persisted boundary.
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+            logger.info("Workflow run {} cancelled",lease.id());
+        } catch(Exception failure) {
+            String classification=failure instanceof BlueprintLoopGuardException?"LOOP_GUARD":failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
+            workflowRuns.transition(lease,"RUNNING","FAILED",classification);
+            logger.warn("Workflow run {} failed: {}",lease.id(),classification);
+        }
+        return lease.id();
+    }
 
-            long elapsed = System.currentTimeMillis() - startMs;
-            log(registryId, "event_handle", "success",
-                "Executed " + ctx.getStepCount() + " step(s) [run=" + ctx.getExecutionId() + "]"
-                    + " [nodes=" + String.join(",", ctx.getExecutedNodes()) + "]", elapsed);
+    public java.util.UUID fireManual(BlueprintEntry entry,String nodeId,Note note,java.util.UUID requestId) {
+        if(!ownedNote(note,entry.getOwnerId())||requestId==null)throw new IllegalArgumentException("INVALID_MANUAL_INPUT");
+        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
+        if(graph.getNodes().stream().noneMatch(node->nodeId.equals(node.getId())&&"trigger.manual".equals(node.getType())))throw new IllegalArgumentException("MANUAL_TRIGGER_UNAVAILABLE");
+        return executeBlueprint(graph,entry,nodeId,Map.of("note",note),"manual:"+requestId);
+    }
 
-        } catch (BlueprintLoopGuardException e) {
-            long elapsed = System.currentTimeMillis() - startMs;
-            logger.error("Blueprint loop guard: {}", e.getMessage());
-            log(registryId, "event_handle", "error", "Loop guard: " + e.getMessage(), elapsed);
+    public java.util.UUID fireScheduled(BlueprintEntry entry,String nodeId,String key,String firedAt) {
+        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
+        if(graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.schedule".equals(node.getType()))) throw new IllegalArgumentException("SCHEDULE_REMOVED");
+        return executeBlueprint(graph,entry,nodeId,Map.of("firedAt",firedAt),key);
+    }
 
-        } catch (Exception e) {
-            long elapsed = System.currentTimeMillis() - startMs;
-            logger.error("Blueprint execution error [run={}]: {}", ctx.getExecutionId(), e.getMessage(), e);
-            log(registryId, "event_handle", "error", e.getMessage(), elapsed);
+    public java.util.UUID retryRun(java.util.UUID parent,long owner,java.util.UUID requestId,int sequence,boolean confirmed) {
+        var snapshot=checkpoints.load(parent,owner,sequence);
+        var lease=workflowRuns.createRetry(parent,owner,requestId,sequence,confirmed);
+        if(!lease.created()) return lease.id();
+        workflowRuns.begin(lease);
+        var ctx=new BlueprintExecutionContext(lease);
+        try {
+            workflowRuns.asOwner(lease,()->{
+                // The persisted graph is replayed with current capability grants.
+                Long registryId=workflowRuns.registryId(lease.id(),owner);
+                ctx.setRegistryId(registryId);
+                ctx.restorePins(snapshot.pins(),Math.max(0,sequence-1));
+                checkpoints.save(lease,sequence,snapshot.graph(),snapshot.fromNode(),snapshot.outPin(),snapshot.pins());
+                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
+                workflowRuns.checkCancellation(lease);
+                return null;
+            });
+            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // The scheduler will resume the persisted boundary.
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+        } catch(Exception failure) {
+            workflowRuns.transition(lease,"RUNNING","FAILED","NODE_FAILURE");
+        }
+        return lease.id();
+    }
+
+    public void resumeWaiting(java.util.UUID run,long owner,int checkpoint) {
+        var lease=new com.modulo.blueprint.execution.WorkflowRunService.Lease(run,owner,false);
+        if(!workflowRuns.resumeWaiting(lease)) return;
+        try {
+            workflowRuns.asOwner(lease,()->{
+                if(approvals!=null) approvals.verifyResume(lease);
+                var snapshot=checkpoints.load(run,owner,checkpoint);
+                var ctx=new BlueprintExecutionContext(lease);
+                ctx.setRegistryId(workflowRuns.registryId(run,owner));
+                ctx.restorePins(snapshot.pins(),Math.max(0,checkpoint-1));
+                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
+                workflowRuns.checkCancellation(lease);
+                return null;
+            });
+            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
+        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
+            // A later wait has its own committed checkpoint.
+        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
+            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
+        } catch(Exception invalid) {
+            workflowRuns.transition(lease,"RUNNING","DEAD_LETTER","RESUME_FAILED");
         }
     }
 
@@ -276,16 +423,54 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Edge references unknown node: " + targetId));
 
+        workflowRuns.checkCancellation(ctx.getLease());
+        if(checkpoints!=null) checkpoints.save(ctx.getLease(),ctx.getStepCount()+1,graph,fromNodeId,execOutPin,ctx.checkpointPins());
         ctx.incrementStep(); // throws BlueprintLoopGuardException when > MAX_STEPS
         ctx.recordExecutedNode(targetId);
 
         Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
-        NodeResult result = executeNode(target, inputs, ctx.getRegistryId());
+        NodeResult result;
+        String capability = capabilityFor(target);
+        boolean allowed = capability == null || capabilityService.isGranted(ctx.getRegistryId(), capability);
+        try (var trace = com.modulo.observability.ExecutionTraceContext.open(ctx.getLease().id(), java.util.UUID.randomUUID(), allowed)) {
+            var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
+            long started = System.nanoTime();
+            try {
+                result = executeNode(target, inputs, ctx.getRegistryId(),ctx.getLease());
+            } catch(Exception failure) {
+                workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE",elapsed(started));
+                throw failure;
+            }
+            if("logic.approval.wait".equals(target.getType())) {
+                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
+                int checkpoint=ctx.getStepCount()+1;
+                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
+                try {approvals.waitFor(ctx.getLease(),step,java.util.UUID.fromString((String)result.outputs().get("request")),checkpoint,elapsed(started));}
+                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
+                throw new com.modulo.blueprint.execution.WorkflowPausedException();
+            }
+            if("logic.wait".equals(target.getType())) {
+                int seconds=((Number)(target.getConfig()==null?60:target.getConfig().getOrDefault("seconds",60))).intValue();
+                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
+                int checkpoint=ctx.getStepCount()+1;
+                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
+                try {workflowRuns.pause(ctx.getLease(),step,checkpoint,seconds,elapsed(started));}
+                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
+                throw new com.modulo.blueprint.execution.WorkflowPausedException();
+            }
+            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",target.getType().contains(".approval.")?approvals.traceOutputs(ctx.getLease(),result.outputs()):result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
+        }
         result.outputs().forEach((pinId, value) -> ctx.setPinValue(targetId, pinId, value));
 
         if (result.nextExecOut() != null) {
             executeExecFlow(graph, ctx, targetId, result.nextExecOut());
         }
+    }
+
+    private void finishPauseFailure(com.modulo.blueprint.execution.WorkflowRunService.Lease lease,java.util.UUID step,Exception failure,long started) {
+        boolean cancelled=failure instanceof com.modulo.blueprint.execution.WorkflowCancelledException;
+        String code=cancelled?null:failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
+        workflowRuns.finishStep(lease,step,cancelled?"CANCELLED":"FAILED",Map.of(),code,elapsed(started));
     }
 
     /** Collect values for all data edges flowing INTO the given node. */
@@ -306,16 +491,35 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * Capability checks (#275): if the node declares a required capability and the blueprint does
      * not have a grant for it, execution is skipped (empty outputs, flow continues via 'then').
      */
-    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId) {
-        Map<String, Object> outputs = new HashMap<>();
-
-        // Enforce capability grant before running any action node.
-        String requiredCap = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
+    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
+        String requiredCap = capabilityFor(node);
         if (requiredCap != null && !capabilityService.isGranted(registryId, requiredCap)) {
-            logger.warn("Blueprint {}: node '{}' skipped — capability '{}' not granted",
-                registryId, node.getId(), requiredCap);
-            return new NodeResult(outputs, "then");
+            logger.warn("Workflow node skipped: capability denied");
+            return new NodeResult(new HashMap<>(), "then", true);
         }
+
+        if (nodeRegistry != null) {
+            Optional<BlueprintNodeHandler> handler =
+                nodeRegistry.handler(node.getType(), node.getNodeVersion());
+            if (handler.isPresent()) {
+                BlueprintNodeResult result = handler.get().execute(
+                    new BlueprintNodeExecutionContext(node, inputs, registryId, lease.owner(), lease));
+                return new NodeResult(result.outputs(), result.nextExecOut(), result.skipped());
+            }
+        }
+        return executeBuiltInNode(node, inputs, registryId, lease);
+    }
+
+    private String capabilityFor(BlueprintIRGraph.IRNode node) {
+        if (nodeRegistry != null) {
+            return nodeRegistry.capability(node.getType(), node.getNodeVersion())
+                .orElse(BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType()));
+        }
+        return BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
+    }
+
+    private NodeResult executeBuiltInNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
+        Map<String, Object> outputs = new HashMap<>();
 
         switch (node.getType()) {
 
@@ -353,7 +557,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         Object hash = result.get("transactionHash");
                         txHash = hash != null ? hash.toString() : "";
                     } catch (Exception e) {
-                        logger.warn("action.note.anchor: blockchain call failed — {}", e.getMessage());
+                        throw new IllegalStateException("BLOCKCHAIN_FAILURE");
                     }
                 }
                 outputs.put("txHash", txHash);
@@ -369,7 +573,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         OpenAIService.SummaryResponse resp = openAIService.generateSummary(note.getContent(), opts);
                         summary = resp.getSummary() != null ? resp.getSummary() : "";
                     } catch (Exception e) {
-                        logger.warn("action.ai.summarize: AI call failed — {}", e.getMessage());
+                        throw new IllegalStateException("AI_FAILURE");
                     }
                 }
                 outputs.put("summary", summary);
@@ -380,9 +584,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String code = node.getConfig() != null
                     ? (String) node.getConfig().get("code") : null;
                 if (code == null || code.isBlank()) {
-                    logger.warn("action.code.execute: node '{}' has no 'code' config", node.getId());
-                    outputs.put("output", "");
-                    return new NodeResult(outputs, "then");
+                    throw new IllegalArgumentException("INVALID_SCRIPT_CONFIG");
                 }
                 Note note = (Note) inputs.get("note");
                 String title   = note != null && note.getTitle()   != null ? note.getTitle()   : "";
@@ -391,8 +593,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 try {
                     output = scriptSandbox.execute(code, title, content);
                 } catch (ScriptSandbox.ScriptExecutionException e) {
-                    logger.warn("action.code.execute: script error on node '{}' — {}", node.getId(), e.getMessage());
-                    output = "";
+                    throw new IllegalStateException("SCRIPT_FAILURE");
                 }
                 outputs.put("output", output);
                 return new NodeResult(outputs, "then");
@@ -402,9 +603,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 String moduleB64 = node.getConfig() != null
                     ? (String) node.getConfig().get("module") : null;
                 if (moduleB64 == null || moduleB64.isBlank()) {
-                    logger.warn("action.wasm.execute: node '{}' has no 'module' config", node.getId());
-                    outputs.put("output", "");
-                    return new NodeResult(outputs, "then");
+                    throw new IllegalArgumentException("INVALID_WASM_CONFIG");
                 }
                 Note wasmNote = (Note) inputs.get("note");
                 String wasmTitle   = wasmNote != null && wasmNote.getTitle()   != null ? wasmNote.getTitle()   : "";
@@ -415,8 +614,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                         validatedWasmModule(moduleB64), wasmTitle, wasmContent);
                 } catch (WasmModuleValidator.WasmModuleValidationException
                         | WasmNodeExecutor.WasmExecutionException | IllegalArgumentException e) {
-                    logger.warn("action.wasm.execute: node '{}' failed — {}", node.getId(), e.getMessage());
-                    wasmOutput = "";
+                    throw new IllegalStateException("WASM_FAILURE");
                 }
                 outputs.put("output", wasmOutput);
                 return new NodeResult(outputs, "then");
@@ -555,6 +753,27 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                 return new NodeResult(outputs, "then");
             }
 
+            case "action.approval.request": {
+                var trace=com.modulo.observability.ExecutionTraceContext.current();
+                var request=approvals.request(lease,trace.stepId(),node.getId(),node.getConfig()==null?Map.of():node.getConfig(),inputs);
+                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
+            }
+            case "logic.approval.wait": {
+                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
+                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
+            }
+            case "logic.approval.result": {
+                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
+                outputs.putAll(approvals.result(lease,request));
+                return new NodeResult(outputs,outputs.get("outcome").toString().toLowerCase(java.util.Locale.ROOT));
+            }
+
+            case "logic.wait": {
+                Object value=node.getConfig()==null?60:node.getConfig().getOrDefault("seconds",60);
+                if(!(value instanceof Number number) || number.intValue()<1 || number.intValue()>86400 || number.doubleValue()!=number.intValue()) throw new IllegalArgumentException("INVALID_WAIT");
+                return new NodeResult(outputs,"then");
+            }
+
             case "logic.branch": {
                 Boolean condition = (Boolean) inputs.getOrDefault("condition", Boolean.FALSE);
                 return new NodeResult(outputs, Boolean.TRUE.equals(condition) ? "true" : "false");
@@ -599,23 +818,15 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     private final java.util.concurrent.ConcurrentHashMap<String, com.dylibso.chicory.wasm.WasmModule>
         wasmModuleCache = new java.util.concurrent.ConcurrentHashMap<>();
 
-    private void log(Long registryId, String execType, String status, String message, long durationMs) {
-        try {
-            jdbc.update(
-                "INSERT INTO plugin_execution_logs (plugin_id, execution_type, status, message, execution_time_ms, created_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                registryId, execType, status, message, durationMs, LocalDateTime.now()
-            );
-        } catch (Exception e) {
-            logger.warn("Failed to write execution log: {}", e.getMessage());
-        }
-    }
-
     // -------------------------------------------------------------------------
     // Support types
     // -------------------------------------------------------------------------
 
-    private record NodeResult(Map<String, Object> outputs, String nextExecOut) {}
+    private static long elapsed(long started) { return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started); }
+
+    private record NodeResult(Map<String, Object> outputs, String nextExecOut, boolean skipped) {
+        NodeResult(Map<String,Object> outputs,String nextExecOut) { this(outputs,nextExecOut,false); }
+    }
 
     private record ListenerRegistration(String eventType, PluginEventListener<? extends PluginEvent> listener) {}
 

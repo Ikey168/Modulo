@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 
 @Testcontainers
 class ResourceOwnershipTest {
-    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:16-alpine");
+    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
     static AnnotationConfigApplicationContext context;
     static final ThreadLocal<Long> owner = ThreadLocal.withInitial(() -> 1L);
     JdbcTemplate jdbc;

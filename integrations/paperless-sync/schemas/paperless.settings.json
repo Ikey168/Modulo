@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["baseUrl", "staleAfterMinutes"],
+  "properties": {
+    "baseUrl": {"type": "string", "maxLength": 512},
+    "staleAfterMinutes": {"type": "integer", "minimum": 5, "maximum": 10080}
+  }
+}
+

@@ -1,0 +1,15 @@
+{
+  "version": 5,
+  "lastUserContextId": 7,
+  "identities": [
+    {"icon": "fingerprint", "color": "blue", "name": "Personal", "accessKey": "", "public": true, "userContextId": 1},
+    {"icon": "briefcase", "color": "orange", "name": "Work", "accessKey": "", "public": true, "userContextId": 2},
+    {"icon": "dollar", "color": "green", "name": "Finance", "accessKey": "", "public": true, "userContextId": 3},
+    {"icon": "cart", "color": "pink", "name": "Shopping", "accessKey": "", "public": true, "userContextId": 4},
+    {"icon": "circle", "color": "red", "name": "Google", "accessKey": "", "public": true, "userContextId": 5},
+    {"icon": "circle", "color": "purple", "name": "Social", "accessKey": "", "public": true, "userContextId": 6},
+    {"public": false, "icon": "", "color": "", "name": "userContextIdInternal.thumbnail", "accessKey": "", "userContextId": 7},
+    {"public": false, "icon": "", "color": "", "name": "userContextIdInternal.webextStorageLocal", "accessKey": "", "userContextId": 4294967295}
+  ]
+}
+

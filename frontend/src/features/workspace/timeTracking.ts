@@ -1,7 +1,6 @@
 // Zeiterfassung (#365) — billable time per engagement, feeding invoice line
-// items. Entries persist client-side (consistent with plugin install state and
-// canvas layout); a backend store can replace this later. Pure module so
-// aggregation and the billing handoff are unit-testable.
+// items. Persistence is provided by the server-backed workspace state layer;
+// this module stays pure so aggregation and the billing handoff are unit-testable.
 
 export interface TimeEntry {
   id: string;
@@ -17,32 +16,22 @@ export interface TimeEntry {
   billed: boolean;
 }
 
-const STORE_KEY = 'modulo-time-entries';
+export const TIME_ENTRIES_KEY = 'modulo-time-entries';
 
-export function readEntries(): TimeEntry[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (e): e is TimeEntry =>
-        typeof e === 'object' &&
-        e !== null &&
-        typeof (e as TimeEntry).id === 'string' &&
-        typeof (e as TimeEntry).minutes === 'number',
-    );
-  } catch {
-    return [];
-  }
-}
-
-export function writeEntries(entries: TimeEntry[]): void {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(entries));
-  } catch {
-    // Storage unavailable — entries live for the session only.
-  }
+export function parseTimeEntries(value: unknown): TimeEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is TimeEntry =>
+    typeof entry === 'object' && entry !== null
+    && typeof (entry as TimeEntry).id === 'string'
+    && typeof (entry as TimeEntry).date === 'string'
+    && typeof (entry as TimeEntry).engagement === 'string'
+    && typeof (entry as TimeEntry).description === 'string'
+    && typeof (entry as TimeEntry).minutes === 'number'
+    && Number.isFinite((entry as TimeEntry).minutes)
+    && typeof (entry as TimeEntry).rateEur === 'number'
+    && typeof (entry as TimeEntry).billable === 'boolean'
+    && typeof (entry as TimeEntry).billed === 'boolean',
+  );
 }
 
 export function newEntryId(): string {

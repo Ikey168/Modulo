@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- lazy plugin module exports a descriptor beside its private React surface */
 // Saved Searches - contributes named smart folders evaluated live over notes.
 // Installable (not pre-installed); lazy-loaded.
 import { FolderSearch } from 'lucide-react';
@@ -10,7 +11,7 @@ function SavedSearchesSurface(p: WorkspaceViewProps) {
 
 const savedSearchesPlugin: PluginModule = {
   activate(ctx) {
-    ctx.addView({ id: 'saved-searches', label: 'Saved Searches', icon: FolderSearch, order: 100, component: SavedSearchesSurface });
+    ctx.addView({ id: 'saved-searches', label: 'Saved Searches', icon: FolderSearch, order: 60, mode: 'knowledge-tools', section: 'Organize', component: SavedSearchesSurface });
   },
 };
 

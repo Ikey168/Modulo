@@ -101,6 +101,7 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
         <div
           role="treeitem"
           tabIndex={0}
+          aria-label={note.title || 'Untitled Note'}
           aria-selected={selected}
           aria-expanded={hasChildren ? !collapsed : undefined}
           draggable
@@ -112,12 +113,21 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               onSelect(note.id);
+            } else if (e.key === 'ArrowRight' && hasChildren && collapsed) {
+              e.preventDefault();
+              tree.expand(note.id);
+            } else if (e.key === 'ArrowLeft' && hasChildren && !collapsed) {
+              e.preventDefault();
+              tree.toggle(note.id);
             }
           }}
           style={{ paddingLeft: indent }}
           className={cn(
             'group/row flex w-full cursor-pointer items-center gap-0.5 rounded-md py-1 pr-1.5 text-left transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            // A 26px row is a comfortable desktop list and an unusable phone
+            // one: three of them fit inside a fingertip.
+            'coarse:min-h-touch coarse:gap-1 coarse:rounded-lg coarse:py-2 coarse:pr-1 coarse:active:bg-surface-2',
             selected ? 'bg-surface-3' : 'hover:bg-surface-2',
             dragging && 'opacity-40',
             hint === 'inside' && 'bg-primary/10 ring-1 ring-inset ring-primary/60',
@@ -130,26 +140,26 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
                 e.stopPropagation();
                 tree.toggle(note.id);
               }}
-              aria-label={collapsed ? 'Expand' : 'Collapse'}
+              aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${note.title || 'Untitled Note'}`}
               tabIndex={-1}
-              className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
+              className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground coarse:h-11 coarse:w-7 coarse:rounded-lg"
             >
               <ChevronRight
                 aria-hidden="true"
-                className={cn('size-3 transition-transform', !collapsed && 'rotate-90')}
+                className={cn('size-3 transition-transform coarse:size-4', !collapsed && 'rotate-90')}
               />
             </button>
           ) : (
-            <span className="size-4 shrink-0" aria-hidden="true" />
+            <span className="size-4 shrink-0 coarse:h-11 coarse:w-7" aria-hidden="true" />
           )}
 
           <span
             className={cn(
-              'min-w-0 flex-1 truncate text-[13px]',
+              'min-w-0 flex-1 truncate text-[13px] coarse:text-[15px]',
               selected ? 'font-medium text-foreground' : 'text-subtle-foreground',
             )}
           >
-            {note.title}
+            {note.title || 'Untitled Note'}
           </span>
 
           {isAnchored(note) && (
@@ -165,12 +175,14 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
               e.stopPropagation();
               onAddChild(note.id);
             }}
-            aria-label={`Add subnote to ${note.title}`}
+            aria-label={`Add subnote to ${note.title || 'Untitled Note'}`}
             title="Add subnote"
             tabIndex={-1}
-            className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
+            /* Revealed on hover, which touch does not have: on a phone the
+               control was present, invisible and 16px across. */
+            className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 coarse:h-11 coarse:w-11 coarse:rounded-full coarse:opacity-100 coarse:active:bg-surface-3"
           >
-            <Plus className="size-3" aria-hidden="true" />
+            <Plus className="size-3 coarse:size-4" aria-hidden="true" />
           </button>
         </div>
       </div>

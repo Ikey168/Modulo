@@ -113,11 +113,20 @@ final class StateSchemaRegistry {
               namespace.equals("workspace-settings")
                   ? "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\",\"enabled\"],\"properties\":{\"id\":{\"type\":\"string\"},\"enabled\":{\"type\":\"boolean\"}}}}"
                   : null;
+          case "modulo.focus.sessions" ->
+              namespace.equals("focus") ? "{\"type\":\"array\",\"maxItems\":10000}" : null;
+          case "modulo.github-sync.config" ->
+              namespace.equals("github-sync")
+                  ? "{\"type\":\"object\",\"required\":[\"repository\",\"branch\",\"path\"],\"properties\":{\"repository\":{\"type\":\"string\",\"maxLength\":200},\"branch\":{\"type\":\"string\",\"maxLength\":200},\"path\":{\"type\":\"string\",\"maxLength\":500}}}"
+                  : null;
+          case "modulo.web3-identity.proof" -> namespace.equals("web3-id") ? "{}" : null;
           case "modulo.workspace.hub-tab" ->
               namespace.equals("workspace-settings")
                   ? "{\"type\":\"string\",\"maxLength\":128}"
                   : null;
-          default -> null;
+          // Host-owned workspace records (media library, life collections, PARA, ...). The frontend
+          // parses and validates their structure; the server only enforces size and ownership.
+          default -> id.startsWith("modulo.workspace.") ? "{}" : null;
         };
     return definition == null ? null : read(definition);
   }

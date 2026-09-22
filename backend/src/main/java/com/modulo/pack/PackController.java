@@ -1,5 +1,6 @@
 package com.modulo.pack;
 
+import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,11 @@ public class PackController {
     @Autowired private PackService packService;
     @Autowired private PackIpfsService packIpfsService;
     @Autowired private PackProvenanceService packProvenanceService;
+    @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
+
+    @PostMapping("/validate")
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    public PackManifestValidator.Validation validate(@RequestBody PackManifest manifest) {return PackManifestValidator.validate(manifest, nodeRegistry);}
 
     /** POST /api/packs/install — install or upgrade a pack from its manifest JSON. */
     @PostMapping("/install")

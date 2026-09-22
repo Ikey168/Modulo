@@ -1,0 +1,36 @@
+---
+- name: Audit declared Linux hosts without changing them
+  hosts: all:!laptop
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Assert the host is Linux
+      ansible.builtin.assert:
+        that:
+          - ansible_system == 'Linux'
+          - device_role is defined
+          - canonical_name is defined
+        fail_msg: Host facts do not match the declared Linux role.
+
+    - name: Read effective hostname
+      ansible.builtin.command: hostname
+      register: audit_hostname
+      changed_when: false
+
+    - name: Read container runtime version when required
+      ansible.builtin.command: docker version
+      register: audit_docker
+      changed_when: false
+      failed_when: requires_container_runtime | bool and audit_docker.rc != 0
+      when: requires_container_runtime | bool
+
+    - name: Report safe host evidence
+      ansible.builtin.debug:
+        msg:
+          inventory_name: "{{ inventory_hostname }}"
+          canonical_name: "{{ canonical_name }}"
+          current_hostname: "{{ audit_hostname.stdout }}"
+          role: "{{ device_role }}"
+          os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+          architecture: "{{ ansible_architecture }}"
+          container_runtime: "{{ audit_docker.stdout | default('not-required') }}"

@@ -1,0 +1,37 @@
+[tools]
+java = "temurin-17"
+node = "22"
+python = "3.14"
+
+[tasks.check-contract]
+description = "Verify the repository contract and its required entry points"
+run = "python3 scripts/verify-repository-contract.py"
+
+[tasks.check-frontend]
+description = "Run the frontend type, lint, boundary, unit, and production-build gates"
+run = [
+  "npm run typecheck --workspace=frontend",
+  "npm run lint --workspace=frontend",
+  "npm run lint:boundary:ci --workspace=frontend",
+  "npm run test:run --workspace=frontend",
+  "npm run build:strict --workspace=frontend",
+]
+
+[tasks.check-backend]
+description = "Run the backend unit and integration suite"
+dir = "backend"
+run = "mvn test"
+
+[tasks.check-operations]
+description = "Run deployment and infrastructure structural gates"
+run = [
+  "python3 -m unittest discover -s deploy/oci/tests -v",
+  "python3 scripts/verify-device-inventory.py docs/infrastructure/devices/inventory.json",
+  "python3 scripts/verify-personal-infra.py",
+  "python3 scripts/verify-noesis-lifecycle.py",
+]
+
+[tasks.check]
+description = "Run the common local acceptance gate"
+depends = ["check-contract", "check-frontend", "check-backend", "check-operations"]
+

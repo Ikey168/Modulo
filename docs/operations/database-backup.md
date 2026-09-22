@@ -1,5 +1,10 @@
 # Database Backup and Restore Implementation
 
+> For the OCI deployment, use the verified backup and off-host restore-drill
+> instructions in [deploy/oci/README.md](../../deploy/oci/README.md). The older
+> scripts below simulate WAL/PITR; their presence does not establish a one-hour
+> recovery point. Nightly dumps alone can lose approximately one day of writes.
+
 ## Overview
 
 This implementation provides comprehensive automated database backup and restore capabilities for the Modulo application, including:

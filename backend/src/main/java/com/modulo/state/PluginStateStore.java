@@ -49,7 +49,8 @@ public class PluginStateStore {
   public record Limits(
       int recordBytes, int namespaceRecords, long namespaceBytes, long ownerBytes) {
     public static Limits defaults() {
-      return new Limits(1_048_576, 10_000, 52_428_800, 262_144_000);
+      // 500k records per namespace (e.g. one record per media item); byte caps sized to match.
+      return new Limits(1_048_576, 500_000, 1_073_741_824L, 4_294_967_296L);
     }
   }
 

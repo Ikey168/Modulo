@@ -1,7 +1,7 @@
 // Engagement pipeline (#361) — pure helpers for the Kanban board. Engagements
 // are notes tagged `engagement/…`; their pipeline stage is a `stage/…` tag so
 // the stage is visible on the note itself, not hidden in board state. The
-// column set is configurable and persists to localStorage.
+// column set is configurable and persisted by the server-backed workspace store.
 
 import type { CoreNote, CoreTag } from '@modulo/core';
 
@@ -45,28 +45,14 @@ export function groupByStage(notes: CoreNote[], stages: string[]): Record<string
 
 // ── Column-set persistence ───────────────────────────────────────────────────
 
-const STAGES_KEY = 'modulo-pipeline-stages';
+export const PIPELINE_STAGES_KEY = 'modulo-pipeline-stages';
 
-export function readStages(): string[] {
-  try {
-    const raw = localStorage.getItem(STAGES_KEY);
-    if (!raw) return DEFAULT_STAGES;
-    const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((s) => typeof s === 'string')) {
-      return parsed;
-    }
-    return DEFAULT_STAGES;
-  } catch {
-    return DEFAULT_STAGES;
+export function parseStages(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length === 0 || !value.every(stage => typeof stage === 'string')) {
+    return [...DEFAULT_STAGES];
   }
-}
-
-export function writeStages(stages: string[]): void {
-  try {
-    localStorage.setItem(STAGES_KEY, JSON.stringify(stages));
-  } catch {
-    // Storage unavailable — the board falls back to defaults next load.
-  }
+  const stages = value.map(stage => stage.trim()).filter(Boolean);
+  return stages.length > 0 ? [...new Set(stages)] : [...DEFAULT_STAGES];
 }
 
 /** Normalise a user-entered column name to a stage id (`Fix Review` → `fix-review`). */

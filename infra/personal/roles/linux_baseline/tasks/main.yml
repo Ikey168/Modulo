@@ -1,0 +1,115 @@
+---
+- name: Validate the declared role and supported platform
+  ansible.builtin.assert:
+    that:
+      - device_role is string
+      - canonical_name is string
+      - ansible_facts.os_family in ['Debian', 'RedHat']
+    fail_msg: Refusing an undeclared role or unsupported Linux family.
+
+- name: Install common administration packages
+  ansible.builtin.package:
+    name: "{{ baseline_common_packages }}"
+    state: present
+
+- name: Read the host timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: current_timezone
+  changed_when: false
+  check_mode: false
+
+- name: Set the host timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ baseline_timezone }}"
+  when: current_timezone.stdout != baseline_timezone
+
+- name: Inspect system time-synchronization capability
+  ansible.builtin.command: timedatectl show --property=CanNTP --value
+  register: ntp_capability
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: ansible_service_mgr == 'systemd'
+
+- name: Enable system time synchronization
+  ansible.builtin.command: timedatectl set-ntp true
+  changed_when: false
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ntp_capability.rc == 0
+    - ntp_capability.stdout | lower == 'yes'
+
+- name: Create journal configuration directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Bound persistent journal storage
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/60-personal-baseline.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse={{ baseline_journal_max_use }}
+      MaxRetentionSec={{ baseline_journal_max_retention }}
+  notify: Restart journald
+
+- name: Create role-marker directory
+  ansible.builtin.file:
+    path: /etc/motd.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Record the non-secret host role
+  ansible.builtin.copy:
+    dest: /etc/motd.d/60-personal-role
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      Managed role: {{ device_role }}
+      Canonical inventory name: {{ canonical_name }}
+      Configuration authority: Modulo infra/personal
+
+- name: Install Debian security-update support
+  ansible.builtin.package:
+    name: unattended-upgrades
+    state: present
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Enable Debian security updates
+  ansible.builtin.service:
+    name: unattended-upgrades
+    enabled: true
+    state: started
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - not ansible_check_mode
+
+- name: Install Fedora automatic-update support
+  ansible.builtin.package:
+    name: dnf5-plugin-automatic
+    state: present
+  when: ansible_facts.distribution == 'Fedora'
+
+- name: Install the SSH hardening drop-in
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/60-personal-baseline.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/sshd -t -f %s
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+      PubkeyAuthentication yes
+  notify: reload sshd
+  when: manage_ssh | bool

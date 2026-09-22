@@ -21,6 +21,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DEVTOOLS_REMOTE_SECRET=secret
+      - MODULO_BLUEPRINT_SANDBOX=wasm
     ports:
       - "8080:8080"
       - "5005:5005" # Debug port

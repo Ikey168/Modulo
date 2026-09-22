@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 // GoBD vault view (#368): all retained documents (notes tagged retain/…) with
 // class, document date, retention end, and anchor status; un-anchored retained
 // records are flagged and can be anchored in place. Retention classes are
@@ -8,11 +9,10 @@ import { Anchor, Archive, Settings2, ShieldCheck, TriangleAlert } from 'lucide-r
 import { Button, EmptyState, Input, useToast } from '@/ui';
 import type { WorkspaceViewProps } from './plugins/types';
 import {
-  readRetentionClasses,
   vaultEntries,
-  writeRetentionClasses,
   type RetentionClass,
 } from './gobd';
+import { useGobdClassesStore } from './usePluginDataStores';
 
 function ClassesEditor({ classes, onChange }: { classes: RetentionClass[]; onChange: (c: RetentionClass[]) => void }) {
   return (
@@ -46,11 +46,11 @@ function ClassesEditor({ classes, onChange }: { classes: RetentionClass[]; onCha
 
 export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
-  const [classes, setClasses] = useState<RetentionClass[]>(() => readRetentionClasses());
+  const [classes, setClasses] = useGobdClassesStore();
   const [showConfig, setShowConfig] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey(new Date());
   const entries = useMemo(() => vaultEntries(data.notes, classes, today), [data.notes, classes, today]);
   const unanchored = entries.filter((e) => !e.anchored);
 
@@ -81,10 +81,7 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
           <div className="mt-3">
             <ClassesEditor
               classes={classes}
-              onChange={(next) => {
-                setClasses(next);
-                writeRetentionClasses(next);
-              }}
+              onChange={(next) => { setClasses(next); }}
             />
           </div>
         )}
@@ -124,13 +121,13 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
                 → {e.retainUntil}
               </span>
               {e.anchored ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 px-2 py-0.5 text-xxs text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 rounded-full border border-success/40 px-2 py-0.5 text-xxs text-success">
                   <ShieldCheck className="size-3" aria-hidden="true" />
                   anchored
                 </span>
               ) : (
                 <>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 px-2 py-0.5 text-xxs text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 px-2 py-0.5 text-xxs text-warning">
                     <TriangleAlert className="size-3" aria-hidden="true" />
                     not anchored
                   </span>

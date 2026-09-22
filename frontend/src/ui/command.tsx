@@ -24,7 +24,9 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: DialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0">
+      {/* The palette owns its own scrolling, and its input must sit at the top
+          where the keyboard cannot cover it — so no sheet padding or handle. */}
+      <DialogContent sheet={false} className="overflow-hidden p-0 phone:top-2 phone:max-h-[calc(var(--app-viewport-height)-1rem)] phone:translate-y-0">
         <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>
@@ -58,7 +60,14 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    className={cn(
+      "max-h-[300px] overflow-y-auto overflow-x-hidden",
+      // Room for results above the keyboard rather than a 300px letterbox.
+      // `--app-viewport-height` is the *visible* height, so the keyboard is
+      // already discounted — subtracting it again would halve the list.
+      "phone:max-h-[calc(var(--app-viewport-height)-8rem)]",
+      className,
+    )}
     {...props}
   />
 ))

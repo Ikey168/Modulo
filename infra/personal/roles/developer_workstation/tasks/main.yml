@@ -1,0 +1,20 @@
+---
+- name: Install the shared workstation CLI
+  ansible.builtin.package:
+    name:
+      - cmake
+      - gcc
+      - make
+      - ninja-build
+      - "{{ 'ShellCheck' if ansible_facts.distribution == 'Fedora' else 'shellcheck' }}"
+    state: present
+
+- name: Verify Git is available
+  ansible.builtin.command: git --version
+  changed_when: false
+  check_mode: false
+
+- name: Verify ripgrep is available
+  ansible.builtin.command: rg --version
+  changed_when: false
+  check_mode: false

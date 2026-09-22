@@ -12,6 +12,9 @@ const Checkbox = React.forwardRef<
     ref={ref}
     className={cn(
       "peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+      // A 16px box is a fingernail target. Checklists are half of what this
+      // app does on a phone, so the target grows to 44px around the drawing.
+      "coarse:relative coarse:after:absolute coarse:after:left-1/2 coarse:after:top-1/2 coarse:after:size-11 coarse:after:-translate-x-1/2 coarse:after:-translate-y-1/2 coarse:after:content-['']",
       className
     )}
     {...props}

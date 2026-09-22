@@ -1,0 +1,10 @@
+[Unit]
+Description=Capture a MikroTik RouterOS backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:45:00
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target
