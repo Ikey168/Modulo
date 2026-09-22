@@ -1,0 +1,25 @@
+---
+developer_workstation_packages:
+  Debian:
+    - bat
+    - build-essential
+    - cmake
+    - fzf
+    - gh
+    - ninja-build
+    - openssh-client
+    - shellcheck
+    - zoxide
+    - zsh
+  RedHat:
+    - bat
+    - cmake
+    - fzf
+    - gcc
+    - gh
+    - make
+    - ninja-build
+    - openssh-clients
+    - ShellCheck
+    - zoxide
+    - zsh

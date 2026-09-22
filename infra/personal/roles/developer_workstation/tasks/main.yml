@@ -1,0 +1,40 @@
+---
+- name: Refuse an unsupported workstation package family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in developer_workstation_packages
+    fail_msg: "No workstation package map exists for {{ ansible_facts.os_family }}."
+
+- name: Install the shared workstation CLI
+  ansible.builtin.package:
+    name: "{{ developer_workstation_packages[ansible_facts.os_family] }}"
+    state: present
+
+- name: Verify Git is available
+  ansible.builtin.command: git --version
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Verify ripgrep is available
+  ansible.builtin.command: rg --version
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Verify the declared workstation command surface
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - git --version
+    - gh --version
+    - rg --version
+    - jq --version
+    - tmux -V
+    - zsh --version
+    - fzf --version
+    - cmake --version
+    - gcc --version
+    - make --version
+    - ninja --version
+    - shellcheck --version
+    - ssh -V
+  changed_when: false
+  when: not ansible_check_mode

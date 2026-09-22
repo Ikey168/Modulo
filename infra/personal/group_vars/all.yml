@@ -1,0 +1,17 @@
+---
+baseline_timezone: Europe/Berlin
+baseline_journal_max_use: 512M
+baseline_journal_max_retention: 30day
+baseline_common_packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - restic
+  - rclone
+  - ripgrep
+  - rsync
+  - tmux
+  - unzip
+manage_ssh: false
+requires_container_runtime: false

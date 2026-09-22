@@ -1,0 +1,94 @@
+---
+- name: Assert the private-network role is bounded to declared server roles
+  ansible.builtin.assert:
+    that:
+      - private_network_id is string
+      - private_network_id is match('^[0-9a-f]{16}$')
+      - canonical_name in ['dev-netcup', 'prod-oracle']
+      - device_role in ['disposable-development-compute', 'modulo-noesis-production']
+      - ansible_facts.os_family == 'Debian'
+    fail_msg: Refusing to enroll an undeclared host in the private network.
+
+- name: Install ZeroTier repository prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Install the ZeroTier repository signing key
+  ansible.builtin.get_url:
+    url: "{{ private_network_zero_tier_key_url }}"
+    dest: /usr/share/keyrings/zerotier.asc
+    owner: root
+    group: root
+    mode: '0644'
+  when: not ansible_check_mode
+
+- name: Read the ZeroTier signing-key fingerprints
+  ansible.builtin.command: gpg --show-keys --with-colons --fingerprint /usr/share/keyrings/zerotier.asc
+  register: zerotier_key
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Refuse an unexpected ZeroTier signing key
+  ansible.builtin.assert:
+    that:
+      - private_network_zero_tier_key_fingerprint in zerotier_key.stdout
+    fail_msg: The downloaded ZeroTier repository key did not match the pinned fingerprint.
+  when: not ansible_check_mode
+
+- name: Configure the signed ZeroTier Debian repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/zerotier.sources
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      Types: deb
+      URIs: {{ private_network_zero_tier_repository }}
+      Suites: {{ ansible_facts.distribution_release }}
+      Components: main
+      Signed-By: /usr/share/keyrings/zerotier.asc
+  when: not ansible_check_mode
+
+- name: Install ZeroTier
+  ansible.builtin.apt:
+    name: zerotier-one
+    state: present
+    update_cache: true
+  when: not ansible_check_mode
+
+- name: Enable and start ZeroTier
+  ansible.builtin.systemd_service:
+    name: zerotier-one
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Inspect current ZeroTier memberships
+  ansible.builtin.command: zerotier-cli listnetworks
+  register: zerotier_networks
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Join the declared private network
+  ansible.builtin.command: "zerotier-cli join {{ private_network_id }}"
+  when:
+    - not ansible_check_mode
+    - private_network_id not in zerotier_networks.stdout
+  register: zerotier_join
+  changed_when: "'OK' in zerotier_join.stdout"
+
+- name: Keep the private network from replacing host routing or DNS
+  ansible.builtin.command: "zerotier-cli set {{ private_network_id }} {{ item.key }}={{ item.value }}"
+  loop:
+    - { key: allowManaged, value: "{{ private_network_allow_managed }}" }
+    - { key: allowGlobal, value: "{{ private_network_allow_global }}" }
+    - { key: allowDefault, value: "{{ private_network_allow_default }}" }
+    - { key: allowDNS, value: "{{ private_network_allow_dns }}" }
+  changed_when: false
+  when: not ansible_check_mode

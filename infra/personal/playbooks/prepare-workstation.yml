@@ -1,0 +1,27 @@
+---
+- name: Prepare a minimal Linux target for the workstation bootstrap
+  hosts: workstations
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Install only the Python bindings required by Ansible package modules
+      ansible.builtin.raw: |
+        set -eu
+        if command -v apt-get >/dev/null 2>&1; then
+          if ! dpkg-query -W -f='${Package}:${Status}\n' python3 python3-apt >/dev/null 2>&1; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y python3 python3-apt
+            printf '%s\n' BOOTSTRAP_CHANGED
+          fi
+        elif command -v dnf >/dev/null 2>&1; then
+          if ! rpm -q python3 python3-libdnf5 >/dev/null 2>&1; then
+            dnf install -y python3 python3-libdnf5
+            printf '%s\n' BOOTSTRAP_CHANGED
+          fi
+        else
+          printf '%s\n' 'Unsupported package manager: expected apt-get or dnf.' >&2
+          exit 1
+        fi
+      register: workstation_prepare
+      changed_when: "'BOOTSTRAP_CHANGED' in workstation_prepare.stdout"
