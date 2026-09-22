@@ -77,9 +77,11 @@ python3 scripts/verify-workstation-bootstrap.py \
 ```
 
 The functional verifier requires the shared CLI, the role marker, the external
-backup-secret boundary and SSH key-only policy when `sshd` is installed. It
-reports optional parity commands separately so workstation drift is visible
-without pretending that project-owned runtimes are host-global dependencies.
+backup-secret boundary and project-tool declarations. Add
+`--expect-sshd-hardening` when the inventory sets `manage_ssh: true`; client-only
+workstations are not required to run an SSH server. The verifier reports
+optional parity commands separately so workstation drift is visible without
+pretending that project-owned runtimes are host-global dependencies.
 The preparation stage is intentionally narrow: it installs only Python and the
 distribution package bindings Ansible needs to perform an honest dry run.
 

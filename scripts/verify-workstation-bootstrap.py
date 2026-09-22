@@ -72,6 +72,7 @@ def command_version(command: str) -> str | None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=Path)
+    parser.add_argument("--expect-sshd-hardening", action="store_true")
     args = parser.parse_args()
 
     required = {name: command_version(name) for name in REQUIRED_COMMANDS}
@@ -95,7 +96,7 @@ def main() -> None:
 
     ssh_policy: dict[str, str] = {}
     sshd = shutil.which("sshd")
-    if sshd:
+    if args.expect_sshd_hardening and sshd:
         result = subprocess.run(
             [sshd, "-T"], capture_output=True, text=True, check=False
         )
@@ -117,6 +118,8 @@ def main() -> None:
         for key, value in expected.items():
             if ssh_policy.get(key) != value:
                 failures.append(f"sshd:{key}")
+    elif args.expect_sshd_hardening:
+        failures.append("sshd:missing")
 
     report = {
         "accepted": not failures,
