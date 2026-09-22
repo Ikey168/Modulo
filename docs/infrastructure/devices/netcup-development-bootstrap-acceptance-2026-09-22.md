@@ -16,8 +16,8 @@ Docker-backed integration tests on the server.
 
 ## Source and target boundary
 
-- Branch: `codex/netcup-clean-dev`
-- Accepted implementation head: `6f871e2b`
+- Delivered pull request: `#520`
+- Bootstrap merge on protected `main`: `264ed531`
 - Host: `dev-netcup`, Debian 13, eight CPUs and 16 GB RAM
 - Developer: unprivileged `ik`
 - Clean checkout: `/home/ik/Development/Modulo`
