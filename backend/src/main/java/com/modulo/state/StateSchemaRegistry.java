@@ -117,7 +117,14 @@ final class StateSchemaRegistry {
               namespace.equals("workspace-settings")
                   ? "{\"type\":\"string\",\"maxLength\":128}"
                   : null;
-          default -> OperationalSchemas.definition(namespace, id);
+          // Host-owned workspace records (PARA, media collections, and similar
+          // records) are validated by their host consumers. The state service
+          // still enforces ownership, size, version and JSON validity, but must
+          // not require every host record to be registered as an external schema.
+          default ->
+              id.startsWith("modulo.workspace.")
+                  ? "{}"
+                  : OperationalSchemas.definition(namespace, id);
         };
     return definition == null ? null : read(definition);
   }
