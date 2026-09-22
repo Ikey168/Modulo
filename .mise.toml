@@ -13,7 +13,7 @@ run = [
   "npm run typecheck --workspace=frontend",
   "npm run lint:boundary:ci --workspace=frontend",
   "npm run test:run --workspace=frontend",
-  "npm run build:strict --workspace=frontend",
+  "build_dir=$(mktemp -d); trap 'rm -rf \"$build_dir\"' EXIT; npm run build:strict --workspace=frontend -- --outDir \"$build_dir\"",
 ]
 
 [tasks.check-frontend-strict-lint]
