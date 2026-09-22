@@ -49,9 +49,10 @@ Docker-backed integration tests on the server.
 5. The full Maven reactor completed in 17:37 with `BUILD SUCCESS`: 799 tests,
    zero failures, zero errors and three skips, including Docker/Testcontainers
    integration tests and the JaCoCo coverage gate.
-6. The AssemblyScript WASM example rebuilt byte-for-byte. The Rust example
-   compiled successfully with its exact pinned toolchain; its fixture drift is
-   recorded below.
+6. Both WASM examples rebuilt byte-for-byte. The Rust task runs from the
+   example directory, matching CI and allowing Cargo to discover its nested
+   `.cargo/config.toml`; invoking Cargo from the repository root had initially
+   produced a false fixture mismatch by omitting those module-local settings.
 
 ## Separate follow-up gaps
 
@@ -63,29 +64,20 @@ passes without this legacy whole-tree lint. Remediate the source findings in a
 separate code-quality project rather than weakening the lint configuration or
 misclassifying them as a host-bootstrap failure.
 
-### NETCUP-DEV-GAP-02 — Rust WASM fixture drift
-
-The Rust 1.94.1 `wasm32-unknown-unknown` build produced SHA-256
-`59b72360afe1bf58ee4f2dc13379d74497875c604c9d3be8623953ea5d48c4ab` (28,435
-bytes), while the checked-in fixture is
-`69d135205e7c614b29f60a365ad33fcebcb8221d0f9d40bc58d47d47b629f574` (28,437
-bytes). `cmp` first differs at byte 176. Investigate and deliberately update
-the pin or fixture in a separate ABI-conformance project.
-
-### NETCUP-DEV-GAP-03 — Dependency vulnerabilities
+### NETCUP-DEV-GAP-02 — Dependency vulnerabilities
 
 The clean root install reports 102 npm audit findings: 27 low, 36 moderate, 31
 high and eight critical. Dependency remediation is repository work and should
 be handled separately from the host bootstrap.
 
-### NETCUP-DEV-GAP-04 — Legacy Netcup worktrees remain non-clean
+### NETCUP-DEV-GAP-03 — Legacy Netcup worktrees remain non-clean
 
 The pre-existing `/home/ik/ChatGPT/Modulo` and `/home/ik/ChatGPT/Noesis`
 worktrees contain owner changes and were deliberately left untouched. New work
 should start from `/home/ik/Development/Modulo`; reconcile or archive the
 legacy worktrees only in a separate, owner-reviewed cleanup.
 
-### NETCUP-DEV-GAP-05 — Optional interactive-tool parity
+### NETCUP-DEV-GAP-04 — Optional interactive-tool parity
 
 The required server command surface passes, and `zsh`, `fzf`, `zoxide` and
 Debian's `batcat` are installed. Starship, Delta, an editor launcher and a

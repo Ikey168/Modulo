@@ -29,7 +29,7 @@ description = "Rebuild pinned WASM examples and compare their checked-in fixture
 run = [
   "npm ci --no-audit --no-fund --prefix examples/wasm-nodes/assemblyscript",
   "npm run build --prefix examples/wasm-nodes/assemblyscript",
-  "cargo build --manifest-path examples/wasm-nodes/rust/Cargo.toml --release --target wasm32-unknown-unknown",
+  "cd examples/wasm-nodes/rust && cargo build --release --target wasm32-unknown-unknown",
   "cmp examples/wasm-nodes/assemblyscript/build/titlecase.wasm backend/src/test/resources/wasm/titlecase.wasm",
   "cmp examples/wasm-nodes/rust/target/wasm32-unknown-unknown/release/modulo_wasm_node_wordstats.wasm backend/src/test/resources/wasm/wordstats.wasm",
 ]
