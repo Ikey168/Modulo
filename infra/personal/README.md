@@ -42,6 +42,39 @@ uv run --project infra/personal ansible-playbook --check --diff \
   -i /secure/path/inventory.yml infra/personal/playbooks/site.yml
 ```
 
+For Netcup, connect through the separately proven, source-restricted root
+break-glass key and keep `remote_development_admin_user: ik`. This lets Ansible
+manage the host after passwordless sudo is removed without turning the root SSH
+session into the day-to-day developer account:
+
+```sh
+ANSIBLE_CONFIG=infra/personal/ansible.cfg \
+uv run --project infra/personal ansible-playbook --check --diff \
+  -i /secure/path/inventory.yml \
+  infra/personal/playbooks/development-server.yml
+
+ANSIBLE_CONFIG=infra/personal/ansible.cfg \
+uv run --project infra/personal ansible-playbook --diff \
+  -i /secure/path/inventory.yml \
+  infra/personal/playbooks/development-server.yml
+```
+
+The Netcup inventory explicitly sets `baseline_ssh_permit_root_login` to
+`prohibit-password`; the authorized key remains source-restricted. All other
+managed hosts default to denying root SSH entirely.
+
+After cloning Modulo into the managed checkout root, trust its reviewed mise
+configuration, install the declared runtimes as the unprivileged administrator,
+and run the root-readable host acceptance:
+
+```sh
+ssh netcup 'mise trust /home/ik/Development/Modulo/.mise.toml && \
+  mise install --cd /home/ik/Development/Modulo'
+ssh -l root netcup \
+  'python3 /home/ik/Development/Modulo/scripts/verify-netcup-development.py \
+    --project /home/ik/Development/Modulo --admin-user ik'
+```
+
 Apply one host at a time only after the audit succeeds and a second
 administrative path is available:
 
