@@ -1,0 +1,9 @@
+---
+- name: Bootstrap one explicitly selected developer workstation
+  hosts: workstations
+  gather_facts: true
+  become: true
+  roles:
+    - linux_baseline
+    - backup_client
+    - developer_workstation

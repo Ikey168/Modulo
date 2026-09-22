@@ -1,0 +1,36 @@
+---
+- name: Apply the common Linux baseline
+  hosts: all:!laptop
+  gather_facts: true
+  become: true
+  roles:
+    - linux_baseline
+    - backup_client
+
+- name: Apply remote development server tooling
+  hosts: development_servers
+  gather_facts: true
+  become: true
+  roles:
+    - remote_development
+
+- name: Apply declared private-network membership
+  hosts: private_network_members
+  gather_facts: true
+  become: true
+  roles:
+    - private_network
+
+- name: Validate required container runtimes
+  hosts: all:!laptop
+  gather_facts: true
+  become: true
+  roles:
+    - container_host
+
+- name: Apply workstation development tooling
+  hosts: workstations:!laptop
+  gather_facts: true
+  become: true
+  roles:
+    - developer_workstation

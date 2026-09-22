@@ -1,0 +1,16 @@
+---
+- name: Validate sshd
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  listen: reload sshd
+
+- name: Reload sshd
+  ansible.builtin.service:
+    name: "{{ 'ssh' if ansible_facts.os_family == 'Debian' else 'sshd' }}"
+    state: reloaded
+  listen: reload sshd
+
+- name: Restart journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted

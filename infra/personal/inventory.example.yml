@@ -1,0 +1,52 @@
+---
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    baseline_timezone: Europe/Berlin
+  children:
+    workstations:
+      hosts:
+        desktop:
+          ansible_connection: local
+          device_role: engineering-workstation
+          canonical_name: desktop
+          manage_ssh: false
+        laptop:
+          ansible_host: owner-evidence-required
+          ansible_user: ik
+          device_role: thin-workstation
+          canonical_name: laptop
+          manage_ssh: false
+    homeservers:
+      hosts:
+        home-pi:
+          ansible_host: 192.168.88.135
+          ansible_user: ik
+          device_role: always-on-homeserver
+          canonical_name: home-pi
+          manage_ssh: false
+          requires_container_runtime: true
+    development_servers:
+      hosts:
+        dev-netcup:
+          ansible_host: 185.162.249.37
+          ansible_user: ik
+          device_role: disposable-development-compute
+          canonical_name: dev-netcup
+          manage_ssh: true
+          requires_container_runtime: true
+          private_network_id: 88c5b1f339774e42
+    production_servers:
+      hosts:
+        prod-oracle:
+          ansible_host: 141.147.5.114
+          ansible_user: ubuntu
+          device_role: modulo-noesis-production
+          canonical_name: prod-oracle
+          manage_ssh: false
+          requires_container_runtime: true
+          private_network_id: 88c5b1f339774e42
+    private_network_members:
+      children:
+        development_servers:
+        production_servers:

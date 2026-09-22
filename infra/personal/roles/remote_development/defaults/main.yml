@@ -1,0 +1,3 @@
+---
+remote_development_disk_warning_percent: 90
+remote_development_private_ssh_only: false

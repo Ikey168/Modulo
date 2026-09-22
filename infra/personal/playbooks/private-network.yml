@@ -1,0 +1,7 @@
+---
+- name: Enroll declared production and development servers in the private network
+  hosts: private_network_members
+  gather_facts: true
+  become: true
+  roles:
+    - private_network

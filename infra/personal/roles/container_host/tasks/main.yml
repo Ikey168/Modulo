@@ -1,0 +1,19 @@
+---
+- name: Check the container runtime when the role requires it
+  ansible.builtin.command: docker version
+  register: container_runtime
+  changed_when: false
+  check_mode: false
+  when:
+    - requires_container_runtime | bool
+    - not ansible_check_mode
+
+- name: Refuse to configure a container host without a working daemon
+  ansible.builtin.assert:
+    that:
+      - container_runtime.rc == 0
+      - container_runtime.stdout | length > 0
+    fail_msg: Install and validate Docker through the host-specific bootstrap before applying application topology.
+  when:
+    - requires_container_runtime | bool
+    - not ansible_check_mode

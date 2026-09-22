@@ -1,0 +1,382 @@
+---
+- name: Assert the remote development role is bounded
+  ansible.builtin.assert:
+    that:
+      - device_role == 'disposable-development-compute'
+      - canonical_name == 'dev-netcup'
+      - ansible_facts.os_family == 'Debian'
+    fail_msg: Refusing to apply the Netcup development profile to another role.
+
+- name: Install remote development and container packages
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - cmake
+      - docker-compose
+      - docker.io
+      - extrepo
+      - gh
+      - gnupg
+      - maven
+      - ninja-build
+      - nftables
+      - pkg-config
+      - python3-venv
+      - shellcheck
+    state: present
+    update_cache: true
+
+- name: Enable and start Docker
+  ansible.builtin.service:
+    name: docker
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Allow the named development administrator to use Docker
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+  when: not ansible_check_mode
+
+- name: Bound Docker daemon logs and preserve running containers across daemon upgrades
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {
+        "live-restore": true,
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-file": "3",
+          "max-size": "25m"
+        }
+      }
+  notify: Restart Docker
+
+- name: Install the disposable Docker cleanup service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dev-netcup-docker-prune.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Remove week-old unused Docker development artifacts
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/docker system prune --force --filter until=168h
+      NoNewPrivileges=true
+
+- name: Install the disposable Docker cleanup timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dev-netcup-docker-prune.timer
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Weekly cleanup of unused Docker development artifacts
+
+      [Timer]
+      OnCalendar=weekly
+      RandomizedDelaySec=2h
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Enable the disposable Docker cleanup timer
+  ansible.builtin.systemd_service:
+    name: dev-netcup-docker-prune.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Inspect mise package availability
+  ansible.builtin.command: apt-cache policy mise
+  register: mise_policy
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Enable the extrepo-managed mise repository
+  ansible.builtin.command: extrepo enable mise
+  when:
+    - not ansible_check_mode
+    - "'Candidate: (none)' in mise_policy.stdout or 'mise:' not in mise_policy.stdout"
+  register: mise_repo
+  changed_when: mise_repo.rc == 0
+
+- name: Refresh apt metadata after enabling mise
+  ansible.builtin.apt:
+    update_cache: true
+  when:
+    - not ansible_check_mode
+    - mise_repo is changed
+
+- name: Install mise from its extrepo-managed repository
+  ansible.builtin.apt:
+    name: mise
+    state: present
+  when: not ansible_check_mode
+
+- name: Create the development checkout root
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/ChatGPT"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0750'
+
+- name: Activate mise for interactive Bash sessions
+  ansible.builtin.blockinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+    marker: '# {mark} MODULO MISE'
+    block: |
+      if command -v mise >/dev/null 2>&1; then
+        eval "$(mise activate bash)"
+      fi
+
+- name: Record the disposable development boundary
+  ansible.builtin.copy:
+    dest: /etc/motd.d/70-development-boundary
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      This is disposable development compute.
+      Production credentials and authoritative personal data are forbidden.
+      Source belongs in Git; non-regenerable state requires an explicit backup.
+
+- name: Install the ZeroTier repository signing key
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg
+    dest: /usr/share/keyrings/zerotier.asc
+    owner: root
+    group: root
+    mode: '0644'
+  when: not ansible_check_mode
+
+- name: Read the ZeroTier signing-key fingerprints
+  ansible.builtin.command: gpg --show-keys --with-colons --fingerprint /usr/share/keyrings/zerotier.asc
+  register: zerotier_key
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Refuse an unexpected ZeroTier signing key
+  ansible.builtin.assert:
+    that:
+      - "'74A5E9C458E1A431F1DA57A71657198823E52A61' in zerotier_key.stdout"
+    fail_msg: The downloaded ZeroTier repository key did not match the pinned fingerprint.
+  when: not ansible_check_mode
+
+- name: Configure the signed ZeroTier Debian repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/zerotier.sources
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      Types: deb
+      URIs: https://download.zerotier.com/debian/trixie
+      Suites: trixie
+      Components: main
+      Signed-By: /usr/share/keyrings/zerotier.asc
+  when: not ansible_check_mode
+
+- name: Install ZeroTier
+  ansible.builtin.apt:
+    name: zerotier-one
+    state: present
+    update_cache: true
+  when: not ansible_check_mode
+
+- name: Enable and start ZeroTier
+  ansible.builtin.service:
+    name: zerotier-one
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Inspect current ZeroTier memberships
+  ansible.builtin.command: zerotier-cli listnetworks
+  register: zerotier_networks
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Join the declared private network
+  ansible.builtin.command: "zerotier-cli join {{ zerotier_network_id }}"
+  when:
+    - not ansible_check_mode
+    - zerotier_network_id not in zerotier_networks.stdout
+  register: zerotier_join
+  changed_when: "'OK' in zerotier_join.stdout"
+
+- name: Keep the private network from replacing host routing or DNS
+  ansible.builtin.command: "zerotier-cli set {{ zerotier_network_id }} {{ item }}"
+  loop:
+    - allowManaged=1
+    - allowGlobal=0
+    - allowDefault=0
+    - allowDNS=0
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Record the disposable backup scope
+  ansible.builtin.copy:
+    dest: /etc/personal-backup/DEV-NETCUP-SCOPE
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      This host currently contains no authoritative state.
+      Git is the authority for source; package, build and container data are regenerable caches.
+      Do not store production credentials or unique personal data here.
+      Before introducing non-regenerable state, provision an encrypted off-host Restic target,
+      document retention, and complete a restore test.
+
+- name: Create the development-host health state directory
+  ansible.builtin.file:
+    path: /var/lib/dev-netcup-health
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Install the development-host health probe
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/dev-netcup-health
+    owner: root
+    group: root
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      set -eu
+
+      state_dir=/var/lib/dev-netcup-health
+      output="$state_dir/last.json"
+      temporary="$state_dir/.last.json.$$"
+      disk_percent="$(df -P / | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }')"
+      ssh_state="$(systemctl is-active ssh 2>/dev/null || true)"
+      docker_state="$(systemctl is-active docker 2>/dev/null || true)"
+      zerotier_state="$(systemctl is-active zerotier-one 2>/dev/null || true)"
+      network_state="$(zerotier-cli -j listnetworks 2>/dev/null | jq -r --arg id '{{ zerotier_network_id }}' '.[] | select(.nwid == $id) | .status' | head -n 1)"
+      [ -n "$network_state" ] || network_state=NOT_JOINED
+      healthy=true
+      [ "$ssh_state" = active ] || healthy=false
+      [ "$docker_state" = active ] || healthy=false
+      [ "$zerotier_state" = active ] || healthy=false
+      [ "$network_state" = OK ] || healthy=false
+      [ "$disk_percent" -lt {{ remote_development_disk_warning_percent }} ] || healthy=false
+
+      install -d -m 0700 "$state_dir"
+      jq -n \
+        --arg checkedAt "$(date --iso-8601=seconds)" \
+        --arg ssh "$ssh_state" \
+        --arg docker "$docker_state" \
+        --arg zerotier "$zerotier_state" \
+        --arg network "$network_state" \
+        --argjson diskPercent "$disk_percent" \
+        --argjson healthy "$healthy" \
+        '{checkedAt: $checkedAt, healthy: $healthy, services: {ssh: $ssh, docker: $docker, zerotier: $zerotier}, zerotierNetwork: $network, rootDiskPercent: $diskPercent}' > "$temporary"
+      chmod 0600 "$temporary"
+      mv "$temporary" "$output"
+
+      if [ "$healthy" != true ]; then
+        logger -p daemon.warning -t dev-netcup-health "development host health check is degraded; inspect $output"
+        exit 1
+      fi
+
+- name: Install the development-host health service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dev-netcup-health.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Check Netcup development host health
+      After=docker.service zerotier-one.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/dev-netcup-health
+      NoNewPrivileges=true
+      PrivateTmp=true
+      ProtectHome=true
+      ProtectSystem=strict
+      ReadWritePaths=/var/lib/dev-netcup-health
+
+- name: Install the development-host health timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dev-netcup-health.timer
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Periodically check Netcup development host health
+
+      [Timer]
+      OnBootSec=5min
+      OnUnitActiveSec=15min
+      RandomizedDelaySec=1min
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Enable the development-host health timer
+  ansible.builtin.systemd_service:
+    name: dev-netcup-health.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Install the private-access-only firewall policy
+  ansible.builtin.copy:
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: nft -c -f %s
+    content: |
+      # Managed by Modulo infra/personal for dev-netcup.
+      flush ruleset
+
+      table inet filter {
+        chain input {
+          type filter hook input priority filter; policy drop;
+          ct state established,related accept
+          ct state invalid drop
+          iifname "lo" accept
+          ip protocol icmp accept
+          ip6 nexthdr ipv6-icmp accept
+          udp dport 9993 accept
+          iifname "zt*" tcp dport 22 accept
+        }
+
+        chain forward {
+          type filter hook forward priority filter; policy drop;
+        }
+
+        chain output {
+          type filter hook output priority filter; policy accept;
+        }
+      }
+  when: remote_development_private_ssh_only | bool
+  notify: Enable private-access firewall
