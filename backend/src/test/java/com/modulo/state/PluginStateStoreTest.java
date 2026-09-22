@@ -39,11 +39,13 @@ class PluginStateStoreTest {
             ScriptUtils.executeSqlScript(connection,
                     new ClassPathResource("db/postgresql/V3__Versioned_plugin_state.sql"));
             ScriptUtils.executeSqlScript(connection,new ClassPathResource("db/postgresql/V5__Plugin_state_grants_and_delivery.sql"));
+            ScriptUtils.executeSqlScript(connection,new ClassPathResource("db/postgresql/V6__State_storage_generation.sql"));
         }
     }
     @BeforeEach void setup() {
         jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("TRUNCATE plugin_state_events,plugin_state,users RESTART IDENTITY CASCADE");
+        jdbc.update("UPDATE plugin_state_storage SET generation=gen_random_uuid(), rotated_at=CURRENT_TIMESTAMP WHERE singleton=1");
         jdbc.update("INSERT INTO users(id) VALUES (1),(2)");
         users = mock(AuthenticatedUserService.class);
         when(users.requireUserId()).thenAnswer(call -> owner.get());
@@ -235,6 +237,36 @@ class PluginStateStoreTest {
                 .contentType("application/json").content(" ".repeat(1_048_576 + 4097)))
                 .andExpect(status().isPayloadTooLarge());
         assertTrue(store.changes("personal", "canvas", 0, 100).isEmpty());
+    }
+    @Test void httpExposesGenerationAndRejectsAStalePinnedMutation() throws Exception {
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(new PluginStateController(store)).build();
+        String namespace = "/api/workspaces/personal/plugin-state/canvas";
+        String endpoint = namespace + "/generation-test";
+        String generation = store.generation("personal", "canvas");
+        String body = "{\"expectedVersion\":0,\"schemaId\":\"test\",\"schemaVersion\":1,\"value\":1}";
+
+        mvc.perform(get(namespace).param("generation", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.generation").value(generation));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(endpoint)
+                .header("X-Modulo-State-Generation", "00000000-0000-0000-0000-000000000000")
+                .contentType("application/json").content(body))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.code").value("STATE_STORAGE_GENERATION_CHANGED"));
+        assertTrue(store.list("personal", "canvas", null, 100).records().isEmpty());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(endpoint)
+                .header("X-Modulo-State-Generation", generation)
+                .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value(1));
+        jdbc.update("UPDATE plugin_state_storage SET generation=gen_random_uuid(), rotated_at=CURRENT_TIMESTAMP WHERE singleton=1");
+        mvc.perform(delete(endpoint).param("expectedVersion", "1")
+                .header("X-Modulo-State-Generation", generation))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.code").value("STATE_STORAGE_GENERATION_CHANGED"));
+        assertEquals(1, store.get("personal", "canvas", "generation-test").version());
     }
     @Test void httpUnknownAccountCannotReadState() throws Exception {
         put("private", 0, "1");

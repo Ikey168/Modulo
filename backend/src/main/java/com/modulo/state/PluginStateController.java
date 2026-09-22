@@ -33,7 +33,17 @@ public class PluginStateController {
     return store;
   }
 
-  @GetMapping(params = "!changesAfter")
+  public record StorageGeneration(String generation) {}
+
+  @GetMapping(params = "generation")
+  public ResponseEntity<StorageGeneration> generation(
+      @PathVariable String workspace, @PathVariable String namespace) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(new StorageGeneration(store().generation(workspace, namespace)));
+  }
+
+  @GetMapping(params = {"!changesAfter", "!generation"})
   public ResponseEntity<PluginStateStore.Page> list(
       @PathVariable String workspace,
       @PathVariable String namespace,
@@ -73,9 +83,11 @@ public class PluginStateController {
       @PathVariable String workspace,
       @PathVariable String namespace,
       @PathVariable String key,
+      @RequestHeader(value = "X-Modulo-State-Generation", required = false) String generation,
       HttpServletRequest request)
       throws IOException {
     // Bound bytes before JSON parsing, including chunked requests with no Content-Length.
+    store().verifyGeneration(workspace, namespace, generation);
     byte[] bytes = request.getInputStream().readNBytes(MAX_REQUEST_BYTES + 1);
     if (bytes.length > MAX_REQUEST_BYTES) {
       throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "STATE_PAYLOAD_TOO_LARGE");
@@ -100,7 +112,9 @@ public class PluginStateController {
       @PathVariable String workspace,
       @PathVariable String namespace,
       @PathVariable String key,
+      @RequestHeader(value = "X-Modulo-State-Generation", required = false) String generation,
       @RequestParam long expectedVersion) {
+    store().verifyGeneration(workspace, namespace, generation);
     return response(store().delete(workspace, namespace, key, expectedVersion));
   }
 

@@ -131,6 +131,29 @@ public class PluginStateStore {
     this.schemas = new StateSchemaRegistry(jdbc, this.json);
   }
 
+  /** Returns the database-history identity after authenticating and validating the requested scope. */
+  public String generation(String workspace, String namespace) {
+    scope(workspace, namespace, null);
+    return jdbc.queryForObject(
+        "SELECT generation::text FROM plugin_state_storage WHERE singleton=1", String.class);
+  }
+
+  /** Rejects a stale browser queue after recovery. Missing headers remain compatible with older clients. */
+  public void verifyGeneration(String workspace, String namespace, String expected) {
+    scope(workspace, namespace, null, true);
+    if (expected == null) return;
+    if (!expected.matches(
+        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+      throw error(HttpStatus.PRECONDITION_FAILED, "STATE_STORAGE_GENERATION_CHANGED");
+    }
+    String current =
+        jdbc.queryForObject(
+            "SELECT generation::text FROM plugin_state_storage WHERE singleton=1", String.class);
+    if (!current.equalsIgnoreCase(expected)) {
+      throw error(HttpStatus.PRECONDITION_FAILED, "STATE_STORAGE_GENERATION_CHANGED");
+    }
+  }
+
   public StateRecord get(String workspace, String namespace, String key) {
     long owner = scope(workspace, namespace, key);
     StateRecord current = find(owner, workspace, namespace, key);
