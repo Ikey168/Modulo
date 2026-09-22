@@ -1,0 +1,39 @@
+# Non-secret backup policy for the disposable Netcup development host.
+# Paths are relative to the host filesystem and are consumed by the helper.
+include:
+  - /home/ik/ChatGPT
+  - /home/ik/.config/mise
+  - /home/ik/.config/git
+  - /home/ik/.bashrc
+  - /home/ik/.profile
+  - /etc/ssh/sshd_config.d/60-personal-baseline.conf
+  - /etc/netcup-admin/ssh-zerotier.nft
+  - /etc/systemd/system/netcup-ssh-zerotier-firewall.service
+  - /usr/local/sbin/netcup-ssh-zerotier-firewall
+  - /etc/systemd/system/dev-netcup-health.service
+  - /etc/systemd/system/dev-netcup-health.timer
+  - /etc/systemd/system/dev-netcup-docker-prune.service
+  - /etc/systemd/system/dev-netcup-docker-prune.timer
+  - /usr/local/sbin/dev-netcup-health
+
+# These exclusions are safety boundaries, not a guarantee that an arbitrary
+# repository contains no secrets. Review the archive manifest before use.
+exclude:
+  - /home/ik/.ssh
+  - /home/ik/.config/modulo-mcp
+  - /home/ik/.codex
+  - /home/ik/.claude
+  - '**/.env'
+  - '**/.env.*'
+  - '**/*secret*'
+  - '**/*token*'
+  - '**/*password*'
+  - '**/*credential*'
+  - '**/id_rsa*'
+  - '**/id_ed25519*'
+  - '**/node_modules'
+  - '**/.venv'
+  - '**/target'
+  - '**/dist'
+  - '**/.cache'
+  - '**/__pycache__'

@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+state_dir='{{ personal_health_state_dir }}'
+output="$state_dir/last.json"
+temporary="$state_dir/.last.json.$$"
+zerotier_cli='{{ personal_zerotier_cli }}'
+network_id='{{ personal_zerotier_network_id }}'
+
+disk_percent="$(df -P / | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }')"
+ssh_state="$(systemctl is-active ssh 2>/dev/null || true)"
+docker_state="$(systemctl is-active docker 2>/dev/null || true)"
+zerotier_state="$(systemctl is-active zerotier-one 2>/dev/null || true)"
+admin_firewall_state="$(systemctl is-active netcup-ssh-zerotier-firewall.service 2>/dev/null || true)"
+network_state=NOT_JOINED
+if [ -x "$zerotier_cli" ]; then
+  network_state="$("$zerotier_cli" -j listnetworks 2>/dev/null \
+    | jq -r --arg id "$network_id" '.[] | select(.nwid == $id) | .status' \
+    | head -n 1 || true)"
+  [ -n "$network_state" ] || network_state=NOT_JOINED
+fi
+
+healthy=true
+[ "$ssh_state" = active ] || healthy=false
+[ "$docker_state" = active ] || healthy=false
+[ "$zerotier_state" = active ] || healthy=false
+[ "$admin_firewall_state" = active ] || healthy=false
+[ "$network_state" = OK ] || healthy=false
+[ "$disk_percent" -lt 90 ] || healthy=false
+
+install -d -m 0700 "$state_dir"
+jq -n \
+  --arg checkedAt "$(date --iso-8601=seconds)" \
+  --arg ssh "$ssh_state" \
+  --arg docker "$docker_state" \
+  --arg zerotier "$zerotier_state" \
+  --arg adminFirewall "$admin_firewall_state" \
+  --arg network "$network_state" \
+  --argjson diskPercent "$disk_percent" \
+  --argjson healthy "$healthy" \
+  '{checkedAt: $checkedAt, healthy: $healthy, services: {ssh: $ssh, docker: $docker, zerotier: $zerotier, adminFirewall: $adminFirewall}, zerotierNetwork: $network, rootDiskPercent: $diskPercent}' \
+  > "$temporary"
+chmod 0600 "$temporary"
+mv "$temporary" "$output"
+
+if [ "$healthy" != true ]; then
+  logger -p daemon.warning -t dev-netcup-health "development host health check is degraded; inspect $output"
+  exit 1
+fi

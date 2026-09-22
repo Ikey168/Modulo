@@ -1,0 +1,15 @@
+[Unit]
+Description=Back up the Netcup development state to the configured restic repository
+ConditionPathExists=/etc/netcup-backup/restic.env
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ personal_offsite_env_file }}
+ExecStart=/usr/local/libexec/netcup-restic-backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/var/lib/netcup-backup /var/backups/netcup

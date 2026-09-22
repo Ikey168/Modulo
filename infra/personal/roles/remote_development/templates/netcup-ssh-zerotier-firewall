@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+nft=/usr/sbin/nft
+policy=/etc/netcup-admin/ssh-zerotier.nft
+
+case "${1:-}" in
+  apply)
+    "$nft" delete table inet netcup_admin 2>/dev/null || true
+    "$nft" -f "$policy"
+    ;;
+  remove)
+    "$nft" delete table inet netcup_admin 2>/dev/null || true
+    ;;
+  *)
+    printf 'Usage: %s {apply|remove}\n' "$0" >&2
+    exit 2
+    ;;
+esac

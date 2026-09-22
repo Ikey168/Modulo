@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "owner": "operator",
+  "reviewCadence": "quarterly and after a device, role, network, authority, or access change",
+  "secretPolicy": "Credentials, private keys, recovery codes, tokens, and device unlock material are external to this inventory.",
+  "devices": [
+    {
+      "name": "desktop",
+      "boundary": "Personal",
+      "role": "Physical engineering workstation",
+      "environment": "Fedora Linux x86_64; FPGA, KiCad, audio, USB, and JTAG work",
+      "lifecycle": "active",
+      "evidenceState": "verified-local",
+      "network": {"zerotierAddress": "10.165.78.30"},
+      "rebuildAuthority": "trusted operating-system media plus versioned repositories; local engineering state is classified separately"
+    },
+    {
+      "name": "laptop",
+      "boundary": "Personal",
+      "role": "Thin portable workstation",
+      "environment": "Ubuntu Linux x86_64; terminal, browser, and remote administration",
+      "lifecycle": "active",
+      "evidenceState": "partial",
+      "network": {"zerotierAddress": "10.165.78.20"},
+      "rebuildAuthority": "trusted operating-system media plus the shared Linux baseline"
+    },
+    {
+      "name": "phone",
+      "boundary": "Personal",
+      "role": "Communications, authentication, and capture",
+      "environment": "Android mobile device; messaging, passkeys, two-factor authentication, and Modulo capture",
+      "lifecycle": "active",
+      "evidenceState": "partial",
+      "network": {"evidence": "LAN observation only; no persistent address is recorded here"},
+      "rebuildAuthority": "owner-controlled mobile restore and re-enrollment"
+    },
+    {
+      "name": "edge-pi",
+      "boundary": "Home infrastructure",
+      "role": "Always-on home services and records host",
+      "environment": "Debian 13 aarch64; Paperless, Matrix, messaging bridges, monitoring, and backups",
+      "lifecycle": "active",
+      "evidenceState": "verified-local",
+      "network": {"lanAddress": "10.10.20.10", "zerotierAddress": "10.165.78.10"},
+      "rebuildAuthority": "versioned service definitions plus state-specific restores"
+    },
+    {
+      "name": "dev-netcup",
+      "boundary": "Development",
+      "role": "Canonical disposable development, build, and agent compute",
+      "environment": "Debian 13/trixie x86_64; Docker, builds, tests, temporary services, and long-running development sessions",
+      "lifecycle": "active",
+      "evidenceState": "verified-local",
+      "network": {
+        "providerHostname": "v2202609388785525256.ultrasrv.de",
+        "publicIpv4": "185.162.249.37",
+        "zerotierAddress": "10.165.78.189",
+        "zerotierNetworkId": "88c5b1f339774e42",
+        "administration": "ZeroTier-only SSH; public TCP/22 filtered"
+      },
+      "rebuildAuthority": "Modulo infra/personal plus the state-based backup boundary"
+    },
+    {
+      "name": "prod-oracle",
+      "boundary": "Production",
+      "role": "Modulo and Noesis production only",
+      "environment": "Ubuntu Linux aarch64; protected production services and documented wg-home relay",
+      "lifecycle": "active",
+      "evidenceState": "verified-runtime",
+      "network": {"publicIpv4": "141.147.5.114", "zerotierAddress": "10.165.78.71"},
+      "rebuildAuthority": "protected CI/CD promotion and independently authenticated off-host restore"
+    }
+  ]
+}

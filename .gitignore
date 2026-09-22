@@ -115,3 +115,8 @@ smart-contracts/deployments/localhost*
 smart-contracts/deployments/*test*
 # Runtime logs (regenerated on every test run)
 backend/logs/
+
+# Python and isolated agent runtime artifacts
+__pycache__/
+*.py[cod]
+.agent-worktrees/

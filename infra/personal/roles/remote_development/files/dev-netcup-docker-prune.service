@@ -1,0 +1,9 @@
+[Unit]
+Description=Remove week-old unused Docker development artifacts
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker system prune --force --filter until=168h
+NoNewPrivileges=true

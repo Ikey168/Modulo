@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Netcup development host health
+After=docker.service zerotier-one.service netcup-ssh-zerotier-firewall.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/dev-netcup-health
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/dev-netcup-health

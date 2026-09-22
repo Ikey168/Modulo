@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-21",
+  "datasets": [
+    {
+      "id": "modulo-source",
+      "classification": "source",
+      "authority": "/home/ik/ChatGPT/Modulo",
+      "backupPolicy": "git plus boundary-filtered state archive",
+      "restoreMethod": "clone repository and run the repository contract",
+      "evidenceState": "verified-local"
+    },
+    {
+      "id": "noesis-source",
+      "classification": "source",
+      "authority": "/home/ik/ChatGPT/Noesis",
+      "backupPolicy": "git plus boundary-filtered state archive",
+      "restoreMethod": "clone repository, initialize local workspace, run CLI tests",
+      "evidenceState": "verified-local"
+    },
+    {
+      "id": "noesis-local-warehouse",
+      "classification": "state",
+      "authority": "/home/ik/ChatGPT/Noesis/.noesis/data/noesis.duckdb",
+      "backupPolicy": "state archive; quiesce writers before snapshot",
+      "restoreMethod": "restore into an isolated Noesis workspace and run doctor",
+      "evidenceState": "verified-local"
+    },
+    {
+      "id": "netcup-runtime-configuration",
+      "classification": "configuration",
+      "authority": "infra/personal plus explicitly selected /etc units",
+      "backupPolicy": "boundary-filtered archive; no credential directories",
+      "restoreMethod": "Ansible check/apply followed by baseline verification",
+      "evidenceState": "verified-runtime"
+    },
+    {
+      "id": "build-caches",
+      "classification": "cache",
+      "authority": "node_modules, target, dist, and tool caches",
+      "backupPolicy": "excluded; recreate from lockfiles and pinned runtimes",
+      "restoreMethod": "install dependencies and run the common acceptance gate",
+      "evidenceState": "verified-local"
+    },
+    {
+      "id": "offsite-restic-repository",
+      "classification": "state",
+      "authority": "operator-selected restic repository outside this workspace",
+      "backupPolicy": "planned B2/restic retention with separate password custody",
+      "restoreMethod": "restic check and isolated tagged-snapshot restore",
+      "evidenceState": "owner-gated"
+    }
+  ]
+}

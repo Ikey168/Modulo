@@ -16,6 +16,16 @@
       "args": ["tools/docker_mcp/server.py"],
       "env": {}
     },
+    "modulo": {
+      "type": "stdio",
+      "command": "/home/ik/.local/share/modulo-mcp/venv/bin/python",
+      "args": ["/home/ik/.local/share/modulo-mcp/modulo_mcp/server.py"],
+      "env": {
+        "MODULO_BASE_URL": "https://modulo.141.147.5.114.sslip.io",
+        "MODULO_API_TOKEN_FILE": "/home/ik/.config/modulo-mcp/access-token",
+        "MODULO_OIDC_REFRESH_TOKEN_FILE": "/home/ik/.config/modulo-mcp/refresh-token"
+      }
+    },
     "neo4j": {
       "type": "stdio",
       "command": "uvx",

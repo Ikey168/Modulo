@@ -1,0 +1,37 @@
+---
+# Safe defaults. Consequential changes must be enabled explicitly per run.
+personal_manage_packages: false
+personal_manage_runtime_units: false
+personal_manage_shell: true
+personal_enable_ssh_hardening: false
+personal_enable_firewall: false
+personal_manage_zerotier: false
+personal_manage_offsite_backup_units: false
+personal_enable_unattended_upgrades: true
+personal_offsite_env_file: /etc/netcup-backup/restic.env
+
+personal_role: disposable-development-compute
+personal_zerotier_network_id: 88c5b1f339774e42
+personal_zerotier_interface: ztpp6mnpl3
+personal_zerotier_cli: /usr/sbin/zerotier-cli
+personal_health_state_dir: /var/lib/dev-netcup-health
+
+remote_development_packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose
+  - git
+  - jq
+  - tmux
+  - nftables
+  - unattended-upgrades
+  - zerotier-one
+
+# mise-managed language runtimes are intentionally not installed by this role.
+remote_development_tooling:
+  - gh
+  - make
+  - maven
+  - python3
+  - java

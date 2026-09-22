@@ -1,0 +1,61 @@
+name: Netcup operations contract
+
+on:
+  pull_request:
+    paths:
+      - '.mise.toml'
+      - 'infra/personal/**'
+      - 'docs/infrastructure/**'
+      - 'docs/development/**'
+      - 'scripts/agent-worktree.sh'
+      - 'scripts/restore-netcup-state.sh'
+      - 'scripts/verify-*.py'
+      - '.github/workflows/netcup-operations.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.mise.toml'
+      - 'infra/personal/**'
+      - 'docs/infrastructure/**'
+      - 'docs/development/**'
+      - 'scripts/agent-worktree.sh'
+      - 'scripts/restore-netcup-state.sh'
+      - 'scripts/verify-*.py'
+      - '.github/workflows/netcup-operations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netcup-operations-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+      - name: Run the local operations task interface
+        run: mise run check-operations
+      - name: Install pinned infrastructure parser
+        run: python -m pip install --disable-pip-version-check ansible-core==2.19.11
+      - name: Validate non-secret contracts
+        run: |
+          python3 scripts/verify-repository-contract.py
+          python3 scripts/verify-device-inventory.py docs/infrastructure/devices/inventory.json
+          python3 scripts/verify-data-inventory.py docs/infrastructure/data/inventory.json
+          python3 scripts/verify-personal-infra.py
+          python3 scripts/verify-noesis-lifecycle.py
+      - name: Validate shell and Ansible source
+        run: |
+          bash -n infra/personal/scripts/*.sh infra/personal/backup/*.sh scripts/agent-worktree.sh scripts/restore-netcup-state.sh
+          ansible-playbook -i infra/personal/inventory/hosts.yml infra/personal/playbooks/site.yml --syntax-check
+          git diff --check

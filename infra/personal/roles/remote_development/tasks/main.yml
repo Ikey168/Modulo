@@ -1,0 +1,260 @@
+---
+- name: Require the supported Debian family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == 'Debian'
+      - ansible_facts.architecture in ['x86_64', 'amd64']
+    fail_msg: 'The disposable development role currently supports Debian-family x86_64 hosts only.'
+  tags: [always, validate]
+
+- name: Install the declared base packages when explicitly enabled
+  ansible.builtin.apt:
+    name: '{{ remote_development_packages }}'
+    state: present
+    update_cache: true
+  when: personal_manage_packages | bool
+  tags: [packages]
+
+- name: Install the role marker
+  ansible.builtin.copy:
+    dest: /etc/motd.d/60-personal-role
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      Managed role: {{ personal_role }}
+      Canonical inventory name: {{ inventory_hostname }}
+      Configuration authority: Modulo infra/personal
+  tags: [runtime]
+
+- name: Make mise runtimes available to non-interactive agent shells
+  ansible.builtin.blockinfile:
+    path: '/home/{{ ansible_user | default("ik") }}/.bashrc'
+    insertbefore: '^# If not running interactively'
+    marker: '# {mark} MODULO MISE NONINTERACTIVE'
+    block: |
+      if command -v mise >/dev/null 2>&1; then
+        eval "$(mise activate bash)"
+      fi
+  when: personal_manage_shell | bool
+  tags: [shell, runtime]
+
+- name: Install bounded journald retention
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/60-personal-baseline.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=512M
+      MaxRetentionSec=30day
+  notify: Restart systemd-journald
+  tags: [runtime]
+
+- name: Create health state directory
+  ansible.builtin.file:
+    path: '{{ personal_health_state_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  when: personal_manage_runtime_units | bool
+  tags: [runtime, monitoring]
+
+- name: Install the Netcup health probe
+  ansible.builtin.template:
+    src: dev-netcup-health
+    dest: /usr/local/sbin/dev-netcup-health
+    owner: root
+    group: root
+    mode: '0755'
+  when: personal_manage_runtime_units | bool
+  notify: Restart health timer
+  tags: [runtime, monitoring]
+
+- name: Install health service and timer
+  ansible.builtin.template:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/{{ item }}'
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - dev-netcup-health.service
+    - dev-netcup-health.timer
+  when: personal_manage_runtime_units | bool
+  notify: Restart health timer
+  tags: [runtime, monitoring]
+
+- name: Install Docker cleanup service and timer
+  ansible.builtin.copy:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/{{ item }}'
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - dev-netcup-docker-prune.service
+    - dev-netcup-docker-prune.timer
+  when: personal_manage_runtime_units | bool
+  notify: Restart Docker cleanup timer
+  tags: [runtime, maintenance]
+
+- name: Require an operator-created restic environment before installing off-site backup units
+  ansible.builtin.stat:
+    path: '{{ personal_offsite_env_file }}'
+  register: personal_offsite_env
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Refuse to install an unconfigured off-site backup timer
+  ansible.builtin.assert:
+    that:
+      - personal_offsite_env.stat.exists
+      - personal_offsite_env.stat.mode == '0600'
+    fail_msg: 'Create the root-owned 0600 restic environment outside the repository before enabling off-site backup units.'
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Create the off-site backup staging directory
+  ansible.builtin.file:
+    path: /var/lib/netcup-backup/staging
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Install the guarded restic backup helpers
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../backup/{{ item }}'
+    dest: '/usr/local/libexec/{{ item | basename | replace(".sh", "") | replace("restic-", "netcup-restic-") }}'
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - restic-backup.sh
+    - restic-verify.sh
+    - restic-prune.sh
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Install the off-site backup service and timer
+  ansible.builtin.template:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/{{ item }}'
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - netcup-restic-backup.service
+    - netcup-restic-backup.timer
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Enable the off-site backup timer
+  ansible.builtin.systemd_service:
+    name: netcup-restic-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: personal_manage_offsite_backup_units | bool
+  tags: [backup]
+
+- name: Enable safe runtime services
+  ansible.builtin.systemd_service:
+    name: '{{ item }}'
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop:
+    - docker.service
+    - unattended-upgrades.service
+    - zerotier-one.service
+    - dev-netcup-health.timer
+    - dev-netcup-docker-prune.timer
+  when: personal_manage_runtime_units | bool
+  tags: [runtime]
+
+- name: Install SSH hardening only with explicit opt-in
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/60-personal-baseline.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+      PubkeyAuthentication yes
+  when: personal_enable_ssh_hardening | bool
+  notify: Validate and reload SSH
+  tags: [ssh]
+
+- name: Ensure nftables is available for the explicit firewall policy
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+  when: personal_enable_firewall | bool
+  tags: [firewall]
+
+- name: Create the Netcup administration policy directory
+  ansible.builtin.file:
+    path: /etc/netcup-admin
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: personal_enable_firewall | bool
+  tags: [firewall]
+
+- name: Install the ZeroTier-only SSH firewall policy
+  ansible.builtin.template:
+    src: netcup-ssh-zerotier.nft
+    dest: /etc/netcup-admin/ssh-zerotier.nft
+    owner: root
+    group: root
+    mode: '0644'
+  when: personal_enable_firewall | bool
+  notify: Restart Netcup administration firewall
+  tags: [firewall]
+
+- name: Install the firewall policy controller
+  ansible.builtin.template:
+    src: netcup-ssh-zerotier-firewall
+    dest: /usr/local/sbin/netcup-ssh-zerotier-firewall
+    owner: root
+    group: root
+    mode: '0755'
+  when: personal_enable_firewall | bool
+  notify: Restart Netcup administration firewall
+  tags: [firewall]
+
+- name: Install the firewall policy service
+  ansible.builtin.template:
+    src: netcup-ssh-zerotier-firewall.service
+    dest: /etc/systemd/system/netcup-ssh-zerotier-firewall.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: personal_enable_firewall | bool
+  notify: Restart Netcup administration firewall
+  tags: [firewall]
+
+- name: Enable the ZeroTier-only SSH firewall policy
+  ansible.builtin.systemd_service:
+    name: netcup-ssh-zerotier-firewall.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: personal_enable_firewall | bool and not ansible_check_mode
+  tags: [firewall]
+
+- name: Refuse implicit ZeroTier membership changes
+  ansible.builtin.assert:
+    that: not (personal_manage_zerotier | bool)
+    fail_msg: 'ZeroTier join/authorization requires an owner-approved, independently tested change.'
+  tags: [always, validate]

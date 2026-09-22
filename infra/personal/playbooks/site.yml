@@ -1,0 +1,8 @@
+---
+- name: Apply the personal Linux baseline
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: ../roles/remote_development
+      when: personal_role | default('') == 'disposable-development-compute'

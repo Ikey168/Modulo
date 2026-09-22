@@ -1,0 +1,12 @@
+#!/usr/sbin/nft -f
+
+table inet netcup_admin {
+  chain input {
+    type filter hook input priority -100; policy accept;
+
+    ct state established,related accept
+    iifname "lo" accept
+    iifname "{{ personal_zerotier_interface }}" tcp dport 22 accept
+    tcp dport 22 drop
+  }
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Restrict Netcup SSH administration to ZeroTier
+Documentation=file:///etc/netcup-admin/ssh-zerotier.nft
+Wants=zerotier-one.service
+After=zerotier-one.service
+Before=ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/netcup-ssh-zerotier-firewall apply
+ExecStop=/usr/local/sbin/netcup-ssh-zerotier-firewall remove
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

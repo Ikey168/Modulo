@@ -140,6 +140,22 @@ npm run dev
 docker compose up db
 ```
 
+### Reproducible checks
+
+The repository pins its primary runtime versions in `.mise.toml`. After
+installing mise, run the common acceptance contract from the repository root:
+
+```bash
+mise install
+mise run check
+```
+
+The operations portion validates the non-secret device/data inventories,
+personal infrastructure source, and Noesis lifecycle. Coding agents should use
+the guarded worktree helper in
+[`docs/development/agent-worktrees.md`](docs/development/agent-worktrees.md)
+when the main checkout contains existing edits.
+
 The Vite dev server proxies `/api` to the backend, so the frontend can call the
 API with relative paths during development.
 
