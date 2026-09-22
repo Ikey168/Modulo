@@ -328,6 +328,25 @@ class PluginStateContractTest {
   }
 
   @Test
+  void hostOwnedWorkspaceRecordsRemainWritableWithoutExternalSchemaRegistration() {
+    store.put(
+        "personal",
+        "workspace-para",
+        "data",
+        0,
+        "modulo.workspace.para",
+        1,
+        "{\"version\":1,\"tasks\":[],\"projects\":[]}");
+    assertEquals(
+        1,
+        store
+            .get("personal", "workspace-para", "data")
+            .value()
+            .path("version")
+            .asInt());
+  }
+
+  @Test
   void inactiveWorkloadsAndDurablePermissionRevocationDenyDelegation() {
     var issued = grant("state.read");
     registry.getByName("external").orElseThrow().setStatus(PluginStatus.INACTIVE);
