@@ -39,6 +39,40 @@ const open = (storage = persistence(), transport = server(), selectedScope = sco
   PluginStateClient.open(selectedScope, storage, transport, { autoRetry: false });
 
 describe('plugin state offline client', () => {
+  it('reconciles a new storage generation with paged listings instead of one request per key', async () => {
+    const generation = '0f3c8a52-6b1e-4f6a-9a53-2d1f0c7b9e11';
+    const record = (key: string, deleted = false): StateRecord => ({ key, schemaId: 'item', schemaVersion: 1,
+      version: 1, value: deleted ? null : { key }, deleted,
+      createdAt: '2026-09-05T00:00:00Z', updatedAt: '2026-09-05T00:00:00Z' });
+    const keys = Array.from({ length: 450 }, (_, index) => `item-${String(index).padStart(3, '0')}`);
+    const live = keys.slice(0, -1).map(key => record(key));
+    const tombstone = record(keys[keys.length - 1], true);
+    const storage = persistence();
+    await storage.save(JSON.stringify([scope.origin, scope.issuer, scope.subject, scope.workspace,
+      scope.namespace, scope.replica]), { format: 1, partition: JSON.stringify([scope.origin, scope.issuer,
+      scope.subject, scope.workspace, scope.namespace, scope.replica]), sequence: 0,
+      entries: keys.map(key => ({ key, remote: record(key) })) });
+    const remote: StateTransport = {
+      ...server(),
+      generation: vi.fn(async () => generation),
+      useGeneration: vi.fn(),
+      // Listings omit tombstones, like the backend.
+      list: vi.fn(async cursor => {
+        const start = cursor ? live.findIndex(item => item.key === cursor) + 1 : 0;
+        const records = live.slice(start, start + 200);
+        return { records: clone(records), nextCursor: start + 200 < live.length ? records[records.length - 1].key : null };
+      }),
+      get: vi.fn(async key => key === tombstone.key ? clone(tombstone) : live.find(item => item.key === key)),
+    };
+    const client = await open(storage, remote);
+    await client.synchronize();
+    expect(remote.useGeneration).toHaveBeenCalledWith(generation);
+    expect(remote.list).toHaveBeenCalledTimes(3);
+    // Only the key missing from the listing is resolved individually.
+    expect(remote.get).toHaveBeenCalledTimes(1);
+    expect(remote.get).toHaveBeenCalledWith(tombstone.key, expect.anything());
+    expect(client.status).not.toBe('error');
+  });
   it('persists an offline edit before reporting success and replays after restart', async () => {
     const storage = persistence(); const remote = server();
     const client = await open(storage, remote);

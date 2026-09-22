@@ -257,26 +257,31 @@ export class PluginStateClient {
     return this.refreshing;
   }
 
-  private async pull(): Promise<void> {
-    await this.ensureGeneration();
-    const before = new Map(this.snapshot.entries.map(entry => [entry.key, entry.remote?.version]));
+  private async listAll(): Promise<Map<string, StateRecord>> {
     const records = new Map<string, StateRecord>();
     let cursor: string | undefined;
     const cursors = new Set<string>();
+    do {
+      const page = await this.transport.list!(cursor, this.abort.signal);
+      this.ensureOpen();
+      if (!Array.isArray(page.records) || page.records.some(record => !validRecord(record, record.key))) {
+        throw new StateRequestError(502, 'STATE_INVALID_SERVER_RESPONSE');
+      }
+      for (const record of page.records) records.set(record.key, record);
+      cursor = page.nextCursor ?? undefined;
+      if (cursor && (cursors.has(cursor) || cursors.size >= 100)) {
+        throw new StateRequestError(502, 'STATE_INVALID_SERVER_CURSOR');
+      }
+      if (cursor) cursors.add(cursor);
+    } while (cursor);
+    return records;
+  }
+
+  private async pull(): Promise<void> {
+    await this.ensureGeneration();
+    const before = new Map(this.snapshot.entries.map(entry => [entry.key, entry.remote?.version]));
     try {
-      do {
-        const page = await this.transport.list!(cursor, this.abort.signal);
-        this.ensureOpen();
-        if (!Array.isArray(page.records) || page.records.some(record => !validRecord(record, record.key))) {
-          throw new StateRequestError(502, 'STATE_INVALID_SERVER_RESPONSE');
-        }
-        for (const record of page.records) records.set(record.key, record);
-        cursor = page.nextCursor ?? undefined;
-        if (cursor && (cursors.has(cursor) || cursors.size >= 100)) {
-          throw new StateRequestError(502, 'STATE_INVALID_SERVER_CURSOR');
-        }
-        if (cursor) cursors.add(cursor);
-      } while (cursor);
+      const records = await this.listAll();
       await this.change(snapshot => {
         for (const record of records.values()) {
           const entry = this.entry(snapshot, record.key);
@@ -403,6 +408,9 @@ export class PluginStateClient {
     if (typeof generation !== 'string' || !/^[0-9a-f-]{36}$/i.test(generation)) throw new Error('Invalid storage generation');
     if (this.snapshot.generation === generation) { this.transport.useGeneration?.(generation); return; }
     const remotes = new Map<string, StateRecord | undefined>();
+    // One paged listing replaces a request per cached key; large namespaces hold thousands of keys.
+    // Listings omit tombstones, so keys it does not return are still resolved individually.
+    if (this.transport.list) for (const [key, record] of await this.listAll()) remotes.set(key, record);
     // Include local edits created during the handshake; a final serialized check prevents omissions.
     for (let attempt = 0; attempt < 3; attempt++) {
       for (const entry of this.snapshot.entries) {
