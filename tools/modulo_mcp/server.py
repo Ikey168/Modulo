@@ -1,7 +1,7 @@
 """MCP tools for authenticated Modulo plugin-state entries."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 try:
     from .client import ModuloClient
@@ -63,6 +63,13 @@ def append_plugin_entry(plugin_id: str, key: str, array_path: str, entry: Any,
                         expected_version: int | None = None) -> dict:
     """Append to an existing plugin record's JSON array (e.g. /data/records); preserves schema and rejects concurrent changes."""
     return ModuloClient().append_entry(plugin_id, key, array_path, entry, expected_version)
+
+
+@mcp.tool()
+def update_para_task_status(task_id: str, status: Literal["Next", "Waiting", "Done"],
+                            expected_version: int) -> dict:
+    """Update exactly one Life/PARA task status. Read the workspace record first and pass its version; concurrent changes are rejected."""
+    return ModuloClient().update_para_task_status(task_id, status, expected_version)
 
 
 @mcp.tool()

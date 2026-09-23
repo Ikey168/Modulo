@@ -1,6 +1,6 @@
 # Modulo workspace MCP
 
-This stdio MCP server lets an assistant read and create records in Modulo's authenticated, owner-scoped plugin-state API. The server uses the same workspace (`personal`), namespace, schema checks, and optimistic version checks as the app. It never accesses PostgreSQL directly.
+This stdio MCP server lets an assistant read and create records and update Life/PARA task statuses in Modulo's authenticated, owner-scoped plugin-state API. The server uses the same workspace (`personal`), namespace, schema checks, and optimistic version checks as the app. It never accesses PostgreSQL directly.
 
 Install dependencies and start Modulo's backend, then provide an access token for the account whose workspace you want to edit:
 
@@ -21,6 +21,7 @@ Tools:
 - `register_plugin_schema`: register a new custom schema if the plugin does not already have one. Existing schema definitions are immutable.
 - `create_plugin_record`: create a new key with `expectedVersion: 0`; it fails rather than replacing an existing record.
 - `append_plugin_entry`: add an item to an array within an existing record. Supply a JSON Pointer such as `/data/records`; the tool keeps the record's schema and sends its current version, so concurrent edits fail with a conflict. You can pass `expected_version` after inspection to require that exact version.
+- `update_para_task_status`: change one Life/PARA task to `Next`, `Waiting`, or `Done`. Read `get_workspace_record(namespace="para")` first, then pass the exact task ID and returned record version as `expected_version`. The tool rejects missing or duplicate IDs, schema changes, and concurrent edits; it preserves all other PARA data. A repeat request for the same status makes no write.
 - `create_note`: create a native note through Modulo's Notes API, with optional Markdown and tags.
 
 For example, a workspace-tool plugin with a `records` key stores a `{ "version": 1, "data": ... }` envelope. Inspect that record first, then append to its actual data array. Entry fields vary by plugin and must match the plugin's own format. If the record does not exist yet, create the complete initial envelope with the plugin's schema before appending.

@@ -125,6 +125,55 @@ class ModuloClientTests(unittest.TestCase):
                 self.client.append_entry("p", "records", pointer, {"id": "x"})
         self.assertEqual(len(StateHandler.writes), 1)
 
+    def test_update_para_task_status_changes_only_one_task(self):
+        original = {"tasks": [
+            {"id": "task-a", "title": "First", "status": "Next", "context": "keep"},
+            {"id": "task-b", "title": "Second", "status": "Waiting"},
+        ], "projects": [{"id": "project-a"}]}
+        self.client.create_record("workspace-para", "data", "modulo.workspace.para", original)
+        result = self.client.update_para_task_status("task-a", "Done", 1)
+        self.assertEqual(result, {"taskId": "task-a", "title": "First", "previousStatus": "Next",
+                                  "status": "Done", "recordVersion": 2, "changed": True})
+        record = self.client.get_workspace_record("para")
+        self.assertEqual(record["value"]["tasks"][0], {"id": "task-a", "title": "First", "status": "Done", "context": "keep"})
+        self.assertEqual(record["value"]["tasks"][1], original["tasks"][1])
+        self.assertEqual(record["value"]["projects"], original["projects"])
+        self.assertEqual(StateHandler.writes[-1][2]["expectedVersion"], 1)
+
+        unchanged = self.client.update_para_task_status("task-a", "Done", 2)
+        self.assertFalse(unchanged["changed"])
+        self.assertEqual(len(StateHandler.writes), 2)
+
+    def test_update_para_task_status_rejects_stale_or_ambiguous_data(self):
+        self.client.create_record("workspace-para", "data", "modulo.workspace.para",
+                                  {"tasks": [{"id": "task-a", "title": "First", "status": "Next"}]})
+        for task_id, status, version in (("task-a", "Done", 0), ("task-a", "Invalid", 1),
+                                         ("missing", "Done", 1), ("", "Done", 1)):
+            with self.assertRaises(ModuloError):
+                self.client.update_para_task_status(task_id, status, version)
+        self.assertEqual(len(StateHandler.writes), 1)
+
+        StateHandler.records[("workspace-para", "data")]["value"]["tasks"].append(
+            {"id": "task-a", "title": "Duplicate", "status": "Next"})
+        with self.assertRaisesRegex(ModuloError, "exactly one"):
+            self.client.update_para_task_status("task-a", "Done", 1)
+        self.assertEqual(len(StateHandler.writes), 1)
+
+    def test_update_para_task_status_uses_server_version_check(self):
+        self.client.create_record("workspace-para", "data", "modulo.workspace.para",
+                                  {"tasks": [{"id": "task-a", "title": "First", "status": "Next"}]})
+        original_request = self.client._request
+
+        def concurrent_request(path, method="GET", body=None):
+            if method == "PUT" and body and body.get("expectedVersion") == 1:
+                StateHandler.records[("workspace-para", "data")]["version"] = 2
+            return original_request(path, method, body)
+
+        with patch.object(self.client, "_request", side_effect=concurrent_request):
+            with self.assertRaisesRegex(ModuloError, "STATE_VERSION_CONFLICT"):
+                self.client.update_para_task_status("task-a", "Done", 1)
+        self.assertEqual(StateHandler.records[("workspace-para", "data")]["value"]["tasks"][0]["status"], "Next")
+
     def test_rejects_insecure_remote_endpoint_and_invalid_namespace(self):
         with self.assertRaisesRegex(ModuloError, "HTTPS"):
             ModuloClient("http://example.com", "test-token")

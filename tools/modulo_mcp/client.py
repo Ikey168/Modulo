@@ -194,6 +194,45 @@ class ModuloClient:
             "schemaVersion": record["schemaVersion"], "value": value,
         })
 
+    def update_para_task_status(self, task_id: str, status: str, expected_version: int) -> dict[str, Any]:
+        """Change one Life/PARA task with the version seen by the caller."""
+        if not isinstance(task_id, str) or not task_id.strip() or len(task_id) > 256:
+            raise ModuloError("A valid task ID is required")
+        if status not in ("Next", "Waiting", "Done"):
+            raise ModuloError("status must be Next, Waiting, or Done")
+        if type(expected_version) is not int or expected_version < 1:
+            raise ModuloError("expected_version must be a positive integer")
+
+        record = self.get_workspace_record("para")
+        if record.get("version") != expected_version:
+            raise ModuloError(
+                f"Record changed: expected version {expected_version}, current version {record.get('version')}"
+            )
+        if record.get("schemaId") != "modulo.workspace.para" or record.get("schemaVersion") != 1:
+            raise ModuloError("Unexpected Life/PARA record schema")
+        value = record.get("value")
+        tasks = value.get("tasks") if isinstance(value, dict) else None
+        if not isinstance(tasks, list):
+            raise ModuloError("Life/PARA tasks are missing")
+        matches = [task for task in tasks if isinstance(task, dict) and task.get("id") == task_id]
+        if len(matches) != 1:
+            raise ModuloError("Task ID must match exactly one Life/PARA task")
+        task = matches[0]
+        previous_status = task.get("status")
+        if previous_status not in ("Next", "Waiting", "Done"):
+            raise ModuloError("Task has an unsupported current status")
+        if previous_status == status:
+            return {"taskId": task_id, "title": task.get("title"), "previousStatus": previous_status,
+                    "status": status, "recordVersion": expected_version, "changed": False}
+
+        task["status"] = status
+        updated = self._request(self._state_path("workspace-para", "data"), "PUT", {
+            "expectedVersion": expected_version, "schemaId": record["schemaId"],
+            "schemaVersion": record["schemaVersion"], "value": value,
+        })
+        return {"taskId": task_id, "title": task.get("title"), "previousStatus": previous_status,
+                "status": status, "recordVersion": updated["version"], "changed": True}
+
     def installed_plugins(self) -> dict[str, Any]:
         try:
             record = self.get_record("workspace-settings", "installed")
