@@ -31,7 +31,18 @@ uv run --project infra/personal ansible-playbook \
 The example inventory deliberately leaves the laptop address as
 `owner-evidence-required`; the owner-supplied Netcup public address is recorded
 for the named `ik` administrator, but copy the inventory outside Git and review
-all target values before applying it. Supply SSH keys through the SSH agent or
+all target values before applying it. The laptop receives the same baseline as
+every other host; until a reviewed address is recorded, apply it on the laptop
+itself with a local connection:
+
+```sh
+ANSIBLE_CONFIG=infra/personal/ansible.cfg \
+uv run --project infra/personal ansible-playbook --diff --ask-become-pass \
+  -i infra/personal/inventory.example.yml -c local --limit laptop \
+  infra/personal/playbooks/site.yml
+```
+
+Run it twice; the second run must report `changed=0`. Supply SSH keys through the SSH agent or
 `ANSIBLE_PRIVATE_KEY_FILE`, never through inventory.
 
 Preview configuration changes first:
@@ -107,9 +118,20 @@ uv run --project infra/personal ansible-playbook --diff \
   -i /secure/path/clean-workstation.yml \
   infra/personal/playbooks/workstation.yml
 
+mise trust /path/to/a/clean/project/checkout/.mise.toml
+mise install --cd /path/to/a/clean/project/checkout
+
 python3 scripts/verify-workstation-bootstrap.py \
-  --project /path/to/a/clean/project/checkout
+  --project /path/to/a/clean/project/checkout --expect-project-runtimes
 ```
+
+Workstations install `mise` from its signed vendor repository (the key
+fingerprint is pinned in the role defaults) and Neovim as the agreed editor.
+`--expect-project-runtimes` additionally requires both, and requires every
+runtime the project's `.mise.toml` declares to be installed and resolved from
+that file, so a host-global mise version cannot silently replace a repository
+pin. The role activates mise for Bash and Zsh only when no earlier activation
+is present, so an owner-managed shell setup keeps precedence.
 
 The functional verifier requires the shared CLI, the role marker, the external
 backup-secret boundary and project-tool declarations. Add
@@ -134,7 +156,7 @@ hostnames.
 - a non-secret role marker;
 - optional SSH password/root-login denial;
 - Restic/rclone client prerequisites and protected configuration directories;
-- workstation development CLI packages;
+- workstation development CLI packages, `mise` and Neovim;
 - validation that Docker is present where a container role requires it.
 
 The `development_servers` group additionally receives Docker/Compose, build
