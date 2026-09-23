@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tomllib
 
 
 REQUIRED_COMMANDS = (
@@ -86,6 +87,11 @@ def project_runtimes(project: Path, failures: list[str]) -> dict[str, object]:
     if config is None:
         failures.append("runtime:project-declaration")
         return {}
+    with config.open("rb") as handle:
+        configured_tools = set(tomllib.load(handle).get("tools", {}))
+    if not configured_tools:
+        failures.append("runtime:no-project-tools")
+        return {"config": str(config), "declared": [], "tools": {}}
     result = subprocess.run(
         ["mise", "ls", "--current", "--json"],
         cwd=project,
@@ -106,17 +112,17 @@ def project_runtimes(project: Path, failures: list[str]) -> dict[str, object]:
             "installed": entry.get("installed", False),
             "source": source,
         }
-        # Only tools the project declares are judged; host-global extras may exist.
-        if source and Path(source).resolve() == config.resolve():
-            if not entry.get("installed", False):
-                failures.append(f"runtime:{tool}:not-installed")
-    declared = {
-        tool for tool, value in resolved.items()
-        if value["source"] and Path(value["source"]).resolve() == config.resolve()
-    }
-    if not declared:
-        failures.append("runtime:no-project-tools")
-    return {"config": str(config), "declared": sorted(declared), "tools": resolved}
+    for tool in sorted(configured_tools):
+        value = resolved.get(tool)
+        if (
+            value is None
+            or not value["source"]
+            or Path(value["source"]).resolve() != config.resolve()
+        ):
+            failures.append(f"runtime:{tool}:not-project-resolved")
+        elif not value["installed"]:
+            failures.append(f"runtime:{tool}:not-installed")
+    return {"config": str(config), "declared": sorted(configured_tools), "tools": resolved}
 
 
 def main() -> None:
