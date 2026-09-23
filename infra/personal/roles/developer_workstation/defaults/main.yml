@@ -6,6 +6,8 @@ developer_workstation_packages:
     - cmake
     - fzf
     - gh
+    - gnupg
+    - neovim
     - ninja-build
     - openssh-client
     - shellcheck
@@ -18,8 +20,21 @@ developer_workstation_packages:
     - gcc
     - gh
     - make
+    - neovim
     - ninja-build
     - openssh-clients
     - ShellCheck
     - zoxide
     - zsh
+
+# The login that develops on this host. Local runs use the invoking account;
+# remote runs use the inventory's connection user.
+developer_workstation_user: "{{ ansible_user | default(lookup('ansible.builtin.env', 'USER'), true) }}"
+
+# Repository-owned runtimes (for Modulo, `.mise.toml`) are installed by mise,
+# never as host-global toolchains. The vendor repository is pinned to the
+# published mise release-signing key.
+developer_workstation_mise_key_url: https://mise.jdx.dev/gpg-key.pub
+developer_workstation_mise_key_fingerprint: 24853EC9F655CE80B48E6C3A8B81C9D17413A06D
+developer_workstation_mise_deb_uri: https://mise.jdx.dev/deb
+developer_workstation_mise_rpm_uri: https://mise.jdx.dev/rpm

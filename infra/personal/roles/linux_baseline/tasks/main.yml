@@ -22,10 +22,21 @@
   ansible.builtin.command: "timedatectl set-timezone {{ baseline_timezone }}"
   when: current_timezone.stdout != baseline_timezone
 
+- name: Probe whether systemd can control time synchronization
+  ansible.builtin.command: timedatectl show --property=CanNTP --value
+  register: baseline_can_ntp
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: ansible_service_mgr == 'systemd'
+
+# Containers and some VMs have no NTP service to control; the host provides time.
 - name: Enable system time synchronization
   ansible.builtin.command: timedatectl set-ntp true
   changed_when: false
-  when: ansible_service_mgr == 'systemd'
+  when:
+    - ansible_service_mgr == 'systemd'
+    - baseline_can_ntp.stdout | default('') == 'yes'
 
 - name: Create journal configuration directory
   ansible.builtin.file:

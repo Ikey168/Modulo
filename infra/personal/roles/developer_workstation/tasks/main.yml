@@ -10,6 +10,110 @@
     name: "{{ developer_workstation_packages[ansible_facts.os_family] }}"
     state: present
 
+- name: Create the apt keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Download the mise release-signing key
+  ansible.builtin.get_url:
+    url: "{{ developer_workstation_mise_key_url }}"
+    dest: /etc/apt/keyrings/mise-archive-keyring.asc
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Read the downloaded mise key fingerprint
+  ansible.builtin.command: gpg --show-keys --with-colons /etc/apt/keyrings/mise-archive-keyring.asc
+  register: developer_workstation_mise_key
+  changed_when: false
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - not ansible_check_mode
+
+- name: Refuse a mise key that is not the pinned release key
+  ansible.builtin.assert:
+    that:
+      - ("fpr:::::::::" ~ developer_workstation_mise_key_fingerprint ~ ":") in developer_workstation_mise_key.stdout
+    fail_msg: "The downloaded mise key does not match {{ developer_workstation_mise_key_fingerprint }}."
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - not ansible_check_mode
+
+- name: Declare the signed mise apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/mise.sources
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      Types: deb
+      URIs: {{ developer_workstation_mise_deb_uri }}
+      Suites: stable
+      Components: main
+      Signed-By: /etc/apt/keyrings/mise-archive-keyring.asc
+  register: developer_workstation_mise_apt_source
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Refresh apt metadata after declaring mise
+  ansible.builtin.apt:
+    update_cache: true
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - developer_workstation_mise_apt_source is changed
+    - not ansible_check_mode
+
+- name: Import the pinned mise release-signing key
+  ansible.builtin.rpm_key:
+    key: "{{ developer_workstation_mise_key_url }}"
+    fingerprint: "{{ developer_workstation_mise_key_fingerprint }}"
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+
+- name: Declare the signed mise dnf repository
+  ansible.builtin.yum_repository:
+    name: mise
+    description: mise
+    baseurl: "{{ developer_workstation_mise_rpm_uri }}"
+    gpgcheck: true
+    gpgkey: "{{ developer_workstation_mise_key_url }}"
+  when: ansible_facts.os_family == 'RedHat'
+
+- name: Install mise for repository-declared runtimes
+  ansible.builtin.package:
+    name: mise
+    state: present
+  when: not ansible_check_mode
+
+- name: Look up the developer account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ developer_workstation_user }}"
+
+- name: Activate mise for interactive shells unless it is already active
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_facts.getent_passwd[developer_workstation_user][4] }}/{{ item.rc }}"
+    create: true
+    owner: "{{ developer_workstation_user }}"
+    group: "{{ ansible_facts.getent_passwd[developer_workstation_user][2] }}"
+    mode: '0644'
+    marker: '# {mark} MODULO WORKSTATION MISE'
+    block: |
+      # An earlier, owner-managed activation keeps precedence.
+      if [ -z "${MISE_SHELL:-}" ] && command -v mise >/dev/null 2>&1; then
+        eval "$(mise activate {{ item.shell }})"
+      fi
+  loop:
+    - { rc: .bashrc, shell: bash }
+    - { rc: .zshrc, shell: zsh }
+  loop_control:
+    label: "{{ item.rc }}"
+
 - name: Verify Git is available
   ansible.builtin.command: git --version
   changed_when: false
@@ -36,5 +140,7 @@
     - ninja --version
     - shellcheck --version
     - ssh -V
+    - nvim --version
+    - mise --version
   changed_when: false
   when: not ansible_check_mode
