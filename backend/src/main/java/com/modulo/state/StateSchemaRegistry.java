@@ -126,7 +126,7 @@ final class StateSchemaRegistry {
                   : null;
           // Host-owned workspace records (media library, life collections, PARA, ...). The frontend
           // parses and validates their structure; the server only enforces size and ownership.
-          default -> id.startsWith("modulo.workspace.") ? "{}" : null;
+          default -> id.startsWith("modulo.workspace.") ? "{}" : OperationalSchemas.definition(namespace, id);
         };
     return definition == null ? null : read(definition);
   }

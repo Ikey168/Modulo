@@ -3,6 +3,20 @@ import {
   type StateSnapshot, type StateTransport,
 } from './pluginStateClient';
 
+/** Browser-local recovery cache for state replay across reloads. */
+export class BrowserStatePersistence implements StatePersistence {
+  constructor(private readonly storage: Storage) {}
+
+  async load(partition: string): Promise<StateSnapshot | null> {
+    const raw = this.storage.getItem(`modulo.plugin-state.v1:${partition}`);
+    return raw === null ? null : JSON.parse(raw) as StateSnapshot;
+  }
+
+  async save(partition: string, snapshot: StateSnapshot): Promise<void> {
+    this.storage.setItem(`modulo.plugin-state.v1:${partition}`, JSON.stringify(snapshot));
+  }
+}
+
 /** Durable per-partition offline queue. The server remains authoritative for acknowledged state. */
 export class IndexedDbStatePersistence implements StatePersistence {
   constructor(private readonly factory: IDBFactory = indexedDB) {}
@@ -50,20 +64,24 @@ export interface StateSession { issuer: string; subject: string; accessToken: st
 
 export function createStateTransport(scope: StateScope,
   session: () => Promise<StateSession | null>, fetcher: typeof fetch = fetch): StateTransport {
+  let generation: string | undefined;
   const base = `${scope.origin.replace(/\/$/, '')}/api/workspaces/${encodeURIComponent(scope.workspace)}`
     + `/plugin-state/${encodeURIComponent(scope.namespace)}`;
   const request = async (key: string | undefined, method: string, signal: AbortSignal, body?: unknown,
-    expectedVersion?: number, cursor?: string): Promise<unknown> => {
+    expectedVersion?: number, cursor?: string, generationOnly = false): Promise<unknown> => {
     const current = await session();
     if (signal.aborted) throw new DOMException('State request aborted', 'AbortError');
     if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject || !current.accessToken) {
       throw new StateRequestError(401, 'STATE_SESSION_CHANGED');
     }
-    const url = key === undefined ? `${base}?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+    const url = generationOnly ? `${base}?generation`
+      : key === undefined ? `${base}?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
       : `${base}/${encodeURIComponent(key)}` + (expectedVersion === undefined ? '' : `?expectedVersion=${expectedVersion}`);
     const response = await fetcher(url, { method, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json',
-        Authorization: `Bearer ${current.accessToken}` }, body: body === undefined ? undefined : JSON.stringify(body) });
+        Authorization: `Bearer ${current.accessToken}`,
+        ...(generation ? { 'X-Modulo-State-Generation': generation } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body) });
     if (response.status === 404 && method === 'GET') return undefined;
     if (!response.ok) {
       const error = await response.json().catch(() => ({})) as {
@@ -74,6 +92,9 @@ export function createStateTransport(scope: StateScope,
     return response.json();
   };
   return {
+    generation: async signal => (await request(undefined, 'GET', signal, undefined, undefined, undefined, true) as
+      { generation: string }).generation,
+    useGeneration: value => { generation = value; },
     list: async (cursor, signal) => (await request(undefined, 'GET', signal, undefined, undefined, cursor)) as
       { records: StateRecord[]; nextCursor?: string },
     get: async (key, signal) => await request(key, 'GET', signal) as StateRecord | undefined,

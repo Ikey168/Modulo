@@ -39,6 +39,14 @@ final class OperationalSchemas {
           namespace.equals("information-intake")
               ? "{\"type\":\"object\",\"required\":[\"sourceKey\",\"sourceDigest\",\"recordKeys\",\"counts\",\"importedAt\"],\"properties\":{\"sourceKey\":{\"enum\":[\"modulo-information-intake-v1\"]},\"sourceDigest\":{\"type\":\"string\",\"minLength\":64,\"maxLength\":64},\"recordKeys\":{\"type\":\"array\",\"maxItems\":5000,\"items\":{\"type\":\"string\",\"maxLength\":128}},\"counts\":{\"type\":\"object\"},\"importedAt\":{\"type\":\"string\",\"maxLength\":40}},\"additionalProperties\":false}"
               : null;
+      case "modulo.intake.decision-link", "modulo.intake.problem-link",
+          "modulo.intake.playbook-link", "modulo.intake.practice-link",
+          "modulo.intake.practice-migration", "modulo.intake.creation-link",
+          "modulo.intake.maintenance-link", "modulo.intake.iteration-link",
+          "modulo.intake.iteration-artifact-link" ->
+          namespace.equals("information-intake")
+              ? "{\"type\":\"object\",\"required\":[\"namespace\"],\"properties\":{\"namespace\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":128}}}"
+              : null;
       case "modulo.todo" ->
           namespace.equals("todo-lists")
               ? "{\"type\":\"object\",\"required\":[\"id\",\"title\",\"list\",\"priority\",\"done\"],\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":120},\"title\":{\"type\":\"string\",\"maxLength\":10000},\"list\":{\"type\":\"string\",\"maxLength\":10000},\"priority\":{\"enum\":[\"LOW\",\"MEDIUM\",\"HIGH\",\"URGENT\"]},\"done\":{\"type\":\"boolean\"},\"noteId\":{\"type\":\"integer\",\"minimum\":1},\"dueDate\":{\"type\":\"string\",\"maxLength\":10}}}"

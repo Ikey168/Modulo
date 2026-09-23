@@ -211,9 +211,9 @@ export async function undoLegacyIntake(plan: LegacyIntakePlan, client: Writer): 
       throw new Error(`Imported ${record.value.collection}/${record.value.legacyId} changed. Undo would lose edits.`);
   }
   for (const record of plan.records) {
-    await client.delete(record.key, { value: client.get(record.key)?.value });
+    await client.delete(record.key);
   }
-  await client.delete(plan.reportKey, { value: report.value });
+  await client.delete(plan.reportKey);
   await client.synchronize();
   const views = [...plan.records.map(record => client.get(record.key)), client.get(plan.reportKey)];
   return { pending: views.filter(view => view?.pending).length,

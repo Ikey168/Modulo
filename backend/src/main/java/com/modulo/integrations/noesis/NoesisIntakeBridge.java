@@ -28,10 +28,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class NoesisIntakeBridge {
   public static final Set<String> TOOLS = Set.of(
-      "discover_intake_modes", "preflight_intake_mode", "route_intake_mode",
+      "discover_intake_modes", "discover_intake_workflows", "preflight_intake_mode", "route_intake_mode",
       "start_intake_mode", "start_intake_research_topic", "inspect_research_project", "inspect_intake_mode",
       "list_intake_modes", "command_intake_mode", "export_intake_mode",
       "verify_intake_mode_export", "export_modulo_intake_handoff",
+      "preview_modulo_intake_migration", "inspect_modulo_intake_migration",
+      "import_modulo_flashcards", "recheck_modulo_plugin_link",
       "subscribe_intake_feed", "list_intake_feed_subscriptions", "refresh_intake_feed_inbox",
       "list_intake_feed_inbox", "inspect_intake_feed_item", "preview_intake_feed_signals",
       "save_intake_feed_signal_rule", "list_intake_feed_signal_rules",
@@ -54,6 +56,12 @@ public class NoesisIntakeBridge {
       "record_maintenance_finding", "assess_maintenance_health",
       "start_intake_iteration", "record_intake_iteration_outcome",
       "propose_intake_playbook_revision", "accept_intake_playbook_revision",
+      "start_intake_decision_iteration", "propose_intake_decision_revision",
+      "accept_intake_decision_revision", "start_intake_report_iteration",
+      "propose_intake_report_revision", "accept_intake_report_revision",
+      "start_intake_concept_iteration", "propose_intake_concept_revision",
+      "accept_intake_concept_revision", "start_intake_modulo_note_iteration",
+      "propose_intake_modulo_note_revision", "accept_intake_modulo_note_revision",
       "review_intake_iteration_stability");
   private static final String PROTOCOL = "2025-03-26";
   private static final int MAX_RESPONSE = 8_388_608;

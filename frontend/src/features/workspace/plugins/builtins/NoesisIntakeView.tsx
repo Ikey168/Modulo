@@ -7,9 +7,11 @@ import { NoesisDecisionView } from './NoesisDecisionView';
 import { NoesisProblemView } from './NoesisProblemView';
 import { NoesisPlaybookView } from './NoesisPlaybookView';
 import { NoesisPracticeView } from './NoesisPracticeView';
+import { NoesisFlashcardMigrationView } from './NoesisFlashcardMigrationView';
 import { NoesisCreationView } from './NoesisCreationView';
 import { NoesisMaintenanceView } from './NoesisMaintenanceView';
 import { NoesisIterationView } from './NoesisIterationView';
+import { NoesisArtifactIterationView } from './NoesisArtifactIterationView';
 import { importLegacyIntake, LEGACY_INTAKE_KEY, planLegacyIntakeMigration, undoLegacyIntake,
   type LegacyIntakePlan } from './legacyIntakeMigration';
 
@@ -686,6 +688,7 @@ export function NoesisIntakeView() {
         problemSession={session} />
       <NoesisPracticeView namespace={namespace} available={preflight?.available === true}
         references={session?.references ?? []} />
+      <NoesisFlashcardMigrationView namespace={namespace} available={preflight?.available === true} />
       <NoesisCreationView namespace={namespace} available={preflight?.available === true}
         origin={session} />
       <NoesisMaintenanceView namespace={namespace} available={preflight?.available === true}
@@ -698,6 +701,7 @@ export function NoesisIntakeView() {
           await preferences.set({ namespace, lastSessionId: next.session_id });
           setSession(next as Session);
         }} />
+      <NoesisArtifactIterationView namespace={namespace} available={preflight?.available === true} />
 
       {session?.mode === 'Deep Research' && session.inputs.research_project_id &&
         <section className="space-y-2 border-b border-border pb-5">

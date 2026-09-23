@@ -78,6 +78,11 @@ class NoesisIntakeBridgeTest {
           () -> bridge.call(1L, "create_research_project", json.createObjectNode())).code());
       assertTrue(NoesisIntakeBridge.TOOLS.contains("create_research_decision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("preflight_intake_mode"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("discover_intake_workflows"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("recheck_modulo_plugin_link"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("preview_modulo_intake_migration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_modulo_intake_migration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("import_modulo_flashcards"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_research_topic"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_project"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("inspect_research_decision"));
@@ -101,6 +106,18 @@ class NoesisIntakeBridgeTest {
       assertTrue(NoesisIntakeBridge.TOOLS.contains("record_intake_iteration_outcome"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("propose_intake_playbook_revision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("accept_intake_playbook_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_decision_iteration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("propose_intake_decision_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("accept_intake_decision_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_report_iteration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("propose_intake_report_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("accept_intake_report_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_concept_iteration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("propose_intake_concept_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("accept_intake_concept_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("start_intake_modulo_note_iteration"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("propose_intake_modulo_note_revision"));
+      assertTrue(NoesisIntakeBridge.TOOLS.contains("accept_intake_modulo_note_revision"));
       assertTrue(NoesisIntakeBridge.TOOLS.contains("review_intake_iteration_stability"));
     } finally {
       server.stop(0);

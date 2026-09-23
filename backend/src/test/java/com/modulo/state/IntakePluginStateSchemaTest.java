@@ -14,6 +14,13 @@ class IntakePluginStateSchemaTest {
     assertNotNull(OperationalSchemas.definition("information-intake", "modulo.intake.preferences"));
     assertNotNull(OperationalSchemas.definition("information-intake", "modulo.intake.item-link"));
     assertNull(OperationalSchemas.definition("other-plugin", "modulo.intake.item-link"));
+    for (String schema : new String[] {"modulo.intake.decision-link", "modulo.intake.problem-link",
+        "modulo.intake.playbook-link", "modulo.intake.practice-link", "modulo.intake.practice-migration",
+        "modulo.intake.creation-link", "modulo.intake.maintenance-link", "modulo.intake.iteration-link",
+        "modulo.intake.iteration-artifact-link"}) {
+      assertNotNull(OperationalSchemas.definition("information-intake", schema));
+      assertNull(OperationalSchemas.definition("other-plugin", schema));
+    }
     String id = "feed:" + "a".repeat(32);
     var value = json.readTree("{\"id\":\"item." + "a".repeat(32)
         + "\",\"noesisItemId\":\"" + id + "\",\"sourceVersion\":2,\"objectVersion\":1,\"createdAt\":\"2026-09-13T00:00:00Z\"}");

@@ -12,7 +12,9 @@ const mock = vi.hoisted(() => ({
   pendingValue: undefined as { namespace: string; request?: Record<string, unknown> } | undefined,
 }));
 vi.mock('../noesisIntakeApi', () => ({ intakeCall: mock.call, intakePreflight: mock.preflight }));
-vi.mock('../../PluginProvider', () => ({ usePlugins: () => ({ state: mock.state }) }));
+vi.mock('../../PluginProvider', () => ({ usePlugins: () => ({
+  state: mock.state, isEnabled: () => false, stateSessionKey: 'test-account',
+}) }));
 vi.mock('../../usePluginState', () => ({
   usePluginState: (_plugin: string, key: string) => ({
     value: key === 'research.pending' && mock.pendingValue
