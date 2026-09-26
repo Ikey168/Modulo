@@ -36,9 +36,33 @@ function setPlatformAttributes(root: HTMLElement): void {
  *                 and lifting again would double-count the keyboard.
  */
 function publishKeyboard(root: HTMLElement, open: boolean, overlap: number): void {
+  const opened = open && root.dataset.keyboard !== 'open';
   root.style.setProperty('--keyboard-inset', `${Math.round(overlap)}px`);
   if (open) root.dataset.keyboard = 'open';
   else delete root.dataset.keyboard;
+  if (opened) revealFocusedField();
+}
+
+/** True for elements the soft keyboard types into. */
+export function isTextEntry(element: Element | null): element is HTMLElement {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return true;
+  if (!(element instanceof HTMLInputElement)) return false;
+  return !['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'].includes(element.type);
+}
+
+/**
+ * Scroll the focused field back into view once the keyboard has taken its
+ * space. The browser only does this for the page scroller; fields inside the
+ * shell's own scroll containers would otherwise stay behind the keyboard.
+ */
+export function revealFocusedField(doc: Document = document): void {
+  const target = doc.activeElement;
+  if (!isTextEntry(target)) return;
+  const reveal = () => target.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  // Wait for the resized layout before measuring.
+  if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(reveal);
+  else reveal();
 }
 
 /**
@@ -68,11 +92,19 @@ export function startMobileViewport(): () => void {
     })
     .catch((error) => console.error('Keyboard inset unavailable:', error));
 
+  // A field focused while the keyboard is already up (next field, a tap
+  // lower in the form) needs the same treatment as the first one.
+  const onFocus = (event: FocusEvent) => {
+    if (root.dataset.keyboard === 'open' && isTextEntry(event.target as Element | null)) revealFocusedField();
+  };
+  document.addEventListener('focusin', onFocus);
+
   const viewport = window.visualViewport;
   if (!viewport) {
     return () => {
       disposed = true;
       stopNative?.();
+      document.removeEventListener('focusin', onFocus);
     };
   }
 
@@ -107,6 +139,7 @@ export function startMobileViewport(): () => void {
     viewport.removeEventListener('resize', schedule);
     viewport.removeEventListener('scroll', schedule);
     window.removeEventListener('orientationchange', schedule);
+    document.removeEventListener('focusin', onFocus);
     root.style.removeProperty('--app-viewport-height');
     root.style.removeProperty('--keyboard-inset');
     delete root.dataset.keyboard;

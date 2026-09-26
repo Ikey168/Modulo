@@ -179,7 +179,7 @@ function BottomNavItem({
           legible without relying on colour alone. */}
       <span
         className={cn(
-          'flex h-6 w-14 items-center justify-center rounded-full transition-colors',
+          'flex h-6 w-full max-w-14 items-center justify-center rounded-full transition-colors',
           active && 'bg-primary/15',
         )}
       >

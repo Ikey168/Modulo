@@ -160,3 +160,9 @@ export function hasUnsavedNotes() {
     ([, draft]) => draft.snapshot.status !== 'Saved',
   );
 }
+/** Unsaved notes whose text is neither on the server nor committed to device storage. */
+export function hasUnprotectedNotes() {
+  return [...drafts.entries()].filter(([key, draft]) => key === noteDraftKey(draft.id)).some(
+    ([, draft]) => draft.snapshot.status !== 'Saved' && !draft.snapshot.local,
+  );
+}

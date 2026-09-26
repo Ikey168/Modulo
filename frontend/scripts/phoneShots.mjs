@@ -5,10 +5,19 @@
  * identity provider and a fixed note set, so a change to the phone chrome can
  * be seen rather than argued about. Usage:
  *   node scripts/phoneShots.mjs <baseUrl> <outDir> [route:name ...]
+ *
+ * Environment:
+ *   PHONE_FONT_SCALE=2   render as Android does with the largest system font
+ *                        size (WebView text zoom scales the root font size);
+ *   PHONE_STRICT=1       exit 1 on horizontal overflow or a page error, so the
+ *                        audit can gate CI (#490).
  */
 import { chromium, devices } from 'playwright';
 
 const [base = 'http://127.0.0.1:5188', out = '/tmp/phone-shots', ...rest] = process.argv.slice(2);
+const FONT_SCALE = Number(process.env.PHONE_FONT_SCALE || 1);
+const STRICT = process.env.PHONE_STRICT === '1';
+let failures = 0;
 const targets = (rest.length ? rest : [
   '/app/dashboard:dashboard', '/app/notes:notes', '/app/marketplace:marketplace',
 ]).map((t) => { const i = t.lastIndexOf(':'); return [t.slice(0, i), t.slice(i + 1)]; });
@@ -27,16 +36,25 @@ const NOTES = ['Quarterly planning', 'Meeting: infra review', 'Reading list', 'A
   updatedAt: `2026-09-${String(2 + (i % 10)).padStart(2, '0')}T10:00:00Z`,
 }));
 
-const browser = await chromium.launch();
+// PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH lets a preinstalled browser stand in for Playwright's pinned download.
+const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
 const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 412, height: 883 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
 const page = await ctx.newPage();
+if (FONT_SCALE !== 1) {
+  // Android's WebView applies the system font scale as text zoom; the shell's
+  // rem-based type follows the root font size, which is what this reproduces.
+  await page.addInitScript((scale) => {
+    const apply = () => { document.documentElement.style.fontSize = `${scale * 100}%`; };
+    if (document.documentElement) apply(); else document.addEventListener('DOMContentLoaded', apply);
+  }, FONT_SCALE);
+}
 
 await page.route('**/src/features/auth/authService.ts*', (route) => route.fulfill({
   contentType: 'application/javascript',
   body: `const session={issuer:'https://identity.example.test',subject:'phone-shot',accessToken:'${TOKEN}'};
     export const authService={stateSession:()=>session,subscribeSession:()=>()=>{},getAccessToken:async()=>session.accessToken,
     getUser:async()=>({id:session.subject,name:'Ada Lovelace',email:'ada@example.test',roles:['ADMIN'],accessToken:session.accessToken}),
-    isAuthenticated:()=>true,hasRole:()=>true,hasAnyRole:()=>true};`,
+    isAuthenticated:()=>true,isOffline:()=>false,logout:async()=>{},hasRole:()=>true,hasAnyRole:()=>true};`,
 }));
 
 const records = new Map();
@@ -104,8 +122,12 @@ for (const [route, name] of targets) {
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) continue;
       // A child of a deliberately swipeable strip is not an overflow bug.
-      const inStrip = el.closest('.scroll-strip, [class*="overflow-x-auto"], [class*="overflow-auto"]');
-      if (!inStrip && r.right > vw + 2 && overflow.length < 6) overflow.push(`${el.tagName.toLowerCase()}[${String(el.className).slice(0, 55)}] right=${Math.round(r.right)}`);
+      let inStrip = false;
+      for (let up = el.parentElement; up && !inStrip; up = up.parentElement) {
+        const x = getComputedStyle(up).overflowX;
+        inStrip = x === 'auto' || x === 'scroll';
+      }
+      if (!inStrip && r.right > vw + 2 && overflow.length < 6) overflow.push(`${el.tagName.toLowerCase()}[${String(el.className).slice(0, 55)}] "${(el.textContent || '').trim().slice(0, 30)}" right=${Math.round(r.right)}`);
       const tag = el.tagName.toLowerCase(), role = el.getAttribute('role');
       if ((tag === 'button' || tag === 'a' || role === 'button' || role === 'tab' || role === 'checkbox') && (r.height < 44 || r.width < 44) && small.length < 12)
         small.push(`${Math.round(r.width)}x${Math.round(r.height)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 26)}"`);
@@ -113,8 +135,12 @@ for (const [route, name] of targets) {
     return { overflow, small };
   });
   console.log(`\n### ${name}  ${route}`);
-  if (report.overflow.length) console.log('  OVERFLOW  ', report.overflow.join('\n             '));
+  if (report.overflow.length) { failures += 1; console.log('  OVERFLOW  ', report.overflow.join('\n             ')); }
   if (report.small.length) console.log('  <44px      ', report.small.join(', '));
 }
-if (errors.length) console.log('\nPAGE ERRORS:', [...new Set(errors)].slice(0, 6));
+if (errors.length) { failures += 1; console.log('\nPAGE ERRORS:', [...new Set(errors)].slice(0, 6)); }
 await browser.close();
+if (STRICT && failures) {
+  console.error(`\nPhone audit failed: ${failures} problem(s) at font scale ${FONT_SCALE}.`);
+  process.exit(1);
+}

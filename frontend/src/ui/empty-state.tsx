@@ -12,7 +12,7 @@ export interface EmptyStateProps {
 /** Centered empty / zero-data placeholder. */
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center px-6 py-16 text-center', className)}>
+    <div className={cn('flex min-w-0 max-w-full flex-col items-center justify-center px-6 py-16 text-center', className)}>
       {icon && (
         <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-surface-2 text-muted-foreground [&_svg]:size-6">
           {icon}

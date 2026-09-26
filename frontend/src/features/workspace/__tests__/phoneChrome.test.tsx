@@ -163,4 +163,33 @@ describe('startMobileViewport', () => {
     expect(document.documentElement.dataset.keyboard).toBeUndefined();
     expect(document.documentElement.style.getPropertyValue('--keyboard-inset')).toBe('0px');
   });
+  it('scrolls the focused field above the keyboard when it opens and when focus moves', () => {
+    window.innerHeight = 800;
+    const viewport = stubViewport(800);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 0;
+    });
+    const first = document.createElement('textarea');
+    const second = document.createElement('input');
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    document.body.append(first, second, toggle);
+    const reveals: Element[] = [];
+    for (const field of [first, second, toggle]) field.scrollIntoView = function (this: Element) { reveals.push(this); };
+    stop = startMobileViewport();
+
+    first.focus();
+    expect(reveals).toEqual([]);
+    act(() => {
+      viewport.height = 480;
+      emit('resize');
+    });
+    expect(reveals).toEqual([first]);
+
+    second.focus();
+    toggle.focus();
+    expect(reveals).toEqual([first, second]);
+    first.remove(); second.remove(); toggle.remove();
+  });
 });

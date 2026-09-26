@@ -22,15 +22,28 @@ import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
 import { androidRouteToRestore, rememberAndroidRoute, startAndroidBackButton } from './services/androidLifecycle';
 import { AndroidAuthLink } from './features/auth/AndroidAuthLink';
+import { flushNoteDrafts, hasUnprotectedNotes, hasUnsavedNotes } from './features/workspace/noteDrafts';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
+
+/**
+ * Back from the dashboard leaves the app: send pending note edits first. Text
+ * already committed to device storage survives the exit even when the server
+ * is unreachable; only text held nowhere else asks before leaving.
+ */
+async function saveNotesBeforeExit(): Promise<boolean> {
+  if (!hasUnsavedNotes()) return true;
+  await Promise.race([flushNoteDrafts(), new Promise(resolve => setTimeout(resolve, 3000))]);
+  if (!hasUnprotectedNotes()) return true;
+  return window.confirm('A note edit could not be saved on this device or the server. Leave Modulo and discard it?');
+}
 
 function AndroidBackButton() {
   const navigate = useNavigate();
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
-    void startAndroidBackButton(navigate).then(remove => {
+    void startAndroidBackButton(navigate, { beforeExit: saveNotesBeforeExit }).then(remove => {
       if (disposed) remove(); else stop = remove;
     }).catch(error => console.error('Android Back unavailable:', error));
     return () => { disposed = true; stop?.(); };

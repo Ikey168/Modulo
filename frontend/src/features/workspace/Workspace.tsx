@@ -172,13 +172,13 @@ function NotInstalledView({
   const Icon = backing?.icon ?? Store;
   const label = viewId.charAt(0).toUpperCase() + viewId.slice(1);
   return (
-    <div className="flex flex-1 items-center justify-center p-8">
+    <div className="flex min-w-0 flex-1 items-center justify-center p-4 md:p-8">
       <EmptyState
         icon={<Icon className="size-5" />}
         title={`${label} is not installed`}
         description="This view is provided by a plugin. Install it to use it, or browse the marketplace."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {backing && (
               <Button size="sm" onClick={() => void onInstall(backing.pluginId)}>
                 Install plugin

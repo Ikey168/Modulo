@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 const platform = vi.hoisted(() => ({ name: 'android' }));
 vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => platform.name } }));
-vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn() } }));
-import { androidRouteToRestore, rememberAndroidRoute } from '../androidLifecycle';
+vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), exitApp: vi.fn() } }));
+import { App } from '@capacitor/app';
+import { androidBackAction, androidRouteToRestore, rememberAndroidRoute, startAndroidBackButton } from '../androidLifecycle';
 import { outdatedWebView, renderWebViewUpdateRequired } from '../androidWebView';
 import type { DeviceDocuments } from '../deviceDocuments';
 
@@ -47,5 +48,47 @@ describe('Android WebView floor', () => {
     const root = document.createElement('div');
     renderWebViewUpdateRequired(110, root);
     expect(root.querySelector('[role="alert"]')?.textContent).toContain('WebView 120 or newer; this device has 110');
+  });
+});
+
+describe('Android Back', () => {
+  const dom = (html: string) => { const root = document.createElement('div'); root.innerHTML = html; return root; };
+
+  it('closes the topmost overlay before navigating', () => {
+    const root = dom('<div role="dialog" id="sheet"></div><div role="menu" data-state="open" id="menu"></div>');
+    expect(androidBackAction('/app/notes', 3, root)).toEqual({ kind: 'close-overlay', overlay: root.querySelector('#menu') });
+    root.querySelector('#menu')!.setAttribute('data-state', 'closed');
+    expect(androidBackAction('/app/dashboard', 0, root)).toEqual({ kind: 'close-overlay', overlay: root.querySelector('#sheet') });
+  });
+
+  it('walks history, falls back to the dashboard and exits from a root route', () => {
+    const root = dom('');
+    expect(androidBackAction('/app/notes', 2, root)).toEqual({ kind: 'history-back' });
+    expect(androidBackAction('/app/notes', 0, root)).toEqual({ kind: 'replace', path: '/app/dashboard' });
+    expect(androidBackAction('/settings', undefined, root)).toEqual({ kind: 'replace', path: '/' });
+    expect(androidBackAction('/app/dashboard', 4, root)).toEqual({ kind: 'exit' });
+  });
+
+  it('asks the unsaved-work guard before leaving the app', async () => {
+    let press: () => void = () => {};
+    vi.mocked(App.addListener).mockImplementation((async (_event: string, handler: (event: { canGoBack: boolean }) => void) => {
+      press = () => handler({ canGoBack: false });
+      return { remove: async () => {} };
+    }) as unknown as typeof App.addListener);
+    window.history.replaceState({ idx: 0 }, '', '/app/dashboard');
+    let allow = false;
+    const beforeExit = vi.fn(async () => allow);
+    const stop = await startAndroidBackButton(vi.fn(), { beforeExit });
+
+    press();
+    await vi.waitFor(() => expect(beforeExit).toHaveBeenCalledTimes(1));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(App.exitApp).not.toHaveBeenCalled();
+
+    allow = true;
+    press();
+    await vi.waitFor(() => expect(App.exitApp).toHaveBeenCalledTimes(1));
+    stop();
+    window.history.replaceState(null, '', '/');
   });
 });

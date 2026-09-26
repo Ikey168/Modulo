@@ -12,23 +12,72 @@ export async function startAndroidLifecycle(): Promise<() => void> {
   return () => { void resume.remove(); };
 }
 
+/**
+ * Overlays Back closes before it navigates: dialogs, sheets, and open Radix
+ * menus, listboxes and popovers. The most recently opened one is last in the DOM.
+ */
+const OVERLAY_SELECTOR = [
+  '[role="dialog"]', '[role="alertdialog"]',
+  '[role="menu"][data-state="open"]', '[role="listbox"][data-state="open"]',
+  '[data-radix-popper-content-wrapper] [data-state="open"]',
+].join(', ');
+
+export function topmostOverlay(root: ParentNode = document): Element | undefined {
+  const open = [...root.querySelectorAll(OVERLAY_SELECTOR)];
+  return open[open.length - 1];
+}
+
+const ROOT_PATHS = new Set(['/app/dashboard', '/', '/login']);
+
+export type AndroidBackAction =
+  | { kind: 'close-overlay'; overlay: Element }
+  | { kind: 'history-back' }
+  | { kind: 'replace'; path: string }
+  | { kind: 'exit' };
+
+/** What hardware Back does in the current state; pure so it can be tested without a device. */
+export function androidBackAction(path: string, historyIndex: unknown, root: ParentNode = document): AndroidBackAction {
+  const overlay = topmostOverlay(root);
+  if (overlay) return { kind: 'close-overlay', overlay };
+  if (ROOT_PATHS.has(path)) return { kind: 'exit' };
+  const index = Number(historyIndex);
+  if (Number.isFinite(index) && index > 0) return { kind: 'history-back' };
+  return { kind: 'replace', path: path.startsWith('/app/') ? '/app/dashboard' : '/' };
+}
+
+export interface AndroidBackOptions {
+  /**
+   * Called before Back leaves the app. Resolve false to stay, e.g. because
+   * unsaved work could not be committed anywhere.
+   */
+  beforeExit?: () => Promise<boolean>;
+}
+
 /** Keep hardware Back within the packaged app's route history. */
-export async function startAndroidBackButton(navigate: NavigateFunction): Promise<() => void> {
+export async function startAndroidBackButton(navigate: NavigateFunction, options: AndroidBackOptions = {}): Promise<() => void> {
   if (Capacitor.getPlatform() !== 'android') return () => {};
+  let exiting = false;
   const back = await App.addListener('backButton', () => {
-    const dialog = document.querySelector('[role="dialog"], [role="alertdialog"]');
-    if (dialog) {
-      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      return;
+    const action = androidBackAction(window.location.pathname, window.history.state?.idx);
+    switch (action.kind) {
+      case 'close-overlay':
+        // Radix and the shared sheets dismiss on Escape; the event bubbles to their document listener.
+        action.overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return;
+      case 'history-back':
+        navigate(-1);
+        return;
+      case 'replace':
+        navigate(action.path, { replace: true });
+        return;
+      case 'exit':
+        if (exiting) return;
+        exiting = true;
+        void (options.beforeExit?.() ?? Promise.resolve(true))
+          .catch(() => false)
+          .then(leave => { if (leave) void App.exitApp(); })
+          .finally(() => { exiting = false; });
     }
-    const path = window.location.pathname;
-    if (path === '/app/dashboard' || path === '/' || path === '/login') {
-      void App.exitApp();
-      return;
-    }
-    const index = Number(window.history.state?.idx);
-    if (Number.isFinite(index) && index > 0) navigate(-1);
-    else navigate(path.startsWith('/app/') ? '/app/dashboard' : '/', { replace: true });
   });
   return () => { void back.remove(); };
 }

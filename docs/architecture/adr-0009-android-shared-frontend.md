@@ -117,8 +117,19 @@ The shared frontend's phone layer (`frontend/src/features/workspace/mobile`)
 provides the app bar, bottom navigation, edge-swipe drawer, capture button,
 bottom sheets and pull-to-refresh. It switches on pointer type and viewport,
 not on platform, so a tablet in landscape keeps the desktop list/detail split.
-The hardware Back button maps to history navigation, then closes sheets, then
-exits from the dashboard. Deep links (`/app/...`) open the matching route.
+Hardware Back first closes the topmost overlay (dialog, sheet, open menu,
+listbox or popover), then walks route history, and on the dashboard leaves the
+app only after pending note edits were sent or committed to device storage; text
+held nowhere else asks before leaving. When the soft keyboard opens, or focus
+moves while it is open, the focused field is scrolled into view inside the
+shell's own scroll containers. Deep links (`/app/...`) open the matching route.
+
+Every contributed view is reachable by taps alone: the drawer lists each hub
+and sidebar view, a hub's picker sheet lists its tabs, and child views open from
+their parent (`phoneReachability.test.ts`). `npm run phone:audit` renders the
+phone layout at the default text size and at twice the root font size (Android's
+largest font scale is applied by the WebView as text zoom) and fails CI on
+horizontal overflow or a page error (#490).
 
 ## Native capability contract
 

@@ -44,9 +44,9 @@ export function LegacyRecoveryPanel() {
     </p>
     <div className="mt-3 flex flex-wrap items-center gap-2">
       <Button size="sm" variant="outline" disabled={busy || !account} onClick={() => void download()}>Download recovery file</Button>
-      <label className="text-sm">
+      <label className="min-w-0 max-w-full text-sm">
         <span className="sr-only">Replay a recovery file</span>
-        <input type="file" accept="application/json" disabled={busy || !account}
+        <input className="max-w-full" type="file" accept="application/json" disabled={busy || !account}
           onChange={event => { void replay(event.target.files?.[0]); event.target.value = ''; }} />
       </label>
     </div>
