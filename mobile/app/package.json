@@ -6,7 +6,9 @@
     "sync": "cap sync android",
     "open": "cap open android",
     "smoke:android": "node scripts/smoke-android.mjs",
-    "build:debug": "npm --prefix ../.. ci && npm --prefix ../.. run build:strict --workspace=frontend && npm ci && npm run sync && cd android && ./gradlew assembleDebug --console=plain"
+    "build:debug": "npm --prefix ../.. ci && npm --prefix ../.. run build:strict --workspace=frontend && npm ci && npm run sync && cd android && ./gradlew assembleDebug --console=plain",
+    "upgrade:android": "node scripts/upgrade-android.mjs",
+    "build:release": "npm run sync && cd android && ./gradlew assembleRelease bundleRelease --console=plain"
   },
   "dependencies": {
     "@capacitor/android": "8.5.2",

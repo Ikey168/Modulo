@@ -1,0 +1,193 @@
+name: Android release
+
+# Signed Android release artifacts (#498). Runs only on demand, in the protected
+# `android-release` environment whose reviewers gate access to the signing secrets.
+# It produces a signed APK and AAB with checksums, provenance and test evidence,
+# and a DRAFT GitHub release. Publishing that release, or uploading the AAB to a
+# store, is a separate manual action.
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name shown to users, e.g. 1.2.0'
+        required: true
+        type: string
+      version_code:
+        description: 'Integer version code; must exceed every published build'
+        required: true
+        type: string
+      previous_release_tag:
+        description: 'Tag of the previous Android release to test the upgrade from (blank for the first release)'
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build signed APK and AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: android-release
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate version
+        id: meta
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "version_name must be semantic"; exit 1; }
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]{0,8}$ ]] || { echo "version_code must be a positive integer"; exit 1; }
+          echo "tag=android-v$VERSION_NAME" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run inventory:android:check --workspace=frontend
+      - run: npm run lint:ci --workspace=frontend
+      - run: npm run test:run --workspace=frontend -- --maxWorkers=2
+      - run: npm run build:strict --workspace=frontend
+      - run: npm ci --prefix mobile/app
+      - name: Install Android SDK Platform 36 and Build Tools
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/android -o "$RUNNER_TEMP/android"
+          chmod +x "$RUNNER_TEMP/android"
+          "$RUNNER_TEMP/android" --sdk="$ANDROID_HOME" sdk install platforms/android-36 build-tools/36.0.0 platform-tools
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MODULO_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "MODULO_ANDROID_KEYSTORE_BASE64 is not configured"; exit 1; }
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/modulo-release.jks"
+      - name: Build release APK and AAB
+        env:
+          MODULO_VERSION_NAME: ${{ inputs.version_name }}
+          MODULO_VERSION_CODE: ${{ inputs.version_code }}
+          MODULO_KEYSTORE_FILE: ${{ runner.temp }}/modulo-release.jks
+          MODULO_KEYSTORE_PASSWORD: ${{ secrets.MODULO_ANDROID_KEYSTORE_PASSWORD }}
+          MODULO_KEY_ALIAS: ${{ secrets.MODULO_ANDROID_KEY_ALIAS }}
+          MODULO_KEY_PASSWORD: ${{ secrets.MODULO_ANDROID_KEY_PASSWORD }}
+        run: npm run build:release --prefix mobile/app
+      - name: Remove signing keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/modulo-release.jks"
+      - name: Verify signature and collect artifacts
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cp mobile/app/android/app/build/outputs/apk/release/app-release.apk "release/modulo-$VERSION_NAME.apk"
+          cp mobile/app/android/app/build/outputs/bundle/release/app-release.aab "release/modulo-$VERSION_NAME.aab"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "release/modulo-$VERSION_NAME.apk" > release/signature.txt
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' release/signature.txt
+          (cd release && sha256sum modulo-*.apk modulo-*.aab > SHA256SUMS)
+          node -e '
+            const fs = require("fs");
+            fs.writeFileSync("release/provenance.json", JSON.stringify({
+              application: "com.modulo", versionName: process.env.VERSION_NAME, versionCode: Number(process.env.VERSION_CODE),
+              commit: process.env.GITHUB_SHA, ref: process.env.GITHUB_REF, workflowRun: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              builtAt: new Date().toISOString(), capacitor: require("./mobile/app/package.json").dependencies["@capacitor/android"],
+              minSdk: 26, targetSdk: 36,
+              checksums: fs.readFileSync("release/SHA256SUMS", "utf8").trim().split("\n"),
+            }, null, 2) + "\n");'
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'release/modulo-*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modulo-android-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 90
+
+  verify:
+    name: Journeys and upgrade on the signed build
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v4
+        with:
+          name: modulo-android-release
+          path: release
+      - name: Fetch the previous release for the upgrade test
+        if: inputs.previous_release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS: ${{ inputs.previous_release_tag }}
+        run: gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --pattern 'modulo-*.apk' --dir previous
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run journeys and upgrade on the emulator
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_4
+          emulator-build: 15004761
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            trap 'adb logcat -d -t 2000 > mobile/app/android-smoke-logcat.txt' EXIT
+            if ls previous/modulo-*.apk >/dev/null 2>&1; then node mobile/app/scripts/upgrade-android.mjs previous/modulo-*.apk release/modulo-*.apk; else echo "First release: no upgrade source"; fi
+            adb uninstall com.modulo || true
+            adb install release/modulo-*.apk
+            node mobile/app/scripts/smoke-android.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modulo-android-release-evidence
+          path: |
+            mobile/app/android-smoke/
+            mobile/app/android-smoke-logcat.txt
+          retention-days: 90
+
+  draft-release:
+    name: Draft GitHub release
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: modulo-android-release
+          path: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: modulo-android-release-evidence
+          path: evidence
+      - name: Create draft release (publishing is a separate, manual step)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          (cd evidence && zip -qr ../release/test-evidence.zip .)
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+            --title "Modulo Android ${TAG#android-v}" \
+            --notes "Signed Android build. Verify with SHA256SUMS and the build provenance attestation. Test evidence: test-evidence.zip. Install and upgrade notes: docs/mobile/android-release.md." \
+            release/modulo-*.apk release/modulo-*.aab release/SHA256SUMS release/provenance.json release/signature.txt release/test-evidence.zip
