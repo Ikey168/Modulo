@@ -44,16 +44,10 @@ const TABLE: Record<Capability, Row> = {
     web: { message: 'Changes synchronize while this tab is open.' },
     electron: true, android: true,
   },
-  'remote.fetch': {
-    web: { message: 'Feeds, web archives, page watches, calendars and ntfy run on your Modulo server.', issue: issue(495) },
-    electron: true,
-    android: { message: 'Feeds, web archives, page watches, calendars and ntfy run on your Modulo server.', issue: issue(495) },
-  },
-  'remote.metadata': {
-    web: { message: 'Metadata lookups run on your Modulo server with credentials stored there.', issue: issue(495) },
-    electron: true,
-    android: { message: 'Metadata lookups run on your Modulo server with credentials stored there.', issue: issue(495) },
-  },
+  // Served by the Modulo server's /api/remote adapters off the desktop (#495).
+  'remote.fetch': { web: true, electron: true, android: true },
+  // Served by the Modulo server's /api/remote adapters off the desktop (#495).
+  'remote.metadata': { web: true, electron: true, android: true },
   'device.folders': {
     web: { message: 'Local folder indexing needs the desktop app. Upload files as attachments instead.', issue: issue(495) },
     electron: true,
@@ -64,11 +58,8 @@ const TABLE: Record<Capability, Row> = {
     electron: true,
     android: { message: 'Documents are stored as attachments; text recognition runs in the desktop app.', issue: issue(495) },
   },
-  'pdf.tools': {
-    web: { message: 'PDF merge, split, rotate and text extraction run on your Modulo server.', issue: issue(495) },
-    electron: true,
-    android: { message: 'PDF merge, split, rotate and text extraction run on your Modulo server.', issue: issue(495) },
-  },
+  // Served by the Modulo server's /api/remote adapters off the desktop (#495).
+  'pdf.tools': { web: true, electron: true, android: true },
   'backup.archive': {
     web: { message: 'Use the JSON backup; ZIP archives with attachments and folder sync need the desktop app.' },
     electron: true,

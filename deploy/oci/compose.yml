@@ -49,6 +49,8 @@ services:
       dockerfile: Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      # Encrypts server-held service credentials (#495); empty disables credential storage.
+      MODULO_REMOTE_CREDENTIAL_KEY: ${MODULO_REMOTE_CREDENTIAL_KEY:-}
       SERVER_SERVLET_CONTEXT_PATH: /
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-modulo}

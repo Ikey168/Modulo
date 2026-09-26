@@ -53,7 +53,7 @@ import { useLifeCollection } from './useLifeCollection';
 import { isoDate } from './planner';
 import { ChoiceInline } from './viewkit';
 
-import { desktopServices as nativeDesktop } from '@/platform';
+import { desktopServices as nativeDesktop, networkServices } from '@/platform';
 import type { WorkspaceViewProps } from './plugins/types';
 import { NoteFlashcardCapture } from './NoteFlashcardCapture';
 import { AndroidReminderDelivery } from './AndroidReminderDelivery';
@@ -109,8 +109,10 @@ function MetadataResolver({ definition }: { definition: FoundationToolDefinition
   const run = async () => {
     setBusy(true); setError('');
     try {
-      const desktop = nativeDesktop();
-      if (desktop) {
+      // Desktop runs lookups locally. Browsers and Android query providers directly with session-only
+      // credentials, except IGDB, whose token exchange browsers cannot make; the server does that (#495).
+      const desktop = networkServices();
+      if (desktop.route === 'desktop' || provider === 'IGDB') {
         if (credentials.tmdbToken) await desktop.credentials.set('tmdbToken', credentials.tmdbToken);
         if (credentials.youtubeApiKey) await desktop.credentials.set('youtubeApiKey', credentials.youtubeApiKey);
         if (igdbCredentials.clientId) await desktop.credentials.set('igdbClientId', igdbCredentials.clientId);

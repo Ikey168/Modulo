@@ -34,7 +34,7 @@ server (`online`).
 | `business-obligations` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `business-operations` | 1 view | CRUD | — | — | business | queue | P07 | P13 |
 | `business-reconciliation` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
-| `caldav-sync` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
+| `caldav-sync` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
 | `calendar-view` | 1 view | CRUD (notes/state) | — | — | server state | queue | P05 | P13 |
 | `canvas-board` | 1 view | CRUD | — | file-download (share sheet / SAF create) | canvas-board | queue | P07 | P14 |
 | `career-dashboard` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
@@ -45,7 +45,7 @@ server (`online`).
 | `daily-briefing` | 1 view | CRUD (notes/state) | — | external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/newsletters/gmail, /api/notes, /api/workspaces/personal | online | P07 | P15 |
 | `daily-notes` | 1 view | CRUD (notes/state) | 1 editor | — | server state | queue | P05 | P13 |
 | `decision-journal` | 1 view | CRUD (notes/state) | — | file-download (share sheet / SAF create) | /api/notes, /api/workspaces/personal | queue | P05 | P13 |
-| `document-inbox-ocr` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
+| `document-inbox-ocr` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
 | `education-assignments` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `education-core` | 1 view | CRUD | — | — | education | queue | P07 | P13 |
 | `education-curriculum` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
@@ -61,7 +61,7 @@ server (`online`).
 | `evidence-library` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `evidence-reproducibility` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `executable-runbooks` | 1 view | CRUD (notes/state) | 1 editor | camera-or-media (CAMERA), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | queue | P05 | P15 |
-| `feeds-reading-inbox` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
+| `feeds-reading-inbox` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
 | `finance-subscriptions` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
 | `findings-tracker` | 1 view, 1 fence | CRUD (notes/state) | 1 editor, render | — | server state | queue | P07 | P13 |
 | `flashcards-spaced-repetition` | 1 view | CRUD | — | desktop-native-services (server/remote service (P17)), external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework), notifications (POST_NOTIFICATIONS) | foundation-settings | online | P07 | P17 |
@@ -95,7 +95,7 @@ server (`online`).
 | `lists-rankings` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework), notifications (POST_NOTIFICATIONS) | /api/workspaces/personal | online | P06 | P17 |
 | `living-documents` | 1 view, 2 fences | CRUD (notes/state) | render | camera-or-media (CAMERA), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | queue | P05 | P15 |
 | `local-folder-bridge` | 1 view | CRUD (notes/state) | — | camera-or-media (CAMERA), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | queue | P05 | P15 |
-| `managed-files` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
+| `managed-files` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
 | `meal-planner` | 1 view | CRUD | — | — | meal-planner | queue | P05 | P13 |
 | `media-albums` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
 | `media-animation` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
@@ -180,7 +180,7 @@ server (`online`).
 | `para-review` | 1 view | CRUD (notes/state) | — | — | server state | queue | P05 | P13 |
 | `para-tasks` | 1 view | CRUD (notes/state) | — | — | server state | queue | P05 | P13 |
 | `pdf-export` | 1 note panel | CRUD (notes/state) | — | clipboard (clipboard), external-links (Custom Tabs), file-download (share sheet / SAF create) | /api/ipfs/notes, /api/knowledge, /api/knowledge/ask | online | P07 | P14 |
-| `pdf-toolkit` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
+| `pdf-toolkit` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
 | `personal-crm` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
 | `personal-sops` | 1 view | CRUD | — | — | personal-sops | queue | P05 | P13 |
 | `places-library` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
@@ -188,7 +188,7 @@ server (`online`).
 | `reading-annotations` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework), notifications (POST_NOTIFICATIONS) | /api/workspaces/personal | online | P07 | P17 |
 | `rechnung` | 1 view, 1 fence | CRUD | 1 editor, render | file-download (share sheet / SAF create) | rechnung | queue | P07 | P13 |
 | `reminders-notifications` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework), notifications (POST_NOTIFICATIONS) | /api/workspaces/personal | online | P05 | P17 |
-| `remote-notification-gateway` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
+| `remote-notification-gateway` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P05 | P17 |
 | `routines-habits` | 1 view | CRUD | — | — | routines | queue | P05 | P13 |
 | `saved-searches` | 1 view | CRUD | — | — | saved-searches | queue | P05 | P13 |
 | `scheduled-digest` | none | read | 1 workflow | — | server state | queue | P07 | P13 |
@@ -219,8 +219,8 @@ server (`online`).
 | `wealth-cashflow` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `wealth-dashboard` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
 | `wealth-investments-goals` | 1 view | CRUD (notes/state) | — | — | server state | queue | P07 | P13 |
-| `web-archive-read-later` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
-| `web-watch` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
+| `web-archive-read-later` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
+| `web-watch` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | online | P07 | P17 |
 | `web3-id` | 1 view | CRUD | — | clipboard (clipboard), external-links (Custom Tabs), file-download (share sheet / SAF create) | web3-id | online | P07 | P13 |
 | `webhook-trigger` | none | read | 2 workflow | — | server state | queue | P07 | P13 |
 | `wishlist-purchases` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |

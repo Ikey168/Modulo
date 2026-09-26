@@ -710,6 +710,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -1084,6 +1085,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -1652,6 +1654,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -2993,6 +2996,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -5729,6 +5733,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -6053,6 +6058,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -7121,6 +7127,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [
@@ -7161,6 +7168,7 @@
       ],
       "nativeDependencies": [
         "desktop-native-services",
+        "file-download",
         "file-picker"
       ],
       "backendEndpoints": [

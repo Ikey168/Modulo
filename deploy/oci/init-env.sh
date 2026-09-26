@@ -37,6 +37,7 @@ umask 077
   printf 'MODULO_SECURITY_JWT_SECRET=%s\n' "$(openssl rand -base64 48 | tr -d '\n')"
   printf 'MODULO_SECURITY_API_KEY=mod_%s\n' "$(openssl rand -hex 24)"
   printf 'MODULO_SECURITY_ENCRYPTION_KEY=%s\n' "$(openssl rand -hex 16)"
+  printf 'MODULO_REMOTE_CREDENTIAL_KEY=%s\n' "$(openssl rand -base64 32 | tr -d '\n')"
   printf 'NOESIS_JWT_SECRET=%s\n' "$(openssl rand -hex 48)"
   printf 'NOESIS_API_KEY_SALT=%s\n' "$(openssl rand -hex 32)"
 } > .env

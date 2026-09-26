@@ -34,8 +34,10 @@ describe('platform capability contract', () => {
         if (!status.available) expect(status.message.length, `${kind}/${capability}`).toBeGreaterThan(20);
       }
     }
-    expect(capabilityStatus('remote.fetch', 'android')).toMatchObject({ available: false, issue: expect.stringContaining('/issues/495') });
-    expect(capabilityGaps(['files.pick', 'pdf.tools'], 'android').map(gap => gap.capability)).toEqual(['pdf.tools']);
+    // Network services and PDF tools run on the Modulo server off the desktop (#495); folders and OCR stay gaps.
+    expect(capabilityStatus('remote.fetch', 'android').available).toBe(true);
+    expect(capabilityStatus('device.folders', 'android')).toMatchObject({ available: false, issue: expect.stringContaining('/issues/495') });
+    expect(capabilityGaps(['files.pick', 'pdf.tools', 'documents.ocr'], 'android').map(gap => gap.capability)).toEqual(['documents.ocr']);
   });
 
   it('declares only known capabilities in the catalog', () => {
