@@ -2,9 +2,17 @@ import { authService } from '../features/auth/authService';
 import { Capacitor } from '@capacitor/core';
 import { NoteHttpError, OfflineNotes, type NoteEdit } from './offlineNotes';
 import { createNoteCachePersistence } from './offlineNoteCache';
-import { LegacyNoteCacheMigration } from './legacyOfflineNotesImport';
+import { legacyBrowserStorage } from './legacy/browserLegacyStorage';
+import { LegacyNoteCacheMigration } from './legacy/legacyOfflineNotesImport';
 import type { CoreNote } from '@modulo/core';
 type WorkspaceNote = Omit<CoreNote, 'tags'> & { tags?: CoreNote['tags'] };
+/** The durable note cache, transferring an older browser-profile queue once when one exists. */
+function noteCache() {
+  const durable = createNoteCachePersistence();
+  const legacy = legacyBrowserStorage();
+  return legacy ? new LegacyNoteCacheMigration(durable, legacy) : durable;
+}
+
 export const OFFLINE_NOTES_EVENT = 'modulo:offline-notes';
 let current: { identity: string; client: OfflineNotes } | undefined;
 export function offlineNotes(): OfflineNotes | undefined {
@@ -32,7 +40,7 @@ export function offlineNotes(): OfflineNotes | undefined {
     // Older browsers serialize this tab; edits still retain server version checks.
     const result = queue.then(work); queue = result.then(() => {}, () => {}); return result;
   };
-  const client = new OfflineNotes(key, new LegacyNoteCacheMigration(createNoteCachePersistence()), { list: () => request<WorkspaceNote[]>(''), get: id => request<WorkspaceNote>(`/${id}`), put: (id, body) => request<WorkspaceNote>(`/${id}`, body) }, valid, lock,
+  const client = new OfflineNotes(key, noteCache(), { list: () => request<WorkspaceNote[]>(''), get: id => request<WorkspaceNote>(`/${id}`), put: (id, body) => request<WorkspaceNote>(`/${id}`, body) }, valid, lock,
     () => window.dispatchEvent(new Event(OFFLINE_NOTES_EVENT)));
   current = { identity, client }; return client;
 }

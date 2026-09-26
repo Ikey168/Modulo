@@ -1,3 +1,4 @@
+import { readLegacyValue } from '../../../services/legacy/browserLegacyStorage';
 import { useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { WorkspaceViewProps } from '../plugins/types';
@@ -15,7 +16,7 @@ export default function DecisionJournalView({ data, onOpenNote }: WorkspaceViewP
   const [draft, setDraft] = useState<LifeRecord>(); const [selected, setSelected] = useState('');
   const [query, setQuery] = useState(''); const [filter, setFilter] = useState('All');
   const [outcome, setOutcome] = useState(''); const [lessons, setLessons] = useState('');
-  const [legacy, setLegacy] = useState(() => { try { return localStorage.getItem(lifeStoreKey(id)); } catch { return null; } });
+  const [legacy, setLegacy] = useState(() => readLegacyValue(lifeStoreKey(id)));
   useEffect(() => { setSelected(params.get('decision') ?? ''); setDraft(undefined); setOutcome(''); setLessons(''); }, [params]);
   const decision = store.value.records.find(record => record.id === selected);
   const records = store.value.records.filter(record => (filter === 'All' || (filter === 'Due' ? decisionIsDue(record) : record.status === filter)) && `${record.title} ${Object.values(record.values).join(' ')}`.toLowerCase().includes(query.toLowerCase()));

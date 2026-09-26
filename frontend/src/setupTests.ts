@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 // Vitest global setup.
 // Registers @testing-library/jest-dom matchers (toBeInTheDocument, toHaveClass,
 // toHaveAttribute, etc.) and cleans up the DOM between tests.

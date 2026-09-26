@@ -1,4 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
+import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 
 export interface OperationalCollection<T extends { id: string }> {
   namespace: string;
@@ -42,7 +43,8 @@ export async function importCollection<T extends { id: string }>(client: PluginS
   definition: OperationalCollection<T>, storage: Storage): Promise<void> {
   const raw = storage.getItem(definition.legacyKey);
   if (raw === null) return;
-  const records = validateCollection(definition, JSON.parse(raw));
+  const records = decodeLegacyJson(definition.legacyKey, raw, value => validateCollection(definition, value));
+  await preserveLegacySource(client, { [definition.legacyKey]: raw });
   await client.refreshAll();
   // Check all known conflicts before queueing any imports.
   for (const record of records) {
@@ -54,11 +56,9 @@ export async function importCollection<T extends { id: string }>(client: PluginS
     if (!client.get(`record.${record.id}`)) await client.create(`record.${record.id}`, json(record), definition.schemaId, 1);
   }
   await client.synchronize();
-  if (records.some(record => { const entry = client.get(`record.${record.id}`); return !entry || entry.pending || entry.conflict; })) {
-    throw new Error('Import has not synchronized. Browser data is preserved.');
-  }
+  assertImported(client, records.map(record => ({ key: `record.${record.id}`, schemaId: definition.schemaId, value: json(record) })));
   await client.set('migration-browser-v1', { source: definition.legacyKey, ids: records.map(record => record.id) }, 'modulo.migration', 1);
   await client.synchronize();
   if (client.get('migration-browser-v1')?.pending || client.get('migration-browser-v1')?.conflict) throw new Error('Migration confirmation is pending.');
-  if (storage.getItem(definition.legacyKey) === raw) storage.removeItem(definition.legacyKey);
+  retireLegacySource(storage, { [definition.legacyKey]: raw });
 }

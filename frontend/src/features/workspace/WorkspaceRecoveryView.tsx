@@ -1,3 +1,4 @@
+import { LegacyRecoveryPanel } from './LegacyRecoveryPanel';
 import { useEffect, useState } from 'react';
 import { Button } from '@/ui';
 import { EmptyPanel, Panel, ViewShell } from './viewkit';
@@ -61,6 +62,7 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
           {message}
         </p>
       )}
+      <LegacyRecoveryPanel />
       <Panel title="Trash">
         {(data.trashedNotes?.length || 0) === 0 &&
           !history.some((entry) => entry.deleted) && (

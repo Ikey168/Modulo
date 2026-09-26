@@ -1,5 +1,6 @@
 // Embedded database records synchronize by fence identity within the authenticated account.
 
+import { legacyBrowserStorage } from '../../services/legacy/browserLegacyStorage';
 import { useMemo } from 'react';
 import { useDurableRecord } from './plugins/useDurableRecord';
 import { DATABASE_PLUGIN_ID } from './plugins';
@@ -232,7 +233,7 @@ export function useDatabase(source: string): DatabaseApi {
   const initial = useMemo(() => createDatabase(cfg.id, cfg.title, cfg.seedColumns), [cfg]);
   const sync = useDurableRecord(DATABASE_PLUGIN_ID, `database.${cfg.id}`, DATABASE_SCHEMA, initial,
     value => { const db = validateDatabase(value); if (db.id !== cfg.id) throw new Error('Database fence identity mismatch'); return db; },
-    DATABASE_LEGACY_KEY, client => importLegacyDatabases(client, localStorage));
+    DATABASE_LEGACY_KEY, async client => { const storage = legacyBrowserStorage(); if (storage) await importLegacyDatabases(client, storage); });
   const update = sync.set;
   return {
     db: sync.value, sync,

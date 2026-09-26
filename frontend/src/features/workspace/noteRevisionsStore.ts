@@ -1,3 +1,5 @@
+import { legacyBrowserStorage } from '../../services/legacy/browserLegacyStorage';
+import { decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PluginStateClient, StateJson, StateView } from '../../services/pluginStateClient';
 import { usePlugins } from './plugins/PluginProvider';
@@ -39,18 +41,21 @@ async function addRevisions(client: PluginStateClient, revisions: NoteRevision[]
 }
 
 /** Move revisions saved by older builds in this browser to the server, then drop the local copy. */
-async function importLegacyRevisions(client: PluginStateClient): Promise<void> {
-  let raw: string | null = null;
-  try { raw = localStorage.getItem(NOTE_REVISIONS_KEY); } catch { return; }
-  if (raw === null) return;
-  const legacy = (JSON.parse(raw) as unknown[]).map(parseNoteRevision)
-    .filter((revision): revision is NoteRevision => Boolean(revision) && /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$/.test(revision!.id));
+export async function importLegacyRevisions(client: PluginStateClient, storage: Storage | null = legacyBrowserStorage()): Promise<void> {
+  const raw = storage?.getItem(NOTE_REVISIONS_KEY) ?? null;
+  if (!storage || raw === null) return;
+  const legacy = decodeLegacyJson(NOTE_REVISIONS_KEY, raw, value => {
+    if (!Array.isArray(value)) throw new Error('Expected a revision list');
+    return value.map(parseNoteRevision)
+      .filter((revision): revision is NoteRevision => Boolean(revision) && /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$/.test(revision!.id));
+  });
+  await preserveLegacySource(client, { [NOTE_REVISIONS_KEY]: raw });
   await client.refreshAll();
   const existing = new Set(client.list().map((record) => record.key));
   await addRevisions(client, legacy.filter((revision) => !existing.has(revision.id)));
   await client.synchronize();
   if (client.list().some((record) => record.pending || record.conflict)) return;
-  if (localStorage.getItem(NOTE_REVISIONS_KEY) === raw) localStorage.removeItem(NOTE_REVISIONS_KEY);
+  retireLegacySource(storage, { [NOTE_REVISIONS_KEY]: raw });
 }
 
 export function useNoteRevisions(): { revisions: NoteRevision[]; record: (revision: NoteRevision) => void } {

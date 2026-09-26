@@ -1,5 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
-import { importBrowserLegacyBundle } from '../../services/legacyStateImport';
+import { importBrowserLegacyBundle } from '../../services/legacy/legacyStateImport';
 import {
   DEFAULT_CATEGORIES,
   parseExpenseCategories,

@@ -1,5 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../../services/pluginStateClient';
-import { importLegacyState } from '../../../services/legacyStateImport';
+import { importLegacyState } from '../../../services/legacy/legacyStateImport';
 import { isRunnable, type InstalledRecord, type PluginManifest } from './types';
 import type { InstallationStorage } from './runtime';
 import { RETIRED_PLUGIN_REPLACEMENTS } from './catalog';

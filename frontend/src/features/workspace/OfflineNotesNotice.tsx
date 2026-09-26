@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { offlineNotes, OFFLINE_NOTES_EVENT } from '../../services/workspaceOfflineNotes';
 import { authService } from '../auth/authService';
-import { legacyOfflineNotesForRecovery } from '../../services/legacyOfflineNotesImport';
+import { legacyOfflineNotesForRecovery } from '../../services/legacy/legacyOfflineNotesImport';
 import { SystemBanner } from './mobile/SystemBanner';
 
 export function OfflineNotesNotice({ refresh }: { refresh: () => Promise<void> }) {

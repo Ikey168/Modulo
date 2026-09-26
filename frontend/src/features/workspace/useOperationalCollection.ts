@@ -1,3 +1,4 @@
+import { legacyBrowserStorage, readLegacyValue } from '../../services/legacy/browserLegacyStorage';
 import { useEffect, useRef, useState } from 'react';
 import { usePlugins } from './plugins/PluginProvider';
 import type { PluginStateClient } from '../../services/pluginStateClient';
@@ -22,7 +23,7 @@ export function useOperationalCollection<T extends { id: string }>(definition: O
     const token = ++generation.current; let disposed = false; let stop: (() => void) | undefined;
     current.current = []; setValue([]); setClient(undefined); setError(undefined); setInvalid(false);
     pending.current = 0; queue.current = Promise.resolve(); failures.current = [];
-    try { setLegacy(localStorage.getItem(definition.legacyKey) !== null); } catch { setLegacy(false); }
+    setLegacy(readLegacyValue(definition.legacyKey) !== null);
     void plugins.state(definition.namespace).then(state => {
       if (disposed) return;
       const refresh = () => {
@@ -73,11 +74,12 @@ export function useOperationalCollection<T extends { id: string }>(definition: O
     }),
     importLegacy: () => action(async () => {
       if (!active) throw new Error('Sign in to import browser data.');
-      const token = generation.current; await importCollection(active, definition, localStorage);
-      if (token === generation.current) setLegacy(localStorage.getItem(definition.legacyKey) !== null);
+      const token = generation.current; const storage = legacyBrowserStorage();
+      if (storage) await importCollection(active, definition, storage);
+      if (token === generation.current) setLegacy(readLegacyValue(definition.legacyKey) !== null);
     }),
     exportRecovery: () => {
-      const raw = JSON.stringify({ legacy: localStorage.getItem(definition.legacyKey), cache: active?.recoverySnapshot(), local: current.current }, null, 2);
+      const raw = JSON.stringify({ legacy: readLegacyValue(definition.legacyKey), cache: active?.recoverySnapshot(), local: current.current }, null, 2);
       const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
       const link = document.createElement('a'); link.href = url; link.download = `${definition.namespace}-recovery.json`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);

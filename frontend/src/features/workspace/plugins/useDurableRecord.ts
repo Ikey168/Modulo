@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlugins } from './PluginProvider';
 import type { PluginStateClient, StateJson } from '../../../services/pluginStateClient';
-import { browserLegacyRecovery, browserLegacyValue, importBrowserLegacyState } from '../../../services/legacyStateImport';
+import { browserLegacyRecovery, browserLegacyValue, importBrowserLegacyState } from '../../../services/legacy/legacyStateImport';
 import { Capacitor } from '@capacitor/core';
 
 type RecordOwner = { kind: 'plugin' | 'workspace'; id: string };

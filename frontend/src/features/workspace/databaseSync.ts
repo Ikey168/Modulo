@@ -1,4 +1,5 @@
 import type { Database } from './database';
+import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
 export const DATABASE_SCHEMA = 'modulo.embedded-database';
 export const DATABASE_LEGACY_KEY = 'modulo-databases';
@@ -22,11 +23,13 @@ export function validateDatabase(value: unknown): Database {
 }
 export async function importLegacyDatabases(client: PluginStateClient, storage: Storage): Promise<void> {
   const raw = storage.getItem(DATABASE_LEGACY_KEY); if (raw === null) return;
-  const source: unknown = JSON.parse(raw);
-  if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid browser database store');
-  const databases = Object.entries(source).map(([id, value]) => {
-    const db = validateDatabase(value); if (id !== db.id) throw new Error('Database identity does not match its browser key'); return db;
+  const databases = decodeLegacyJson(DATABASE_LEGACY_KEY, raw, source => {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid browser database store');
+    return Object.entries(source).map(([id, value]) => {
+      const db = validateDatabase(value); if (id !== db.id) throw new Error('Database identity does not match its browser key'); return db;
+    });
   });
+  await preserveLegacySource(client, { [DATABASE_LEGACY_KEY]: raw });
   await client.refreshAll();
   for (const db of databases) {
     const key = `database.${db.id}`; const existing = client.get(key);
@@ -35,9 +38,9 @@ export async function importLegacyDatabases(client: PluginStateClient, storage: 
     if (!existing) await client.create(key, JSON.parse(JSON.stringify(db)) as StateJson, DATABASE_SCHEMA, 1);
   }
   await client.synchronize();
-  if (databases.some(db => client.get(`database.${db.id}`)?.pending)) throw new Error('Database import has not synchronized.');
+  assertImported(client, databases.map(db => ({ key: `database.${db.id}`, schemaId: DATABASE_SCHEMA, value: JSON.parse(JSON.stringify(db)) as StateJson })));
   await client.set('migration.browser-v1', { ids: databases.map(db => db.id) }, 'modulo.migration', 1);
   await client.synchronize();
   if (client.get('migration.browser-v1')?.pending) throw new Error('Database migration confirmation is pending.');
-  if (storage.getItem(DATABASE_LEGACY_KEY) === raw) storage.removeItem(DATABASE_LEGACY_KEY);
+  retireLegacySource(storage, { [DATABASE_LEGACY_KEY]: raw });
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PluginStateClient, StateJson, StateView } from '../../services/pluginStateClient';
-import { browserLegacyValue } from '../../services/legacyStateImport';
+import { browserLegacyValue, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
+import { legacyBrowserStorage } from '../../services/legacy/browserLegacyStorage';
 import { usePlugins } from './plugins/PluginProvider';
 import { registerWorkspaceLegacySource } from './workspaceLegacyMigration';
 import {
@@ -105,11 +106,14 @@ function legacyLibrary(): MediaLibraryData | null {
 }
 
 /** Claim browser-only media into the server without replacing items that already exist there. */
-export async function importLegacyMediaLibrary(client: PluginStateClient, storage: Storage = localStorage): Promise<number> {
+export async function importLegacyMediaLibrary(client: PluginStateClient, storage: Storage | null = legacyBrowserStorage()): Promise<number> {
+  if (!storage) return 0;
   const raw = Object.fromEntries(LEGACY_KEYS.map(key => [key, storage.getItem(key)]));
-  const source = raw[MEDIA_LIBRARY_STORE_KEY] ?? raw[LEGACY_MEDIA_LIBRARY_STORE_KEY];
+  const sourceKey = raw[MEDIA_LIBRARY_STORE_KEY] != null ? MEDIA_LIBRARY_STORE_KEY : LEGACY_MEDIA_LIBRARY_STORE_KEY;
+  const source = raw[sourceKey];
   if (source == null) return 0;
-  const legacy = parseMediaLibrary(JSON.parse(source)).items;
+  const legacy = decodeLegacyJson(sourceKey, source, value => parseMediaLibrary(value).items);
+  await preserveLegacySource(client, raw);
   await client.refreshAll();
   const current = mediaLibraryFromRecords(client.list());
   const missing = legacy.filter(item => !current.items.has(item.id));
@@ -122,9 +126,7 @@ export async function importLegacyMediaLibrary(client: PluginStateClient, storag
   }
   await client.set('migration.media-items', { sources: LEGACY_KEYS, imported: missing.length }, 'modulo.migration', 1);
   await client.synchronize();
-  for (const key of LEGACY_KEYS) {
-    if (raw[key] !== null && storage.getItem(key) === raw[key]) storage.removeItem(key);
-  }
+  retireLegacySource(storage, raw);
   return missing.length;
 }
 

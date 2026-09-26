@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { LegacyNoteCacheMigration } from '../legacyOfflineNotesImport';
-import type { NoteCachePersistence, OfflineNoteSnapshot } from '../offlineNotes';
+import type { NoteCachePersistence, OfflineNoteSnapshot } from '../../offlineNotes';
 
 const key = 'modulo.offline-notes.v1:["https://modulo.example","issuer","alice"]';
 const old: OfflineNoteSnapshot = { version: 1, notes: [{ id: 1, title: 'Local', content: 'Draft', version: 1 }],

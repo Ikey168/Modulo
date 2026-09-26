@@ -1,8 +1,9 @@
-import { noteMatchesEdit, validateOfflineNoteSnapshot, type NoteCachePersistence, type OfflineNoteSnapshot } from './offlineNotes';
+import { readLegacyValue } from './browserLegacyStorage';
+import { noteMatchesEdit, validateOfflineNoteSnapshot, type NoteCachePersistence, type OfflineNoteSnapshot } from '../offlineNotes';
 
 /** One-time browser-origin transfer; retain its source until pending edits are acknowledged. */
 export class LegacyNoteCacheMigration implements NoteCachePersistence {
-  constructor(private readonly durable: NoteCachePersistence, private readonly legacy: Storage = localStorage) {}
+  constructor(private readonly durable: NoteCachePersistence, private readonly legacy: Storage) {}
 
   async load(key: string): Promise<OfflineNoteSnapshot | null> {
     const current = await this.durable.load(key);
@@ -44,5 +45,5 @@ export class LegacyNoteCacheMigration implements NoteCachePersistence {
 }
 
 export function legacyOfflineNotesForRecovery(key: string): string | null {
-  return localStorage.getItem(key);
+  return readLegacyValue(key);
 }

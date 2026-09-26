@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { LegacySnapshotMigration } from '../legacyStateImport';
-import type { StatePersistence, StateSnapshot } from '../pluginStateClient';
+import type { StatePersistence, StateSnapshot } from '../../pluginStateClient';
 
 const partition = 'server:issuer:alice:personal:notes:replica';
 const snapshot: StateSnapshot = { format: 1, partition, sequence: 1, entries: [] };
