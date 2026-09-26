@@ -121,6 +121,12 @@ for _ in {1..180}; do
   sleep 1
 done
 $reached_target || die "PostgreSQL did not reach and pause at the requested target time"
+if [[ -n ${PITR_DRILL_EXPECT_DATABASE:-} ]]; then
+  [[ $PITR_DRILL_EXPECT_DATABASE =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "expected database name is invalid"
+  found_database=$(docker exec "$container_name" psql -U "$postgres_user" -d postgres -Atqc \
+    "SELECT count(*) FROM pg_database WHERE datname = '$PITR_DRILL_EXPECT_DATABASE'")
+  [[ $found_database == 1 ]] || die "the expected database is absent at the recovery target"
+fi
 
 status=passed
 printf 'PITR restore drill passed: %s at %s\n' "$(basename "$snapshot")" "$target_time"
