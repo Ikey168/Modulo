@@ -3,21 +3,62 @@ import {
   type StateSnapshot, type StateTransport,
 } from './pluginStateClient';
 
+const STATE_DATABASE = 'modulo-plugin-state';
+const STATE_DATABASE_VERSION = 2;
+
+/** One device database: `snapshots` holds each partition's offline queue, `replicas` the device's queue identities. */
+export function openStateDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open(STATE_DATABASE, STATE_DATABASE_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots');
+      if (!db.objectStoreNames.contains('replicas')) db.createObjectStore('replicas');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Could not open plugin state cache.'));
+    request.onblocked = () => reject(new Error('Plugin state cache upgrade is blocked by another tab.'));
+  });
+}
+
+/**
+ * Replica identities known on this device. A tab reuses the first identity no
+ * other tab holds, so a queue left by a closed tab is adopted and synchronized
+ * by the next one instead of being stranded.
+ */
+export class IndexedDbReplicaPool {
+  constructor(private readonly factory: IDBFactory = indexedDB) {}
+
+  async list(): Promise<string[]> {
+    const db = await openStateDatabase(this.factory);
+    try {
+      return await new Promise<string[]>((resolve, reject) => {
+        const request = db.transaction('replicas', 'readonly').objectStore('replicas').getAllKeys();
+        request.onsuccess = () => resolve((request.result as IDBValidKey[]).filter((key): key is string => typeof key === 'string').sort());
+        request.onerror = () => reject(request.error ?? new Error('Could not read offline queue identities.'));
+      });
+    } finally { db.close(); }
+  }
+
+  async add(replica: string): Promise<void> {
+    const db = await openStateDatabase(this.factory);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('replicas', 'readwrite');
+        transaction.objectStore('replicas').put(new Date().toISOString(), replica);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error('Could not record offline queue identity.'));
+        transaction.onabort = () => reject(transaction.error ?? new Error('Offline queue identity write was aborted.'));
+      });
+    } finally { db.close(); }
+  }
+}
+
 /** Durable per-partition offline queue. The server remains authoritative for acknowledged state. */
 export class IndexedDbStatePersistence implements StatePersistence {
   constructor(private readonly factory: IDBFactory = indexedDB) {}
 
-  private open(): Promise<IDBDatabase> {
-    return new Promise((resolve, reject) => {
-      const request = this.factory.open('modulo-plugin-state', 1);
-      request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains('snapshots')) request.result.createObjectStore('snapshots');
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error('Could not open plugin state cache.'));
-      request.onblocked = () => reject(new Error('Plugin state cache upgrade is blocked by another tab.'));
-    });
-  }
+  private open(): Promise<IDBDatabase> { return openStateDatabase(this.factory); }
 
   async load(partition: string): Promise<StateSnapshot | null> {
     const db = await this.open();

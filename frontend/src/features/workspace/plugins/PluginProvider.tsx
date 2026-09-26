@@ -7,6 +7,7 @@ import type { Contributions, InstallPhase, PluginManifest } from './types';
 import { authService } from '../../auth/authService';
 import { WorkspaceStateHost, acquireStateReplica } from '../../../services/workspaceStateHost';
 import { androidStateReplica, createStatePersistence } from '../../../services/androidStatePersistence';
+import { IndexedDbReplicaPool } from '../../../services/pluginStateTransport';
 import { Capacitor } from '@capacitor/core';
 import type { PluginStateClient } from '../../../services/pluginStateClient';
 import { installationStorage } from './installationState';
@@ -50,7 +51,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const lease = Capacitor.getPlatform() === 'android' ? { replica: androidStateReplica(), close: () => {} }
-      : navigator.locks ? acquireStateReplica(sessionStorage, navigator.locks) : {
+      : navigator.locks ? acquireStateReplica(new IndexedDbReplicaPool(), navigator.locks) : {
       replica: Promise.reject<string>(new Error('This browser does not support safe offline cache locking')),
       close: () => {},
     };

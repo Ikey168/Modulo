@@ -70,6 +70,11 @@ export interface StateView {
   conflict?: StateEntry['conflict'];
 }
 
+import { mergeState } from './stateMerge';
+
+/** Host-owned workspace documents are collections of identified records and merge per record. */
+export const mergeWorkspaceDocuments = (schemaId: string): boolean => schemaId.startsWith('modulo.workspace.');
+
 function copy<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
 function validateJson(value: StateJson, depth = 0, seen = new Set<object>()): void {
   if (depth > 63) throw new Error('State JSON is too deeply nested');
@@ -141,7 +146,8 @@ export class PluginStateClient {
   private _error?: string;
 
   private constructor(scope: StateScope, private readonly persistence: StatePersistence,
-    private readonly transport: StateTransport, private readonly autoRetry: boolean) {
+    private readonly transport: StateTransport, private readonly autoRetry: boolean,
+    private readonly mergeable: (schemaId: string) => boolean) {
     if (!scope.origin || !scope.issuer || !scope.subject || !scope.replica
       || !segment.test(scope.workspace) || !segment.test(scope.namespace)) throw new Error('Invalid state scope');
     this.partition = JSON.stringify([scope.origin, scope.issuer, scope.subject,
@@ -150,8 +156,9 @@ export class PluginStateClient {
   }
 
   static async open(scope: StateScope, persistence: StatePersistence, transport: StateTransport,
-    options: { autoRetry?: boolean } = {}): Promise<PluginStateClient> {
-    const client = new PluginStateClient(scope, persistence, transport, options.autoRetry ?? true);
+    options: { autoRetry?: boolean; mergeable?: (schemaId: string) => boolean } = {}): Promise<PluginStateClient> {
+    const client = new PluginStateClient(scope, persistence, transport, options.autoRetry ?? true,
+      options.mergeable ?? mergeWorkspaceDocuments);
     const stored = await persistence.load(client.partition);
     if (stored) {
       validateStateSnapshot(stored, client.partition);
@@ -371,6 +378,7 @@ export class PluginStateClient {
         } catch (error) {
           if (!(error instanceof StateRequestError) || error.status !== 409) throw error;
           if (matches(error.current, sent)) acknowledged = error.current;
+          else if (await this.rebase(entry.key, sent, error.current)) continue;
           else {
             await this.change(snapshot => {
               const current = this.entry(snapshot, entry.key);
@@ -402,6 +410,29 @@ export class PluginStateClient {
         this.retryTimer = setTimeout(() => { if (!this.abort.signal.aborted) void this.synchronize(); }, delay);
       }
     }
+  }
+
+  /**
+   * Rebase a rejected edit onto the newer server record when both sides
+   * changed different records or fields. Uses the latest local edit, not the
+   * copy that was in flight, so edits made during the request are kept.
+   */
+  private async rebase(key: string, sent: StateMutation, remote: StateRecord | undefined): Promise<boolean> {
+    if (!remote || remote.deleted || sent.deleted || remote.schemaId !== sent.schemaId
+      || remote.schemaVersion !== sent.schemaVersion || !this.mergeable(sent.schemaId)) return false;
+    let rebased = false;
+    await this.change(snapshot => {
+      const entry = this.entry(snapshot, key);
+      const pending = entry.pending;
+      if (!pending || pending.deleted || entry.conflict) return;
+      const merged = mergeState(sent.base && !sent.base.deleted ? sent.base.value : undefined, pending.value, remote.value);
+      if (!merged.ok || merged.value === undefined) return;
+      validateJson(merged.value);
+      entry.remote = remote;
+      entry.pending = { ...pending, sequence: ++snapshot.sequence, base: remote, value: copy(merged.value) };
+      rebased = true;
+    });
+    return rebased;
   }
 
   private ensureGeneration(): Promise<void> {

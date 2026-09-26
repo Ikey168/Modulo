@@ -99,25 +99,41 @@ export class WorkspaceStateHost {
   private emit(): void { for (const listener of this.listeners) { try { listener(); } catch { /* observer isolation */ } } }
 }
 
-/** Web Locks prevent cloned tabs from writing the same offline queue. The lease is released on unload. */
-export function acquireStateReplica(storage: Storage, locks: LockManager): { replica: Promise<string>; close: () => void } {
+export interface ReplicaPool { list(): Promise<string[]>; add(replica: string): Promise<void> }
+
+/**
+ * Web Locks give each open tab its own replica so cloned tabs never write the
+ * same queue. Known replicas are reused first: a queue left behind by a closed
+ * tab is adopted by the next tab. The lease is released on unload.
+ */
+export function acquireStateReplica(pool: ReplicaPool, locks: LockManager): { replica: Promise<string>; close: () => void } {
   const abort = new AbortController();
   let release: (() => void) | undefined;
   const held = new Promise<void>(resolve => { release = resolve; });
+  const closed = () => new Error('State replica lease closed');
   const replica = new Promise<string>((resolve, reject) => {
-    const acquire = async (id: string): Promise<void> => {
-      if (abort.signal.aborted) throw new Error('State replica lease closed');
-      await locks.request(`modulo-state-replica:${id}`, { ifAvailable: true }, async lock => {
-        if (abort.signal.aborted) throw new Error('State replica lease closed');
-        if (!lock) { await acquire(crypto.randomUUID()); return; }
-        storage.setItem('modulo.state.replica', id); resolve(id); await held;
-      });
+    const tryLock = (id: string) => new Promise<boolean>((decided, failed) => {
+      if (abort.signal.aborted) { failed(closed()); return; }
+      locks.request(`modulo-state-replica:${id}`, { ifAvailable: true }, async lock => {
+        if (!lock) { decided(false); return; }
+        if (abort.signal.aborted) { failed(closed()); return; }
+        decided(true); resolve(id); await held;
+      }).catch(failed);
+    });
+    const acquire = async () => {
+      // A React StrictMode setup can be disposed in this same task. The pool
+      // read below yields first, so a cancelled setup never takes a lock.
+      const known = await pool.list();
+      for (const id of known) {
+        if (abort.signal.aborted) throw closed();
+        if (await tryLock(id)) return;
+      }
+      if (abort.signal.aborted) throw closed();
+      const fresh = crypto.randomUUID();
+      await pool.add(fresh);
+      if (!(await tryLock(fresh))) throw new Error('Could not lock a new offline queue identity');
     };
-    // A React StrictMode setup can be disposed in this same task. Do not
-    // request a native lock until that cleanup has had a chance to cancel it:
-    // an already queued ifAvailable request can briefly occupy the old ID and
-    // make the replacement setup unnecessarily fork its persisted cache.
-    void Promise.resolve().then(() => acquire(storage.getItem('modulo.state.replica') || crypto.randomUUID())).catch(reject);
+    void Promise.resolve().then(acquire).catch(reject);
   });
   return { replica, close: () => { abort.abort(); release?.(); } };
 }
