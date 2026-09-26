@@ -13,7 +13,7 @@ export interface SecureStore {
 }
 
 interface NativeSecureStore {
-  get(options: { key: string }): Promise<{ value: string | null }>;
+  get(options: { key: string }): Promise<{ value?: string | null }>;
   set(options: { key: string; value: string }): Promise<void>;
   remove(options: { key: string }): Promise<void>;
   clear(): Promise<void>;
@@ -22,7 +22,8 @@ interface NativeSecureStore {
 const native = registerPlugin<NativeSecureStore>('ModuloSecureStore');
 
 export const nativeSecureStore: SecureStore = {
-  get: async key => (await native.get({ key })).value,
+  // org.json drops null members, so a missing key can arrive as undefined.
+  get: async key => (await native.get({ key })).value ?? null,
   set: (key, value) => native.set({ key, value }),
   remove: key => native.remove({ key }),
   clear: () => native.clear(),

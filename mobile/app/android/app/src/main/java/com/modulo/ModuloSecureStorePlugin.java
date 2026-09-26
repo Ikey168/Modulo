@@ -18,6 +18,7 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+import org.json.JSONObject;
 
 /**
  * Credential storage backed by the Android Keystore (#488).
@@ -100,7 +101,7 @@ public class ModuloSecureStorePlugin extends Plugin {
         JSObject result = new JSObject();
         String stored = preferences().getString(key, null);
         if (stored == null) {
-            result.put("value", null);
+            result.put("value", JSONObject.NULL);
             call.resolve(result);
             return;
         }
@@ -116,7 +117,7 @@ public class ModuloSecureStorePlugin extends Plugin {
         } catch (Exception error) {
             // A value the Keystore can no longer decrypt (key reset, restored data) is discarded.
             preferences().edit().remove(key).commit();
-            result.put("value", null);
+            result.put("value", JSONObject.NULL);
             call.resolve(result);
         }
     }
