@@ -29,6 +29,7 @@ umask 077
   printf 'NOESIS_CONTEXT=/srv/noesis\n'
   printf 'POSTGRES_DB=modulodb\n'
   printf 'POSTGRES_USER=modulo\n'
+  printf 'MODULO_WAL_GID=%s\n' "$(id -g)"
   printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 32)"
   printf 'KEYCLOAK_DB_PASSWORD=%s\n' "$(openssl rand -hex 32)"
   printf 'NEO4J_PASSWORD=%s\n' "$(openssl rand -hex 32)"

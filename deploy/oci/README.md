@@ -36,6 +36,33 @@ Install the included nightly timer with:
 ```sh
 sudo install -m 0644 systemd/modulo-backup.service /etc/systemd/system/
 sudo install -m 0644 systemd/modulo-backup.timer /etc/systemd/system/
+sudo install -m 0644 systemd/modulo-wal-backup.service /etc/systemd/system/
+sudo install -m 0644 systemd/modulo-wal-backup.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now modulo-backup.timer
+sudo systemctl enable --now modulo-wal-backup.timer
 ```
+
+The backup job stores a logical PostgreSQL dump and a daily physical base
+backup. The WAL timer copies archived WAL to the off-host restic repository
+hourly. It retains 17 daily base and WAL points so a full 14-day recovery
+window has a margin for the daily base-backup schedule. WAL is pruned locally
+only after an off-host base backup exists, and old segments are removed only
+after the corresponding retained base backup no longer needs them.
+
+The PostgreSQL container needs write access to the host WAL directory, and the
+backup user needs read access. Set `MODULO_WAL_GID` to the backup user's numeric
+group ID (the included `init-env.sh` records it), then prepare the directory
+before starting the database:
+
+```sh
+sudo install -d -o ubuntu -g ubuntu -m 2770 /srv/backups/modulo/wal
+```
+
+After changing WAL directory ownership or the database `group_add` setting,
+recreate the database container once so its supplementary group is applied.
+
+To verify a point-in-time restore without touching the live database, run
+`pitr-drill.sh <base-backup-directory> <wal-directory> <ISO-target-time>`. It
+restores into a disposable container and reports success only after PostgreSQL
+has replayed WAL through the requested time and paused.

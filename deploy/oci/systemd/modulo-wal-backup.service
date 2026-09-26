@@ -1,0 +1,20 @@
+[Unit]
+Description=Off-host PostgreSQL WAL archive for Modulo point-in-time recovery
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/modulo/deploy/oci
+Environment=RESTIC_REPOSITORY=sftp:pi5:/home/ik/backups/restic/oracle-modulo
+Environment=RESTIC_PASSWORD_FILE=/home/ubuntu/.config/restic/oracle-modulo-restic-password
+Environment=RESTIC_BACKUP_HOST=oracle-modulo
+ExecStart=/srv/modulo/deploy/oci/wal-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

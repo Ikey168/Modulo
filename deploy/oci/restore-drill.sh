@@ -84,6 +84,15 @@ trap finish EXIT
 gzip -t "$snapshot/postgres.sql.gz"
 tar -tzf "$snapshot/neo4j-data.tar.gz" >/dev/null
 tar -tzf "$snapshot/noesis-data.tar.gz" >/dev/null
+if [[ -f $snapshot/postgres-base.tar ]]; then
+  mkdir "$tmp_dir/postgres-base"
+  tar -xf "$snapshot/postgres-base.tar" -C "$tmp_dir/postgres-base"
+  for archive in base.tar.gz pg_wal.tar.gz; do
+    [[ -s $tmp_dir/postgres-base/$archive ]] || die "physical PostgreSQL backup is missing $archive"
+    gzip -t "$tmp_dir/postgres-base/$archive"
+    tar -tzf "$tmp_dir/postgres-base/$archive" >/dev/null
+  done
+fi
 mkdir "$tmp_dir/neo4j" "$tmp_dir/noesis"
 tar -xzf "$snapshot/neo4j-data.tar.gz" --no-same-owner -C "$tmp_dir/neo4j"
 tar -xzf "$snapshot/noesis-data.tar.gz" --no-same-owner -C "$tmp_dir/noesis"

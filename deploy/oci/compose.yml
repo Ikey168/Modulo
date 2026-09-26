@@ -162,6 +162,12 @@ services:
 
   db:
     image: pgvector/pgvector:pg16
+    group_add:
+      - "${MODULO_WAL_GID:-1001}"
+    command:
+      - postgres
+      - -c
+      - archive_command=/usr/local/bin/modulo-archive-wal.sh %p %f
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-modulodb}
       POSTGRES_USER: ${POSTGRES_USER:-modulo}
@@ -170,6 +176,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - /srv/backups/modulo/wal:/var/lib/postgresql/wal-archive
+      - ./postgres-archive-wal.sh:/usr/local/bin/modulo-archive-wal.sh:ro
       - ./postgres-init/10-keycloak.sh:/docker-entrypoint-initdb.d/10-keycloak.sh:ro
       - ../../database/init/02-plugin-registry.sql:/docker-entrypoint-initdb.d/20-plugin-registry.sql:ro
     mem_limit: 768m

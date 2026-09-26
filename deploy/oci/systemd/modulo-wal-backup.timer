@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly off-host PostgreSQL WAL archive
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5m
+Unit=modulo-wal-backup.service
+
+[Install]
+WantedBy=timers.target
