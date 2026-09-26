@@ -45,6 +45,7 @@ done
 [[ -f $snapshot/postgres-base.tar ]] || die "base backup is missing postgres-base.tar"
 base_epoch=$(date -u -d "$(<"$snapshot/PITR_BASE_STARTED_AT")" +%s) || die "invalid base-backup timestamp"
 target_epoch=$(date -u -d "$target_time" +%s) || die "invalid target timestamp"
+target_config_time=$(date -u -d "$target_time" '+%Y-%m-%d %H:%M:%S%:z') || die "invalid target timestamp"
 (( target_epoch >= base_epoch )) || die "target time predates this physical base backup"
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/modulo-pitr-drill.XXXXXX")
@@ -92,7 +93,7 @@ for archive in base.tar.gz pg_wal.tar.gz; do
 done
 {
   printf "\nrestore_command = 'cp /recovery-wal/%%f %%p'\n"
-  printf "recovery_target_time = '%s'\n" "$target_time"
+  printf "recovery_target_time = '%s'\n" "$target_config_time"
   printf "recovery_target_action = 'pause'\n"
 } > "$tmp_dir/recovery.conf"
 
