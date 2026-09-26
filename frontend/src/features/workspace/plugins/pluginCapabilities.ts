@@ -68,6 +68,8 @@ export const PLUGIN_CAPABILITIES: Readonly<Record<string, readonly Capability[]>
   'semantic-search': SAVE,
   'timestamp-proofs': SAVE,
   'web3-id': SAVE_AND_LINKS,
+  // Praxis tasks run on the Praxis host through Modulo's server; no device feature is used.
+  'praxis-tasks': [],
   // Imports, exports and reports
   'para-notion-migration': ['files.pick', 'files.save'],
   'audit-reports': SAVE_AND_LINKS,

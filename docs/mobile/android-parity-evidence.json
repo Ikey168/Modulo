@@ -2,7 +2,7 @@
   "generatedBy": "frontend/scripts/phoneParity.mjs",
   "note": "Phone-viewport (412x883, touch) sweep of every contributed view with the whole catalog installed against an in-memory plugin-state API. Device runs are recorded by the android-emulator CI job.",
   "summary": {
-    "views": 206,
+    "views": 207,
     "failed": 0,
     "recordViews": 33,
     "persisted": 9
@@ -12,7 +12,7 @@
       "view": "audit-core-browser",
       "plugin": "audit-core-browser",
       "rendered": true,
-      "title": "Core Browser",
+      "title": "Dashboard",
       "shown": "audit-core-browser",
       "interactive": true,
       "errors": [],
@@ -1674,6 +1674,16 @@
       "overflow": []
     },
     {
+      "view": "praxis-tasks",
+      "plugin": "praxis-tasks",
+      "rendered": true,
+      "title": "Praxis Tasks",
+      "shown": "praxis-tasks",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
       "view": "project-workspaces",
       "plugin": "project-workspaces",
       "rendered": true,
@@ -1861,7 +1871,7 @@
       "create": "persisted",
       "control": "Add",
       "namespaces": [
-        "todo-lists"
+        "workspace-settings"
       ]
     },
     {

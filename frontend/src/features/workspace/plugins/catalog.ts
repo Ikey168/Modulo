@@ -5,6 +5,7 @@ import { AWARENESS_PLUGINS } from '../awareness/plugins';
 
 import {
   AUDIT_CORE_BROWSER_PLUGIN_ID,
+  PRAXIS_TASKS_PLUGIN_ID,
   AUDIT_CORE_FINDINGS_PLUGIN_ID,
   AUDIT_CORE_OVERVIEW_PLUGIN_ID,
   AUDIT_CORE_REMEDIATION_PLUGIN_ID,
@@ -226,6 +227,7 @@ const RUNNABLE: Record<string, Runnable> = {
   [TIMESTAMP_PROOFS_PLUGIN_ID]: advanced('timestampProofsPlugin', [NOTES_PLUGIN_ID]),
   [SEMANTIC_SEARCH_PLUGIN_ID]: advanced('semanticSearchPlugin', [NOTES_PLUGIN_ID]),
   [AUTO_LINKER_PLUGIN_ID]: advanced('autoLinkerPlugin', [NOTES_PLUGIN_ID]),
+  [PRAXIS_TASKS_PLUGIN_ID]: { load: () => import('./builtins/praxisTasksPlugin') },
   [AUDIT_CORE_BROWSER_PLUGIN_ID]: { load: () => import('./builtins/auditCoreBrowserPlugin') },
   [AUDIT_CORE_OVERVIEW_PLUGIN_ID]: { dependencies: [AUDIT_CORE_BROWSER_PLUGIN_ID], load: () => import('./builtins/auditCoreOverviewPlugin') },
   [AUDIT_CORE_SCOPE_PLUGIN_ID]: { dependencies: [AUDIT_CORE_BROWSER_PLUGIN_ID], load: () => import('./builtins/auditCoreScopePlugin') },

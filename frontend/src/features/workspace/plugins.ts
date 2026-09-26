@@ -159,6 +159,7 @@ export const TAGS_PLUGIN_ID = 'tag-explorer';
 /** Plugin id that adds Saved Searches (named smart folders). */
 export const SAVED_SEARCHES_PLUGIN_ID = 'saved-searches';
 /** Local, read-only loader for an audit-core output directory. */
+export const PRAXIS_TASKS_PLUGIN_ID = 'praxis-tasks';
 export const AUDIT_CORE_BROWSER_PLUGIN_ID = 'audit-core-browser';
 /** Phase-ledger execution and artifact overview. */
 export const AUDIT_CORE_OVERVIEW_PLUGIN_ID = 'audit-core-overview';
@@ -475,6 +476,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: IPFS_ATTACH_PLUGIN_ID, name: 'IPFS Attachments', desc: 'Pin note content to IPFS and retain its content-addressed CID.', category: 'web3', subcategory: 'Storage', downloads: '5.6k', rating: '4.5', icon: Paperclip },
   { id: TIMESTAMP_PROOFS_PLUGIN_ID, name: 'Timestamp Proofs', desc: 'Create portable SHA-256 timestamp manifests with chain or IPFS anchor references when available.', category: 'web3', subcategory: 'Proofs', downloads: '2.4k', rating: '4.3', icon: Stamp },
   { id: 'webhook-trigger', name: 'Webhook Trigger', desc: 'Start a blueprint workflow from an inbound webhook.', category: 'automation', subcategory: 'Triggers', downloads: '6.1k', rating: '4.6', icon: Webhook },
+  { id: PRAXIS_TASKS_PLUGIN_ID, name: 'Praxis Tasks', desc: 'Submit tasks to the Praxis control plane, follow their progress live, decide approvals, and publish verified results to the knowledge base.', category: 'automation', subcategory: 'Praxis', downloads: '0', rating: 'New', icon: Workflow },
   { id: NOESIS_BRIEF_PLUGIN_ID, name: 'Noesis Daily Brief', desc: 'Blueprint node that pulls the daily knowledge brief — news, economics, tech, web3, and new research publications, every line cited — from a Noesis instance; pair with On Schedule and Create Note to file it as a linked note.', category: 'automation', subcategory: 'Knowledge', downloads: '0.1k', rating: '4.8', icon: Newspaper },
   { id: INFORMATION_INTAKE_PLUGIN_ID, name: 'Information Intake', desc: 'Signed-in feed triage and linked Noesis workflow sessions, with workspace preferences stored in durable plugin state.', category: 'research', subcategory: 'Intake', downloads: '0', rating: '—', icon: Newspaper },
   { id: 'scheduled-digest', name: 'Scheduled Digest', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', subcategory: 'Scheduled', downloads: '4.9k', rating: '4.4', icon: CalendarClock },

@@ -2,17 +2,17 @@
   "generatedBy": "frontend/scripts/inventoryAndroid.ts",
   "note": "Native and backend dependencies come from a static scan of each plugin module and two levels of its local imports.",
   "totals": {
-    "catalog": 218,
-    "runnable": 218,
+    "catalog": 219,
+    "runnable": 219,
     "contributions": {
-      "views": 206,
+      "views": 207,
       "notePanels": 16,
       "noteFences": 8,
       "editorActions": 13,
       "blueprintNodes": 14
     },
     "androidIssues": {
-      "P13": 166,
+      "P13": 167,
       "P14": 9,
       "P15": 20,
       "P16": 0,
@@ -5842,6 +5842,36 @@
       "backendEndpoints": [],
       "issues": {
         "storage": "P06",
+        "android": "P13"
+      }
+    },
+    {
+      "id": "praxis-tasks",
+      "name": "Praxis Tasks",
+      "category": "automation",
+      "builtin": false,
+      "runnable": true,
+      "dependencies": [],
+      "contributions": {
+        "views": [
+          "praxis-tasks"
+        ],
+        "notePanels": [],
+        "noteFences": [],
+        "editorActions": [],
+        "blueprintNodes": []
+      },
+      "module": "frontend/src/features/workspace/plugins/builtins/praxisTasksPlugin.tsx",
+      "storage": [],
+      "schemas": [],
+      "capabilities": [],
+      "nativeDependencies": [],
+      "backendEndpoints": [
+        "/api/praxis",
+        "/api/praxis/processes"
+      ],
+      "issues": {
+        "storage": "P07",
         "android": "P13"
       }
     },
