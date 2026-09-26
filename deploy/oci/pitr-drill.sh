@@ -35,6 +35,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+configured_postgres_user=
+configured_wal_gid=
+if [[ -f $script_dir/.env ]]; then
+  configured_postgres_user=$(sed -n 's/^POSTGRES_USER=//p' "$script_dir/.env" | head -n 1)
+  configured_wal_gid=$(sed -n 's/^MODULO_WAL_GID=//p' "$script_dir/.env" | head -n 1)
+fi
+postgres_user=${POSTGRES_USER:-${configured_postgres_user:-modulo}}
+wal_gid=${MODULO_WAL_GID:-${configured_wal_gid:-1001}}
+
 [[ $target_time =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[T\ ][0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{1,6})?([+-][0-9]{2}(:?[0-9]{2})?|Z)$ ]] || die "target time must be an ISO timestamp with a time zone"
 snapshot=$(realpath -e -- "$snapshot_arg") || die "base backup directory does not exist"
 wal_dir=$(realpath -e -- "$wal_arg") || die "WAL archive directory does not exist"
@@ -108,9 +118,8 @@ docker run --rm --user 0 \
     chown -R postgres:postgres /restore/data
   '
 
-postgres_user=${POSTGRES_USER:-modulo}
 docker run --detach --name "$container_name" --network none --user 999 \
-  --group-add "${MODULO_WAL_GID:-1001}" \
+  --group-add "$wal_gid" \
   --env POSTGRES_USER="$postgres_user" \
   --env POSTGRES_PASSWORD=pitr-drill \
   --volume "$tmp_dir/data:/var/lib/postgresql/data" \

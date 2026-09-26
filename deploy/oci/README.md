@@ -50,13 +50,15 @@ window has a margin for the daily base-backup schedule. WAL is pruned locally
 only after an off-host base backup exists, and old segments are removed only
 after the corresponding retained base backup no longer needs them.
 
-The PostgreSQL container needs write access to the host WAL directory, and the
-backup user needs read access. Set `MODULO_WAL_GID` to the backup user's numeric
-group ID (the included `init-env.sh` records it), then prepare the directory
-before starting the database:
+The PostgreSQL container writes archived WAL as UID 999. The host backup user
+needs read access through the directory's group. Set `MODULO_WAL_GID` to the
+backup user's numeric group ID (the included `init-env.sh` records it), then
+prepare the directory before starting the database:
 
 ```sh
-sudo install -d -o ubuntu -g ubuntu -m 2770 /srv/backups/modulo/wal
+sudo install -d -o 999 -g "$(id -g ubuntu)" -m 2770 /srv/backups/modulo/wal
+sudo chgrp -R ubuntu /srv/backups/modulo/wal
+sudo find /srv/backups/modulo/wal -maxdepth 1 -type f -exec chmod 0640 {} +
 ```
 
 After changing WAL directory ownership or the database `group_add` setting,
