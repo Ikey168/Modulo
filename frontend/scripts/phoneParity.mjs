@@ -78,16 +78,20 @@ await boot();
 const results = [];
 for (const { view, plugin } of views) {
   errors.length = 0;
-  await page.evaluate((path) => { window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); },
+  const open = () => page.evaluate((path) => { window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); },
     `/app/${encodeURIComponent(view)}`);
+  await open();
   await settle(400);
   const text = await page.evaluate(() => document.body.innerText);
   const title = await page.evaluate(() => document.querySelector('header h1')?.textContent?.trim() ?? '');
   // An unknown view id falls back to the dashboard; that is not this view rendering.
   let shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
   if (view !== 'dashboard' && (shown === 'dashboard' || shown === '')) {
-    // The workspace may still be settling right after boot; look once more before failing.
+    // The workspace may still be settling right after boot and drop the first
+    // navigation; open the view once more before failing.
     await page.waitForTimeout(1500);
+    await open();
+    await settle(400);
     shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
   }
   const layout = await layoutReport();
