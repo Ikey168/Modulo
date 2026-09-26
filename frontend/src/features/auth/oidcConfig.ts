@@ -1,4 +1,4 @@
-import { InMemoryWebStorage, WebStorageStateStore, type UserManagerSettings } from 'oidc-client-ts';
+import type { UserManagerSettings } from 'oidc-client-ts';
 import { Capacitor } from '@capacitor/core';
 
 const issuer = window.__MODULO_CONFIG__?.oidcIssuer || import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180/realms/modulo';
@@ -30,8 +30,6 @@ export const oidcConfig: UserManagerSettings = {
   
   // Security settings
   filterProtocolClaims: true,
-  userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
-  
   // Metadata configuration
   metadata: {
     issuer: issuer,

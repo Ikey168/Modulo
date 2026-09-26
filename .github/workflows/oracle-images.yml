@@ -1,6 +1,12 @@
 name: Oracle application images
 
 on:
+  push:
+    branches:
+      - deploy/modulo-intake-port-20260923
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/oracle-images.yml'
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -34,6 +40,8 @@ jobs:
     name: Build ${{ matrix.component }} image
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+       github.ref == 'refs/heads/deploy/modulo-intake-port-20260923') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main' &&

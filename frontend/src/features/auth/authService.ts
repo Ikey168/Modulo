@@ -19,6 +19,7 @@ class AuthService {
   private userManager: UserManager;
   private user: User | null = null;
   private refreshTimer: NodeJS.Timeout | null = null;
+  private initialization: Promise<void>;
   private readonly sessionListeners = new Set<() => void>();
   private nativeReturnTo = '/app/dashboard';
 
@@ -47,10 +48,12 @@ class AuthService {
   }
 
   constructor() {
-    // Native PKCE state stays in memory. A killed app must retry login; no
-    // verifier or token is written to browser Storage.
+    // Keep native PKCE state and tokens in memory. In the browser, keep the
+    // short-lived PKCE state in this tab and the OIDC user in durable storage
+    // so a reload or desktop-app restart can restore the session.
     const native = Capacitor.getPlatform() === 'android';
     const stateStore = new WebStorageStateStore({ store: native ? new InMemoryWebStorage() : window.sessionStorage });
+    const userStore = new WebStorageStateStore({ store: native ? new InMemoryWebStorage() : window.localStorage });
     const redirectNavigator: INavigator | undefined = native ? {
       prepare: async () => ({
         navigate: async ({ url }) => {
@@ -72,11 +75,12 @@ class AuthService {
     
     this.userManager = new UserManager({
       ...oidcConfig,
-      stateStore
+      stateStore,
+      userStore
     }, redirectNavigator);
 
     this.setupEventHandlers();
-    this.initializeAuth();
+    this.initialization = this.initializeAuth();
   }
 
   private setupEventHandlers() {
@@ -108,20 +112,30 @@ class AuthService {
 
     this.userManager.events.addSilentRenewError((error) => {
       console.error('Silent renewal error:', error);
-      this.logout();
     });
   }
 
   private async initializeAuth() {
     try {
-      // Check if user is already authenticated
+      // Restore the saved OIDC user before route guards or API calls read auth.
       this.user = await this.userManager.getUser();
+      if (this.user?.expired) {
+        try {
+          this.user = await this.userManager.signinSilent();
+        } catch (error) {
+          console.info('Stored login has expired; a new sign-in is required:', error);
+          await this.userManager.removeUser();
+          this.user = null;
+        }
+      }
       this.notifySession();
       if (this.user && !this.user.expired) {
         this.scheduleTokenRefresh(this.user);
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
+      this.user = null;
+      this.notifySession();
     }
   }
 
@@ -147,6 +161,7 @@ class AuthService {
 
   async login(): Promise<void> {
     try {
+      await this.initialization;
       await this.userManager.signinRedirect();
     } catch (error) {
       console.error('Login failed:', error);
@@ -156,6 +171,7 @@ class AuthService {
 
   async handleCallback(url?: string): Promise<AuthUser> {
     try {
+      await this.initialization;
       const user = await this.userManager.signinRedirectCallback(url);
       this.user = user;
       this.notifySession();
@@ -177,10 +193,22 @@ class AuthService {
       this.notifySession();
       if (user) {
         this.scheduleTokenRefresh(user);
+      } else {
+        this.clearRefreshTimer();
       }
     } catch (error) {
       console.error('Silent renewal failed:', error);
-      await this.logout();
+      // A temporary identity-provider failure should not end the SSO session.
+      // Retry while the current access token remains usable; clear only an
+      // expired local session and let the next login reuse Keycloak's cookie.
+      if (this.user && !this.user.expired) {
+        this.scheduleTokenRefresh(this.user);
+      } else {
+        this.user = null;
+        this.clearRefreshTimer();
+        await this.userManager.removeUser();
+        this.notifySession();
+      }
     }
   }
 
@@ -199,6 +227,7 @@ class AuthService {
   }
 
   async getUser(): Promise<AuthUser | null> {
+    await this.initialization;
     if (!this.user || this.user.expired) {
       return null;
     }
@@ -206,6 +235,7 @@ class AuthService {
   }
 
   async getAccessToken(): Promise<string | null> {
+    await this.initialization;
     if (!this.user || this.user.expired) {
       return null;
     }
