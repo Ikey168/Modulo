@@ -65,6 +65,8 @@ jobs:
           curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/android -o "$RUNNER_TEMP/android"
           chmod +x "$RUNNER_TEMP/android"
           "$RUNNER_TEMP/android" --sdk="$ANDROID_HOME" sdk install platforms/android-36 build-tools/36.0.0 platform-tools
+      # Refuse a tampered or unknown gradle-wrapper.jar before executing it.
+      - uses: gradle/actions/wrapper-validation@v4
       - name: Decode signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.MODULO_ANDROID_KEYSTORE_BASE64 }}

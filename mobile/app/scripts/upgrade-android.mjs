@@ -26,9 +26,9 @@ const before = await versionCode();
 await launch();
 const seeded = await evaluate(`
   const cache = window.Capacitor.Plugins.ModuloStateCache;
-  await cache.save({ partition: 'upgrade-check', snapshot: ${JSON.stringify(SNAPSHOT)} });
+  await cache.save({ partition: 'upgrade-check', snapshot: args.snapshot });
   await window.Capacitor.Plugins.ModuloSecureStore.set({ key: 'upgrade.check', value: 'refresh-token' });
-  return { replica: (await cache.replica()).replica };`);
+  return { replica: (await cache.replica()).replica };`, { snapshot: SNAPSHOT });
 await screenshot('upgrade-before');
 
 const installed = await command('install', '-r', next);

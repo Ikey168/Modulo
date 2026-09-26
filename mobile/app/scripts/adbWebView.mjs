@@ -30,8 +30,13 @@ export async function eventually(work, label, attempts = 60) {
   throw new Error(`${label}: ${last}`);
 }
 
-/** Evaluates an async expression in the packaged WebView and returns its JSON value. */
-export async function evaluate(expression) {
+/**
+ * Runs an async function body in the packaged WebView and returns its JSON
+ * value. `body` is a fixed string written in these scripts; data goes in
+ * `args` (available as `args` in the body) and is passed as a CDP call
+ * argument, never spliced into code.
+ */
+export async function evaluate(body, args = {}) {
   const pid = await eventually(async () => {
     const value = await command('shell', 'pidof', packageId);
     if (!/^\d+$/.test(value)) throw new Error('App process has not started');
@@ -47,22 +52,38 @@ export async function evaluate(expression) {
       if (!found) throw new Error('Packaged WebView page has not loaded');
       return found;
     }, 'Packaged WebView');
-    return await new Promise((resolve, reject) => {
-      const socket = new WebSocket(page.webSocketDebuggerUrl);
-      const timeout = setTimeout(() => { socket.close(); reject(new Error('WebView probe timed out')); }, 20_000);
-      socket.addEventListener('open', () => socket.send(JSON.stringify({
-        id: 1, method: 'Runtime.evaluate', params: { expression: `(async () => { ${expression} })()`, awaitPromise: true, returnByValue: true },
-      })));
-      socket.addEventListener('message', event => {
-        const message = JSON.parse(event.data);
-        if (message.id !== 1) return;
-        clearTimeout(timeout); socket.close();
-        const result = message.result?.result;
-        if (message.result?.exceptionDetails) reject(new Error(`WebView probe failed: ${JSON.stringify(message.result.exceptionDetails)}`));
-        else resolve(result?.value);
-      });
-      socket.addEventListener('error', reject);
+    const socket = new WebSocket(page.webSocketDebuggerUrl);
+    const pending = new Map();
+    let nextId = 0;
+    const send = (method, params) => new Promise((resolve, reject) => {
+      const id = ++nextId;
+      pending.set(id, { resolve, reject });
+      socket.send(JSON.stringify({ id, method, params }));
     });
+    socket.addEventListener('message', event => {
+      const message = JSON.parse(event.data);
+      const waiter = pending.get(message.id);
+      if (!waiter) return;
+      pending.delete(message.id);
+      if (message.error) waiter.reject(new Error(message.error.message));
+      else waiter.resolve(message.result);
+    });
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('WebView probe timed out')), 20_000));
+    try {
+      return await Promise.race([timeout, (async () => {
+        await new Promise((resolve, reject) => { socket.addEventListener('open', resolve); socket.addEventListener('error', reject); });
+        const global = await send('Runtime.evaluate', { expression: 'globalThis' });
+        const result = await send('Runtime.callFunctionOn', {
+          objectId: global.result.objectId,
+          functionDeclaration: `async function (args) {\n${body}\n}`,
+          arguments: [{ value: args }], awaitPromise: true, returnByValue: true,
+        });
+        if (result.exceptionDetails) throw new Error(`WebView probe failed: ${JSON.stringify(result.exceptionDetails)}`);
+        return result.result?.value;
+      })()]);
+    } finally {
+      socket.close();
+    }
   } finally {
     await command('forward', '--remove', `tcp:${port}`).catch(() => {});
   }

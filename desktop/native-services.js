@@ -71,8 +71,13 @@ function decryptPayload(payload, passphrase) {
   return Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, 'base64')), decipher.final()]).toString('utf8');
 }
 
+const XML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", '#13': '\r' };
+/** One pass over entities, so an escaped entity such as `&amp;lt;` becomes `&lt;`, never `<`. */
+function decodeEntities(value) {
+  return value.replace(/&(amp|lt|gt|quot|apos|#39|#13);/g, (_match, name) => XML_ENTITIES[name]);
+}
 function decodeXml(value = '') {
-  return String(value).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/\s+/g, ' ').trim();
+  return decodeEntities(String(value).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 function xmlValue(block, names) {
   for (const name of names) {
@@ -503,7 +508,7 @@ function registerNativeServices({ app, getWindow }) {
     const query = '<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"/></c:comp-filter></c:filter></c:calendar-query>';
     const response = await fetchRemote(calendarUrl, { method: 'REPORT', headers: { Authorization: authorization, Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' }, body: query });
     const xml = response.text;
-    const data = [...xml.matchAll(/<(?:[^:>]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?calendar-data>/gi)].flatMap((match) => parseIcs(match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#13;/g, '\r'), String(calendarUrl)));
+    const data = [...xml.matchAll(/<(?:[^:>]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?calendar-data>/gi)].flatMap((match) => parseIcs(decodeEntities(match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')), String(calendarUrl)));
     return data;
   });
 
@@ -661,4 +666,4 @@ async function searchProvider(provider, rawQuery, credentials) {
   value = value.filter((item) => item.externalId && item.title); cache.set(key, { at: Date.now(), value }); return value;
 }
 
-module.exports = { registerNativeServices, nextOccurrence, encryptPayload, decryptPayload, searchProvider, parseFeedXml, parseIcs, normalizeRemoteItems, normalizeWatches, normalizeReminders, buildWatchDelta, syncPassphrase, httpUrl, fetchText };
+module.exports = { registerNativeServices, decodeXml, nextOccurrence, encryptPayload, decryptPayload, searchProvider, parseFeedXml, parseIcs, normalizeRemoteItems, normalizeWatches, normalizeReminders, buildWatchDelta, syncPassphrase, httpUrl, fetchText };

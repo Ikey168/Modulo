@@ -27,6 +27,8 @@ build/
 *.class
 *.log
 *.jar
+# The Gradle wrapper must be committed; CI validates it against Gradle's published checksums.
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear

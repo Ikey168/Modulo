@@ -90,7 +90,7 @@ try {
     const kept = await pending();
     const share = kept.find(item => item.text === 'https://example.org/shared-from-smoke');
     if (!share) throw new Error('Share did not survive process death');
-    await evaluate(`await window.Capacitor.Plugins.ModuloShare.complete({ id: ${JSON.stringify(share.id)} });`);
+    await evaluate('await window.Capacitor.Plugins.ModuloShare.complete({ id: args.id });', { id: share.id });
     if ((await pending()).some(item => item.id === share.id)) throw new Error('Completed share was not removed');
     return { received: shares.length };
   });
@@ -101,8 +101,9 @@ try {
     const baseline = await moduloAlarms();
     const at = Date.now() + 60 * 60 * 1000;
     const local = new Date(at).toISOString().slice(0, 16);
-    const status = await evaluate(`return await window.Capacitor.Plugins.ModuloReminders.replaceAll({ reminders: [
-      { id: 'smoke:1', at: ${at}, local: ${JSON.stringify(local)}, title: 'Smoke reminder', body: 'From CI', route: '/app/reminders-notifications?record=smoke' }] });`);
+    const status = await evaluate('return await window.Capacitor.Plugins.ModuloReminders.replaceAll({ reminders: args.reminders });', {
+      reminders: [{ id: 'smoke:1', at, local, title: 'Smoke reminder', body: 'From CI', route: '/app/reminders-notifications?record=smoke' }],
+    });
     if (status.scheduled !== 1) throw new Error(`Reminder not stored: ${JSON.stringify(status)}`);
     const armed = await moduloAlarms();
     if (armed <= baseline) throw new Error('Alarm was not armed');

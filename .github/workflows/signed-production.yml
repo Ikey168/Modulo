@@ -54,7 +54,8 @@ jobs:
       - name: Build both production architectures without publishing
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.component }}
+          # The frontend builds from the repository root (npm workspace, shared/, pack schema).
+          context: ${{ matrix.component == 'frontend' && '.' || './backend' }}
           file: ./${{ matrix.component }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
@@ -113,7 +114,7 @@ jobs:
         id: build_frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: .
           file: ./frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true

@@ -1,61 +1,27 @@
-# Dependencies stage - Multi-arch compatible
-FROM node:21-alpine AS deps
+# syntax=docker/dockerfile:1
+# Build from the repository root: docker build -f frontend/Dockerfile .
+FROM --platform=$BUILDPLATFORM node:22.22.2-alpine@sha256:8ea2348b068a9544dae7317b4f3aafcdc032df1647bb7d768a05a5cad1a7683f AS build
 WORKDIR /app
+COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package.json
+COPY smart-contracts/package.json smart-contracts/package.json
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY frontend frontend
+COPY shared shared
+COPY backend/src/main/resources/pack-manifest-v2.schema.json backend/src/main/resources/pack-manifest-v2.schema.json
+# build:strict typechecks tests too; one reads an example request from the docs.
+COPY docs/blueprint/examples docs/blueprint/examples
+RUN npm run build:strict --workspace=frontend
 
-# Install dependencies (including dev dependencies for build)
-COPY package*.json ./
-RUN npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --maxsockets=5 && npm cache clean --force
-
-# Build stage
-FROM node:21-alpine AS builder
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Set build arguments for environment variables
-ARG VITE_API_URL=http://localhost:8080
-ENV VITE_API_URL=${VITE_API_URL}
-ARG VITE_KEYCLOAK_URL=http://localhost:8180/realms/modulo
-ENV VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
-ARG VITE_KEYCLOAK_CLIENT_ID=modulo-frontend
-ENV VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID}
-
-# Build application with optimizations
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy built assets from builder stage
-COPY --from=builder /app/dist .
-
-# Add non-root user and install dependencies
-RUN apk add --no-cache curl && \
-    addgroup -g 1001 -S appgroup && \
+FROM nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284
+RUN apk add --no-cache curl && addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup && \
-    chown -R appuser:appgroup /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html && \
-    chown -R appuser:appgroup /var/cache/nginx && \
-    chown -R appuser:appgroup /var/log/nginx && \
-    chown -R appuser:appgroup /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R appuser:appgroup /var/run/nginx.pid
-
-# Use non-root user
+    chown -R appuser:appgroup /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && chown appuser:appgroup /var/run/nginx.pid
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build --chown=appuser:appgroup /app/frontend/dist /usr/share/nginx/html
+COPY --chmod=755 frontend/docker/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
 USER appuser
-
-# Health check - use the nginx health endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:80/health || exit 1
-
-# Expose port
 EXPOSE 80
-
-# Start nginx
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD curl -fsS http://localhost/health || exit 1
 CMD ["nginx", "-g", "daemon off;"]

@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { buildWatchDelta, decryptPayload, encryptPayload, fetchText, httpUrl, nextOccurrence, normalizeReminders, normalizeRemoteItems, normalizeWatches, parseFeedXml, parseIcs, syncPassphrase } = require('./native-services');
+const { buildWatchDelta, decodeXml, decryptPayload, encryptPayload, fetchText, httpUrl, nextOccurrence, normalizeReminders, normalizeRemoteItems, normalizeWatches, parseFeedXml, parseIcs, syncPassphrase } = require('./native-services');
 
 test('encrypted sync snapshots round-trip and reject the wrong passphrase', () => {
   const encrypted = encryptPayload('{"version":1}', 'correct horse battery staple');
@@ -81,4 +81,9 @@ test('web watch deltas retain bounded evidence and classify materiality', () => 
   assert.deepEqual(delta.removedLines, ['beta']);
   assert.match(delta.summary, /1 added, 1 removed/);
   assert.equal(buildWatchDelta('', 'new content').materiality, 'Unknown');
+});
+
+test('XML entities are decoded once, never twice', () => {
+  assert.equal(decodeXml('Fish &amp;amp; chips &amp;lt;b&amp;gt; &lt;i&gt;'), 'Fish &amp; chips &lt;b&gt; <i>');
+  assert.equal(decodeXml('<![CDATA[<p>Tom &amp; Jerry</p>]]>'), 'Tom & Jerry');
 });

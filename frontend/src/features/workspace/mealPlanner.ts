@@ -1,3 +1,4 @@
+import { randomId } from '../../lib/randomId';
 import { DAY_BLOCKS, type DayBlockId } from './dayBlocks';
 
 export const MEAL_PLANNER_STORE_KEY = 'modulo-meal-planner-v2';
@@ -199,7 +200,7 @@ export function parseMealPlanner(value: unknown): MealPlannerData {
   };
 }
 
-export const newMealPlannerId = (prefix: 'meal' | 'recipe' | 'ingredient' | 'grocery' | 'pantry' | 'trip' | 'prep'): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+export const newMealPlannerId = (prefix: 'meal' | 'recipe' | 'ingredient' | 'grocery' | 'pantry' | 'trip' | 'prep'): string => `${prefix}-${randomId()}`;
 
 export function mealsOn(data: MealPlannerData, date: string): PlannedMeal[] {
   return data.meals.filter((meal) => meal.date === date).sort((a, b) => MEAL_TYPES.indexOf(a.type) - MEAL_TYPES.indexOf(b.type));

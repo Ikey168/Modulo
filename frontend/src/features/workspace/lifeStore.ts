@@ -1,3 +1,4 @@
+import { randomId } from '../../lib/randomId';
 import { DAY_BLOCKS, type DayBlockId } from './dayBlocks';
 
 export const SECURITY_SECRET_REJECTED_EVENT = 'modulo:security-secret-rejected';
@@ -33,7 +34,7 @@ export interface LifeCollectionData { version: 1; records: LifeRecord[]; occurre
 
 export const lifeStoreKey = (pluginId: string): string => `modulo-life-${pluginId}-v1`;
 export const emptyLifeCollection = (): LifeCollectionData => ({ version: 1, records: [], occurrenceCompletions: [] });
-export const newLifeId = (prefix: 'record' | 'check' | 'log'): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+export const newLifeId = (prefix: 'record' | 'check' | 'log'): string => `${prefix}-${randomId()}`;
 
 const object = (value: unknown): Record<string, unknown> => typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
 const text = (value: unknown): string => typeof value === 'string' ? value : '';

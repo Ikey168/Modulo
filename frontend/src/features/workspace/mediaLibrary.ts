@@ -1,3 +1,4 @@
+import { randomId } from '../../lib/randomId';
 import { keepUnknown } from './keepUnknown';
 
 export const MEDIA_LIBRARY_STORE_KEY = 'modulo-media-library-v2';
@@ -152,7 +153,7 @@ export function parseMediaLibrary(value: unknown): MediaLibraryData {
   });
 }
 
-export const newMediaId = (): string => `media-${Math.random().toString(36).slice(2, 10)}`;
+export const newMediaId = (): string => `media-${randomId()}`;
 
 export function progressPercent(item: Pick<MediaItem, 'currentProgress' | 'totalProgress'>): number {
   if (item.totalProgress <= 0) return 0;

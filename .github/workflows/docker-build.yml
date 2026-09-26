@@ -34,7 +34,8 @@ jobs:
       - name: Test multi-architecture build
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.component }}
+          # The frontend builds from the repository root (npm workspace, shared/, pack schema).
+          context: ${{ matrix.component == 'frontend' && '.' || './backend' }}
           file: ./${{ matrix.component }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
