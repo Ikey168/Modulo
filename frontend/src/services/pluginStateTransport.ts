@@ -98,9 +98,11 @@ export function createStateTransport(scope: StateScope,
     expectedVersion?: number, cursor?: string, generationOnly = false): Promise<unknown> => {
     const current = await session();
     if (signal.aborted) throw new DOMException('State request aborted', 'AbortError');
-    if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject || !current.accessToken) {
+    if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject) {
       throw new StateRequestError(401, 'STATE_SESSION_CHANGED');
     }
+    // Same account, session not renewed yet (offline launch): keep edits queued and retry.
+    if (!current.accessToken) throw new TypeError('Waiting for the session to renew; changes stay on this device.');
     const url = generationOnly ? `${base}?generation` : key === undefined ? `${base}?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
       : `${base}/${encodeURIComponent(key)}` + (expectedVersion === undefined ? '' : `?expectedVersion=${expectedVersion}`);
     const response = await fetcher(url, { method, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error',

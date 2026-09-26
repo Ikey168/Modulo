@@ -8056,13 +8056,13 @@
     },
     {
       "file": "frontend/src/features/auth/LoginPage.tsx",
-      "line": 71,
+      "line": 72,
       "api": "sessionStorage",
       "allowed": true
     },
     {
       "file": "frontend/src/features/auth/authService.ts",
-      "line": 53,
+      "line": 72,
       "api": "sessionStorage",
       "allowed": true
     },

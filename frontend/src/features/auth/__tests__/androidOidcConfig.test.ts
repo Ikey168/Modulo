@@ -4,12 +4,12 @@ vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'android' } 
 
 afterEach(() => { delete window.__MODULO_CONFIG__; vi.resetModules(); });
 
-it('uses the selected server callback without browser token storage', async () => {
+it('returns through the private-use scheme from the system browser, without browser token storage', async () => {
   window.__MODULO_CONFIG__ = { serverOrigin: 'https://modulo.example.com',
     oidcIssuer: 'https://modulo.example.com/auth/realms/modulo', oidcClientId: 'modulo-frontend' };
   const { oidcConfig } = await import('../oidcConfig');
   expect(oidcConfig.authority).toBe('https://modulo.example.com/auth/realms/modulo');
-  expect(oidcConfig.redirect_uri).toBe('https://modulo.example.com/auth/callback');
+  expect(oidcConfig.redirect_uri).toBe('com.modulo:/oauth2redirect');
   expect(oidcConfig.post_logout_redirect_uri).toBe('com.modulo:/logout');
   expect(oidcConfig.automaticSilentRenew).toBe(false);
   expect(oidcConfig.silent_redirect_uri).toBeUndefined();

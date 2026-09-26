@@ -80,12 +80,21 @@ forking components.
 OIDC authorization code with PKCE, as a public client. Login opens the
 identity provider in the **system browser via Custom Tabs**, never in an
 embedded WebView, as RFC 8252 requires and as major identity providers
-enforce. The redirect returns through the verified app link
-`https://<server>/app/oidc/android` (with the `com.modulo:` custom scheme as a
-fallback for servers without an `assetlinks.json`). Tokens are held in memory
-by the WebView; the refresh token is stored by a native secure-storage plugin
-backed by the Android Keystore, not by WebView storage. Logout and server
-switches revoke and delete it. Implemented by #488.
+enforce. The redirect returns through the private-use URI scheme
+`com.modulo:/oauth2redirect` (RFC 8252 §7.1). A claimed HTTPS app link would
+require every self-hosted server to publish an `assetlinks.json` bound to the
+APK's signing key, which a user-configured server cannot be expected to do;
+PKCE binds the authorization code to the app instance that started the login.
+The PKCE transaction (state, nonce, verifier) is kept in app-private device
+storage so a login finishes even if Android recreated the app behind the
+Custom Tab. Access tokens stay in memory. The refresh token and the identity it
+belongs to are stored by `ModuloSecureStorePlugin`, AES-GCM encrypted with an
+Android Keystore key and excluded from backup; a relaunch renews the session
+from it and verifies the subject and issuer. Without a connection the known
+identity keeps the account's cached records, queue and drafts usable (state
+requests wait for renewal); a rejected refresh token deletes the credential and
+returns to login. Logout deletes it; changing servers clears the secure store.
+The Keycloak client lists exact redirect URIs only. Implemented by #488.
 
 ## Storage
 
@@ -95,7 +104,7 @@ switches revoke and delete it. Implemented by #488.
 | Offline notes cache | IndexedDB `modulo-offline-notes` | SQLite (same plugin, distinct partitions) |
 | Device documents (unsaved drafts, theme) | IndexedDB `modulo-device-documents` | SQLite (same plugin) |
 | Legacy migration recovery copies | IndexedDB `modulo-legacy-recovery` | none; Android never had a browser profile |
-| Credentials | memory (browser session) | memory plus Keystore-backed refresh token |
+| Credentials | memory (browser session) | memory plus Keystore-backed refresh token (`ModuloSecureStorePlugin`) |
 
 Both device adapters pass the same contract suite
 (`statePersistenceContract.test.ts`). Android system backup is disabled for the
@@ -150,8 +159,8 @@ parity. The Android inventory lists every plugin's device needs (#479).
 ## Backend and deployment implications
 
 - CORS must allow the packaged origin for the API, state API and websocket.
-- The server should publish `/.well-known/assetlinks.json` for the app-link
-  redirect and register the Android redirect URIs on the Keycloak client.
+- Register `com.modulo:/oauth2redirect` and `com.modulo:/logout` on the
+  Keycloak client, next to the exact web callbacks (`deploy/oci/render-realm.sh`).
 - The Keycloak client for Android is public (PKCE), separate from any
   confidential web client.
 - Nothing in the backend is Android-specific beyond these settings; all data

@@ -13,6 +13,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ModuloStateCachePlugin.class);
+        // Keystore-backed credential storage for the OIDC refresh token (#488).
+        registerPlugin(ModuloSecureStorePlugin.class);
         // Owns bar appearance and the IME inset; see ShellWindowPlugin.
         registerPlugin(ShellWindowPlugin.class);
         super.onCreate(savedInstanceState);

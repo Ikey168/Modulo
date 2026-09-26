@@ -1,4 +1,5 @@
 import { OfflineNotesNotice } from './OfflineNotesNotice';
+import { SessionOfflineNotice } from '../auth/SessionOfflineNotice';
 import { WorkspaceEntityContext } from './WorkspaceEntityContext';
 import { WorkspaceCommandPalette } from './WorkspaceCommandPalette';
 import { WorkspaceRecoveryView } from './WorkspaceRecoveryView';
@@ -487,6 +488,7 @@ function WorkspaceShell() {
             top of a phone screen. */}
         <BannerSlot />
         <PullIndicator {...pull} />
+        <SessionOfflineNotice />
         <OfflineNotesNotice refresh={data.refresh} />
         {/* One home screen per shape, chosen at runtime rather than rendered
             twice and hidden with `md:`, so neither version fetches the other's

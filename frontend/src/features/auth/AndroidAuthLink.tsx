@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App } from '@capacitor/app';
-import { InAppBrowser } from '@capacitor/inappbrowser';
+import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { useAppDispatch } from '../../store/store';
 import { setCredentials, setError } from './authSlice';
 import { authService } from './authService';
 
-/** Completes in-app WebView OIDC inside the existing packaged React session. */
+/** Completes the system-browser OIDC login when Android returns through com.modulo:/oauth2redirect. */
 export function AndroidAuthLink() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -21,10 +21,7 @@ export function AndroidAuthLink() {
       try { callback = new URL(url); } catch { return; }
       const privateCallback = callback.protocol === 'com.modulo:' && !callback.hostname &&
         (callback.pathname === '/oauth2redirect' || callback.pathname === '/logout');
-      const inAppCallback = callback.origin === window.__MODULO_CONFIG__?.serverOrigin &&
-        callback.pathname === '/auth/callback' && callback.searchParams.has('state') &&
-        (callback.searchParams.has('code') || callback.searchParams.has('error'));
-      if (!privateCallback && !inAppCallback) return;
+      if (!privateCallback) return;
       if (working || seen.has(url)) return;
       working = true; seen.add(url);
       try {
@@ -46,24 +43,15 @@ export function AndroidAuthLink() {
         }
       } finally {
         working = false;
-        void InAppBrowser.close();
+        void Browser.close().catch(() => { /* Custom Tabs close themselves when the app returns. */ });
       }
     };
     let stop: (() => void) | undefined;
-    let stopBrowser: (() => void) | undefined;
     void App.addListener('appUrlOpen', event => { void accept(event.url); }).then(handle => {
       if (disposed) void handle.remove(); else stop = () => { void handle.remove(); };
     });
-    // The isolated Android WebView reports the HTTPS callback after Keycloak
-    // redirects. Complete it in the packaged app, where the PKCE verifier lives.
-    void InAppBrowser.addListener('browserPageNavigationCompleted', event => {
-      if (event.url) void accept(event.url);
-    })
-      .then(handle => {
-        if (disposed) void handle.remove(); else stopBrowser = () => { void handle.remove(); };
-      });
     void App.getLaunchUrl().then(result => { if (result?.url) void accept(result.url); });
-    return () => { disposed = true; stop?.(); stopBrowser?.(); };
+    return () => { disposed = true; stop?.(); };
   }, [dispatch, navigate]);
   return null;
 }

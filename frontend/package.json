@@ -28,7 +28,6 @@
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/core": "8.5.2",
-    "@capacitor/inappbrowser": "^4.0.3",
     "@citation-js/core": "^0.8.2",
     "@citation-js/plugin-bibtex": "^0.8.2",
     "@citation-js/plugin-csl": "^0.8.2",

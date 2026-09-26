@@ -26,11 +26,13 @@ jq \
     | .users = []
     | .clients |= map(
         if .clientId == "modulo-frontend" then
-          .redirectUris = [$public_url + "/*", "com.modulo:/oauth2redirect", "com.modulo:/logout"]
+          # Exact callbacks only (#488): the web code and silent-renew callbacks and
+          # the Android private-use scheme; no path wildcards.
+          .redirectUris = [$public_url + "/auth/callback", $public_url + "/auth/silent-callback", "com.modulo:/oauth2redirect", "com.modulo:/logout"]
           | .webOrigins = [$public_url, "https://localhost"]
           | .rootUrl = $public_url
           | .baseUrl = $public_url
-          | .attributes["post.logout.redirect.uris"] = ($public_url + "/*\ncom.modulo:/logout")
+          | .attributes["post.logout.redirect.uris"] = ($public_url + "/\ncom.modulo:/logout")
         else . end
       )
   ' ../../keycloak/realm-modulo.json > "$tmp_file"

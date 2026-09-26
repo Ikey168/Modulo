@@ -1,3 +1,4 @@
+import { secureStore } from '../../services/secureStore';
 import React, { useState, useEffect } from 'react';
 import { useLocation, Navigate, useSearchParams, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
@@ -119,7 +120,8 @@ const LoginPage: React.FC = () => {
         {ANDROID && window.__MODULO_CONFIG__?.serverOrigin && <div className="mt-5 w-full text-xs text-muted-foreground">
           <p className="truncate" title={window.__MODULO_CONFIG__.serverOrigin}>{window.__MODULO_CONFIG__.serverOrigin}</p>
           <button type="button" className="mt-2 inline-flex items-center text-primary underline underline-offset-2 coarse:min-h-touch" onClick={() => {
-            void nativeStateCache.clearServer().then(() => window.location.reload())
+            // Credentials belong to one server; queued edits stay in that server's partitions.
+            void secureStore().clear().then(() => nativeStateCache.clearServer()).then(() => window.location.reload())
               .catch(reason => setLocalError(reason instanceof Error ? reason.message : 'Could not change server.'));
           }}>Change server</button>
           <p className="mt-2 leading-relaxed">Pending edits for this server stay on this device until you reconnect.</p>
