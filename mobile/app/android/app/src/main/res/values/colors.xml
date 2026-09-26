@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Brand palette, kept in step with the web app's default "bart" theme tokens in
+  frontend/src/styles/index.css. The launch window is painted with these before
+  a single line of JavaScript runs, so a cold start opens on the app's own
+  colours instead of a white flash.
+-->
+<resources>
+    <color name="colorPrimary">#d95a3c</color>
+    <color name="colorPrimaryDark">#151414</color>
+    <color name="colorAccent">#fdbc4b</color>
+    <color name="moduloBackground">#151414</color>
+    <color name="moduloSurface">#1c1a1a</color>
+</resources>

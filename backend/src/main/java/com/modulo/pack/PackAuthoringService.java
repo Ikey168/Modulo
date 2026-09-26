@@ -1,6 +1,7 @@
 package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.*;
+import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.blueprint.approval.ApprovalService;
 import com.modulo.service.IpfsService;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,7 @@ import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -21,6 +23,7 @@ public class PackAuthoringService {
   private final ObjectMapper json;
   private final IpfsService ipfs;
   private final TransactionTemplate tx;
+  @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
   public PackAuthoringService(
       JdbcTemplate jdbc, ObjectMapper json, IpfsService ipfs, PlatformTransactionManager manager) {
@@ -36,7 +39,7 @@ public class PackAuthoringService {
 
   public Map<String, Object> preview(String source) {
     var manifest = parse(source);
-    var validation = PackManifestValidator.validate(manifest);
+    var validation = PackManifestValidator.validate(manifest, nodeRegistry);
     if (!validation.ok()) return Map.of("ok", false, "reason", validation.reason());
     if (!Integer.valueOf(2).equals(manifest.getManifestVersion()))
       return Map.of("ok", false, "reason", "MANIFEST_V2_REQUIRED");

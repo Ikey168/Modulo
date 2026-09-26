@@ -3,6 +3,7 @@ import { CalendarDays, Check, Link2, ListTodo, Rocket, Trash2 } from 'lucide-rea
 import { Badge, Button, Card, Checkbox, EmptyState, Progress, Spinner, cn } from '@/ui';
 import type { Task } from './types';
 import { getPriorityMeta, getStatusMeta } from './taskMeta';
+import { deviceTagLabel, parseTaskTags } from '@/features/taskTags';
 
 interface TaskListProps {
   userId: number;
@@ -10,6 +11,7 @@ interface TaskListProps {
   filters?: {
     status?: string;
     priority?: string;
+    tag?: string;
     showOverdue?: boolean;
     showDueToday?: boolean;
   };
@@ -55,7 +57,8 @@ const TaskList: React.FC<TaskListProps> = ({
       } else {
         if (filters.status) params.append('status', filters.status);
         if (filters.priority) params.append('priority', filters.priority);
-        if (filters.showOverdue) url = '/api/tasks/overdue';
+        if (filters.tag) url = `/api/tasks/tag/${encodeURIComponent(filters.tag)}`;
+        else if (filters.showOverdue) url = '/api/tasks/overdue';
         else if (filters.showDueToday) url = '/api/tasks/due-today';
       }
 
@@ -160,7 +163,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+      <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
         <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
           <Spinner className="size-10 text-primary" />
           <p className="text-[13px] text-muted-foreground">Loading tasks...</p>
@@ -171,7 +174,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (error) {
     return (
-      <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+      <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
         <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
           <p className="text-sm text-destructive">{error}</p>
           <Button onClick={loadTasks}>
@@ -183,7 +186,7 @@ const TaskList: React.FC<TaskListProps> = ({
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-[1200px] bg-background p-4">
+    <div className="mx-auto min-h-app max-w-[1200px] bg-background p-4">
       {tasks.length === 0 ? (
         <EmptyState
           icon={<ListTodo />}
@@ -200,6 +203,7 @@ const TaskList: React.FC<TaskListProps> = ({
             const isCompleted = task.status === 'COMPLETED';
             const statusMeta = getStatusMeta(task.status);
             const priorityMeta = getPriorityMeta(task.priority);
+            const tags = parseTaskTags(task.tags);
             return (
             <Card
               key={task.id}
@@ -231,6 +235,15 @@ const TaskList: React.FC<TaskListProps> = ({
                   <h4 className="mb-1 text-[17px] font-semibold leading-tight text-foreground">{task.title}</h4>
                   {task.description && (
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{task.description}</p>
+                  )}
+                  {tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5" aria-label={`Tags for ${task.title}`}>
+                      {tags.map(tag => (
+                        <Badge key={tag} variant="outline" className="rounded-sm">
+                          {tag.startsWith('device:') ? deviceTagLabel(tag) : tag}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
 

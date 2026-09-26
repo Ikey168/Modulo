@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Paperless backup freshness probe hourly
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

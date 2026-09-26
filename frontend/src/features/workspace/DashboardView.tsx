@@ -101,13 +101,15 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
 
   return (
     <div className="flex-1 animate-fade-in overflow-y-auto">
-      <div className="mx-auto max-w-5xl p-5 md:px-10 md:py-10">
+      <div className="mx-auto max-w-5xl p-5 phone:px-4 phone:pb-4 phone:pt-3 md:px-10 md:py-10">
         {/* Masthead: date + inline mono stats instead of stat tiles. */}
-        <header className="mb-9">
+        <header className="mb-9 phone:mb-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="mb-1.5 text-xs text-muted-foreground">{today}</p>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+              {/* The phone app bar already says "Dashboard" one line above
+                  this; repeating it costs a fifth of the fold. */}
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground phone:sr-only">Dashboard</h1>
             </div>
             <Button size="sm" onClick={onOpenBlueprints}>
               <Plus className="size-4" />

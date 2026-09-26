@@ -1,0 +1,8 @@
+[Unit]
+Description=Collect actionable MikroTik events
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/ChatGPT/Modulo/scripts/mikrotik-event-monitor.sh
+

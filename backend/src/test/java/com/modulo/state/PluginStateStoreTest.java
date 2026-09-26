@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Testcontainers
 class PluginStateStoreTest {
-    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:16-alpine");
+    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
     private static DriverManagerDataSource dataSource;
     private JdbcTemplate jdbc;
     private AuthenticatedUserService users;
@@ -63,6 +63,23 @@ class PluginStateStoreTest {
     }
     private PluginStateStore.StateRecord put(String key, long version, String value) {
         return store.put("personal", "canvas", key, version, "test", 1, value);
+    }
+
+    @Test void hostWorkspaceSchemasNeedNoRegistrationButOtherSchemasDo() {
+        var saved = store.put("personal", "media-library", "movie-1", 0, "modulo.workspace.media-item", 1,
+                "{\"position\":1,\"item\":{\"id\":\"movie-1\",\"title\":\"Intolerance\"}}");
+        assertEquals(1, saved.version());
+        assertEquals(1, store.put("personal", "invoicing", "seller-profile", 0,
+                "modulo.workspace.invoice.seller-profile", 1, "null").version());
+        assertEquals(1, store.put("personal", "github-sync", "config", 0, "modulo.github-sync.config", 1,
+                "{\"repository\":\"me/notes\",\"branch\":\"main\",\"path\":\"modulo-notes\"}").version());
+        assertEquals(1, store.put("personal", "focus", "sessions", 0, "modulo.focus.sessions", 1, "[]").version());
+        assertEquals(1, store.put("personal", "web3-id", "proof", 0, "modulo.web3-identity.proof", 1, "null").version());
+        assertThrows(ResponseStatusException.class, () ->
+                store.put("personal", "other", "config", 0, "modulo.github-sync.config", 1, "{}"));
+        var unknown = assertThrows(ResponseStatusException.class, () ->
+                store.put("personal", "media-library", "movie-2", 0, "third-party.schema", 1, "{}"));
+        assertEquals("STATE_UNKNOWN_SCHEMA", unknown.getReason());
     }
 
     @Test void roundTripCreateUpdateDeleteAndRecreatePreservesMonotonicVersion() {

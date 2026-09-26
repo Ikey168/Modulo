@@ -20,6 +20,7 @@ import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import CalendarView from './CalendarView';
 import type { Task } from './types';
+import { DEVICE_TAG_OPTIONS } from '@/features/taskTags';
 
 interface TaskStats {
   totalTasks: number;
@@ -49,6 +50,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   const [taskFilters, setTaskFilters] = useState({
     status: '',
     priority: '',
+    tag: '',
     showOverdue: false,
     showDueToday: false
   });
@@ -149,7 +151,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-app flex-col bg-background text-foreground">
       <div className="flex flex-col gap-4 border-b border-border bg-surface px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Task Manager</h1>
@@ -190,6 +192,21 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
         {currentView === 'list' && (
           <div className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-center">
+            <Select
+              value={taskFilters.tag || ALL_FILTER}
+              onValueChange={(val) => handleFilterChange({ ...taskFilters, tag: val === ALL_FILTER ? '' : val })}
+            >
+              <SelectTrigger className="sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All Devices</SelectItem>
+                {DEVICE_TAG_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select
               value={taskFilters.status || ALL_FILTER}
               onValueChange={(val) => handleFilterChange({ ...taskFilters, status: val === ALL_FILTER ? '' : val })}

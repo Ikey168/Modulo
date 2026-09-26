@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- lazy plugin module exports a descriptor beside its private React surface */
 // Audit report generator (#359) — compiles an engagement's scope notes and
 // findings into a report note, exports it (print→PDF / markdown download), and
 // anchors the report note through the existing on-chain flow. Audit hub tab.
@@ -12,7 +13,7 @@ function ReportSurface(p: WorkspaceViewProps) {
 
 const reportsPlugin: PluginModule = {
   activate(ctx) {
-    ctx.addView({ id: 'audit-reports', label: 'Reports', icon: ScrollText, order: 55, mode: 'audit', component: ReportSurface });
+    ctx.addView({ id: 'audit-reports', label: 'Report Builder', icon: ScrollText, order: 55, mode: 'audit', component: ReportSurface });
   },
 };
 

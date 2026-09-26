@@ -1,19 +1,21 @@
 import {PropertyQueryResults} from '../knowledge/PropertyQueryView';
 import {NotePropertyPanel} from '../knowledge/NotePropertyPanel';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   Anchor,
   ArrowLeft,
   ArrowRight,
   Check,
   ChevronLeft,
+  Eye,
   Info,
+  Pencil,
   Plus,
   Search,
   Trash2,
   X,
 } from 'lucide-react';
-import type { CoreNote } from '@modulo/core';
+import type { CoreLink, CoreNote } from '@modulo/core';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,9 +51,13 @@ import {
 import { SectionLabel } from './atoms';
 import { Markdown } from './Markdown';
 import { NoteTree } from './NoteTree';
+import { noteExcerpt, searchNotes, type NoteSearchResult } from './noteSearch';
+import { getNoteDraft, noteText } from './noteDrafts';
 import { useNoteTree, type NoteTreeApi } from './noteTree';
-import { anchorRef, isAnchored } from './workspaceUtils';
+import { anchorRef, isAnchored, relativeTime } from './workspaceUtils';
 import type { WorkspaceData } from './useCoreWorkspace';
+import { usePhoneImmersive } from './mobile/phoneScreen';
+import { usePhoneLayout } from './mobile/usePhoneLayout';
 import type {
   EditorActionContribution,
   NoteFenceContribution,
@@ -67,12 +73,18 @@ interface NotesViewProps {
   searchQuery: string;
   onSearch: (q: string) => void;
   onNewNote: () => void;
+  onClearSelection?: () => void;
   /** Detail-panel sections contributed by plugins (e.g. the Outline). */
   notePanels?: NotePanelContribution[];
   /** ```fence renderers contributed by plugins (e.g. Databases). */
   noteFences?: NoteFenceContribution[];
   /** Editor toolbar actions contributed by plugins (e.g. Insert database). */
   editorActions?: EditorActionContribution[];
+}
+
+interface NoteRelation {
+  link: CoreLink;
+  note: CoreNote;
 }
 
 export function NotesView({
@@ -84,48 +96,54 @@ export function NotesView({
   searchQuery,
   onSearch,
   onNewNote,
+  onClearSelection,
   notePanels = [],
   noteFences = [],
   editorActions = [],
 }: NotesViewProps) {
-  const { notes, links, updateNote, deleteNote, anchorNote, addTag, removeTag, createLink } = data;
+  const {
+    notes,
+    links,
+    updateNote,
+    deleteNote,
+    anchorNote,
+    addTag,
+    removeTag,
+    createLink,
+    removeLink,
+  } = data;
   // <md: the list is primary; opening a note switches to the full-width editor.
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(selectedId !== null);
+  useEffect(() => { if (selectedId !== null) setMobileDetailOpen(true); }, [selectedId]);
   const [infoOpen, setInfoOpen] = useState(false);
   // Notion-style hierarchy (parent/order kept client-side) over the note list.
   const tree = useNoteTree(notes);
 
   const note = useMemo(
-    () => notes.find((n) => n.id === selectedId) ?? notes[0] ?? null,
+    () => selectedId === null ? notes[0] ?? null : notes.find((n) => n.id === selectedId) ?? null,
     [notes, selectedId],
   );
 
-  const sq = searchQuery.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    if (!sq) return notes;
-    return notes.filter(
-      (n) =>
-        n.title.toLowerCase().includes(sq) ||
-        (n.tags ?? []).some((t) => t.name.toLowerCase().includes(sq)),
-    );
-  }, [notes, sq]);
+  const searchResults = useMemo(() => searchNotes(notes, searchQuery), [notes, searchQuery]);
 
   // Outgoing / incoming derived from the global link set.
-  const outgoing = useMemo(() => {
+  const outgoingLinks = useMemo<NoteRelation[]>(() => {
     if (!note) return [];
     return links
       .filter((l) => l.sourceNoteId === note.id)
-      .map((l) => notes.find((n) => n.id === l.targetNoteId))
-      .filter((n): n is CoreNote => Boolean(n));
+      .map((link) => ({ link, note: notes.find((n) => n.id === link.targetNoteId) }))
+      .filter((relation): relation is NoteRelation => Boolean(relation.note));
   }, [links, notes, note]);
 
-  const backlinks = useMemo(() => {
+  const backlinkLinks = useMemo<NoteRelation[]>(() => {
     if (!note) return [];
     return links
       .filter((l) => l.targetNoteId === note.id)
-      .map((l) => notes.find((n) => n.id === l.sourceNoteId))
-      .filter((n): n is CoreNote => Boolean(n));
+      .map((link) => ({ link, note: notes.find((n) => n.id === link.sourceNoteId) }))
+      .filter((relation): relation is NoteRelation => Boolean(relation.note));
   }, [links, notes, note]);
+
+  const outgoing = useMemo(() => outgoingLinks.map(({ note: linkedNote }) => linkedNote), [outgoingLinks]);
 
   const openNote = (id: number) => {
     onSelect(id);
@@ -153,12 +171,16 @@ export function NotesView({
   };
 
   const showDetailOnMobile = mobileDetailOpen && note != null;
+  // An open note is the whole phone screen: the shell folds away the app bar
+  // and the hub's tab strip, and the editor's own header — which carries the
+  // back arrow — becomes the only bar. See mobile/phoneScreen.tsx.
+  const phoneLayout = usePhoneLayout();
+  usePhoneImmersive('notes', phoneLayout && showDetailOnMobile);
 
   const infoPanelProps = note
     ? {
         note,
         outgoing,
-        backlinks,
         allNotes: notes,
         notePanels,
         onSelect: openNote,
@@ -166,9 +188,14 @@ export function NotesView({
         onAddTag: (name: string) => addTag(note.id, name),
         onRemoveTag: (tagId: string) => removeTag(note.id, tagId),
         onCreateLink: (targetId: number) => createLink(note.id, targetId),
+        onRemoveLink: (linkId: string) => { void removeLink(linkId); },
+        onLinksChanged: data.refresh,
+        outgoingLinks,
+        backlinkLinks,
         onDelete: () => {
           setInfoOpen(false);
           setMobileDetailOpen(false);
+          onClearSelection?.();
           void deleteNote(note.id);
         },
       }
@@ -178,7 +205,8 @@ export function NotesView({
     <div className="flex h-full w-full animate-fade-in overflow-hidden">
       <NoteListColumn
         className={cn('w-full md:w-64', showDetailOnMobile ? 'hidden md:flex' : 'flex')}
-        notes={filtered}
+        notes={notes}
+        searchResults={searchResults}
         tree={tree}
         selectedId={note?.id ?? selectedId}
         loading={data.loading}
@@ -213,8 +241,8 @@ export function NotesView({
             ) : (
               <EmptyState
                 icon={<NoteGlyph />}
-                title="No notes yet"
-                description="Create your first note to start building your knowledge base."
+                title={notes.length ? "Note unavailable" : "No notes yet"}
+                description={notes.length ? "This note may be in Trash. Choose a note from the list or open Recovery." : "Create your first note to start building your knowledge base."}
                 action={<Button size="sm" onClick={onNewNote}>New note</Button>}
               />
             )}
@@ -228,7 +256,7 @@ export function NotesView({
       {/* <xl: same panel in a right-hand sheet, opened from the editor header. */}
       {infoPanelProps && (
         <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
-          <SheetContent side="right" className="w-80 gap-0 bg-surface p-0 sm:max-w-80">
+          <SheetContent side="right" className="w-full gap-0 bg-surface p-0 sm:w-80 sm:max-w-80">
             <SheetHeader className="border-b border-border px-4 py-3.5 text-left">
               <SheetTitle className="text-sm">Note details</SheetTitle>
               <SheetDescription className="sr-only">Tags, links and on-chain status for the selected note</SheetDescription>
@@ -254,6 +282,7 @@ function NoteGlyph() {
 
 interface NoteListColumnProps {
   notes: CoreNote[];
+  searchResults: NoteSearchResult[];
   tree: NoteTreeApi;
   selectedId: number | null;
   loading: boolean;
@@ -265,32 +294,49 @@ interface NoteListColumnProps {
   className?: string;
 }
 
-function NoteListColumn({ notes, tree, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, onAddChild, className }: NoteListColumnProps) {
+function NoteListColumn({ notes, searchResults, tree, selectedId, loading, searchQuery, onSearch, onNewNote, onSelect, onAddChild, className }: NoteListColumnProps) {
   // While filtering, show a flat match list; otherwise the draggable tree.
   const searching = searchQuery.trim().length > 0;
   return (
     <div className={cn('shrink-0 flex-col overflow-hidden border-r border-border', className)}>
-      <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3">
+      {/* The phone shell already titles this screen "Notes" and offers the
+          floating New note button, so the header is desktop-only chrome. */}
+      <div className="flex shrink-0 items-center justify-between px-3 pb-2 pt-3 phone:hidden">
         <SectionLabel>Notes</SectionLabel>
         <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={onNewNote} aria-label="New note" title="New note">
           <Plus aria-hidden="true" />
         </Button>
       </div>
 
-      <div className="shrink-0 px-2.5 pb-2">
+      <div className="shrink-0 px-2.5 pb-2 phone:px-3 phone:pt-3">
         <div className="relative">
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground coarse:left-3 coarse:size-4"
           />
           <Input
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Filter notes…"
-            aria-label="Filter notes"
-            className="h-8 pl-8 text-xs"
+            placeholder="Search notes, tags, and content…"
+            aria-label="Search notes"
+            className={cn('h-8 pl-8 text-xs coarse:h-11 coarse:pl-9 coarse:text-[15px]', searchQuery && 'pr-8')}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearch('')}
+              aria-label="Clear note search"
+              className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground coarse:size-9"
+            >
+              <X className="size-3 coarse:size-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
+        <p className="mt-1 px-0.5 text-xxs text-muted-foreground" aria-live="polite">
+          {searching
+            ? `${searchResults.length} ${searchResults.length === 1 ? 'match' : 'matches'}`
+            : `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-2">
@@ -300,12 +346,14 @@ function NoteListColumn({ notes, tree, selectedId, loading, searchQuery, onSearc
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
-        ) : notes.length === 0 ? (
+        ) : (searching ? searchResults.length === 0 : notes.length === 0) ? (
           <p className="px-2 pt-2 text-xs text-muted-foreground">
-            {searching ? 'No notes match your filter.' : 'No notes yet.'}
+            {searching ? 'No notes match your search.' : 'No notes yet.'}
           </p>
         ) : searching ? (
-          notes.map((n) => <NoteRow key={n.id} note={n} selected={n.id === selectedId} onSelect={onSelect} />)
+          searchResults.map(({ note, excerpt }) => (
+            <NoteRow key={note.id} note={note} excerpt={excerpt} selected={note.id === selectedId} onSelect={onSelect} />
+          ))
         ) : (
           <NoteTree tree={tree} selectedId={selectedId} onSelect={onSelect} onAddChild={onAddChild} />
         )}
@@ -314,7 +362,7 @@ function NoteListColumn({ notes, tree, selectedId, loading, searchQuery, onSearc
   );
 }
 
-function NoteRow({ note, selected, onSelect }: { note: CoreNote; selected: boolean; onSelect: (id: number) => void }) {
+function NoteRow({ note, excerpt = noteExcerpt(note), selected, onSelect }: { note: CoreNote; excerpt?: string; selected: boolean; onSelect: (id: number) => void }) {
   return (
     <button
       type="button"
@@ -322,12 +370,19 @@ function NoteRow({ note, selected, onSelect }: { note: CoreNote; selected: boole
       aria-current={selected ? 'true' : undefined}
       className={cn(
         'flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left transition-colors',
+        'coarse:min-h-touch coarse:px-3 coarse:text-[15px] coarse:active:bg-surface-2',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         selected ? 'bg-surface-3' : 'hover:bg-surface-2',
       )}
     >
-      <span className={cn('min-w-0 flex-1 truncate text-[13px]', selected ? 'font-medium text-foreground' : 'text-subtle-foreground')}>
-        {note.title}
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={cn('min-w-0 flex-1 truncate text-[13px]', selected ? 'font-medium text-foreground' : 'text-subtle-foreground')}>
+            {note.title || 'Untitled Note'}
+          </span>
+          {note.updatedAt && <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{relativeTime(note.updatedAt)}</span>}
+        </span>
+        {excerpt && <span className="mt-0.5 block line-clamp-1 text-xxs leading-relaxed text-muted-foreground">{excerpt}</span>}
       </span>
       {isAnchored(note) && (
         <span className="size-[5px] shrink-0 rounded-full bg-success" role="img" aria-label="Anchored on-chain" />
@@ -342,7 +397,7 @@ interface EditorProps {
   note: CoreNote;
   editMode: boolean;
   onToggleEdit: (v: boolean) => void;
-  onSave: (title: string, content: string) => void;
+  onSave: (title: string, content: string) => Promise<boolean | void>;
   onPropertySaved: () => void;
   onSelectNote: (id: number) => void;
   allNotes: CoreNote[];
@@ -354,10 +409,13 @@ interface EditorProps {
 }
 
 function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelectNote, allNotes, onBack, onOpenInfo, onCreateNote, noteFences, editorActions }: EditorProps) {
-  const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.markdownContent ?? note.content ?? '');
-  const dirtyRef = useRef(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draft = getNoteDraft(note, (text) => onSave(text.title, text.content));
+  const { title, content, status, local } = useSyncExternalStore(draft.subscribe, draft.getSnapshot);
+  const setTitle = (value: string) => draft.change({ title: value });
+  const setContent = (value: string) => draft.change({ content: value });
+  const flush = () => { void draft.flush(); };
+  useEffect(() => { draft.accept(noteText(note)); }, [draft, note]);
+  useEffect(() => () => { void draft.flush(); }, [draft]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Generic insert-at-cursor handed to plugin editor actions (e.g. the Database
@@ -367,7 +425,6 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
     const start = ta?.selectionStart ?? content.length;
     const end = ta?.selectionEnd ?? content.length;
     const next = content.slice(0, start) + text + content.slice(end);
-    dirtyRef.current = true;
     setContent(next);
     requestAnimationFrame(() => {
       const pos = start + text.length;
@@ -376,48 +433,23 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
     });
   };
 
-  const flush = () => {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
-    if (dirtyRef.current) {
-      dirtyRef.current = false;
-      onSave(title.trim() || 'Untitled Note', content);
-    }
-  };
-
-  // Debounced autosave whenever title/content change.
-  useEffect(() => {
-    if (!dirtyRef.current) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      dirtyRef.current = false;
-      onSave(title.trim() || 'Untitled Note', content);
-    }, 900);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content]);
-
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-3 md:px-5">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onBack} aria-label="Back to note list">
-            <ChevronLeft aria-hidden="true" />
+      {/* Below `md` this header *is* the app bar — the shell has folded its own
+          away — so it carries the status bar inset and full-size controls
+          rather than the 28px icons a dense desktop toolbar can use. */}
+      <div className="-mt-safe-top flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-3 pt-safe-top phone:h-auto phone:min-h-14 phone:gap-0.5 phone:px-1 md:mt-0 md:bg-transparent md:px-5 md:pt-0">
+        <div className="flex min-w-0 flex-1 items-center gap-2 phone:gap-0.5">
+          <Button variant="ghost" size="icon-sm" className="md:hidden phone:size-11" onClick={onBack} aria-label="Back to note list">
+            <ChevronLeft aria-hidden="true" className="phone:size-5" />
           </Button>
           <input
             value={title}
-            onChange={(e) => {
-              dirtyRef.current = true;
-              setTitle(e.target.value);
-            }}
+            onChange={(e) => setTitle(e.target.value)}
             onBlur={flush}
             placeholder="Untitled Note"
             aria-label="Note title"
-            className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground phone:text-base"
           />
           {isAnchored(note) && (
             <Badge variant="success" className="shrink-0 tracking-wider">
@@ -426,7 +458,17 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          {/* "Saved" on every keystroke is reassurance a desktop can afford;
+              a phone header cannot, so only states that need action show. */}
+          <span
+            role="status"
+            className={cn('text-xs text-muted-foreground', status === 'Saved' && 'phone:hidden')}
+          >
+            {status}
+          </span>
+          {(status === 'Save failed' || status === 'Unsaved') && <Button size="sm" variant="ghost" onClick={flush}>Retry save</Button>}
           <Tabs
+            className="phone:hidden"
             value={editMode ? 'edit' : 'preview'}
             onValueChange={(v) => {
               if (v === 'preview') flush();
@@ -442,18 +484,33 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button variant="ghost" size="icon-sm" className="xl:hidden" onClick={onOpenInfo} aria-label="Note details">
+          {/* A 120px segmented control leaves no room for the note's title on a
+              360dp screen; the same choice is one labelled icon here. */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="hidden phone:inline-flex phone:size-11 phone:[&_svg]:size-5"
+            aria-label={editMode ? 'Preview note' : 'Edit note'}
+            onClick={() => {
+              if (editMode) flush();
+              onToggleEdit(!editMode);
+            }}
+          >
+            {editMode ? <Eye aria-hidden="true" /> : <Pencil aria-hidden="true" />}
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="xl:hidden phone:size-11 phone:[&_svg]:size-5" onClick={onOpenInfo} aria-label="Note details">
             <Info aria-hidden="true" />
           </Button>
         </div>
       </div>
 
-      <NotePropertyPanel key={note.id} noteId={note.id} content={content} notes={allNotes} contentBusy={dirtyRef.current} onSaved={next=>{if(saveTimer.current)clearTimeout(saveTimer.current);dirtyRef.current=false;setContent(next);onPropertySaved();}}/>
+      {!local && <p role="alert" className="px-3 py-2 text-xs text-destructive">Draft recovery is unavailable. Keep this page open until the note is saved.</p>}
+      <NotePropertyPanel key={note.id} noteId={note.id} content={content} notes={allNotes} contentBusy={status !== 'Saved'} onSaved={next => { draft.accept({ title, content: next }); onPropertySaved(); }}/>
       <div className="relative flex-1 overflow-hidden">
         {editMode ? (
           <div className="flex h-full flex-col">
             {editorActions.length > 0 && (
-              <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-1.5 md:px-8">
+              <div className="scroll-strip flex shrink-0 items-center gap-1 border-b border-border px-3 py-1.5 md:px-8">
                 {editorActions.map((action) => {
                   const Icon = action.icon;
                   return (
@@ -475,17 +532,14 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
             <textarea
               ref={textareaRef}
               value={content}
-              onChange={(e) => {
-                dirtyRef.current = true;
-                setContent(e.target.value);
-              }}
+              onChange={(e) => setContent(e.target.value)}
               onBlur={flush}
               aria-label="Note content (Markdown)"
-              className="w-full flex-1 resize-none bg-transparent px-5 py-5 font-mono text-sm leading-[1.8] text-foreground/90 outline-none [tab-size:2] placeholder:text-muted-foreground md:px-10"
+              className="w-full flex-1 resize-none bg-transparent px-5 py-5 font-mono text-sm leading-[1.8] text-foreground/90 outline-none [tab-size:2] placeholder:text-muted-foreground phone:px-4 phone:py-4 phone:text-[15px] phone:leading-[1.7] md:px-10"
             />
           </div>
         ) : (
-          <div className="h-full overflow-y-auto px-5 py-6 md:px-10 md:py-8">
+          <div className="h-full overflow-y-auto overscroll-contain px-5 py-6 phone:px-4 phone:py-5 md:px-10 md:py-8">
             <Markdown content={content} notes={allNotes} onSelectNote={onSelectNote} onCreateNote={onCreateNote} fences={[...noteFences,{language:"property-query",component:({source}:{source:string})=>/^[0-9a-f-]{36}$/.test(source.trim())?<PropertyQueryResults id={source.trim()}/>:<p>Invalid saved query ID.</p>}]} />
           </div>
         )}
@@ -499,7 +553,8 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
 interface InfoPanelProps {
   note: CoreNote;
   outgoing: CoreNote[];
-  backlinks: CoreNote[];
+  outgoingLinks: NoteRelation[];
+  backlinkLinks: NoteRelation[];
   allNotes: CoreNote[];
   notePanels?: NotePanelContribution[];
   onSelect: (id: number) => void;
@@ -507,6 +562,8 @@ interface InfoPanelProps {
   onAddTag: (name: string) => void;
   onRemoveTag: (tagId: string) => void;
   onCreateLink: (targetId: number) => void;
+  onRemoveLink: (linkId: string) => void;
+  onLinksChanged: () => Promise<void>;
   onDelete: () => void;
   className?: string;
 }
@@ -514,7 +571,8 @@ interface InfoPanelProps {
 function InfoPanel({
   note,
   outgoing,
-  backlinks,
+  outgoingLinks,
+  backlinkLinks,
   allNotes,
   notePanels = [],
   onSelect,
@@ -522,22 +580,30 @@ function InfoPanel({
   onAddTag,
   onRemoveTag,
   onCreateLink,
+  onRemoveLink,
+  onLinksChanged,
   onDelete,
   className,
 }: InfoPanelProps) {
   const [tagDraft, setTagDraft] = useState('');
   // Remount the link Select after each pick so it snaps back to the placeholder.
   const [selectKey, setSelectKey] = useState(0);
-  const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoing.some((o) => o.id === n.id));
+  const linkableNotes = allNotes.filter((n) => n.id !== note.id && !outgoingLinks.some(({ note: linkedNote }) => linkedNote.id === n.id));
 
   return (
     <div className={cn('w-60 shrink-0 flex-col overflow-y-auto border-l border-border', className)}>
       {notePanels.map((panel) => {
         const Panel = panel.component;
-        return (
-          <InfoSection key={panel.id} title={panel.title}>
-            <Panel note={note} />
-          </InfoSection>
+        const content = <Panel
+          note={note}
+          allNotes={allNotes}
+          outgoing={outgoing}
+          onCreateLink={onCreateLink}
+          onSelectNote={onSelect}
+          onLinksChanged={onLinksChanged}
+        />;
+        return panel.standalone ? <div key={panel.id}>{content}</div> : (
+          <InfoSection key={panel.id} title={panel.title}>{content}</InfoSection>
         );
       })}
 
@@ -575,10 +641,12 @@ function InfoPanel({
       </InfoSection>
 
       <InfoSection title="Links to">
-        {outgoing.length === 0 ? (
+        {outgoingLinks.length === 0 ? (
           <span className="px-0.5 py-1 text-xs text-muted-foreground">—</span>
         ) : (
-          outgoing.map((n) => <LinkItem key={n.id} note={n} dir="out" onSelect={onSelect} />)
+          outgoingLinks.map(({ link, note: linkedNote }) => (
+            <LinkItem key={link.id} linkId={link.id} note={linkedNote} dir="out" onSelect={onSelect} onRemove={onRemoveLink} />
+          ))
         )}
         {linkableNotes.length > 0 && (
           <Select
@@ -594,7 +662,7 @@ function InfoPanel({
             <SelectContent>
               {linkableNotes.map((n) => (
                 <SelectItem key={n.id} value={String(n.id)}>
-                  {n.title}
+                  {n.title || 'Untitled Note'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -603,10 +671,12 @@ function InfoPanel({
       </InfoSection>
 
       <InfoSection title="Backlinks">
-        {backlinks.length === 0 ? (
+        {backlinkLinks.length === 0 ? (
           <span className="px-0.5 py-1 text-xs text-muted-foreground">—</span>
         ) : (
-          backlinks.map((n) => <LinkItem key={n.id} note={n} dir="in" onSelect={onSelect} />)
+          backlinkLinks.map(({ link, note: linkedNote }) => (
+            <LinkItem key={link.id} linkId={link.id} note={linkedNote} dir="in" onSelect={onSelect} onRemove={onRemoveLink} />
+          ))
         )}
       </InfoSection>
 
@@ -637,20 +707,20 @@ function InfoPanel({
               className="mt-4 w-full justify-start gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 aria-hidden="true" />
-              Delete note
+              Move to Trash
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete “{note.title}”?</AlertDialogTitle>
+              <AlertDialogTitle>Move “{note.title}” to Trash?</AlertDialogTitle>
               <AlertDialogDescription>
-                This permanently removes the note and its links. This cannot be undone.
+                The note moves to Trash on this device. You can restore it with its links from Recovery.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction className={buttonVariants({ variant: 'destructive' })} onClick={onDelete}>
-                Delete
+                Move to Trash
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -669,24 +739,34 @@ function InfoSection({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function LinkItem({ note, dir, onSelect }: { note: CoreNote; dir: 'out' | 'in'; onSelect: (id: number) => void }) {
+function LinkItem({ linkId, note, dir, onSelect, onRemove }: { linkId: string; note: CoreNote; dir: 'out' | 'in'; onSelect: (id: number) => void; onRemove: (linkId: string) => void }) {
   const isOut = dir === 'out';
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(note.id)}
-      className={cn(
-        'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors',
-        'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        isOut ? 'text-primary-hover' : 'text-subtle-foreground',
-      )}
-    >
-      {isOut ? (
-        <ArrowRight className="size-2.5 shrink-0" aria-hidden="true" />
-      ) : (
-        <ArrowLeft className="size-2.5 shrink-0" aria-hidden="true" />
-      )}
-      <span className="truncate">{note.title}</span>
-    </button>
+    <div className="group/link flex w-full items-center gap-1 rounded-md transition-colors hover:bg-surface-2">
+      <button
+        type="button"
+        onClick={() => onSelect(note.id)}
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+          isOut ? 'text-primary-hover' : 'text-subtle-foreground',
+        )}
+      >
+        {isOut ? (
+          <ArrowRight className="size-2.5 shrink-0" aria-hidden="true" />
+        ) : (
+          <ArrowLeft className="size-2.5 shrink-0" aria-hidden="true" />
+        )}
+        <span className="truncate">{note.title || 'Untitled Note'}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onRemove(linkId)}
+        aria-label={`Remove link ${isOut ? 'to' : 'from'} ${note.title || 'Untitled Note'}`}
+        title="Remove link"
+        className="mr-1 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring coarse:opacity-100"
+      >
+        <X className="size-3" aria-hidden="true" />
+      </button>
+    </div>
   );
 }

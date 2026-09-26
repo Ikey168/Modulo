@@ -2,7 +2,7 @@
 // Todo lists (#371) — task records with due dates, priorities, and note
 // links. The model mirrors the orphaned features/tasks backend shape
 // (priority values match its TaskPriority) so a later backend store can adopt
-// these records; persistence starts client-side like the rest of the suite.
+// these records; persistence is provided by the server-backed workspace state layer.
 
 export type TodoPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export const TODO_PRIORITIES: TodoPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
@@ -22,29 +22,18 @@ export interface TodoItem {
 
 export const DEFAULT_LIST = 'Inbox';
 
-const STORE_KEY = 'modulo-todos';
+export const TODOS_STORE_KEY = 'modulo-todos';
 
-export function readTodos(): TodoItem[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (t): t is TodoItem =>
-        typeof t === 'object' && t !== null && typeof (t as TodoItem).id === 'string' && typeof (t as TodoItem).title === 'string',
-    );
-  } catch {
-    return [];
-  }
-}
-
-export function writeTodos(todos: TodoItem[]): void {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(todos));
-  } catch {
-    // Storage unavailable — todos live for the session only.
-  }
+export function parseTodos(value: unknown): TodoItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((todo): todo is TodoItem =>
+    typeof todo === 'object' && todo !== null
+    && typeof (todo as TodoItem).id === 'string'
+    && typeof (todo as TodoItem).title === 'string'
+    && TODO_PRIORITIES.includes((todo as TodoItem).priority)
+    && typeof (todo as TodoItem).done === 'boolean'
+    && typeof (todo as TodoItem).list === 'string',
+  );
 }
 
 export function newTodoId(): string {

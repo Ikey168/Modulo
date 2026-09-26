@@ -2,6 +2,7 @@ package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.*;
 import com.modulo.blueprint.approval.ApprovalService;
+import com.modulo.blueprint.BlueprintNodeRegistry;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,6 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class WorkspacePackService {
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private BlueprintNodeRegistry nodeRegistry;
+
   private final JdbcTemplate jdbc;
   private final ObjectMapper json;
   private final TransactionTemplate tx;
@@ -66,7 +70,7 @@ public class WorkspacePackService {
 
   private Map<String, Object> plan(
       long owner, PackManifest manifest, boolean demo, UUID target, boolean uninstall) {
-    var valid = PackManifestValidator.validate(manifest);
+    var valid = PackManifestValidator.validate(manifest, nodeRegistry);
     if (!valid.ok()) throw conflict(valid.reason());
     if (!Integer.valueOf(2).equals(manifest.getManifestVersion()))
       throw conflict("USE_LEGACY_V1_INSTALLER");
@@ -197,7 +201,7 @@ public class WorkspacePackService {
                     .equals(new TreeSet<>(readStrings(operation.get("consent").toString()))))
               throw conflict("CAPABILITY_CONSENT_REQUIRED");
             var manifest = manifest(operation.get("manifest").toString());
-            var valid = PackManifestValidator.validate(manifest);
+            var valid = PackManifestValidator.validate(manifest, nodeRegistry);
             if (!valid.ok() || !ApprovalService.hash(encode(manifest)).equals(expectedDigest))
               throw conflict("PLAN_MANIFEST_CHANGED");
             var current = current(owner, manifest.getId());

@@ -65,6 +65,29 @@ cd ../desktop && npm start
 `npm run serve` starts only the embedded static+proxy server (no Electron) —
 useful for testing the serving layer in a headless environment.
 
+## Native desktop services
+
+The preload bridge exposes capability-scoped native services for the Desktop
+tagged workspace tools: OS-encrypted provider credentials, background
+reminders and tray behavior, RSS/Miniflux feeds, local web archives, document
+OCR, PDF operations, managed-folder indexing, CalDAV, ntfy, attachments, ZIP
+backup/restore, and passphrase-encrypted workspace sync. Native state lives
+under Electron's `userData/native` directory; secrets are never written to the
+frontend store.
+
+Remote imports accept HTTP(S) only, reject embedded URL credentials, limit
+responses to 10 MiB, and re-validate each redirect with a five-hop limit.
+
+Run the native service regression suite with `npm test` from `desktop/`.
+
+### Browser-to-Noesis capture
+
+The packaged desktop resources include `browser-extension/`, a Manifest V3
+extension for Firefox and Chromium-family browsers. Load it unpacked from
+`desktop/browser-extension/` during development; the extension's own README
+contains the Noesis endpoint, permission, queue, and privacy contract. It is a
+user-invoked capture bridge, not a background browser crawler.
+
 ## Packaging
 
 ```sh
@@ -82,6 +105,7 @@ All settings are environment variables read by the main process:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `MODULO_APP_URL` | — | Deployed app origin to load directly instead of the local server |
 | `MODULO_BACKEND_URL` | `http://localhost:8080` | Backend origin the embedded server proxies to |
 | `MODULO_KEYCLOAK_URL` | `http://localhost:8180` | Keycloak origin allowed for in-window OIDC navigation |
 | `MODULO_DESKTOP_PORT` | `3000` | Fixed port of the embedded server (the app's origin) |
@@ -104,7 +128,7 @@ server) — stop Vite or pick another port.
 ## Security model
 
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
-- The preload (`preload.cjs`) exposes a minimal read-only
+- The preload (`preload.cjs`) exposes a minimal capability-scoped
   `window.moduloDesktop` object; extend it via `contextBridge` +
   `ipcRenderer.invoke`, never by enabling node integration
 - Window navigation is restricted to the app origin and Keycloak; all other

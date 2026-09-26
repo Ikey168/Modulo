@@ -64,3 +64,14 @@ messages, and a single-column mobile layout. Run the browser keyboard and mobile
 checks with `cd frontend && npx playwright test --config playwright.approvals.config.ts`.
 The browser fixture mocks the service; PostgreSQL integration tests separately
 exercise authorization and durable continuation.
+
+# Automation autonomy levels
+
+Every saved Blueprint records one owner-selected execution posture in its IR
+metadata. `MANUAL` disables event, webhook and schedule activation; the
+confirmed manual-run endpoint is its only entry point. `SUPERVISED` is the
+backward-compatible default and permits automatic triggers while retaining
+capability grants and any explicit approval nodes. `AUTONOMOUS` declares that
+automatic execution is intended within the same granted capabilities. It does
+not grant a capability, remove an approval node, or let an agent expand its own
+authority.

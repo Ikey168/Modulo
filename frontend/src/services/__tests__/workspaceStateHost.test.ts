@@ -74,6 +74,31 @@ describe('workspace state host', () => {
     target.dispatchEvent(new Event('online')); await host.synchronize(); expect(remote.list).toHaveBeenCalled();
     stop(); host.close(); expect(vi.getTimerCount()).toBe(0);
   });
+  it('refreshes only the open record announced by the state change feed', async () => {
+    const remote = transport();
+    vi.mocked(remote.get).mockResolvedValue(record('data', 2, 72));
+    const host = new WorkspaceStateHost({ origin: scope.origin, replica: Promise.resolve('replica'),
+      persistence: memory(), session: () => ({ issuer: scope.issuer, subject: scope.subject, accessToken: 'token' }),
+      transport: () => remote, autoRetry: false });
+    const client = await host.open('workspace-para');
+    await host.refresh('workspace-para', 'data');
+    expect(remote.get).toHaveBeenCalledWith('data', expect.any(AbortSignal));
+    expect(client.get('data')).toMatchObject({ value: 72, pending: false });
+    vi.mocked(remote.get).mockClear();
+    await host.refresh('workspace-not-open', 'data');
+    expect(remote.get).not.toHaveBeenCalled();
+    host.close();
+  });
+  it('a disposed setup does not briefly claim the reload replica in StrictMode', async () => {
+    const locks = { request: vi.fn(async (name: string, _options: unknown, callback: (lock: unknown) => Promise<void>) => callback({ name })) } as unknown as LockManager;
+    const storage = { getItem: () => 'existing-tab', setItem: vi.fn() } as unknown as Storage;
+    const abandoned = acquireStateReplica(storage, locks);
+    const rejected = expect(abandoned.replica).rejects.toThrow('closed');
+    abandoned.close();
+    const replacement = acquireStateReplica(storage, locks);
+    expect(await replacement.replica).toBe('existing-tab');
+    await rejected; expect(locks.request).toHaveBeenCalledTimes(1); replacement.close();
+  });
   it('cloned tabs acquire different replica leases instead of overwriting a shared queue', async () => {
     const held = new Set<string>();
     const locks = { request: async (name: string, _options: unknown, callback: (lock: unknown) => Promise<void>) => {

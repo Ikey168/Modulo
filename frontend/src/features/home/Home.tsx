@@ -46,7 +46,7 @@ const navLinkClass = 'text-sm text-subtle-foreground transition-colors hover:tex
 
 const Home: React.FC = () => {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background font-sans text-sm text-foreground antialiased">
+    <div className="min-h-app overflow-x-hidden bg-background font-sans text-sm text-foreground antialiased">
       {/* Top navigation */}
       <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-7 py-5">
         <div className="flex items-center gap-2.5">

@@ -1,0 +1,1 @@
+import { Wrench } from 'lucide-react'; import { HomelabOperationsView } from '../../HomelabViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'homelab-operations',label:'Operations',icon:Wrench,order:30,mode:'homelab',component:HomelabOperationsView})}};export default plugin;

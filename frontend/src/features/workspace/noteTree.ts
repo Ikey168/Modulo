@@ -1,9 +1,10 @@
-// Notion-style note hierarchy, modelled entirely on the client (the backend
+// Notion-style note hierarchy layered over the flat note list (the backend
 // CoreNote has no parent/order fields yet). A small map of noteId → {parent,
-// order} is persisted to localStorage and layered over the flat note list to
-// produce a draggable, collapsible tree with subnotes.
+// order} and the collapsed-node set are stored as workspace state on the
+// server, so the tree is the same on every device.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useServerWorkspaceStore } from './useWorkspaceStore';
 import type { CoreNote } from '@modulo/core';
 
 export type DropPos = 'before' | 'after' | 'inside';
@@ -24,21 +25,22 @@ const TREE_KEY = 'modulo-note-tree';
 const COLLAPSE_KEY = 'modulo-note-collapsed';
 const END = Number.MAX_SAFE_INTEGER;
 
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
+const record = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+
+export function parseTreeMap(value: unknown): TreeMap {
+  const map: TreeMap = {};
+  for (const [key, raw] of Object.entries(record(value))) {
+    const id = Number(key);
+    const entry = record(raw);
+    if (!Number.isInteger(id) || typeof entry.order !== 'number') continue;
+    map[id] = { parent: typeof entry.parent === 'number' ? entry.parent : null, order: entry.order };
   }
+  return map;
 }
-function save(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage full/unavailable — state still applies for this session */
-  }
-}
+
+export const parseCollapsed = (value: unknown): number[] =>
+  Array.isArray(value) ? value.filter((id): id is number => Number.isInteger(id)) : [];
 
 const parentOf = (map: TreeMap, id: number): number | null => map[id]?.parent ?? null;
 
@@ -113,8 +115,11 @@ export interface NoteTreeApi {
 }
 
 export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
-  const [map, setMap] = useState<TreeMap>(() => load<TreeMap>(TREE_KEY, {}));
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(load<number[]>(COLLAPSE_KEY, [])));
+  const [map, setMap] = useServerWorkspaceStore<TreeMap>(
+    'note-tree', 'tree', 'modulo.workspace.note-tree', {}, parseTreeMap, TREE_KEY, 'Note tree');
+  const [collapsedIds, setCollapsedIds] = useServerWorkspaceStore<number[]>(
+    'note-tree', 'collapsed', 'modulo.workspace.note-tree.collapsed', [], parseCollapsed, COLLAPSE_KEY, 'Collapsed notes');
+  const collapsed = useMemo(() => new Set(collapsedIds), [collapsedIds]);
 
   const forest = useMemo(() => buildForest(map, notes), [map, notes]);
 
@@ -122,11 +127,10 @@ export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
     (dragId: number, targetId: number, pos: DropPos) => {
       setMap((prev) => {
         const nx = moveNote(prev, notes, dragId, targetId, pos);
-        if (nx !== prev) save(TREE_KEY, nx);
         return nx;
       });
     },
-    [notes],
+    [notes, setMap],
   );
 
   const setParent = useCallback(
@@ -135,32 +139,19 @@ export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
         const present = new Set(notes.map((n) => n.id));
         const order = orderedSiblings(prev, notes, parent, present).filter((x) => x !== id).length;
         const nx: TreeMap = { ...prev, [id]: { parent, order } };
-        save(TREE_KEY, nx);
         return nx;
       });
     },
-    [notes],
+    [notes, setMap],
   );
 
   const toggle = useCallback((id: number) => {
-    setCollapsed((prev) => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id);
-      else s.add(id);
-      save(COLLAPSE_KEY, [...s]);
-      return s;
-    });
-  }, []);
+    setCollapsedIds((prev) => prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]);
+  }, [setCollapsedIds]);
 
   const expand = useCallback((id: number) => {
-    setCollapsed((prev) => {
-      if (!prev.has(id)) return prev;
-      const s = new Set(prev);
-      s.delete(id);
-      save(COLLAPSE_KEY, [...s]);
-      return s;
-    });
-  }, []);
+    setCollapsedIds((prev) => prev.includes(id) ? prev.filter((value) => value !== id) : prev);
+  }, [setCollapsedIds]);
 
   return { forest, collapsed, toggle, expand, move, setParent };
 }

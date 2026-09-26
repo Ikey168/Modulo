@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 interface Alert {id:string;blueprint_id:number;message:string;created_at:string;read_at:string|null}
 interface Policy {retentionDays:number;payloadHours:number;failureThreshold:number;windowMinutes:number;route:string}
+interface Schedule {blueprint_id:number;blueprint_name:string;node_id:string;cron:string;zone:string;next_fire:string;enabled:boolean;max_attempts:number;backoff_seconds:number;last_delivery_state:string|null;last_error_class:string|null}
 const field='rounded border border-border bg-background p-2 text-sm';
 export function WorkflowAlerts() {
   const [alerts,setAlerts]=useState<Alert[]>([]);
@@ -15,6 +16,20 @@ export function WorkflowAlerts() {
   return <section aria-label="Workflow alerts" className="mb-5">
     {error && <p role="alert">{error}</p>}
     <ul className="divide-y divide-border">{alerts.filter(alert=>!alert.read_at).map(alert=><li key={alert.id} className="flex flex-wrap items-center gap-3 py-3"><Link className="flex-1 underline" to={`/app/executions?blueprint=${alert.blueprint_id}`}>{alert.message}</Link><button className={field} onClick={()=>markRead(alert.id)}>Mark read</button></li>)}</ul>
+  </section>;
+}
+export function WorkflowSchedules() {
+  const [schedules,setSchedules]=useState<Schedule[]>([]);
+  const [error,setError]=useState('');
+  useEffect(()=>{const controller=new AbortController();
+    fetch('/api/workflow-ops/schedules',{signal:controller.signal}).then(async response=>{if(!response.ok)throw new Error('Recurring schedules are unavailable.');return response.json();}).then(value=>{if(!controller.signal.aborted)setSchedules(Array.isArray(value)?value:[]);}).catch((reason:Error)=>{if(!controller.signal.aborted)setError(reason.message);});
+    return ()=>controller.abort();
+  },[]);
+  return <section aria-labelledby="workflow-schedules-title" className="mb-6 border-y border-border">
+    <div className="flex min-h-11 items-center gap-3 py-2"><h2 id="workflow-schedules-title" className="font-medium">Recurring schedules</h2><span className="text-sm text-muted-foreground">{schedules.length}</span></div>
+    {error && <p role="alert" className="pb-3 text-sm">{error}</p>}
+    {!error && schedules.length === 0 && <p className="pb-3 text-sm text-muted-foreground">No recurring schedules.</p>}
+    {schedules.length > 0 && <div className="overflow-x-auto"><table className="w-full border-t border-border text-left text-sm"><thead className="text-muted-foreground"><tr><th className="py-2 pr-4 font-normal">Blueprint</th><th className="py-2 pr-4 font-normal">Schedule</th><th className="py-2 pr-4 font-normal">Next run</th><th className="py-2 pr-4 font-normal">Delivery</th></tr></thead><tbody className="divide-y divide-border">{schedules.map(schedule=><tr key={`${schedule.blueprint_id}:${schedule.node_id}`}><td className="py-3 pr-4"><Link className="font-medium underline" to={`/app/blueprints?blueprint=${encodeURIComponent(schedule.blueprint_name)}`}>{schedule.blueprint_name}</Link><div className="text-xs text-muted-foreground">{schedule.node_id}</div></td><td className="py-3 pr-4 font-mono text-xs">{schedule.cron}<div className="mt-1 font-sans text-muted-foreground">{schedule.zone}</div></td><td className="whitespace-nowrap py-3 pr-4">{schedule.enabled ? new Date(schedule.next_fire).toLocaleString() : 'Disabled'}</td><td className="py-3 pr-4">{schedule.last_delivery_state ?? 'Not run yet'}{schedule.last_error_class && <div className="text-xs text-destructive">{schedule.last_error_class}</div>}<div className="text-xs text-muted-foreground">Up to {schedule.max_attempts} attempts · {schedule.backoff_seconds}s backoff</div></td></tr>)}</tbody></table></div>}
   </section>;
 }
 export function WorkflowPolicy({blueprint}:{blueprint:number}) {

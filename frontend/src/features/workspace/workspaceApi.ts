@@ -1,3 +1,5 @@
+import { offlineNotes } from '../../services/workspaceOfflineNotes';
+import { NoteHttpError } from '../../services/offlineNotes';
 // Typed REST client for the workspace. Uses relative `/api` paths so the Vite
 // dev proxy (and the nginx prod config) route to the backend, and attaches the
 // OIDC bearer token when one is available.
@@ -5,6 +7,7 @@ import { authService } from '../auth/authService';
 import type { WorkspaceNote, WorkspaceTag, WorkspaceLink } from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const session = authService.stateSession?.();
   let token: string | null = null;
   try {
     token = await authService.getAccessToken();
@@ -19,13 +22,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`/api${path}`, {
-    credentials: 'include',
+    credentials: window.__MODULO_CONFIG__?.serverOrigin ? 'omit' : 'include',
     ...init,
     headers,
   });
 
+  const current = authService.stateSession?.();
+  if (session && (!current || current.issuer !== session.issuer || current.subject !== session.subject)) throw new Error('Account changed during request.');
   if (!res.ok) {
-    throw new Error(`${res.status} ${res.statusText} (${path})`);
+    throw new NoteHttpError(res.status);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
@@ -42,15 +47,21 @@ export interface NoteCreatePayload {
 export interface NoteUpdatePayload extends NoteCreatePayload {
   version?: number;
   editor?: string;
+  expectedLocal?: { title: string; content: string; markdownContent?: string };
 }
 
 export const notesApi = {
-  list: () => request<WorkspaceNote[]>('/notes'),
-  get: (id: number) => request<WorkspaceNote>(`/notes/${id}`),
+  list: () => offlineNotes()?.list() ?? request<WorkspaceNote[]>('/notes'),
+  get: (id: number) => offlineNotes()?.get(id) ?? request<WorkspaceNote>(`/notes/${id}`),
   create: (body: NoteCreatePayload) =>
-    request<WorkspaceNote>('/notes', { method: 'POST', body: JSON.stringify(body) }),
-  update: (id: number, body: NoteUpdatePayload) =>
-    request<WorkspaceNote>(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    request<WorkspaceNote>('/notes', { method: 'POST', body: JSON.stringify(body) }).then(note => offlineNotes()?.remember(note) ?? note),
+  update: (id: number, body: NoteUpdatePayload) => {
+    const offline = offlineNotes();
+    if (offline) return offline.update(id, body);
+    const remoteBody = { ...body };
+    delete remoteBody.expectedLocal;
+    return request<WorkspaceNote>(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(remoteBody) });
+  },
   remove: (id: number) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
   search: (query: string) =>
     request<WorkspaceNote[]>(`/notes/search?query=${encodeURIComponent(query)}`),
@@ -66,7 +77,7 @@ export const notesApi = {
 };
 
 export const tagsApi = {
-  list: () => request<WorkspaceTag[]>('/tags'),
+  list: () => offlineNotes()?.resource('tags', () => request<WorkspaceTag[]>('/tags')) ?? request<WorkspaceTag[]>('/tags'),
 };
 
 export interface LinkCreatePayload {
@@ -76,7 +87,7 @@ export interface LinkCreatePayload {
 }
 
 export const linksApi = {
-  all: () => request<WorkspaceLink[]>('/note-links'),
+  all: () => offlineNotes()?.resource('links', () => request<WorkspaceLink[]>('/note-links')) ?? request<WorkspaceLink[]>('/note-links'),
   outgoing: (noteId: number) => request<WorkspaceLink[]>(`/note-links/note/${noteId}/outgoing`),
   incoming: (noteId: number) => request<WorkspaceLink[]>(`/note-links/note/${noteId}/incoming`),
   create: (body: LinkCreatePayload) =>

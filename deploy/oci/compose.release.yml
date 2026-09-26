@@ -1,0 +1,6 @@
+# Layer over compose.yml. --no-build ensures production uses these exact images.
+services:
+  frontend:
+    image: ${MODULO_FRONTEND_IMAGE:?Set a frontend image@sha256 digest}
+  backend:
+    image: ${MODULO_BACKEND_IMAGE:?Set a backend image@sha256 digest}

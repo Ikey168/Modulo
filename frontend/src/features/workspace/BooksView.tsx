@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 import { useOperationalCollection } from './useOperationalCollection';
 import { EXPENSE_COLLECTION } from './operationalSchemas';
 import { useExpenseCategories, useExportedPeriods } from './useBusinessSettings';
@@ -8,6 +9,7 @@ import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 import { useMemo, useState } from 'react';
 import { BookText, ChevronLeft, ChevronRight, FileDown, Plus, Trash2 } from 'lucide-react';
 import { Button, Input, useToast } from '@/ui';
+import { ChoiceInline } from './viewkit';
 import type { WorkspaceViewProps } from './plugins/types';
 import { extractInvoices, formatEur, VAT_MODES, computeTotals } from './invoicing';
 import {
@@ -34,12 +36,12 @@ const EMPTY_FORM = { date: '', vendor: '', description: '', net: '', vatRate: '1
 
 export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
-  const [period, setPeriod] = useState(() => periodKey(new Date().toISOString().slice(0, 10)));
+  const [period, setPeriod] = useState(() => periodKey(dayKey(new Date())));
   const synced = useOperationalCollection(EXPENSE_COLLECTION);
   const expenses = synced.value; const setExpenses = synced.set;
   const categoryState = useExpenseCategories();
   const categories = categoryState.value; const setCategories = categoryState.set;
-  const [form, setForm] = useState({ ...EMPTY_FORM, date: new Date().toISOString().slice(0, 10), category: '' });
+  const [form, setForm] = useState({ ...EMPTY_FORM, date: dayKey(new Date()), category: '' });
   const exportState = useExportedPeriods();
 
   const invoices = useMemo(() => extractInvoices(data.notes), [data.notes]);
@@ -131,7 +133,7 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
         </div>
         <div>
           <div className="text-xxs uppercase tracking-wide text-muted-foreground">USt-VA Zahllast</div>
-          <div className={`text-sm font-semibold tabular-nums ${summary.vatPayable < 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+          <div className={`text-sm font-semibold tabular-nums ${summary.vatPayable < 0 ? 'text-success' : ''}`}>
             {formatEur(summary.vatPayable)}
           </div>
         </div>
@@ -172,19 +174,27 @@ export function BooksView({ data, onOpenNote }: WorkspaceViewProps) {
             <Input value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} placeholder="Vendor" className="h-8 w-32 text-sm" />
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description" className="h-8 w-36 text-sm" />
             <Input value={form.net} onChange={(e) => setForm({ ...form, net: e.target.value })} placeholder="Net €" aria-label="Net amount" className="h-8 w-20 text-sm" />
-            <select value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: e.target.value })} aria-label="VAT rate" className="h-8 rounded-md border border-border bg-surface px-1.5 text-sm">
-              <option value="19">19%</option>
-              <option value="7">7%</option>
-              <option value="0">0%</option>
-            </select>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} aria-label="Category" className="h-8 rounded-md border border-border bg-surface px-1.5 text-sm">
-              <option value="">Category…</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <ChoiceInline
+              label="VAT rate"
+              value={form.vatRate}
+              onChange={(vatRate) => setForm({ ...form, vatRate })}
+              options={[
+                { value: '19', label: '19%' },
+                { value: '7', label: '7%' },
+                { value: '0', label: '0%' },
+              ]}
+              className="w-24"
+            />
+            <ChoiceInline
+              label="Category"
+              value={form.category}
+              onChange={(category) => setForm({ ...form, category })}
+              options={categories}
+              clearable
+              clearLabel="No category"
+              placeholder="Category…"
+              className="w-36"
+            />
             <Button size="sm" onClick={addExpense}>
               <Plus className="size-4" aria-hidden="true" />
               Add

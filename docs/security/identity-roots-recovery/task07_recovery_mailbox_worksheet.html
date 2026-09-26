@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tasks 07–08 — Recovery mailbox and offline root worksheet</title>
+  <style>
+    @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #17202a; font-size: 10pt; line-height: 1.3; }
+    h1 { font-size: 19pt; margin: 0 0 3mm; color: #173b57; }
+    h1.task-page { page-break-before: always; }
+    h2 { font-size: 12pt; margin: 6mm 0 2mm; color: #173b57; border-bottom: 1px solid #9bb2c4; padding-bottom: 1mm; }
+    h3 { font-size: 10pt; margin: 3mm 0 1.5mm; color: #173b57; }
+    p { margin: 1.5mm 0; }
+    .meta { width: 100%; border-collapse: collapse; margin: 4mm 0; }
+    .meta td { border: 1px solid #9bb2c4; padding: 2mm; vertical-align: top; }
+    .label { color: #526675; font-size: 8pt; text-transform: uppercase; letter-spacing: .3px; }
+    .value { font-weight: bold; }
+    .callout { width: 100%; border-collapse: collapse; margin: 4mm 0; }
+    .callout td { padding: 3mm; }
+    .notice td { border: 1.5px solid #b54b3a; background: #fff4f1; }
+    .safe { border: 1px solid #4b8a69; background: #f2faf5; padding: 3mm; margin: 3mm 0; }
+    table.form { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; }
+    table.form th { text-align: left; background: #e9f0f5; color: #173b57; font-size: 8.5pt; padding: 2mm; border: 1px solid #9bb2c4; }
+    table.form td { border: 1px solid #9bb2c4; padding: 2mm; height: 10mm; vertical-align: top; }
+    table.form td:first-child { width: 31%; font-weight: bold; color: #304b5d; }
+    table.codes td:first-child, table.codes th:first-child { white-space: nowrap; }
+    table.manifest { font-size: 8.5pt; }
+    table.manifest td:first-child { width: 27%; font-weight: bold; color: #304b5d; }
+    table.manifest td:nth-child(2) { width: 10%; text-align: center; }
+    table.manifest td:nth-child(3) { width: 38%; }
+    table.manifest td:nth-child(4) { width: 25%; }
+    table.compact { font-size: 7.4pt; }
+    table.compact td, table.compact th { padding: 1.4mm; }
+    table.compact td:first-child { width: 16%; font-weight: bold; color: #304b5d; }
+    table.compact td:nth-child(2) { width: 23%; }
+    table.compact td:nth-child(3) { width: 21%; }
+    table.compact td:nth-child(4) { width: 20%; }
+    table.compact td:nth-child(5) { width: 20%; }
+    table.procedure td:first-child { width: 8%; text-align: center; }
+    table.procedure td:nth-child(2) { width: 63%; }
+    table.procedure td:nth-child(3) { width: 10%; text-align: center; }
+    table.procedure td:nth-child(4) { width: 19%; }
+    table.update td { height: 12mm; }
+    table.secretsets { font-size: 8pt; }
+    table.secretsets td { height: 20mm; vertical-align: top; }
+    table.secretsets td:first-child { width: 23%; font-weight: bold; color: #304b5d; }
+    table.secretsets td:nth-child(2) { width: 57%; }
+    table.secretsets td:nth-child(3) { width: 20%; }
+    .line { display: block; border-bottom: 1px solid #6e7f8c; min-height: 6mm; min-width: 35mm; }
+    .box { border: 1px solid #6e7f8c; min-height: 14mm; padding: 2mm; margin-top: 1mm; }
+    .check { font-size: 11pt; white-space: nowrap; }
+    .small { font-size: 8.5pt; color: #526675; }
+    .page { page-break-before: always; }
+    .footer { margin-top: 5mm; font-size: 8pt; color: #637582; }
+    ul { margin: 1mm 0 2mm 5mm; padding-left: 4mm; }
+    li { margin: 1mm 0; }
+  </style>
+</head>
+<body>
+  <h1>Task 07 · Secure and test the recovery mailbox</h1>
+  <p class="small">A controlled worksheet for <strong>paleport@proton.me</strong>. Complete the checks, then store this worksheet with the non-secret recovery evidence.</p>
+
+  <table class="callout notice"><tr><td><strong>Print before writing secrets.</strong> Do not type or paste secrets into the digital PDF. After printing, handwrite sensitive values only if this paper will be kept in the designated offline packet; never scan it, sync it, or leave it in ordinary correspondence.</td></tr></table>
+
+  <table class="meta">
+    <tr><td><div class="label">Provider</div><div class="value">Proton</div></td><td><div class="label">Mailbox</div><div class="value">paleport@proton.me</div></td><td><div class="label">Worksheet date</div><span class="line"></span></td></tr>
+    <tr><td><div class="label">Operator</div><span class="line"></span></td><td><div class="label">Clean-browser device/reference</div><span class="line"></span></td><td><div class="label">Evidence packet reference</div><span class="line"></span></td></tr>
+  </table>
+
+  <h2>1 · Unique credential</h2>
+  <table class="form">
+    <tr><td>Unique high-entropy credential generated</td><td><span class="check">☐ Yes &nbsp;&nbsp; ☐ No</span><br><span class="small">Generate it in the password manager; do not transcribe it here.</span></td></tr>
+    <tr><td>Password-manager item/reference</td><td><p class="box">Vault name, item label, or opaque record reference only:</p></td></tr>
+    <tr><td>Credential last changed</td><td><span class="line"></span></td></tr>
+    <tr><td>Recovery mailbox password is not reused elsewhere</td><td><span class="check">☐ Confirmed &nbsp;&nbsp; ☐ Needs remediation</span></td></tr>
+  </table>
+
+  <h2>2 · Phishing-resistant factors</h2>
+  <table class="form">
+    <tr><th>Factor</th><th>Safe label / custody reference (no secret or PIN)</th><th>Enrolled</th><th>Clean-browser test</th></tr>
+    <tr><td>Primary FIDO2 / passkey</td><td></td><td>☐</td><td>☐ Pass &nbsp; ☐ Fail</td></tr>
+    <tr><td>Backup FIDO2 / passkey</td><td></td><td>☐</td><td>☐ Pass &nbsp; ☐ Fail</td></tr>
+    <tr><td>Additional factor (optional)</td><td></td><td>☐</td><td>☐ Pass &nbsp; ☐ Fail</td></tr>
+  </table>
+  <p class="small">Record neutral key IDs and physical custody locations only. The target is two independent phishing-resistant factors; current inventory notes one active key and two additional keys to order.</p>
+
+  <h2>3 · Offline recovery material</h2>
+  <table class="form">
+    <tr><td>Fresh recovery-code set generated</td><td><span class="check">☐ Yes &nbsp;&nbsp; ☐ No</span> &nbsp; Date: <span class="line"></span></td></tr>
+    <tr><td>Offline packet location/reference</td><td><p class="box">Container, sealed-envelope label, or storage reference only:</p></td></tr>
+    <tr><td>Second custody location (if used)</td><td><p class="box">&nbsp;</p></td></tr>
+    <tr><td>Recovery-code values entered digitally</td><td><span class="check">☐ No — required</span><br><span class="small">Use the paper-only section after printing.</span></td></tr>
+  </table>
+
+  <div class="page"></div>
+  <h1>Task 07 verification record</h1>
+  <h2>4 · Security settings and dependency checks</h2>
+  <table class="form">
+    <tr><td>Security alerts enabled</td><td>☐ Yes &nbsp; ☐ No &nbsp; Evidence/reference: <span class="line"></span></td></tr>
+    <tr><td>Obsolete sessions revoked</td><td>☐ Yes &nbsp; ☐ No &nbsp; Date: <span class="line"></span></td></tr>
+    <tr><td>Obsolete recovery contacts removed</td><td>☐ Yes &nbsp; ☐ No &nbsp; Evidence/reference: <span class="line"></span></td></tr>
+    <tr><td>Forwarding rules reviewed</td><td>☐ None &nbsp; ☐ Removed obsolete rules &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>No routine correspondence uses this mailbox</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>Mailbox remains independent of primary domain/DNS</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+  </table>
+
+  <h2>5 · Recovery drill</h2>
+  <p>Run from a clean browser while the normal workstation, personal domain, DNS, and ordinary mail flow are treated as unavailable. Do not disable the working primary factor.</p>
+  <table class="form">
+    <tr><td>Primary-factor sign-in</td><td>☐ Pass &nbsp; ☐ Fail &nbsp; Date/time: <span class="line"></span></td></tr>
+    <tr><td>Backup-factor sign-in</td><td>☐ Pass &nbsp; ☐ Fail &nbsp; Date/time: <span class="line"></span></td></tr>
+    <tr><td>Independent mailbox reachable</td><td>☐ Pass &nbsp; ☐ Fail &nbsp; Test reference: <span class="line"></span></td></tr>
+    <tr><td>Failure or remediation notes</td><td><p class="box" style="min-height:28mm">&nbsp;</p></td></tr>
+  </table>
+
+  <h2>6 · Sign-off</h2>
+  <table class="form">
+    <tr><td>All secrets stored only in designated vault/offline packet</td><td>☐ Confirmed</td></tr>
+    <tr><td>Evidence references contain no secret values</td><td>☐ Confirmed</td></tr>
+    <tr><td>Overall result</td><td>☐ Complete &nbsp; ☐ Complete with follow-up &nbsp; ☐ Not complete</td></tr>
+    <tr><td>Follow-up task / owner / due date</td><td><p class="box">&nbsp;</p></td></tr>
+    <tr><td>Signed by / date</td><td><span class="line"></span></td></tr>
+  </table>
+
+  <div class="page"></div>
+  <h1>Paper-only secret entry sheet</h1>
+  <table class="callout notice"><tr><td><strong>Use only after printing.</strong> These boxes are intentionally blank in the digital copy. Handwrite secrets, place this sheet immediately into the designated sealed/offline packet, and do not scan, photograph, email, or upload it.</td></tr></table>
+
+  <h2>A · Recovery mailbox credential</h2>
+  <table class="form">
+    <tr><td>Mailbox password</td><td><p class="box" style="min-height:22mm">&nbsp;</p></td></tr>
+    <tr><td>Password-manager transfer complete</td><td>☐ Yes &nbsp; ☐ No &nbsp; Date: <span class="line"></span></td></tr>
+  </table>
+
+  <h2>B · Recovery-code set</h2>
+  <p class="small">Write the current set only after printing. If the provider uses a different number of codes, use the remaining space for a safe set reference—not additional copies.</p>
+  <table class="form codes">
+    <tr><th style="width:16%">No.</th><th>Recovery code</th><th style="width:12%">Used</th></tr>
+    <tr><td>1</td><td>&nbsp;</td><td>☐</td></tr><tr><td>2</td><td>&nbsp;</td><td>☐</td></tr>
+    <tr><td>3</td><td>&nbsp;</td><td>☐</td></tr><tr><td>4</td><td>&nbsp;</td><td>☐</td></tr>
+    <tr><td>5</td><td>&nbsp;</td><td>☐</td></tr><tr><td>6</td><td>&nbsp;</td><td>☐</td></tr>
+    <tr><td>7</td><td>&nbsp;</td><td>☐</td></tr><tr><td>8</td><td>&nbsp;</td><td>☐</td></tr>
+    <tr><td>9</td><td>&nbsp;</td><td>☐</td></tr><tr><td>10</td><td>&nbsp;</td><td>☐</td></tr>
+    <tr><td>11</td><td>&nbsp;</td><td>☐</td></tr><tr><td>12</td><td>&nbsp;</td><td>☐</td></tr>
+  </table>
+
+  <h2>C · Provider recovery phrase or additional secret</h2>
+  <p class="small">Use only if Proton or the provider explicitly issues a recovery phrase/secret required for this task. Otherwise leave blank.</p>
+  <p class="box" style="min-height:32mm">&nbsp;</p>
+
+  <h2>D · Paper custody</h2>
+  <table class="form">
+    <tr><td>Packet / sealed-envelope label</td><td><span class="line"></span></td></tr>
+    <tr><td>Stored at</td><td><span class="line"></span></td></tr>
+    <tr><td>Placed into custody by / date</td><td><span class="line"></span></td></tr>
+    <tr><td>Paper destroyed after transfer (if applicable)</td><td>☐ Yes &nbsp; ☐ Not applicable &nbsp; Date: <span class="line"></span></td></tr>
+  </table>
+  <p class="footer">Paper-only secret entry sheet · Keep offline; never upload or sync</p>
+
+  <h1 class="task-page">Task 08 · Offline root packet assembly</h1>
+  <p class="small">Assemble the minimum material needed to restart identity recovery with no phone, computer, active session, or self-hosted service.</p>
+  <table class="callout notice"><tr><td><strong>Non-secret evidence rule.</strong> This worksheet may list providers, aliases, URLs, safe identifiers, custody locations, version labels, and test results. Keep passwords, recovery-code values, seed phrases, private keys, and security-key PINs only in the sealed/offline packet or designated password manager.</td></tr></table>
+
+  <h2>A · Packet objective and assumptions</h2>
+  <table class="form">
+    <tr><td>No phone available</td><td>☐ Packet still identifies the next recovery action</td></tr>
+    <tr><td>No computer or active session</td><td>☐ Packet contains the minimum offline instructions</td></tr>
+    <tr><td>Personal domain/DNS unavailable</td><td>☐ Independent mailbox and provider paths are documented</td></tr>
+    <tr><td>Oracle, Netcup, Modulo, Noesis, and ZeroTier unavailable</td><td>☐ Packet does not depend on self-hosted services</td></tr>
+    <tr><td>Ordinary mail flow unavailable</td><td>☐ Recovery starts from the independent root and paper factors</td></tr>
+  </table>
+
+  <h2>B · Minimum packet manifest</h2>
+  <table class="form manifest">
+    <tr><th>Material</th><th>Present</th><th>Safe location/reference</th><th>Version/date</th></tr>
+    <tr><td>Recovery-mailbox instructions</td><td>☐</td><td></td><td></td></tr>
+    <tr><td>Current provider recovery-code sets</td><td>☐</td><td></td><td></td></tr>
+    <tr><td>Security-key inventory and custody map</td><td>☐</td><td></td><td></td></tr>
+    <tr><td>Provider customer/tenancy/support identifiers</td><td>☐</td><td></td><td></td></tr>
+    <tr><td>Ordered recovery procedure</td><td>☐</td><td></td><td></td></tr>
+    <tr><td>Packet version/checksum label</td><td>☐</td><td></td><td></td></tr>
+  </table>
+
+  <h2>C · Custody and version control</h2>
+  <table class="form">
+    <tr><td>Packet ID / seal label</td><td><span class="line"></span></td></tr>
+    <tr><td>Protected home copy location</td><td><span class="line"></span></td></tr>
+    <tr><td>Geographically separate copy location</td><td><span class="line"></span></td></tr>
+    <tr><td>Current version / checksum reference</td><td><span class="line"></span></td></tr>
+    <tr><td>Last opened / resealed</td><td><span class="line"></span></td></tr>
+    <tr><td>Next review date and owner</td><td><span class="line"></span></td></tr>
+  </table>
+
+  <h1>Task 08 inventory and recovery procedure</h1>
+  <h2>D · Provider support identifiers</h2>
+  <p class="small">Record only non-secret identifiers and authoritative support routes. Use the detailed Task 02 register as the source of truth.</p>
+  <table class="form compact">
+    <tr><th>Provider / asset</th><th>Login / support URL</th><th>Safe customer, tenancy, or account ID</th><th>Owner / recovery contact</th><th>Escalation or billing reference</th></tr>
+    <tr><td>Proton recovery mailbox</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Google primary identity</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Cloudflare registrar/DNS</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>SimpleLogin aliases</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Bitwarden vault</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>GitHub organization</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Oracle tenancy</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Netcup CCP</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>ZeroTier network</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>klarmobil line/support</td><td></td><td></td><td></td><td></td></tr>
+  </table>
+
+  <h2>E · Security-key inventory</h2>
+  <table class="form compact">
+    <tr><th>Neutral key ID</th><th>Model / serial suffix</th><th>Physical custody</th><th>Last independent test</th><th>Enrolled Tier-0 providers</th></tr>
+    <tr><td>Key A (daily)</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Key B (home spare)</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Key C (off-site spare)</td><td></td><td></td><td></td><td></td></tr>
+  </table>
+
+  <h1>Task 08 recovery runbook</h1>
+  <h2>F · Ordered recovery procedure</h2>
+  <p class="small">Write an order that works from the offline packet alone. Do not remove a working recovery path until its replacement has been enrolled and tested.</p>
+  <table class="form procedure">
+    <tr><th>No.</th><th>Action</th><th>Done</th><th>Evidence/reference</th></tr>
+    <tr><td>1</td><td>Retrieve the protected copy and verify the packet seal, version, and checksum label.</td><td>☐</td><td></td></tr>
+    <tr><td>2</td><td>Use the independent recovery-mailbox instructions and the designated paper factor.</td><td>☐</td><td></td></tr>
+    <tr><td>3</td><td>Sign in with the primary or backup phishing-resistant factor from a clean device.</td><td>☐</td><td></td></tr>
+    <tr><td>4</td><td>Use the current provider recovery-code set only when the procedure calls for it.</td><td>☐</td><td></td></tr>
+    <tr><td>5</td><td>Restore the password-manager or provider access needed for the next root in the chain.</td><td>☐</td><td></td></tr>
+    <tr><td>6</td><td>Use the safe customer/tenancy/support identifiers to escalate without relying on ordinary mail flow.</td><td>☐</td><td></td></tr>
+    <tr><td>7</td><td>Re-enrol replacement factors, verify access, and record only non-secret evidence.</td><td>☐</td><td></td></tr>
+    <tr><td>8</td><td>Update, reseal, and version both packet copies; update the non-secret Modulo inventory.</td><td>☐</td><td></td></tr>
+  </table>
+
+  <h2>G · Task 08 acceptance</h2>
+  <table class="form">
+    <tr><td>Home copy protected</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>Separate copy protected where practical</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>Packet can start recovery without phone/computer/session</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>Modulo contains locations, labels, dates, and identifiers only</td><td>☐ Confirmed &nbsp; ☐ Needs remediation</td></tr>
+    <tr><td>Owner / review date</td><td><span class="line"></span></td></tr>
+    <tr><td>Follow-up / sign-off</td><td><p class="box">&nbsp;</p></td></tr>
+  </table>
+
+  <h2>H · Packet update log</h2>
+  <table class="form compact update">
+    <tr><th>Date</th><th>Change or newly issued factor</th><th>Version / checksum</th><th>Copies resealed</th><th>Modulo reference</th></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>☐ Home ☐ Separate</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>☐ Home ☐ Separate</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>☐ Home ☐ Separate</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>☐ Home ☐ Separate</td><td>&nbsp;</td></tr>
+  </table>
+  <p class="footer">Tasks 07–08 · Identity Roots &amp; Recovery · Keep secret material offline</p>
+
+  <h1 class="task-page">Task 08 paper-only secret inserts</h1>
+  <table class="callout notice"><tr><td><strong>Print first; handwrite only.</strong> These fields are for the sealed/offline packet. Never type these secrets into the digital PDF, scan them, or upload them.</td></tr></table>
+  <h2>A · Provider recovery-code sets (1 of 2)</h2>
+  <p class="small">Write the current recovery-code values by hand after printing. Record the generation date or set label in the right column.</p>
+  <table class="form secretsets">
+    <tr><th>Provider / asset</th><th>Recovery-code set — handwrite here</th><th>Generated / set label</th></tr>
+    <tr><td>Proton recovery mailbox</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Google primary identity</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Apple account</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Microsoft account</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Cloudflare registrar/DNS</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>SimpleLogin aliases</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+  </table>
+
+  <h1 class="task-page">Task 08 paper-only secret inserts</h1>
+  <h2>B · Provider recovery-code sets (2 of 2)</h2>
+  <table class="form secretsets">
+    <tr><th>Provider / asset</th><th>Recovery-code set — handwrite here</th><th>Generated / set label</th></tr>
+    <tr><td>Bitwarden vault</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>GitHub organization owner</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Oracle tenancy</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Netcup CCP</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>ZeroTier network</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>klarmobil line/support</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+  </table>
+
+  <h2>C · Security-key PINs or provider-specific paper secrets</h2>
+  <p class="small">Optional. Use only where a PIN or provider-specific offline secret is required for recovery. Keep the paper in the sealed packet.</p>
+  <table class="form secretsets">
+    <tr><th>Secret label</th><th>Value — handwrite after printing</th><th>Custody / note</th></tr>
+    <tr><td>Key A PIN (if applicable)</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Key B PIN (if applicable)</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Key C PIN (if applicable)</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+    <tr><td>Other provider secret</td><td><p class="box">&nbsp;</p></td><td></td></tr>
+  </table>
+  <p class="footer">Paper-only Task 08 secret inserts · Keep sealed and offline</p>
+</body>
+</html>

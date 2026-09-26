@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,8 +88,8 @@ public class BlueprintRepository {
         if(req.getName()==null || req.getName().isBlank() || req.getName().length()>128 || req.getName().contains("/") || req.getName().contains("\\") || req.getName().chars().anyMatch(Character::isISOControl)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"INVALID_BLUEPRINT_NAME");
         LocalDateTime now = LocalDateTime.now();
         String version = req.getVersion() != null ? req.getVersion() : "1";
-        validateIr(req.getIr());
-        String irJson = toJson(req.getIr());
+        Map<String, Object> normalizedIr = normalizeIr(req.getIr());
+        String irJson = toJson(normalizedIr);
 
         Long id = jdbc.queryForObject(
             "INSERT INTO plugin_registry (name, owner_id, blueprint_name, version, description, author, type, runtime, status, config, created_at, updated_at) " +
@@ -114,7 +115,7 @@ public class BlueprintRepository {
         entry.setName(req.getName());
         entry.setDescription(req.getDescription());
         entry.setVersion(version);
-        entry.setIr(req.getIr());
+        entry.setIr(normalizedIr);
         entry.setCreatedAt(now.toString());
         entry.setUpdatedAt(now.toString());
         return entry;
@@ -128,8 +129,8 @@ public class BlueprintRepository {
 
         BlueprintEntry prev = existing.get();
         String prevJson = toJson(prev.getIr());
-        validateIr(req.getIr());
-        String newJson = toJson(req.getIr());
+        Map<String, Object> normalizedIr = normalizeIr(req.getIr());
+        String newJson = toJson(normalizedIr);
         LocalDateTime now = LocalDateTime.now();
 
         jdbc.update(
@@ -151,7 +152,7 @@ public class BlueprintRepository {
         updated.setName(prev.getName());
         updated.setDescription(prev.getDescription());
         updated.setVersion(prev.getVersion());
-        updated.setIr(req.getIr());
+        updated.setIr(normalizedIr);
         updated.setCreatedAt(prev.getCreatedAt());
         updated.setUpdatedAt(now.toString());
         return Optional.of(updated);
@@ -224,14 +225,28 @@ public class BlueprintRepository {
         }
     }
 
-    private void validateIr(Map<String,Object> ir) {
+    private Map<String, Object> normalizeIr(Map<String,Object> ir) {
         try {
             if(ir==null || toJson(ir).getBytes(java.nio.charset.StandardCharsets.UTF_8).length>1_048_576) throw new IllegalArgumentException();
-            var graph=objectMapper.convertValue(ir,com.modulo.blueprint.interpreter.BlueprintIRGraph.class);
+            var normalized = new LinkedHashMap<String, Object>(ir);
+            Object metadataValue = normalized.get("metadata");
+            if (metadataValue != null && !(metadataValue instanceof Map<?, ?>)) throw new IllegalArgumentException();
+            var metadata = new LinkedHashMap<String, Object>();
+            if (metadataValue instanceof Map<?, ?> existing) {
+                existing.forEach((key, value) -> {
+                    if (!(key instanceof String text)) throw new IllegalArgumentException();
+                    metadata.put(text, value);
+                });
+            }
+            metadata.putIfAbsent("autonomyLevel", BlueprintAutonomyLevel.SUPERVISED.name());
+            BlueprintAutonomyLevel.valueOf(String.valueOf(metadata.get("autonomyLevel")));
+            normalized.put("metadata", metadata);
+            var graph=objectMapper.convertValue(normalized,com.modulo.blueprint.interpreter.BlueprintIRGraph.class);
             if(graph.getNodes()==null || graph.getEdges()==null || graph.getNodes().size()>1000 || graph.getEdges().size()>5000) throw new IllegalArgumentException();
             var ids=new java.util.HashSet<String>();
             for(var node:graph.getNodes()) if(node.getId()==null || !node.getId().matches("[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}") || !ids.add(node.getId()) || node.getType()==null || node.getType().length()>128) throw new IllegalArgumentException();
             for(var edge:graph.getEdges()) if(!ids.contains(edge.getFromNode()) || !ids.contains(edge.getToNode())) throw new IllegalArgumentException();
+            return normalized;
         } catch(IllegalArgumentException invalid) { throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"INVALID_BLUEPRINT_IR"); }
     }
 

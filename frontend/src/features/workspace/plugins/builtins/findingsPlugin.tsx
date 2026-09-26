@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- lazy plugin module exports descriptors beside its private React surfaces */
 // Findings Tracker (#358) — contributes the ```finding fence renderer, the
 // cross-engagement Findings dashboard (a tab in the Audit hub), and an editor
 // action that inserts a finding template. Depends on Markdown Notes.
@@ -23,7 +24,7 @@ function insertTemplate(insertAtCursor: (text: string) => void) {
 const findingsPlugin: PluginModule = {
   activate(ctx) {
     ctx.addNoteFence({ language: 'finding', component: FindingFence });
-    ctx.addView({ id: 'findings', label: 'Findings', icon: Bug, order: 40, mode: 'audit', component: FindingsSurface });
+    ctx.addView({ id: 'findings', label: 'Finding Tracker', icon: Bug, order: 40, mode: 'audit', component: FindingsSurface });
     ctx.addEditorAction({
       id: 'insert-finding',
       label: 'Insert finding',

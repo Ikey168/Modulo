@@ -1,5 +1,6 @@
 package com.modulo.blueprint.execution;
 
+import com.modulo.blueprint.BlueprintAutonomyLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintEntry;
 import com.modulo.blueprint.interpreter.BlueprintIRGraph;
@@ -94,6 +95,7 @@ public class WorkflowScheduler {
           var graph = json.convertValue(entry.getIr(), BlueprintIRGraph.class);
           jdbc.update(
               "UPDATE workflow_schedules SET enabled=false WHERE blueprint_id=?", blueprint);
+          if (BlueprintAutonomyLevel.fromIr(entry.getIr()) == BlueprintAutonomyLevel.MANUAL) return;
           for (var node : graph.getNodes())
             if ("trigger.schedule".equals(node.getType())) {
               try {

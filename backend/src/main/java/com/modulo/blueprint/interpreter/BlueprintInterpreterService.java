@@ -3,7 +3,14 @@ package com.modulo.blueprint.interpreter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
+import com.modulo.blueprint.BlueprintNodeExecutionContext;
+import com.modulo.blueprint.BlueprintNodeHandler;
+import com.modulo.blueprint.BlueprintNodeRegistration;
+import com.modulo.blueprint.BlueprintNodeRegistry;
+import com.modulo.blueprint.BlueprintNodeResult;
 import com.modulo.blueprint.BlueprintRepository;
+import com.modulo.blueprint.BlueprintTriggerContext;
+import com.modulo.blueprint.BlueprintTriggerHandler;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.blueprint.wasm.WasmModuleValidator;
 import com.modulo.blueprint.wasm.WasmNodeExecutor;
@@ -26,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
+import javax.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -65,6 +73,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private ViesService viesService;
     @Autowired private NoesisBriefService noesisBriefService;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
     // Per-blueprint listener registrations so they can be removed on unregister.
     private final Map<String, List<ListenerRegistration>> registeredListeners = new ConcurrentHashMap<>();
@@ -73,6 +82,38 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     // plus per-blueprint keys so unregister removes exactly its endpoints.
     private final Map<String, WebhookRegistration> webhooks = new ConcurrentHashMap<>();
     private final Map<String, List<String>> webhookKeysByBlueprint = new ConcurrentHashMap<>();
+
+    /** Attach the existing core switch to the registry used by plugin nodes. */
+    @PostConstruct
+    void registerCoreNodeHandlers() {
+        if (nodeRegistry == null) return;
+        Set<String> coreTypes = nodeRegistry.coreNodeTypes();
+        // Optional registries are mocked or supplied by plugins during startup. A
+        // missing result means there is nothing to register, not a failed application
+        // context.
+        if (coreTypes == null) return;
+        for (String type : coreTypes) {
+            if (type == null || type.startsWith("trigger.")) continue;
+            String capability = nodeRegistry.capability(type, 1).orElse(null);
+            nodeRegistry.register(
+                BlueprintNodeRegistry.CORE_OWNER,
+                BlueprintNodeRegistration.action(type, 1, capability, context -> {
+                    NodeResult result = executeBuiltInNode(
+                        context.node(), context.inputs(), context.blueprintId(), context.lease());
+                    return new BlueprintNodeResult(result.outputs(), result.nextExecOut(), result.skipped());
+                }));
+        }
+    }
+
+    @PostConstruct
+    void subscribeToPluginLifecycle() {
+        eventBus.subscribe("system.plugin_started", event -> refreshRegisteredBlueprints());
+        eventBus.subscribe("system.plugin_stopped", event -> refreshRegisteredBlueprints());
+    }
+
+    private void refreshRegisteredBlueprints() {
+        new ArrayList<>(runtimeEntries.values()).forEach(this::registerBlueprint);
+    }
 
     /** Load and register all blueprints when the application is ready. */
     @Override
@@ -102,12 +143,17 @@ public class BlueprintInterpreterService implements ApplicationRunner {
         }
 
         Long registryId = entry.getId();
+        boolean manualOnly = "MANUAL".equals(entry.getAutonomyLevel());
         List<ListenerRegistration> listeners = new ArrayList<>();
 
         for (BlueprintIRGraph.IRNode node : graph.getNodes()) {
             if (!node.getType().startsWith("trigger.")) continue;
+            if (manualOnly && !"trigger.manual".equals(node.getType())) continue;
 
             switch (node.getType()) {
+                case "trigger.manual":
+                    // Manual triggers are invoked through fireManual().
+                    break;
                 case "trigger.note.saved": {
                     String triggerId = node.getId();
                     PluginEventListener<NoteEvent> listener = event ->
@@ -150,14 +196,49 @@ public class BlueprintInterpreterService implements ApplicationRunner {
                     logger.info("Blueprint webhook registered");
                     break;
                 }
-                default:
-                    logger.warn("Blueprint trigger type unsupported");
+                default: {
+                    if (!registerPluginTrigger(node, graph, registryId, entry.getOwnerId(), listeners)) {
+                        logger.warn("Blueprint trigger type unsupported");
+                    }
+                    break;
+                }
             }
         }
 
         registeredListeners.put(Long.toString(entry.getId()), listeners);
         if(workflowScheduler!=null) workflowScheduler.sync(entry,graph);
         logger.info("Blueprint registered");
+    }
+
+    private boolean registerPluginTrigger(
+            BlueprintIRGraph.IRNode node,
+            BlueprintIRGraph graph,
+            Long registryId,
+            long ownerId,
+            List<ListenerRegistration> listeners) {
+        if (nodeRegistry == null) return false;
+        Optional<BlueprintNodeRegistration> registration =
+            nodeRegistry.trigger(node.getType(), node.getNodeVersion());
+        if (registration.isEmpty()) return false;
+
+        BlueprintTriggerHandler handler = registration.get().triggerHandler();
+        for (String eventType : registration.get().triggerEventTypes()) {
+            PluginEventListener<PluginEvent> listener = event -> {
+                Map<String, Object> outputs = handler.outputs(new BlueprintTriggerContext(
+                    event,
+                    node.getId(),
+                    node.getType(),
+                    node.getNodeVersion(),
+                    node.getConfig(),
+                    ownerId));
+                if (outputs != null) {
+                    executeBlueprint(graph, registryId, node.getId(), outputs, event.getId());
+                }
+            };
+            eventBus.subscribe(eventType, listener);
+            listeners.add(new ListenerRegistration(eventType, listener));
+        }
+        return true;
     }
 
     /** Unregister instance-local event and webhook listeners. */
@@ -349,7 +430,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
 
         Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
         NodeResult result;
-        String capability = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(target.getType());
+        String capability = capabilityFor(target);
         boolean allowed = capability == null || capabilityService.isGranted(ctx.getRegistryId(), capability);
         try (var trace = com.modulo.observability.ExecutionTraceContext.open(ctx.getLease().id(), java.util.UUID.randomUUID(), allowed)) {
             var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
@@ -411,14 +492,34 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * not have a grant for it, execution is skipped (empty outputs, flow continues via 'then').
      */
     private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
-        Map<String, Object> outputs = new HashMap<>();
-
-        // Enforce capability grant before running any action node.
-        String requiredCap = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
+        String requiredCap = capabilityFor(node);
         if (requiredCap != null && !capabilityService.isGranted(registryId, requiredCap)) {
             logger.warn("Workflow node skipped: capability denied");
-            return new NodeResult(outputs, "then", true);
+            return new NodeResult(new HashMap<>(), "then", true);
         }
+
+        if (nodeRegistry != null) {
+            Optional<BlueprintNodeHandler> handler =
+                nodeRegistry.handler(node.getType(), node.getNodeVersion());
+            if (handler.isPresent()) {
+                BlueprintNodeResult result = handler.get().execute(
+                    new BlueprintNodeExecutionContext(node, inputs, registryId, lease.owner(), lease));
+                return new NodeResult(result.outputs(), result.nextExecOut(), result.skipped());
+            }
+        }
+        return executeBuiltInNode(node, inputs, registryId, lease);
+    }
+
+    private String capabilityFor(BlueprintIRGraph.IRNode node) {
+        if (nodeRegistry != null) {
+            return nodeRegistry.capability(node.getType(), node.getNodeVersion())
+                .orElse(BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType()));
+        }
+        return BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
+    }
+
+    private NodeResult executeBuiltInNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
+        Map<String, Object> outputs = new HashMap<>();
 
         switch (node.getType()) {
 

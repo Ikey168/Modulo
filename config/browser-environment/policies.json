@@ -1,0 +1,51 @@
+{
+  "policies": {
+    "DisableFirefoxAccounts": true,
+    "DisableTelemetry": true,
+    "DontCheckDefaultBrowser": true,
+    "PromptForDownloadLocation": true,
+    "SearchSuggestEnabled": false,
+    "SearchEngines": {
+      "Add": [
+        {
+          "Name": "DuckDuckGo",
+          "URLTemplate": "https://duckduckgo.com/?q={searchTerms}",
+          "Alias": "g",
+          "Description": "General web search"
+        },
+        {
+          "Name": "GitHub",
+          "URLTemplate": "https://github.com/search?q={searchTerms}",
+          "Alias": "gh",
+          "Description": "GitHub code and repository search"
+        },
+        {
+          "Name": "MDN Web Docs",
+          "URLTemplate": "https://developer.mozilla.org/en-US/search?q={searchTerms}",
+          "Alias": "mdn",
+          "Description": "Web platform documentation"
+        },
+        {
+          "Name": "Wikipedia",
+          "URLTemplate": "https://en.wikipedia.org/w/index.php?search={searchTerms}",
+          "Alias": "w",
+          "Description": "Wikipedia search"
+        },
+        {
+          "Name": "Google Scholar",
+          "URLTemplate": "https://scholar.google.com/scholar?q={searchTerms}",
+          "Alias": "sch",
+          "Description": "Academic literature search"
+        },
+        {
+          "Name": "IETF Documents",
+          "URLTemplate": "https://datatracker.ietf.org/doc/search/?name={searchTerms}&rfcs=on&activedrafts=on&olddrafts=on&sort=-document",
+          "Alias": "rfc",
+          "Description": "RFC and Internet-Draft search"
+        }
+      ],
+      "Default": "DuckDuckGo",
+      "PreventInstalls": false
+    }
+  }
+}

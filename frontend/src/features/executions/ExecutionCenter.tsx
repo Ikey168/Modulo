@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { EvidenceExport } from './EvidenceExport';
-import { WorkflowAlerts, WorkflowPolicy } from './WorkflowOperations';
+import { WorkflowAlerts, WorkflowPolicy, WorkflowSchedules } from './WorkflowOperations';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cancelRun, retryRun, editorRunLink, getRun, listRuns, safeSummary, type RunDetail, type RunPage } from './runService';
 
@@ -43,7 +43,7 @@ export function ExecutionCenter() {
   }
   return <main className="flex-1 overflow-y-auto p-5 md:p-8">
     <h1 className="mb-5 text-2xl font-semibold">Execution Center</h1>
-    {!selected && <WorkflowAlerts />}
+    {!selected && <><WorkflowAlerts /><WorkflowSchedules /></>}
     {selected ? <button className="mb-4 underline" onClick={() => openRun()}>Back to runs</button> : <form className="mb-6 flex flex-wrap gap-3" onSubmit={event => event.preventDefault()}>
       <label className="flex flex-col gap-1">Search<input className={inputClass} value={params.get('q') ?? ''} maxLength={128} onChange={event => filter('q',event.target.value)} placeholder="Blueprint, run ID, or error" /></label>
       <label className="flex flex-col gap-1">Status<select className={inputClass} value={params.get('state') ?? ''} onChange={event => filter('state',event.target.value)}><option value="">All statuses</option>{states.map(state => <option key={state}>{state}</option>)}</select></label>

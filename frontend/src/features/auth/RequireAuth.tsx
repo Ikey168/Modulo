@@ -11,7 +11,7 @@ interface RequireAuthProps {
 // Dev-only escape hatch: when VITE_DEV_BYPASS_AUTH=true, the gate seeds a mock
 // user and lets you straight into the app without Keycloak. Off by default and
 // gated on import.meta.env so it cannot be enabled in a production build.
-const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+const DEV_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const dispatch = useAppDispatch();

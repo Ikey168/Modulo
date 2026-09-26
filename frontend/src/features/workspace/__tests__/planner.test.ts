@@ -3,12 +3,19 @@ import type { CoreNote } from '@modulo/core';
 import {
   addDays,
   carryOverBlock,
+  dailyTemplate,
   findDailyNote,
   headlineOf,
   isDailyTitle,
   uncheckedItems,
   weekOf,
 } from '../planner';
+import {
+  DAY_BLOCKS,
+  dayBlockPlanOf,
+  emptyDayBlockPlan,
+  replaceDayBlockPlan,
+} from '../dayBlocks';
 
 const note = (id: number, title: string, content = ''): CoreNote => ({ id, title, content, tags: [] });
 
@@ -38,6 +45,32 @@ describe('unchecked items and carry-over', () => {
     expect(block).toContain('## Carried over from 2026-07-20');
     expect(block).toContain('- [ ] alpha');
     expect(block).toContain('- [ ] beta');
+  });
+
+  it('does not carry block items into the next day', () => {
+    const body = '## Plan\n\n- [ ] carry me\n\n## Day blocks\n\n### Block 3 — Deep Work A (08:45–11:45)\n- [ ] keep me in this block\n\n## Notes';
+    expect(uncheckedItems(body)).toEqual(['carry me']);
+  });
+});
+
+describe('Notion day blocks', () => {
+  it('uses the eight canonical block labels and times in new daily notes', () => {
+    const template = dailyTemplate('2026-09-03');
+    expect(DAY_BLOCKS).toHaveLength(8);
+    expect(template).toContain('### Block 1 — Sleep (23:00–06:15)');
+    expect(template).toContain('### Block 8 — Wind-down (20:30–23:00)');
+  });
+
+  it('round-trips block checklist items without replacing other note sections', () => {
+    const plan = emptyDayBlockPlan();
+    plan['deep-work-a'] = [{ text: 'Ship the planner', done: false }];
+    plan.reset = [{ text: 'Take a walk', done: true }];
+    const updated = replaceDayBlockPlan('## Plan\n\n- [ ] Keep this\n\n## Notes\n\nA thought', plan);
+
+    expect(dayBlockPlanOf(updated)['deep-work-a']).toEqual([{ text: 'Ship the planner', done: false }]);
+    expect(dayBlockPlanOf(updated).reset).toEqual([{ text: 'Take a walk', done: true }]);
+    expect(updated).toContain('- [ ] Keep this');
+    expect(updated).toContain('A thought');
   });
 });
 

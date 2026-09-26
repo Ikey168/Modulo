@@ -2,6 +2,7 @@ package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
+import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.blueprint.interpreter.BlueprintIRGraph;
 import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ public class PackService {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private BlueprintCapabilityService capabilityService;
+    @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
     // In-memory registry: packId -> version
     private final Map<String, SemVer> installedVersions = new ConcurrentHashMap<>();
@@ -137,7 +139,7 @@ public class PackService {
     public PackCheck install(PackManifest manifest) {
         PackCheck c;
 
-        var contract=PackManifestValidator.validate(manifest);
+        var contract=PackManifestValidator.validate(manifest, nodeRegistry);
         if(!contract.ok())return PackCheck.fail(contract.reason());
         c = validateManifest(manifest); if (!c.ok()) return c;
         if(Integer.valueOf(2).equals(manifest.getManifestVersion()))return PackCheck.fail("V2_REQUIRES_WORKSPACE_INSTALL_PLAN");

@@ -16,6 +16,12 @@
       "args": ["tools/docker_mcp/server.py"],
       "env": {}
     },
+    "modulo": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["tools/modulo_mcp/server.py"],
+      "env": {}
+    },
     "neo4j": {
       "type": "stdio",
       "command": "uvx",

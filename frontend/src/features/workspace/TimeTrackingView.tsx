@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 import { useOperationalCollection } from './useOperationalCollection';
 import { TIME_COLLECTION } from './operationalSchemas';
 import { OperationalStateNotice } from './plugins/OperationalStateNotice';
@@ -8,6 +9,7 @@ import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Play, Square, Timer, Trash2 } from 'lucide-react';
 import { Button, EmptyState, Input, useToast } from '@/ui';
+import { ChoiceInline } from './viewkit';
 import type { WorkspaceViewProps } from './plugins/types';
 import { engagementsIn } from './auditReport';
 import { formatEur } from './invoicing';
@@ -61,7 +63,7 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
     persist([
       {
         id: newEntryId(),
-        date: new Date().toISOString().slice(0, 10),
+        date: dayKey(new Date()),
         engagement,
         description: description || 'Work session',
         minutes,
@@ -81,7 +83,7 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
     persist([
       {
         id: newEntryId(),
-        date: new Date().toISOString().slice(0, 10),
+        date: dayKey(new Date()),
         engagement,
         description: description || 'Work',
         minutes,
@@ -123,19 +125,16 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="mr-2 text-sm font-semibold">Time</h2>
-          <select
+          <ChoiceInline
+            label="Engagement"
+            prefix="Engagement:"
             value={engagement}
-            onChange={(e) => setEngagement(e.target.value)}
-            aria-label="Engagement"
-            className="h-8 rounded-md border border-border bg-surface px-2 text-sm"
-          >
-            <option value="">(unassigned)</option>
-            {engagements.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
+            clearable
+            clearLabel="Unassigned"
+            options={engagements.map((item) => ({ value: item, label: item }))}
+            onChange={setEngagement}
+            className="w-48"
+          />
           <Input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -235,9 +234,9 @@ export function TimeTrackingView({ data }: WorkspaceViewProps) {
                       <span
                         className={
                           e.billed
-                            ? 'rounded-full border border-emerald-500/40 px-1.5 text-xxs text-emerald-600 dark:text-emerald-400'
+                            ? 'rounded-full border border-success/40 px-1.5 text-xxs text-success'
                             : e.billable
-                              ? 'rounded-full border border-amber-500/40 px-1.5 text-xxs text-amber-600 dark:text-amber-400'
+                              ? 'rounded-full border border-warning/40 px-1.5 text-xxs text-warning'
                               : 'rounded-full border border-border px-1.5 text-xxs text-muted-foreground'
                         }
                       >

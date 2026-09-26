@@ -79,7 +79,11 @@ public class AuditPackService {
     }
   }
 
-  public record Intake(UUID requestId, String title, String scope) {}
+  public record Intake(UUID requestId, String title, String scope, boolean demo) {
+    public Intake(UUID requestId, String title, String scope) {
+      this(requestId, title, scope, false);
+    }
+  }
 
   public record Finding(
       UUID requestId,
@@ -145,12 +149,13 @@ public class AuditPackService {
               >= 100) throw bad("ENGAGEMENT_QUOTA");
           String key = input.requestId().toString();
           jdbc.update(
-              "INSERT INTO audit_pack_engagements(id,owner_id,title,engagement_key) VALUES"
-                  + " (?,?,?,?)",
+              "INSERT INTO audit_pack_engagements(id,owner_id,title,engagement_key,demo) VALUES"
+                  + " (?,?,?,?,?)",
               input.requestId(),
               owner,
               title,
-              key);
+              key,
+              input.demo());
           long intake =
               createNote(
                   owner,
@@ -176,6 +181,29 @@ public class AuditPackService {
               checklist,
               input.requestId());
           return engagement(owner, input.requestId());
+        });
+  }
+
+  /** Remove an explicitly marked demo engagement and only the notes tracked as
+   * part of that demo. Real engagements can never be deleted through this
+   * convenience endpoint. Approval/run history remains in its normal workflow
+   * tables; the demo-only report artifact is detached first. */
+  public void removeDemo(long owner, UUID id) {
+    requireActive(owner);
+    tx.executeWithoutResult(
+        status -> {
+          lock(owner);
+          var rows = jdbc.queryForList(
+              "SELECT demo FROM audit_pack_engagements WHERE id=? AND owner_id=? FOR UPDATE",
+              id, owner);
+          if (rows.isEmpty()) throw unavailable();
+          if (!Boolean.TRUE.equals(rows.get(0).get("demo"))) throw bad("NOT_A_DEMO_ENGAGEMENT");
+          List<Long> noteIds = jdbc.queryForList(
+              "SELECT note_id FROM audit_pack_engagement_records WHERE engagement_id=? ORDER BY note_id",
+              Long.class, id);
+          jdbc.update("DELETE FROM approval_report_artifacts WHERE engagement_id=?", id);
+          jdbc.update("DELETE FROM audit_pack_engagements WHERE id=? AND owner_id=? AND demo=TRUE", id, owner);
+          for (Long noteId : noteIds) notes.deleteById(noteId);
         });
   }
 

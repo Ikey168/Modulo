@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light dark;
+  --background: #101214;
+  --surface: #181b1f;
+  --surface-muted: #20252b;
+  --border: #343a42;
+  --text: #f3f5f7;
+  --muted: #aab2bd;
+  --accent: #8dd3b0;
+  --accent-ink: #0b2117;
+  --danger: #ff9b9b;
+}
+
+* { box-sizing: border-box; }
+body { width: 380px; margin: 0; background: var(--background); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+main { padding: 16px; }
+.header { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.eyebrow { margin: 0 0 3px; color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+h1 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+.count { padding: 3px 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.stack { display: grid; gap: 10px; }
+label, fieldset { display: grid; gap: 5px; min-width: 0; }
+fieldset { margin: 0; padding: 10px; border: 1px solid var(--border); }
+legend, label > span { color: var(--muted); font-size: 11px; font-weight: 650; }
+input, select, textarea, button { width: 100%; border: 1px solid var(--border); border-radius: 5px; font: inherit; }
+input, select, textarea { padding: 7px 8px; background: var(--surface); color: var(--text); }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { min-height: 32px; padding: 7px 10px; background: var(--surface-muted); color: var(--text); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+button.secondary { background: transparent; }
+small, .hint { color: var(--muted); font-size: 11px; }
+.status { min-height: 18px; margin: 0 0 8px; color: var(--accent); }
+.status.error { color: var(--danger); }
+.hidden { display: none; }
+.tab-option { display: flex; grid-template-columns: auto 1fr; align-items: start; gap: 8px; padding: 6px; border-radius: 4px; }
+.tab-option:hover { background: var(--surface-muted); }
+.tab-option input { width: auto; margin-top: 3px; }
+.tab-option strong, .tab-option small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+summary { color: var(--muted); cursor: pointer; font-size: 12px; }
+.settings { margin-top: 12px; }
+.queue { display: grid; gap: 6px; margin-top: 12px; }
+.queue-item { padding: 7px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.queue-item strong, .queue-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

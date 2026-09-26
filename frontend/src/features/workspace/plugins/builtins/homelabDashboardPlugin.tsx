@@ -1,0 +1,1 @@
+import { LayoutDashboard } from 'lucide-react'; import { HomelabDashboardView } from '../../HomelabViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'homelab-dashboard',label:'Dashboard',icon:LayoutDashboard,order:10,mode:'homelab',component:HomelabDashboardView})}};export default plugin;

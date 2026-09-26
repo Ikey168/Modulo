@@ -3,16 +3,46 @@ import {
   type StateSnapshot, type StateTransport,
 } from './pluginStateClient';
 
-/** Local recovery cache only; acknowledged server state remains the durable system of record. */
-export class BrowserStatePersistence implements StatePersistence {
-  constructor(private readonly storage: Storage) {}
-  async load(partition: string): Promise<StateSnapshot | null> {
-    const raw = this.storage.getItem(`modulo.plugin-state.v1:${partition}`);
-    return raw === null ? null : JSON.parse(raw) as StateSnapshot;
+/** Durable per-partition offline queue. The server remains authoritative for acknowledged state. */
+export class IndexedDbStatePersistence implements StatePersistence {
+  constructor(private readonly factory: IDBFactory = indexedDB) {}
+
+  private open(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = this.factory.open('modulo-plugin-state', 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains('snapshots')) request.result.createObjectStore('snapshots');
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('Could not open plugin state cache.'));
+      request.onblocked = () => reject(new Error('Plugin state cache upgrade is blocked by another tab.'));
+    });
   }
+
+  async load(partition: string): Promise<StateSnapshot | null> {
+    const db = await this.open();
+    try {
+      return await new Promise<StateSnapshot | null>((resolve, reject) => {
+        const request = db.transaction('snapshots', 'readonly').objectStore('snapshots').get(partition);
+        request.onsuccess = () => resolve(request.result === undefined ? null : request.result as StateSnapshot);
+        request.onerror = () => reject(request.error ?? new Error('Could not read plugin state cache.'));
+      });
+    } finally { db.close(); }
+  }
+
   async save(partition: string, snapshot: StateSnapshot): Promise<void> {
-    // Storage failure must reject the edit, never masquerade as a successful local save.
-    this.storage.setItem(`modulo.plugin-state.v1:${partition}`, JSON.stringify(snapshot));
+    if (snapshot.partition !== partition) throw new Error('Plugin state cache partition mismatch.');
+    const db = await this.open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('snapshots', 'readwrite');
+        transaction.objectStore('snapshots').put(snapshot, partition);
+        // Request success alone does not make the outbox durable; wait for commit.
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error('Could not save plugin state cache.'));
+        transaction.onabort = () => reject(transaction.error ?? new Error('Plugin state cache write was aborted.'));
+      });
+    } finally { db.close(); }
   }
 }
 

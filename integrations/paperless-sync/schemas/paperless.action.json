@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "paperlessId", "kind", "status", "requestedAt", "requestedBy", "confirmed", "payload", "processedAt", "result"],
+  "properties": {
+    "id": {"type": "string", "maxLength": 128},
+    "paperlessId": {"type": "integer", "minimum": 1},
+    "kind": {"enum": ["tag.add", "custom-field.set", "legal-hold.set", "deletion.propose"]},
+    "status": {"enum": ["draft", "queued", "approved", "applied", "failed", "awaiting-paperless-deletion", "cancelled"]},
+    "requestedAt": {"type": "string", "maxLength": 64},
+    "requestedBy": {"type": "string", "maxLength": 128},
+    "confirmed": {"type": "boolean"},
+    "payload": {"type": "object", "additionalProperties": true},
+    "processedAt": {"type": "string", "maxLength": 64},
+    "result": {"type": "string", "maxLength": 512}
+  }
+}
+

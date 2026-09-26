@@ -2,6 +2,7 @@ import { authenticatedStomp } from '../../../services/authenticatedStomp';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { workspaceSocketUrl } from '../../../services/workspaceSocketUrl';
 import { AppNotification, notificationApi } from './notificationApi';
 
 export function useNotifications(userId: string) {
@@ -31,7 +32,7 @@ export function useNotifications(userId: string) {
     if (!userId || userId === 'anonymous') return;
 
     const client = authenticatedStomp({
-      webSocketFactory: () => new SockJS('/ws'),
+      webSocketFactory: () => new SockJS(workspaceSocketUrl()),
       onConnect: () => {
         client.subscribe('/user/queue/notifications', (frame) => {
           const notif: AppNotification = JSON.parse(frame.body);

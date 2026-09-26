@@ -3,7 +3,8 @@ import { authService } from '../features/auth/authService';
 class ApiClient {
   private baseURL: string;
 
-  constructor(baseURL: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090') {
+  constructor(baseURL: string = (window.__MODULO_CONFIG__?.serverOrigin ? `${window.__MODULO_CONFIG__.serverOrigin}/api` : undefined)
+      || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090') {
     this.baseURL = baseURL;
   }
 

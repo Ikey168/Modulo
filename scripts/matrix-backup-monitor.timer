@@ -1,0 +1,11 @@
+[Unit]
+Description=Verify Matrix backup every six hours
+
+[Timer]
+OnBootSec=15m
+OnUnitActiveSec=6h
+Persistent=true
+Unit=matrix-backup-monitor.service
+
+[Install]
+WantedBy=timers.target

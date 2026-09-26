@@ -1,7 +1,7 @@
 package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.*;
-import com.modulo.blueprint.BlueprintCapabilityService;
+import com.modulo.blueprint.BlueprintNodeRegistry;
 import java.util.*;
 
 public final class PackManifestValidator {
@@ -43,6 +43,12 @@ public final class PackManifestValidator {
   public record Validation(boolean ok, String reason, List<String> order) {}
 
   public static Validation validate(PackManifest manifest) {
+    return validate(manifest, BlueprintNodeRegistry.coreOnly());
+  }
+
+  /** Validate against the live node registry so installed plugins can extend blueprint IR. */
+  public static Validation validate(PackManifest manifest, BlueprintNodeRegistry nodeRegistry) {
+    if (nodeRegistry == null) nodeRegistry = BlueprintNodeRegistry.coreOnly();
     try {
       if (manifest == null
           || manifest.getManifestVersion() == null
@@ -154,20 +160,9 @@ public final class PackManifestValidator {
                 || !ids.add(node.get("id").asText())
                 || !node.path("type").isTextual()) return fail("INVALID_BLUEPRINT_IR");
             String nodeType = node.get("type").asText();
-            String cap = BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(nodeType);
-            if (cap == null
-                && !Set.of(
-                        "trigger.schedule",
-                        "trigger.manual",
-                        "trigger.webhook",
-                        "trigger.note.saved",
-                        "trigger.link.created",
-                        "logic.branch",
-                        "logic.wait",
-                        "logic.notes.filter",
-                        "logic.approval.wait",
-                        "logic.approval.result")
-                    .contains(nodeType)) return fail("UNKNOWN_BLUEPRINT_NODE");
+            int nodeVersion = node.path("nodeVersion").asInt(1);
+            String cap = nodeRegistry.capability(nodeType, nodeVersion).orElse(null);
+            if (!nodeRegistry.isKnown(nodeType, nodeVersion)) return fail("UNKNOWN_BLUEPRINT_NODE");
             if (cap != null && !caps.contains(cap)) return fail("UNDECLARED_CAPABILITY");
           }
           for (var edge : ir.get("edges"))

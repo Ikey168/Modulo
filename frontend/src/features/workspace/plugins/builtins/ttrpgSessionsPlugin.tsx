@@ -1,0 +1,1 @@
+import { ScrollText } from 'lucide-react'; import { TtrpgSessionsView } from '../../TtrpgViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'ttrpg-sessions',label:'Sessions',icon:ScrollText,order:40,mode:'ttrpg',component:TtrpgSessionsView})}};export default plugin;

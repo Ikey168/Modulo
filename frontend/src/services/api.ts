@@ -16,7 +16,7 @@ export async function apiClient(endpoint: string, options: ApiOptions = {}) {
   const { skipAuth, ...fetchOptions } = options;
 
   const defaultOptions: RequestInit = {
-    credentials: 'include',  // Always include credentials for cookies
+    credentials: window.__MODULO_CONFIG__?.serverOrigin ? 'omit' : 'include',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',

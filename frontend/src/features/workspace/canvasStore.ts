@@ -1,13 +1,9 @@
-// Client-side persistence for the Canvas plugin. A canvas ("board") is a
-// freeform arrangement of note cards plus the connections drawn between them.
-// State lives in localStorage, keyed per board, the same way the note tree and
-// plugin install state are kept. No backend is involved.
+// Pure Canvas board operations. The active view persists individual boards
+// through the server-backed canvasSync client and its explicit migration path.
 //
 // The card/connection/board operations below are pure (state in, new state out)
 // so the view can drive them through setState and they can be unit-tested
 // without a DOM.
-
-const STORE_KEY = 'modulo-canvas';
 
 /** A note placed on a canvas at a world position. Keyed by note id, so a note
  *  appears at most once per canvas. */
@@ -64,39 +60,6 @@ export function emptyBoard(name: string): CanvasBoard {
 export function defaultState(): CanvasState {
   const board = emptyBoard('Canvas 1');
   return { boards: [board], activeId: board.id };
-}
-
-// ── Persistence ────────────────────────────────────────────────────────────
-
-function isBoard(b: unknown): b is CanvasBoard {
-  return Boolean(b) && typeof (b as CanvasBoard).id === 'string' && Array.isArray((b as CanvasBoard).cards);
-}
-
-/** Coerce a loaded value into a usable state: at least one board, and an
- *  activeId that points at an existing board. */
-function normalize(state: CanvasState): CanvasState {
-  const boards = Array.isArray(state?.boards) ? state.boards.filter(isBoard) : [];
-  if (boards.length === 0) return defaultState();
-  const activeId = boards.some((b) => b.id === state.activeId) ? state.activeId : boards[0].id;
-  return { boards, activeId };
-}
-
-export function loadCanvasState(): CanvasState {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return normalize(JSON.parse(raw) as CanvasState);
-  } catch {
-    /* corrupt or unavailable storage falls back to a fresh default */
-  }
-  return defaultState();
-}
-
-export function saveCanvasState(state: CanvasState): void {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
-  } catch {
-    /* storage full or unavailable; state still applies for this session */
-  }
 }
 
 // ── Board-level operations ───────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 import { useOperationalCollection } from './useOperationalCollection';
 import { TODO_COLLECTION } from './operationalSchemas';
 import { OperationalStateNotice } from './plugins/OperationalStateNotice';
@@ -8,6 +9,7 @@ import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 import { useEffect, useMemo, useState } from 'react';
 import { CircleCheckBig, ListTodo, Plus, Trash2 } from 'lucide-react';
 import { Button, Checkbox, cn, EmptyState, Input, useToast } from '@/ui';
+import { ChoiceInline } from './viewkit';
 import type { WorkspaceViewProps } from './plugins/types';
 import {
   applyDueFilter,
@@ -23,9 +25,9 @@ import {
 } from './todos';
 
 const PRIORITY_STYLE: Record<TodoPriority, string> = {
-  URGENT: 'border-red-500/40 text-red-600 dark:text-red-400',
-  HIGH: 'border-orange-500/40 text-orange-600 dark:text-orange-400',
-  MEDIUM: 'border-blue-500/40 text-blue-600 dark:text-blue-400',
+  URGENT: 'border-destructive/40 text-destructive',
+  HIGH: 'border-warning/40 text-warning',
+  MEDIUM: 'border-info/40 text-info',
   LOW: 'border-border text-muted-foreground',
 };
 
@@ -49,7 +51,7 @@ export function TodoView({ data, onOpenNote }: WorkspaceViewProps) {
   const [noteId, setNoteId] = useState('');
   useEffect(() => { setTitle(''); setDue(''); setPriority('MEDIUM'); setList(DEFAULT_LIST); setNoteId(''); }, [synced.sessionKey]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey(new Date());
 
   const persist = (next: TodoItem[]) => {
     setTodos(next);
@@ -122,32 +124,23 @@ export function TodoView({ data, onOpenNote }: WorkspaceViewProps) {
             className="h-8 w-56 text-sm"
           />
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" className="h-8 w-36 text-sm" />
-          <select
+          <ChoiceInline
+            label="Priority"
             value={priority}
-            onChange={(e) => setPriority(e.target.value as TodoPriority)}
-            aria-label="Priority"
-            className="h-8 rounded-md border border-border bg-surface px-1.5 text-sm"
-          >
-            {TODO_PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {p.toLowerCase()}
-              </option>
-            ))}
-          </select>
+            options={TODO_PRIORITIES.map((item) => ({ value: item, label: item.toLowerCase() }))}
+            onChange={(value) => setPriority(value as TodoPriority)}
+            className="w-32"
+          />
           <Input value={list} onChange={(e) => setList(e.target.value)} aria-label="List" placeholder="List" className="h-8 w-28 text-sm" />
-          <select
+          <ChoiceInline
+            label="Link to note"
             value={noteId}
-            onChange={(e) => setNoteId(e.target.value)}
-            aria-label="Link to note"
-            className="h-8 max-w-40 rounded-md border border-border bg-surface px-1.5 text-sm"
-          >
-            <option value="">No note</option>
-            {data.notes.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.title}
-              </option>
-            ))}
-          </select>
+            clearable
+            clearLabel="No note"
+            options={data.notes.map((note) => ({ value: String(note.id), label: note.title }))}
+            onChange={setNoteId}
+            className="max-w-40"
+          />
           <Button size="sm" onClick={add}>
             <Plus className="size-4" aria-hidden="true" />
             Add
@@ -203,7 +196,7 @@ export function TodoView({ data, onOpenNote }: WorkspaceViewProps) {
                           <span
                             className={cn(
                               'font-mono text-xs',
-                              isOverdue(t, today) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
+                              isOverdue(t, today) ? 'text-destructive' : 'text-muted-foreground',
                             )}
                           >
                             {t.dueDate}

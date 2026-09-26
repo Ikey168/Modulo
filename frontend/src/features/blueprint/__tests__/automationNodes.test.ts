@@ -7,6 +7,7 @@ import { CAPABILITY_LABELS } from '../capabilities';
 describe('audit automation nodes (#363)', () => {
   it('all descriptors are structurally valid and register into the catalog', () => {
     const catalog = createCoreCatalog();
+    expect(catalog.has('action.audit.digest')).toBe(false);
     for (const node of [...WEBHOOK_NODES, ...DIGEST_NODES]) {
       expect(() => catalog.register(node)).not.toThrow();
     }

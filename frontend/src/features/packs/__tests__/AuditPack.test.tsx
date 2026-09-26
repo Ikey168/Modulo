@@ -5,8 +5,36 @@ import {AuditPack,AuditReportArtifact} from '../AuditPack';
 import {authenticatedRequest} from '../../../services/authenticatedRequest';
 import * as packs from '../workspacePackService';
 vi.mock('../../../services/authenticatedRequest',()=>({authenticatedRequest:vi.fn()}));
+import {createMemoryWorkspace} from '../../../__tests__/helpers/memoryWorkspaceState';
+const memory=vi.hoisted(()=>({current:undefined as unknown as ReturnType<typeof createMemoryWorkspace>}));
+vi.mock('../../workspace/plugins/PluginProvider',()=>({usePlugins:()=>memory.current.api}));
 vi.mock('../workspacePackService',()=>({createPackPlan:vi.fn(),applyPackPlan:vi.fn()}));
-beforeEach(()=>{vi.mocked(authenticatedRequest).mockImplementation(async path=>new Response(JSON.stringify(String(path).endsWith('/api/audit-pack')?{installed:false,signingConfigured:false}:[]),{status:200}));});
-afterEach(()=>{cleanup();vi.clearAllMocks();});
+beforeEach(()=>{localStorage.clear();memory.current=createMemoryWorkspace();vi.mocked(authenticatedRequest).mockImplementation(async path=>new Response(JSON.stringify(String(path).endsWith('/api/audit-pack')?{installed:false,signingConfigured:false}:[]),{status:200}));});
+afterEach(()=>{cleanup();vi.clearAllMocks();localStorage.clear();});
 test('reviews capabilities and requires consent before one pack installation',async()=>{vi.mocked(packs.createPackPlan).mockResolvedValue({id:'plan',plan:{requiredCapabilities:['approval:request']}} as packs.PackPlan);render(<MemoryRouter><AuditPack/></MemoryRouter>);fireEvent.change(await screen.findByLabelText('Reviewer account ID'),{target:{value:'2'}});fireEvent.click(screen.getByRole('button',{name:'Review Audit Pack installation'}));const install=await screen.findByRole('button',{name:'Install Security Audit Pack'});expect(install).toBeDisabled();expect(packs.applyPackPlan).not.toHaveBeenCalled();fireEvent.click(screen.getByLabelText('I approve this installation and its requested capabilities.'));fireEvent.click(install);await waitFor(()=>expect(packs.applyPackPlan).toHaveBeenCalled());});
 test('shared reports load only after an explicit reviewer action and render as text',async()=>{vi.mocked(authenticatedRequest).mockResolvedValue(new Response(JSON.stringify({title:'Report',markdown:'<script>unsafe()</script>',format:'modulo.audit-report.v1'}),{status:200}));render(<AuditReportArtifact requestId="request"/>);expect(authenticatedRequest).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Read shared report snapshot'}));expect(await screen.findByText('<script>unsafe()</script>')).toBeTruthy();expect(document.querySelector('script')).toBeNull();});
+test('guided setup can be skipped, persists across reload, and resumes explicitly',async()=>{
+  const view=render(<MemoryRouter><AuditPack/></MemoryRouter>);
+  await screen.findByRole('region',{name:'Security Audit guided setup'});
+  fireEvent.click(screen.getByRole('button',{name:'Skip for now'}));
+  expect(screen.getByRole('button',{name:'Restart guided setup'})).toBeTruthy();
+  view.unmount();
+  render(<MemoryRouter><AuditPack/></MemoryRouter>);
+  expect(await screen.findByRole('button',{name:'Restart guided setup'})).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Restart guided setup'}));
+  expect(screen.getByRole('region',{name:'Security Audit guided setup'})).toBeTruthy();
+});
+test('marks demo engagements and removes them through the demo-only endpoint',async()=>{
+  vi.mocked(authenticatedRequest).mockImplementation(async (path,options)=>{
+    const value=String(path);
+    if(value.endsWith('/api/audit-pack'))return new Response(JSON.stringify({installed:true,signingConfigured:false}),{status:200});
+    if(value.endsWith('/api/audit-pack/engagements'))return new Response(JSON.stringify([{id:'demo-1',title:'Demo security review',demo:true,records:[]}]),{status:200});
+    if(value.endsWith('/api/workspace-packs/resources'))return new Response(JSON.stringify([]),{status:200});
+    if(value.endsWith('/api/audit-pack/engagements/demo-1/demo')&&options?.method==='DELETE')return new Response(JSON.stringify({removed:true}),{status:200});
+    return new Response(JSON.stringify({}),{status:200});
+  });
+  render(<MemoryRouter><AuditPack/></MemoryRouter>);
+  expect(await screen.findByText('Demo security review · Demo')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Remove demo Demo security review'}));
+  await waitFor(()=>expect(vi.mocked(authenticatedRequest).mock.calls.some(([path,options])=>String(path).endsWith('/engagements/demo-1/demo')&&options?.method==='DELETE')).toBe(true));
+});

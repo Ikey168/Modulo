@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { Suspense, useEffect } from 'react';
 import { store } from './store/store';
@@ -20,8 +20,23 @@ import SharedNotePage from './features/notes/sharing/SharedNotePage';
 import PluginSubmission from './features/PluginSubmission';
 import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
+import { startAndroidBackButton } from './services/androidLifecycle';
+import { AndroidAuthLink } from './features/auth/AndroidAuthLink';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
+
+function AndroidBackButton() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void startAndroidBackButton(navigate).then(remove => {
+      if (disposed) remove(); else stop = remove;
+    }).catch(error => console.error('Android Back unavailable:', error));
+    return () => { disposed = true; stop?.(); };
+  }, [navigate]);
+  return null;
+}
 
 function App() {
   useEffect(() => {
@@ -41,10 +56,12 @@ function App() {
   const workbenchPack = getFeatureRegistry().getAll().find((p) => p.id === NOTE_WORKBENCH_ID);
 
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider defaultTheme="bart">
       <Provider store={store}>
         <TooltipProvider delayDuration={300}>
         <Router>
+          <AndroidBackButton />
+          <AndroidAuthLink />
           <Routes>
             {/* Login is the main entry page */}
             <Route path="/" element={<LoginPage />} />
@@ -74,7 +91,7 @@ function App() {
               const Component = route.component;
               const element = route.requiresAuth ? (
                 <RequireAuth>
-                  <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
+                  <Suspense fallback={<div className="flex h-app items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
                     <Component />
                   </Suspense>
                 </RequireAuth>

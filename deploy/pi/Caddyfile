@@ -10,6 +10,11 @@
 		reverse_proxy backend:8080
 	}
 
+	# STOMP/SockJS — keep the WebSocket endpoint on the backend.
+	handle /ws* {
+		reverse_proxy backend:8080
+	}
+
 	# Keycloak — served under /auth (see --http-relative-path in the compose file).
 	handle /auth/* {
 		reverse_proxy keycloak:8080

@@ -27,7 +27,7 @@ import org.testcontainers.junit.jupiter.*;
 @Testcontainers
 class ApprovalRuntimeTest {
   @Container
-  static final PostgreSQLContainer<?> database = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> database = new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
 
   static DriverManagerDataSource source;
   JdbcTemplate jdbc;

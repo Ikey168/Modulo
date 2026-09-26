@@ -1,35 +1,36 @@
-import { useReducer, useState } from 'react';
+import { useState } from 'react';
 import { Check, Workflow as BlueprintIcon } from 'lucide-react';
 import { Button, Card, Spinner, useToast } from '@/ui';
 import { PLUGINS } from './plugins';
 import { usePlugins } from './plugins/PluginProvider';
 import { PACKS, type Pack } from './plugins/packs';
-import { addLocalBlueprints, hasLocalBlueprint } from '../blueprint/localBlueprints';
+import { addLocalBlueprints, hasLocalBlueprint, usePackBlueprints } from '../blueprint/localBlueprints';
 
 const PLUGIN_BY_ID = new Map(PLUGINS.map((p) => [p.id, p]));
 
 /**
  * Packs are curated bundles of plugins and blueprints. Installing a pack
  * installs each of its plugins (via the plugin runtime) and adds each of its
- * blueprints (via the client-side blueprint store), so one click sets up a
+ * blueprints (via the server-backed pack blueprint store), so one click sets up a
  * whole workflow.
  */
 export function PacksView() {
   const plugins = usePlugins();
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const [, bump] = useReducer((n: number) => n + 1, 0); // re-render after blueprints change
+  const [packBlueprints, setPackBlueprints] = usePackBlueprints();
 
   const isInstalled = (pack: Pack) =>
     pack.pluginIds.every((id) => plugins.isInstalled(id)) &&
-    pack.blueprints.every((b) => hasLocalBlueprint(b.name));
+    pack.blueprints.every((b) => hasLocalBlueprint(packBlueprints, b.name));
 
   const install = async (pack: Pack) => {
     setBusy(pack.id);
     try {
       for (const id of pack.pluginIds) await plugins.install(id);
-      addLocalBlueprints(pack.blueprints);
-      bump();
+      if (pack.blueprints.length && !setPackBlueprints((current) => addLocalBlueprints(current, pack.blueprints))) {
+        throw new Error('Blueprints could not be saved yet. Wait for sync and retry.');
+      }
       toast({
         title: `Installed ${pack.name}`,
         description: `${pack.pluginIds.length} plugin${pack.pluginIds.length === 1 ? '' : 's'} and ${pack.blueprints.length} blueprint${pack.blueprints.length === 1 ? '' : 's'} added.`,

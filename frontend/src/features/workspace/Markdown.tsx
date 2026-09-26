@@ -1,7 +1,10 @@
 import { isValidElement, useMemo, type ComponentType, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import type { CoreNote } from '@modulo/core';
+import { MermaidFence } from './MermaidFence';
 import { nodeText, parseWikiRef, slugify } from './outline';
 import type { NoteFenceContribution, NoteFenceProps } from './plugins/types';
 
@@ -85,11 +88,13 @@ export function Markdown({ content, notes, onSelectNote, onCreateNote, fences }:
     for (const f of fences ?? []) map.set(f.language, f.component);
     return map;
   }, [fences]);
+  const mathEnabled = fenceMap.has('math') || fenceMap.has('latex');
 
   return (
     <div className="text-[13.5px]">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={mathEnabled ? [remarkGfm, remarkMath] : [remarkGfm]}
+        rehypePlugins={mathEnabled ? [rehypeKatex] : []}
         components={{
           h1: (props) => (
             <h1 id={headingId(props.children)} className="mb-4 mt-2 scroll-mt-6 text-[30px] font-bold leading-[1.15] tracking-tight text-foreground first:mt-0" {...strip(props)} />
@@ -114,7 +119,7 @@ export function Markdown({ content, notes, onSelectNote, onCreateNote, fences }:
           em: (props) => <em className="text-subtle-foreground" {...strip(props)} />,
           code: (props) => {
             const lang = languageOf((props as { className?: string }).className);
-            const Fence = lang ? fenceMap.get(lang) : undefined;
+            const Fence = lang ? fenceMap.get(lang) ?? (lang === 'mermaid' ? MermaidFence : undefined) : undefined;
             if (Fence) {
               return <Fence source={nodeText(props.children)} />;
             }
@@ -126,7 +131,7 @@ export function Markdown({ content, notes, onSelectNote, onCreateNote, fences }:
             // A plugin fence (e.g. ```database) renders as a full-width surface,
             // so shed the <pre> code chrome and let it stand on its own.
             const fenceLang = fenceLanguageOf(props.children);
-            if (fenceLang && fenceMap.has(fenceLang)) {
+            if (fenceLang && (fenceMap.has(fenceLang) || fenceLang === 'mermaid')) {
               return <>{props.children}</>;
             }
             return (

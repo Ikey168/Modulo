@@ -9,3 +9,5 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface Window { __MODULO_CONFIG__?: { oidcIssuer?: string; oidcClientId?: string; serverOrigin?: string } }

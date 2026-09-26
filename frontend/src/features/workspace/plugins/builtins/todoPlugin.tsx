@@ -3,8 +3,7 @@ import { TODO_COLLECTION } from '../../operationalSchemas';
 import { OperationalStateNotice } from '../OperationalStateNotice';
 // Todo lists (#371) — tasks with due dates, priorities, lists, and note
 // links; Productivity hub tab plus a note panel showing (and adding) the
-// current note's tasks. Client-side persistence; the record shape mirrors the
-// tasks backend so a server store can adopt it later.
+// current note's tasks. Records use the shared server-authoritative workspace state.
 import { useState } from 'react';
 import { ListTodo } from 'lucide-react';
 import { Checkbox, Input } from '@/ui';

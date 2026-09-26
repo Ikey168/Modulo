@@ -1,0 +1,7 @@
+[Unit]
+Description=Critical Pi service health probe
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/scripts/pi-service-health.sh

@@ -3,13 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "description": "Electron desktop shell for Modulo",
-  "author": "Ikey168",
+  "author": {
+    "name": "Ikey168",
+    "email": "Ikey168@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/Ikey168/Modulo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ikey168/Modulo.git"
+  },
   "license": "MIT",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "serve": "node serve.js",
+    "test": "node --test native-services.test.js browser-extension/capture-queue.test.mjs",
+    "test:browser-extension": "node --test browser-extension/capture-queue.test.mjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -25,8 +35,10 @@
     },
     "files": [
       "main.js",
+      "native-services.js",
       "preload.cjs",
-      "serve.js"
+      "serve.js",
+      "browser-extension/**/*"
     ],
     "extraResources": [
       {
@@ -35,15 +47,27 @@
       }
     ],
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Office"
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.productivity"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     }
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "pdf-lib": "^1.17.1"
   }
 }

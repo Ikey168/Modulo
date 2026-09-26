@@ -32,24 +32,11 @@ public class BlueprintCapabilityService {
      * {@code capability} field declared on each NodeDescriptor in the frontend catalog.
      * Used by the backend to derive requirements without depending on the TS source.
      */
-    public static final Map<String, String> NODE_CAPABILITY_MAP = Map.ofEntries(
-        Map.entry("action.approval.request",     "approval:request"),
-        Map.entry("action.note.create",          "notes:write"),
-        Map.entry("action.tag.add",              "notes:write"),
-        Map.entry("action.note.anchor",          "blockchain:anchor"),
-        Map.entry("action.ai.summarize",         "ai:invoke"),
-        Map.entry("action.code.execute",         "code:execute"),
-        Map.entry("action.wasm.execute",         "wasm:execute"),
-        Map.entry("action.audit.reaudit",        "notes:write"),
-        Map.entry("action.audit.digest",         "notes:write"),
-        Map.entry("action.tax.deadline.reminder", "notes:write"),
-        Map.entry("action.invoice.chase",        "notes:write"),
-        Map.entry("action.vies.check",           "network:vies"),
-        Map.entry("action.noesis.brief",         "network:noesis")
-    );
+    public static final Map<String, String> NODE_CAPABILITY_MAP = executionCapabilities();
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
     // -------------------------------------------------------------------------
     // Capability derivation
@@ -61,9 +48,34 @@ public class BlueprintCapabilityService {
      */
     public Set<String> deriveRequiredCapabilities(BlueprintIRGraph graph) {
         return graph.getNodes().stream()
-            .map(n -> NODE_CAPABILITY_MAP.get(n.getType()))
+            .map(this::capabilityFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /** Resolve a node capability from the live registry, with the core map as a test/tooling fallback. */
+    public String capabilityFor(BlueprintIRGraph.IRNode node) {
+        if (nodeRegistry != null) {
+            return nodeRegistry.capability(node.getType(), node.getNodeVersion())
+                .orElse(NODE_CAPABILITY_MAP.get(node.getType()));
+        }
+        return NODE_CAPABILITY_MAP.get(node.getType());
+    }
+
+    /** Whether the current backend knows the pinned node version. */
+    public boolean isKnownNode(BlueprintIRGraph.IRNode node) {
+        if (nodeRegistry != null) {
+            return nodeRegistry.isKnown(node.getType(), node.getNodeVersion());
+        }
+        return NODE_CAPABILITY_MAP.containsKey(node.getType())
+            || BlueprintNodeRegistry.coreOnly().knownTypes().contains(node.getType());
+    }
+
+    private static Map<String, String> executionCapabilities() {
+        Map<String, String> capabilities = new LinkedHashMap<>();
+        capabilities.putAll(BlueprintNodeRegistry.CORE_CAPABILITIES);
+        capabilities.putAll(BlueprintNodeRegistry.LEGACY_BUILTIN_CAPABILITIES);
+        return Collections.unmodifiableMap(capabilities);
     }
 
     // -------------------------------------------------------------------------
