@@ -1,11 +1,10 @@
 // Service Worker for Modulo PWA
 // Provides offline functionality and caching
 
-// Bumped to v1.3.0 so the activate handler purges the v1.1.0 caches, which
-// were polluted with /api responses (incl. app-shell HTML) by the old logic.
-const CACHE_NAME = 'modulo-v1.3.0';
-const STATIC_CACHE_NAME = 'modulo-static-v1.3.0';
-const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.3.0';
+// Bumped to v1.3.1 to refresh the installed app shell and its icon manifest.
+const CACHE_NAME = 'modulo-v1.3.1';
+const STATIC_CACHE_NAME = 'modulo-static-v1.3.1';
+const DYNAMIC_CACHE_NAME = 'modulo-dynamic-v1.3.1';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -169,20 +168,20 @@ self.addEventListener('push', (event) => {
   const options = {
     title: notificationData.title || 'Modulo',
     body: notificationData.body || 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: '/icons/icon-192x192.png?v=2',
+    badge: '/icons/icon-72x72.png?v=2',
     vibrate: [200, 100, 200],
     data: notificationData.data || {},
     actions: [
       {
         action: 'open',
         title: 'Open App',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-72x72.png?v=2'
       },
       {
         action: 'close',
         title: 'Close',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-72x72.png?v=2'
       }
     ]
   };
