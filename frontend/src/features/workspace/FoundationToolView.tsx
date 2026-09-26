@@ -53,7 +53,7 @@ import { useLifeCollection } from './useLifeCollection';
 import { isoDate } from './planner';
 import { ChoiceInline } from './viewkit';
 
-import { nativeDesktop } from '@/services/desktop';
+import { desktopServices as nativeDesktop } from '@/platform';
 import type { WorkspaceViewProps } from './plugins/types';
 import { NoteFlashcardCapture } from './NoteFlashcardCapture';
 import { SourceNoteLink } from './LearningPluginViews';

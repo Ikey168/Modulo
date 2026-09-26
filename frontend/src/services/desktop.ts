@@ -15,4 +15,4 @@ export function desktopInfo(): Window['moduloDesktop'] {
   return typeof window !== 'undefined' ? window.moduloDesktop : undefined;
 }
 
-export const nativeDesktop = () => typeof window !== 'undefined' ? window.moduloDesktop : undefined;
+

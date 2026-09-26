@@ -44,6 +44,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -93,6 +97,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/checklistsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -119,6 +124,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreBrowserPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -149,6 +157,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreFindingsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -179,6 +190,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreOverviewPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -209,6 +223,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreRemediationPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -239,6 +256,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreReportPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -269,6 +289,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreScopePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -299,6 +322,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreTestsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -329,6 +355,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/auditCoreThreatsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick"
+      ],
       "nativeDependencies": [
         "file-picker"
       ],
@@ -359,6 +388,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/reportsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "external-links",
         "file-download"
@@ -390,6 +423,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -432,6 +468,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -468,6 +508,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/businessContractsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -504,6 +545,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/businessDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -530,6 +572,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/businessDirectoryPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -558,6 +601,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/businessObligationsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -601,6 +645,7 @@
       "schemas": [
         "modulo.workspace.business"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -630,6 +675,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/businessReconciliationPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -659,6 +705,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.fetch"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -695,6 +744,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/calendarPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -735,6 +785,9 @@
       "schemas": [
         "modulo.canvas.board"
       ],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -767,6 +820,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -793,6 +847,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -819,6 +874,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -845,6 +901,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -873,6 +930,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -909,6 +970,11 @@
       "module": "frontend/src/features/workspace/awareness/plugins.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "external-links",
         "file-download",
@@ -947,6 +1013,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/plannerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -975,6 +1042,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/learningPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -1008,6 +1078,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "documents.ocr"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -1044,6 +1118,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/educationAssignmentsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1084,6 +1159,7 @@
       "schemas": [
         "modulo.workspace.education"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1112,6 +1188,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/educationCurriculumPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1143,6 +1220,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/educationDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1171,6 +1249,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/educationStudyPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1201,6 +1280,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/electronicsDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1244,6 +1324,7 @@
       "schemas": [
         "modulo.workspace.electronics"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1272,6 +1353,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/electronicsPartsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1300,6 +1382,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/electronicsProjectsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1366,6 +1449,9 @@
         "modulo.expense.categories",
         "modulo.expense.exported-periods"
       ],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -1394,6 +1480,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1424,6 +1511,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1450,6 +1538,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1476,6 +1565,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1506,6 +1596,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -1552,6 +1647,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.fetch"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -1586,6 +1684,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/financeSubscriptionsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1618,6 +1717,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/findingsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1659,6 +1759,9 @@
       ],
       "schemas": [
         "modulo.workspace.foundation.fsrs-deck-limits"
+      ],
+      "capabilities": [
+        "files.save"
       ],
       "nativeDependencies": [
         "desktop-native-services",
@@ -1707,6 +1810,9 @@
       ],
       "schemas": [
         "modulo.focus.sessions"
+      ],
+      "capabilities": [
+        "files.save"
       ],
       "nativeDependencies": [
         "clipboard",
@@ -1765,6 +1871,10 @@
       ],
       "schemas": [
         "modulo.github-sync.config"
+      ],
+      "capabilities": [
+        "files.save",
+        "links.external"
       ],
       "nativeDependencies": [
         "clipboard",
@@ -1826,6 +1936,7 @@
       "schemas": [
         "modulo.retention.classes"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1854,6 +1965,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -1910,6 +2024,7 @@
       "schemas": [
         "modulo.workspace.graph.saved-views"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1936,6 +2051,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/healthTrackerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1966,6 +2082,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/hobbyDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -1994,6 +2111,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/hobbyFunPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2023,6 +2141,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/hobbyPracticePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2063,6 +2182,7 @@
       "schemas": [
         "modulo.workspace.hobbies"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2089,6 +2209,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/hobbyStudioPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2115,6 +2236,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/homeInventoryPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2141,6 +2263,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/homeMaintenancePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2169,6 +2292,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/homelabAssetsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2198,6 +2322,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/homelabDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2241,6 +2366,7 @@
       "schemas": [
         "modulo.workspace.homelab"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2281,6 +2407,7 @@
       "schemas": [
         "modulo.intake.legacy-record"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [
         "/api/integrations/noesis"
@@ -2311,6 +2438,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -2353,6 +2484,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/journalReflectionPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2393,6 +2525,7 @@
       "schemas": [
         "modulo.pipeline.stages"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2424,6 +2557,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -2469,6 +2605,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -2522,6 +2661,11 @@
       "schemas": [
         "modulo.workspace.life-os"
       ],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "backup.archive"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-download",
@@ -2552,6 +2696,11 @@
       "module": "frontend/src/features/workspace/plugins/builtins/lifeOsExplorerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "backup.archive"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-download",
@@ -2584,6 +2733,11 @@
       "module": "frontend/src/features/workspace/plugins/builtins/lifeOsPortabilityPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "backup.archive"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-download",
@@ -2616,6 +2770,11 @@
       "module": "frontend/src/features/workspace/plugins/builtins/lifeOsRelationsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "backup.archive"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-download",
@@ -2648,6 +2807,11 @@
       "module": "frontend/src/features/workspace/plugins/builtins/lifeOsReviewPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "backup.archive"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-download",
@@ -2680,6 +2844,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -2719,6 +2886,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -2765,6 +2937,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "device.folders",
+        "files.pick",
+        "files.save"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -2811,6 +2988,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "device.folders"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -2870,6 +3050,7 @@
       "schemas": [
         "modulo.workspace.meal-planner.v2"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2898,6 +3079,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2926,6 +3108,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2954,6 +3137,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -2982,6 +3166,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3010,6 +3195,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3038,6 +3224,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3066,6 +3253,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3094,6 +3282,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3122,6 +3311,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3150,6 +3340,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3178,6 +3369,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3206,6 +3398,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3234,6 +3427,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3262,6 +3456,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3290,6 +3485,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3318,6 +3514,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3346,6 +3543,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -3382,6 +3583,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3410,6 +3612,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3438,6 +3641,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3466,6 +3670,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3494,6 +3699,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3522,6 +3728,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3550,6 +3757,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3578,6 +3786,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3629,6 +3838,7 @@
       "schemas": [
         "modulo.workspace.media-item"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3657,6 +3867,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3685,6 +3896,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3713,6 +3925,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3741,6 +3954,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3769,6 +3983,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3797,6 +4012,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3825,6 +4041,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3853,6 +4070,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3881,6 +4099,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3909,6 +4128,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3937,6 +4157,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3965,6 +4186,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -3993,6 +4215,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4021,6 +4244,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4049,6 +4273,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4077,6 +4302,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4105,6 +4331,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4133,6 +4360,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4161,6 +4389,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4189,6 +4418,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4217,6 +4447,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4245,6 +4476,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4273,6 +4505,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4301,6 +4534,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4329,6 +4563,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4357,6 +4592,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4385,6 +4621,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4413,6 +4650,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4441,6 +4679,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4469,6 +4708,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4497,6 +4737,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4525,6 +4766,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4555,6 +4797,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -4599,6 +4844,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.metadata",
+        "credentials.secure"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -4638,6 +4887,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4664,6 +4914,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4690,6 +4941,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4716,6 +4968,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4746,6 +4999,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/musicDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4789,6 +5043,7 @@
       "schemas": [
         "modulo.workspace.music"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4817,6 +5072,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/musicAssetsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4845,6 +5101,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/musicProjectsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -4873,6 +5130,11 @@
       "module": "frontend/src/features/workspace/awareness/plugins.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "external-links",
         "file-download",
@@ -4907,6 +5169,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/noesisBriefPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5004,6 +5267,9 @@
         "modulo.workspace.note-tree",
         "modulo.workspace.note-tree.collapsed"
       ],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -5059,6 +5325,7 @@
       "schemas": [
         "modulo.embedded-database"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [
         "/api/property-queries"
@@ -5089,6 +5356,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/outlinePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5121,6 +5389,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paperlessPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5145,6 +5414,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paperlessActionsPlugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5174,6 +5444,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraCapturePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5217,6 +5488,7 @@
       "schemas": [
         "modulo.workspace.para"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5248,6 +5520,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5276,6 +5549,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraGoalsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5307,6 +5581,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraMigrationPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download",
         "file-picker"
@@ -5340,6 +5618,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraReviewPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5368,6 +5647,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/paraTasksPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5396,6 +5676,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -5440,6 +5723,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "pdf.tools"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -5474,6 +5761,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/personalCrmPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5516,6 +5804,7 @@
       "schemas": [
         "modulo.workspace.personal-sops"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5542,6 +5831,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/placesLibraryPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5575,6 +5865,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -5621,6 +5916,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -5675,6 +5974,9 @@
       "schemas": [
         "modulo.invoice.seller"
       ],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -5705,6 +6007,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "reminders.scheduled",
+        "notifications.local"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -5741,6 +6047,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.fetch",
+        "credentials.secure"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -5791,6 +6101,7 @@
       "schemas": [
         "modulo.workspace.routines"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5831,6 +6142,7 @@
       "schemas": [
         "modulo.saved-searches"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5857,6 +6169,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/scheduledDigestPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5887,6 +6200,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5913,6 +6227,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5939,6 +6254,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5965,6 +6281,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -5995,6 +6312,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -6039,6 +6359,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/learningPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -6087,6 +6410,7 @@
       "schemas": [
         "modulo.workspace.wardrobe"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6113,6 +6437,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/tagExplorerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6141,6 +6466,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/taxAutomationPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6167,6 +6493,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/timelinePlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6195,6 +6522,9 @@
       "module": "frontend/src/features/workspace/plugins/builtins/advancedPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -6253,6 +6583,9 @@
       "schemas": [
         "modulo.todo"
       ],
+      "capabilities": [
+        "files.save"
+      ],
       "nativeDependencies": [
         "file-download"
       ],
@@ -6286,6 +6619,11 @@
       "module": "frontend/src/features/workspace/awareness/plugins.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "external-links",
         "file-download",
@@ -6320,6 +6658,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/travelPlannerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6348,6 +6687,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/ttrpgCampaignsPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6378,6 +6718,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/ttrpgDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6421,6 +6762,7 @@
       "schemas": [
         "modulo.workspace.ttrpg"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6449,6 +6791,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/ttrpgWorldPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6475,6 +6818,11 @@
       "module": "frontend/src/features/workspace/plugins/builtins/foundationToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "external-links",
@@ -6511,6 +6859,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -6561,6 +6914,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/vulnKbPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6589,6 +6943,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/wardrobeClosetPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6618,6 +6973,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/wardrobeDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6644,6 +7000,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6670,6 +7027,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6700,6 +7058,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6726,6 +7085,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6755,6 +7115,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.fetch",
+        "links.external"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -6791,6 +7155,10 @@
       "module": "frontend/src/features/workspace/plugins/builtins/selfHostedToolPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "remote.fetch",
+        "notifications.local"
+      ],
       "nativeDependencies": [
         "desktop-native-services",
         "file-picker"
@@ -6839,6 +7207,10 @@
       "schemas": [
         "modulo.web3-identity.proof"
       ],
+      "capabilities": [
+        "files.save",
+        "links.external"
+      ],
       "nativeDependencies": [
         "clipboard",
         "external-links",
@@ -6882,6 +7254,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/webhookTriggerPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6908,6 +7281,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/wishlistPurchasesPlugin.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6948,6 +7322,7 @@
       "schemas": [
         "modulo.workspace.workout-planner"
       ],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -6976,6 +7351,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -7022,6 +7402,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -7068,6 +7453,11 @@
       "module": "frontend/src/features/workspace/workspaceTools/plugin.ts",
       "storage": [],
       "schemas": [],
+      "capabilities": [
+        "files.pick",
+        "files.save",
+        "camera.capture"
+      ],
       "nativeDependencies": [
         "camera-or-media",
         "file-download",
@@ -7116,6 +7506,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -7142,6 +7533,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -7168,6 +7560,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -7194,6 +7587,7 @@
       "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
+      "capabilities": [],
       "nativeDependencies": [],
       "backendEndpoints": [],
       "issues": {
@@ -7235,6 +7629,9 @@
       ],
       "schemas": [
         "modulo.time-entry"
+      ],
+      "capabilities": [
+        "files.save"
       ],
       "nativeDependencies": [
         "clipboard",

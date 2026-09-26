@@ -30,6 +30,7 @@ module.exports = {
       { object: 'window', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
       { object: 'globalThis', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#486).' },
       { object: 'globalThis', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
+      { object: 'window', property: 'moduloDesktop', message: 'Use desktopServices()/capabilities from @/platform (#489).' },
     ],
     // B9 boundary guard — feature-pack code must import via @modulo/core, not workspace internals.
     // Flipped to 'error' in B9 (#302) after B4–B7 cleared all violations.
@@ -63,6 +64,11 @@ module.exports = {
     ],
   },
   overrides: [
+    // The platform module is the only reader of the Electron bridge (#489).
+    {
+      files: ['src/platform/**', 'src/services/desktop.ts', 'src/types/desktop.d.ts'],
+      rules: { 'no-restricted-properties': 'off' },
+    },
     // The isolated legacy migration reader, authentication protocol state and
     // tests are the only permitted browser Storage users (#482, #486, #488).
     {

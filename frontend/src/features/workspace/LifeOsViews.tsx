@@ -24,7 +24,7 @@ import {
   ChoiceInline,
   ViewShell,
 } from './viewkit';
-import { nativeDesktop } from '@/services/desktop';
+import { desktopServices as nativeDesktop } from '@/platform';
 
 const today = () => dayKey(new Date());
 

@@ -1,3 +1,4 @@
+import { capabilityGaps, type Capability } from '@/platform';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -565,6 +566,8 @@ export function MarketplaceView() {
                     </p>
                   )}
 
+                  <PluginCapabilityGaps capabilities={plugins.manifest(detail.id)?.capabilities} />
+
                   <PluginTrustHealth id={detail.id} />
 
                   <PluginActionButton id={detail.id} full />
@@ -579,4 +582,15 @@ export function MarketplaceView() {
       {tab === 'trust' && <TrustCenterView />}
     </div>
   );
+}
+
+/** Capabilities this plugin needs that this platform provides through another route (#489). */
+function PluginCapabilityGaps({ capabilities }: { capabilities?: readonly Capability[] }) {
+  const gaps = capabilityGaps(capabilities);
+  if (!gaps.length) return null;
+  return <ul className="space-y-1 text-xs text-muted-foreground" aria-label="On this device">
+    {gaps.map(gap => <li key={gap.capability}>
+      {gap.message}{gap.issue && <> <a className="underline" href={gap.issue} target="_blank" rel="noreferrer">Tracking issue</a></>}
+    </li>)}
+  </ul>;
 }

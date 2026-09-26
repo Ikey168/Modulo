@@ -125,6 +125,7 @@ for (const plugin of CATALOG) {
     contributions,
     module: entry && existsSync(entry) ? display(entry) : null,
     storage, schemas,
+    capabilities: [...(plugin.capabilities ?? [])],
     nativeDependencies: dependencies.native,
     backendEndpoints: dependencies.backend,
     issues: {
@@ -253,6 +254,32 @@ if (process.argv.includes('--check')) {
   const problems: string[] = [];
   if (plugins.some(plugin => plugin.inventoryError)) problems.push('A plugin failed to activate during inventory.');
   if (inventory.totals.disallowedStorageReferences) problems.push(`Browser Storage used outside services/legacy and auth: ${storageReferences.filter(item => !item.allowed).map(item => `${item.file}:${item.line}`).join(', ')}`);
+  // Every device feature a plugin module uses must be covered by a capability one of its plugins declares.
+  const COVERS: Record<string, string[]> = {
+    'file-picker': ['files.pick', 'device.folders', 'documents.ocr', 'pdf.tools', 'backup.archive'],
+    'file-download': ['files.save', 'backup.archive'],
+    'camera-or-media': ['camera.capture'],
+    notifications: ['notifications.local', 'reminders.scheduled'],
+    'external-links': ['links.external'],
+    'desktop-native-services': ['remote.fetch', 'remote.metadata', 'device.folders', 'documents.ocr', 'pdf.tools', 'backup.archive', 'reminders.scheduled', 'credentials.secure'],
+    geolocation: ['location'],
+    wallet: ['links.external'],
+  };
+  const byModule = new Map<string, typeof plugins>();
+  for (const plugin of plugins) if (plugin.module) byModule.set(plugin.module, [...(byModule.get(plugin.module) ?? []), plugin]);
+  for (const [module, members] of byModule) {
+    const declared = new Set(members.flatMap(plugin => plugin.capabilities));
+    for (const need of members[0].nativeDependencies) {
+      if (COVERS[need] && !COVERS[need].some(capability => declared.has(capability))) {
+        problems.push(`${module} uses ${need} but none of its plugins declares a capability for it (pluginCapabilities.ts).`);
+      }
+    }
+    for (const plugin of members) {
+      if (plugin.nativeDependencies.some(need => COVERS[need]) && plugin.capabilities.length === 0) {
+        problems.push(`${plugin.id} uses device features but declares no capabilities (pluginCapabilities.ts).`);
+      }
+    }
+  }
   if (inventory.totals.unownedDeclaredKeys) problems.push(`Storage keys without a registered owner: ${declaredKeys.filter(item => !item.owned).map(item => item.key).join(', ')}`);
   if (!existsSync(inventoryPath) || readFileSync(inventoryPath, 'utf8') !== serialized) problems.push('docs/mobile/android-inventory.json is stale. Regenerate it with scripts/inventoryAndroid.ts.');
   if (!existsSync(matrixPath) || readFileSync(matrixPath, 'utf8') !== matrix) problems.push('docs/mobile/android-parity-matrix.md is stale. Regenerate it with scripts/inventoryAndroid.ts.');

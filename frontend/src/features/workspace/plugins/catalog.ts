@@ -160,6 +160,7 @@ import {
   WEB_WATCH_PLUGIN_ID,
 } from '../selfHostedTools';
 import type { PluginManifest, PluginModule } from './types';
+import { PLUGIN_CAPABILITIES } from './pluginCapabilities';
 import { WORKSPACE_TOOLS } from '../workspaceTools/definitions';
 
 interface Runnable {
@@ -483,6 +484,7 @@ export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {
     icon: p.icon,
     dependencies: runnable?.dependencies,
     builtin: runnable?.builtin,
+    capabilities: PLUGIN_CAPABILITIES[p.id],
     load: runnable?.load,
   };
 });

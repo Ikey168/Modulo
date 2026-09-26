@@ -1,3 +1,4 @@
+import type { Capability } from '../../../platform/capabilities';
 // Workspace plugin runtime — the contribution vocabulary and manifest shape.
 //
 // This is the finer-grained, *user-installable* layer that sits inside the
@@ -149,6 +150,8 @@ export interface PluginManifest {
   dependencies?: string[];
   /** Pre-installed on a fresh vault. */
   builtin?: boolean;
+  /** Device/service capabilities its workflows need (#489); see pluginCapabilities.ts. */
+  capabilities?: readonly Capability[];
   load?: () => Promise<PluginModule | { default: PluginModule }>;
 }
 
