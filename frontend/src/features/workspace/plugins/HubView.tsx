@@ -109,7 +109,7 @@ export function HubView({
                       'flex h-8 w-full shrink-0 items-center gap-2 rounded-md px-2 text-left text-[13px] transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       active
-                        ? 'bg-primary/10 font-medium text-primary'
+                        ? 'bg-primary/10 font-medium text-foreground [&>svg]:text-primary'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                     )}
                   >

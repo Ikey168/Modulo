@@ -209,7 +209,7 @@ export function DashboardView({ notes, installedPlugins, walletAddress, onOpenNo
                       onClick={e.onClick}
                       className="flex w-full items-baseline gap-3 rounded-sm px-2 py-1.5 text-left font-mono text-xs transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      <span className="w-14 shrink-0 text-right text-muted-foreground/70">{relativeTime(new Date(e.at).toISOString())}</span>
+                      <span className="w-14 shrink-0 text-right text-muted-foreground">{relativeTime(new Date(e.at).toISOString())}</span>
                       <span className={cn('mt-px size-1.5 shrink-0 self-center rounded-full', DOT[e.kind])} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate text-subtle-foreground">{e.text}</span>
                     </button>

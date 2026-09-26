@@ -1,4 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../../services/pluginStateClient';
+import type { LegacyStorage } from '../../../services/legacy/browserLegacyStorage';
 import { importLegacyState } from '../../../services/legacy/legacyStateImport';
 import { isRunnable, type InstalledRecord, type PluginManifest } from './types';
 import type { InstallationStorage } from './runtime';
@@ -56,7 +57,7 @@ export function installationStorage(client: PluginStateClient | undefined, catal
   };
 }
 
-export async function importWorkspacePreferences(client: PluginStateClient, storage: Storage, catalog: PluginManifest[]): Promise<void> {
+export async function importWorkspacePreferences(client: PluginStateClient, storage: LegacyStorage, catalog: PluginManifest[]): Promise<void> {
   const oldFlat = storage.getItem('modulo-plugins');
   const installedKey = storage.getItem('modulo-plugins-installed') !== null ? 'modulo-plugins-installed' : 'modulo-plugins';
   await importLegacyState(client, storage, installedKey, 'installed', INSTALLATION_SCHEMA, raw => {

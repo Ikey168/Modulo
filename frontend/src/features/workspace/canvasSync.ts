@@ -1,4 +1,5 @@
 import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
 import type { CanvasBoard, CanvasState } from './canvasStore';
 
@@ -55,7 +56,7 @@ export async function saveCanvasDiff(client: PluginStateClient, previous: Canvas
 }
 
 /** Called only after the signed-in user explicitly chooses to import browser-global legacy data. */
-export async function importLegacyCanvas(client: PluginStateClient, storage: Storage): Promise<void> {
+export async function importLegacyCanvas(client: PluginStateClient, storage: LegacyStorage): Promise<void> {
   const raw = storage.getItem(LEGACY_CANVAS_KEY);
   if (raw === null) return;
   const { source, boards } = decodeLegacyJson(LEGACY_CANVAS_KEY, raw, value => {

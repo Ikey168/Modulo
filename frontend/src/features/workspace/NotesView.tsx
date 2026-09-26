@@ -474,10 +474,10 @@ function Editor({ note, editMode, onToggleEdit, onSave, onPropertySaved, onSelec
             }}
           >
             <TabsList className="h-8 p-0.5">
-              <TabsTrigger value="edit" className="px-3 py-1 text-xs">
+              <TabsTrigger value="edit" aria-controls={undefined} className="px-3 py-1 text-xs">
                 Edit
               </TabsTrigger>
-              <TabsTrigger value="preview" className="px-3 py-1 text-xs">
+              <TabsTrigger value="preview" aria-controls={undefined} className="px-3 py-1 text-xs">
                 Preview
               </TabsTrigger>
             </TabsList>

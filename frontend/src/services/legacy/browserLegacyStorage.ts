@@ -11,6 +11,12 @@ import { Capacitor } from '@capacitor/core';
  *
  * Android never had a browser profile, so it has no legacy source.
  */
+/**
+ * The Storage interface as seen by legacy importers. Features name this type
+ * rather than `Storage`, which lint reserves for this module (#497).
+ */
+export type LegacyStorage = Storage;
+
 export function legacyBrowserStorage(): Storage | null {
   if (Capacitor.getPlatform() === 'android') return null;
   try {

@@ -19,11 +19,20 @@ export const NOTES = ['Quarterly planning', 'Meeting: infra review', 'Reading li
   updatedAt: `2026-09-${String(2 + (i % 10)).padStart(2, '0')}T10:00:00Z`,
 }));
 
-export async function openPhone({ plugins = DEFAULT_PLUGINS, fontScale = 1, notes = NOTES, links = [] } = {}) {
+export async function openPhone({ plugins = DEFAULT_PLUGINS, fontScale = 1, notes = NOTES, links = [], storageThrows = false, viewport = { width: 412, height: 883 } } = {}) {
 // PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH lets a preinstalled browser stand in for Playwright's pinned download.
 const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
-const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 412, height: 883 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport, deviceScaleFactor: 2, serviceWorkers: 'block' });
 const page = await ctx.newPage();
+if (storageThrows) {
+  // Blocked site data: every browser Storage access throws, as in a hardened browser or a
+  // WebView with DOM storage disabled. Plugins must keep working (#497).
+  await page.addInitScript(() => {
+    for (const name of ['localStorage', 'sessionStorage']) {
+      Object.defineProperty(window, name, { configurable: true, get() { throw new DOMException('Storage is disabled', 'SecurityError'); } });
+    }
+  });
+}
 if (fontScale !== 1) {
   // Android's WebView applies the system font scale as text zoom; the shell's
   // rem-based type follows the root font size, which is what this reproduces.

@@ -103,7 +103,7 @@ jobs:
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -129,6 +129,11 @@ jobs:
         working-directory: frontend
       - run: npm run phone:parity
         working-directory: frontend
+      # Plugins must keep working when browser Storage throws (#497).
+      - run: npm run phone:parity:no-storage
+        working-directory: frontend
+      - run: npm run phone:a11y
+        working-directory: frontend
       # Budgets are calibrated on the dev server with a 4x CPU throttle; report-only until
       # recalibrated on the CI runner (#492, #497).
       - run: npm run phone:perf
@@ -142,6 +147,7 @@ jobs:
             frontend/test-results/
             docs/mobile/android-parity-evidence.json
             docs/mobile/android-performance.json
+            docs/mobile/android-accessibility.json
           retention-days: 7
 
   android-debug:
@@ -178,7 +184,7 @@ jobs:
           retention-days: 7
 
   android-emulator:
-    name: Android 36 packaged-app smoke
+    name: Android 36 packaged-app journeys
     needs: android-debug
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -209,13 +215,16 @@ jobs:
             trap 'adb logcat -d -t 2000 > mobile/app/android-smoke-logcat.txt' EXIT
             adb install -r mobile/app/android/app/build/outputs/apk/debug/app-debug.apk
             npm run smoke:android --prefix mobile/app
+      # Screenshots, the step report (with cold start time) and logcat, pass or fail (#497).
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: android-smoke-logcat
-          path: mobile/app/android-smoke-logcat.txt
+          name: android-smoke
+          path: |
+            mobile/app/android-smoke/
+            mobile/app/android-smoke-logcat.txt
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 14
 
   operations:
     name: Operations checks

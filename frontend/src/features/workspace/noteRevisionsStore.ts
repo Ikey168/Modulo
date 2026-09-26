@@ -1,4 +1,5 @@
 import { legacyBrowserStorage } from '../../services/legacy/browserLegacyStorage';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import { decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PluginStateClient, StateJson, StateView } from '../../services/pluginStateClient';
@@ -41,7 +42,7 @@ async function addRevisions(client: PluginStateClient, revisions: NoteRevision[]
 }
 
 /** Move revisions saved by older builds in this browser to the server, then drop the local copy. */
-export async function importLegacyRevisions(client: PluginStateClient, storage: Storage | null = legacyBrowserStorage()): Promise<void> {
+export async function importLegacyRevisions(client: PluginStateClient, storage: LegacyStorage | null = legacyBrowserStorage()): Promise<void> {
   const raw = storage?.getItem(NOTE_REVISIONS_KEY) ?? null;
   if (!storage || raw === null) return;
   const legacy = decodeLegacyJson(NOTE_REVISIONS_KEY, raw, value => {

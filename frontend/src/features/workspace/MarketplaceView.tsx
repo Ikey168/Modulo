@@ -244,7 +244,7 @@ function CategoryItem({ label, count, active, mono, icon: Icon, depth = 0, expan
         <span className={cn('min-w-0 flex-1 truncate', mono && 'font-mono text-xs', active ? 'font-medium text-foreground' : 'text-muted-foreground')}>
           {label}
         </span>
-        <span className="shrink-0 text-xxs tabular-nums text-muted-foreground">{count}</span>
+        <span className="shrink-0 text-xxs tabular-nums text-subtle-foreground">{count}</span>
       </button>
     </div>
   );
@@ -344,9 +344,9 @@ export function MarketplaceView() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as MarketplaceTab)}>
         <TabsList variant="underline" className="mb-5">
-          <TabsTrigger value="plugins">Plugins ({plugins.installedIds.size} installed)</TabsTrigger>
-          <TabsTrigger value="packs">Packs</TabsTrigger>
-          <TabsTrigger value="trust">Trust Center</TabsTrigger>
+          <TabsTrigger value="plugins" aria-controls={undefined}>Plugins ({plugins.installedIds.size} installed)</TabsTrigger>
+          <TabsTrigger value="packs" aria-controls={undefined}>Packs</TabsTrigger>
+          <TabsTrigger value="trust" aria-controls={undefined}>Trust Center</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -502,25 +502,21 @@ export function MarketplaceView() {
             <ul className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
               {(phoneLayout ? filtered : rest).map((p) => (
                 <li key={p.id} className="border-b border-border">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setDetail(p)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setDetail(p);
-                      }
-                    }}
-                    className="group flex w-full cursor-pointer items-center gap-3.5 px-1 py-3.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring coarse:gap-3 coarse:px-0.5 coarse:active:bg-surface-2"
-                  >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-primary-hover" aria-hidden="true">
-                      <PluginIcon icon={p.icon} className="size-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-semibold text-foreground coarse:text-[15px]">{p.name}</div>
-                      <div className="mt-0.5 truncate text-xxs text-muted-foreground coarse:text-xs">{p.desc}</div>
-                    </div>
+                  {/* The row opens details; the install action beside it is its own control, never nested in another. */}
+                  <div className="group flex w-full items-center gap-3.5 px-1 py-3.5 transition-colors hover:bg-surface-2 coarse:gap-3 coarse:px-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setDetail(p)}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring coarse:gap-3 coarse:active:bg-surface-2"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-primary-hover" aria-hidden="true">
+                        <PluginIcon icon={p.icon} className="size-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-semibold text-foreground coarse:text-[15px]">{p.name}</span>
+                        <span className="mt-0.5 block truncate text-xxs text-muted-foreground coarse:text-xs">{p.desc}</span>
+                      </span>
+                    </button>
                     <PluginActionButton id={p.id} />
                   </div>
                 </li>

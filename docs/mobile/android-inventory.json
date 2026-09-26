@@ -8582,7 +8582,7 @@
     },
     {
       "file": "frontend/src/services/legacy/browserLegacyStorage.ts",
-      "line": 17,
+      "line": 23,
       "api": "localStorage",
       "allowed": true
     },

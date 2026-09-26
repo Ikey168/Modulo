@@ -187,7 +187,7 @@ function BottomNavItem({
       </span>
       {/* 12sp is Material's own bottom-navigation label; 11px reads as a
           caption under an icon rather than the name of a destination. */}
-      <span className={cn('w-full truncate text-center text-xs leading-none', active && 'font-semibold')}>
+      <span className={cn('w-full truncate text-center text-xs leading-none', active && 'font-semibold text-foreground')}>
         {label}
       </span>
     </button>

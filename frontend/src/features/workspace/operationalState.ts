@@ -1,4 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 
 export interface OperationalCollection<T extends { id: string }> {
@@ -40,7 +41,7 @@ export async function saveCollection<T extends { id: string }>(client: PluginSta
 }
 /** Explicit owner claim, stable IDs and create-only writes; preserve source until every acknowledgement. */
 export async function importCollection<T extends { id: string }>(client: PluginStateClient,
-  definition: OperationalCollection<T>, storage: Storage): Promise<void> {
+  definition: OperationalCollection<T>, storage: LegacyStorage): Promise<void> {
   const raw = storage.getItem(definition.legacyKey);
   if (raw === null) return;
   const records = decodeLegacyJson(definition.legacyKey, raw, value => validateCollection(definition, value));

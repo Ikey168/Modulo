@@ -19,7 +19,7 @@ generation).
 | Fresh device reconstructs acknowledged data | New replica with an empty queue | All records listed from the server |
 | Server outage | Edits while the server is unreachable | Queued, delivered when it returns |
 | Server restored from backup | Queued edit meets a new storage generation | Not replayed; surfaced for review with the local value kept |
-| Backup and restore for every registered schema | Full workspace backup of one record per registered schema (42), restored into a fresh account on the other platform | Identical records; a second restore writes nothing |
+| Backup and restore for every registered schema | Full workspace backup of one record for each of the 43 schemas in the storage-key registry (`legacyKeyRegistry.ts`), restored into a fresh account on the other platform | Identical records; a second restore writes nothing. The backup itself is schema-agnostic, so server-only schemas are included too |
 
 Token expiry and account switching are covered by the auth and state-host
 tests: an expired session keeps edits queued (`authService`, transport), and

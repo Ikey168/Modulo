@@ -23,6 +23,8 @@ module.exports = {
       'error',
       { name: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments; legacy reads belong in services/legacy (#486).' },
       { name: 'sessionStorage', message: 'Keep session-only state in memory; legacy reads belong in services/legacy (#486).' },
+      // Patching or reading through the prototype is the same persistence by another name (#497).
+      { name: 'Storage', message: 'Browser Storage is not a plugin persistence layer (#497).' },
     ],
     'no-restricted-properties': [
       'error',
@@ -30,7 +32,15 @@ module.exports = {
       { object: 'window', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
       { object: 'globalThis', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#486).' },
       { object: 'globalThis', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
+      { object: 'self', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#497).' },
+      { object: 'self', property: 'sessionStorage', message: 'Keep session-only state in memory (#497).' },
       { object: 'window', property: 'moduloDesktop', message: 'Use desktopServices()/capabilities from @/platform (#489).' },
+    ],
+    // Any other route to browser Storage (document.defaultView.localStorage, an iframe's window, ...).
+    'no-restricted-syntax': [
+      'error',
+      { selector: "MemberExpression[property.name=/^(localStorage|sessionStorage)$/]:not([object.name=/^(window|globalThis|self)$/])",
+        message: 'Browser Storage is not a plugin persistence layer (#497).' },
     ],
     // B9 boundary guard — feature-pack code must import via @modulo/core, not workspace internals.
     // Flipped to 'error' in B9 (#302) after B4–B7 cleared all violations.
@@ -82,7 +92,7 @@ module.exports = {
         '**/*.test.ts',
         '**/*.test.tsx',
       ],
-      rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },
+      rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off', 'no-restricted-syntax': 'off' },
     },
     // src/core/ is the implementation of @modulo/core — it legitimately imports workspaceApi.
     {

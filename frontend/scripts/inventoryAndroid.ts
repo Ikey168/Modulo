@@ -283,6 +283,18 @@ if (process.argv.includes('--check')) {
   if (inventory.totals.unownedDeclaredKeys) problems.push(`Storage keys without a registered owner: ${declaredKeys.filter(item => !item.owned).map(item => item.key).join(', ')}`);
   if (!existsSync(inventoryPath) || readFileSync(inventoryPath, 'utf8') !== serialized) problems.push('docs/mobile/android-inventory.json is stale. Regenerate it with scripts/inventoryAndroid.ts.');
   if (!existsSync(matrixPath) || readFileSync(matrixPath, 'utf8') !== matrix) problems.push('docs/mobile/android-parity-matrix.md is stale. Regenerate it with scripts/inventoryAndroid.ts.');
+  // Adding a plugin view requires phone parity evidence for it (#497): regenerate with `npm run phone:parity`.
+  const evidencePath = resolve(repository, 'docs/mobile/android-parity-evidence.json');
+  if (!existsSync(evidencePath)) problems.push('docs/mobile/android-parity-evidence.json is missing. Run npm run phone:parity.');
+  else {
+    const evidence = JSON.parse(readFileSync(evidencePath, 'utf8')) as { results: Array<{ view: string; rendered: boolean; interactive: boolean }> };
+    const checked = new Map(evidence.results.map(result => [result.view, result]));
+    const views = plugins.filter(plugin => plugin.runnable).flatMap(plugin => plugin.contributions.views);
+    const missing = views.filter(view => !checked.has(view));
+    const failing = views.filter(view => checked.has(view) && !(checked.get(view)!.rendered && checked.get(view)!.interactive));
+    if (missing.length) problems.push(`Views without phone parity evidence: ${missing.join(', ')}. Run npm run phone:parity.`);
+    if (failing.length) problems.push(`Views failing phone parity: ${failing.join(', ')}.`);
+  }
   if (problems.length) { console.error(problems.join('\n')); process.exitCode = 1; }
   else console.log(`Android inventory verified: ${inventory.totals.runnable} runnable plugins, ${inventory.totals.registeredKeys} registered keys, no disallowed Storage use.`);
 } else {

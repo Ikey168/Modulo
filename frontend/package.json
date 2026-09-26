@@ -23,6 +23,8 @@
     "phone:audit": "node scripts/phoneAudit.mjs",
     "phone:perf": "node scripts/withDevServer.mjs scripts/phonePerf.mjs",
     "phone:parity": "node scripts/withDevServer.mjs scripts/phoneParity.mjs",
+    "phone:parity:no-storage": "PHONE_STORAGE_THROWS=1 node scripts/withDevServer.mjs scripts/phoneParity.mjs",
+    "phone:a11y": "node scripts/withDevServer.mjs scripts/phoneA11y.mjs",
     "lint:ci": "node scripts/lint-ci.mjs",
     "inventory:android": "vite-node scripts/inventoryAndroid.ts",
     "inventory:android:check": "vite-node scripts/inventoryAndroid.ts --check"
@@ -106,6 +108,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.5.2",
+    "axe-core": "^4.13.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",

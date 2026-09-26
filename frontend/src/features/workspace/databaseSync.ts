@@ -1,4 +1,5 @@
 import type { Database } from './database';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
 export const DATABASE_SCHEMA = 'modulo.embedded-database';
@@ -21,7 +22,7 @@ export function validateDatabase(value: unknown): Database {
   // Preserve unknown extension fields and pre-existing cell values when a column's display type changes.
   return db;
 }
-export async function importLegacyDatabases(client: PluginStateClient, storage: Storage): Promise<void> {
+export async function importLegacyDatabases(client: PluginStateClient, storage: LegacyStorage): Promise<void> {
   const raw = storage.getItem(DATABASE_LEGACY_KEY); if (raw === null) return;
   const databases = decodeLegacyJson(DATABASE_LEGACY_KEY, raw, source => {
     if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid browser database store');

@@ -26,7 +26,9 @@ const plugins = inventory.plugins.filter((plugin) => plugin.runnable);
 const views = plugins.flatMap((plugin) => plugin.contributions.views.map((view) => ({ view, plugin })))
   .filter(({ view }) => !only.length || only.includes(view.split(':')[0]));
 
-const { browser, page, writes, errors, settle, layoutReport } = await openPhone({ plugins: plugins.map((plugin) => plugin.id) });
+// PHONE_STORAGE_THROWS=1 repeats the sweep with browser Storage blocked (#497).
+const storageThrows = process.env.PHONE_STORAGE_THROWS === '1';
+const { browser, page, writes, errors, settle, layoutReport } = await openPhone({ plugins: plugins.map((plugin) => plugin.id), storageThrows });
 const CREATE = /^(\+\s*)?(add|new|create|log|record|capture|start|track|save)\b/i;
 const SUBMIT = /^(add|save|create|log|record|submit|track|done)\b/i;
 
@@ -82,7 +84,12 @@ for (const { view, plugin } of views) {
   const text = await page.evaluate(() => document.body.innerText);
   const title = await page.evaluate(() => document.querySelector('header h1')?.textContent?.trim() ?? '');
   // An unknown view id falls back to the dashboard; that is not this view rendering.
-  const shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
+  let shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
+  if (view !== 'dashboard' && (shown === 'dashboard' || shown === '')) {
+    // The workspace may still be settling right after boot; look once more before failing.
+    await page.waitForTimeout(1500);
+    shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
+  }
   const layout = await layoutReport();
   const interactive = await page.evaluate(() => [...document.querySelectorAll('button, input, select, textarea, a[href], [role="button"], [role="tab"], [contenteditable="true"]')]
     .filter((el) => !el.closest('header, nav') && !el.disabled && el.getBoundingClientRect().width > 0).length);
@@ -111,7 +118,7 @@ const summary = {
   recordViews: results.filter((result) => result.create).length,
   persisted: results.filter((result) => result.create === 'persisted').length,
 };
-if (!only.length) {
+if (!only.length && !storageThrows) {
   writeFileSync(join(ROOT, 'docs/mobile/android-parity-evidence.json'), `${JSON.stringify({
     generatedBy: 'frontend/scripts/phoneParity.mjs',
     note: 'Phone-viewport (412x883, touch) sweep of every contributed view with the whole catalog installed against an in-memory plugin-state API. Device runs are recorded by the android-emulator CI job.',

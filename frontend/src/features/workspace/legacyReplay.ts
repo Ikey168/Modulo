@@ -1,4 +1,5 @@
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import { importLegacyState, importLegacyStateBundle } from '../../services/legacy/legacyStateImport';
 import { ownerOfLegacyKey, type LegacyKeyOwnership } from '../../services/legacy/legacyKeyRegistry';
 import { importLegacyCanvas } from './canvasSync';
@@ -35,7 +36,7 @@ function documentKey(entry: LegacyKeyOwnership, key: string): string {
  * create-only and compare against existing server records, so replaying data
  * that already arrived is a no-op and a differing server copy is reported.
  */
-export async function replayLegacyStorage(storage: Storage, targets: ReplayTargets): Promise<ReplayResult> {
+export async function replayLegacyStorage(storage: LegacyStorage, targets: ReplayTargets): Promise<ReplayResult> {
   const result: ReplayResult = { imported: [], skipped: [] };
   const keys: string[] = [];
   for (let index = 0; index < storage.length; index++) { const key = storage.key(index); if (key !== null) keys.push(key); }

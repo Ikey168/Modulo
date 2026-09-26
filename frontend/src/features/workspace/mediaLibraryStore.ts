@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PluginStateClient, StateJson, StateView } from '../../services/pluginStateClient';
 import { browserLegacyValue, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
 import { legacyBrowserStorage } from '../../services/legacy/browserLegacyStorage';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import { usePlugins } from './plugins/PluginProvider';
 import { registerWorkspaceLegacySource } from './workspaceLegacyMigration';
 import {
@@ -106,7 +107,7 @@ function legacyLibrary(): MediaLibraryData | null {
 }
 
 /** Claim browser-only media into the server without replacing items that already exist there. */
-export async function importLegacyMediaLibrary(client: PluginStateClient, storage: Storage | null = legacyBrowserStorage()): Promise<number> {
+export async function importLegacyMediaLibrary(client: PluginStateClient, storage: LegacyStorage | null = legacyBrowserStorage()): Promise<number> {
   if (!storage) return 0;
   const raw = Object.fromEntries(LEGACY_KEYS.map(key => [key, storage.getItem(key)]));
   const sourceKey = raw[MEDIA_LIBRARY_STORE_KEY] != null ? MEDIA_LIBRARY_STORE_KEY : LEGACY_MEDIA_LIBRARY_STORE_KEY;
