@@ -1,3 +1,4 @@
+import { deviceDocuments } from '../../../services/deviceDocuments';
 import {
   act,
   cleanup,
@@ -174,8 +175,8 @@ describe('note workspace reliability', () => {
         expect.objectContaining({ content: 'Do not lose this' }),
       ),
     );
-    expect(JSON.parse(localStorage.getItem(noteDraftKey(901))!).content).toBe(
-      'Do not lose this',
+    await waitFor(async () =>
+      expect(await deviceDocuments().get(noteDraftKey(901))).toMatchObject({ content: 'Do not lose this' }),
     );
     editor.rerender(<NotesView {...props} />);
     expect(screen.getByLabelText('Note content (Markdown)')).toHaveProperty(

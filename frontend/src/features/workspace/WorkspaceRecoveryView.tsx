@@ -1,31 +1,15 @@
 import { LegacyRecoveryPanel } from './LegacyRecoveryPanel';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/ui';
 import { EmptyPanel, Panel, ViewShell } from './viewkit';
 import type { WorkspaceData } from './useCoreWorkspace';
-import {
-  readRecovery,
-  recoverEntry,
-  RECOVERY_EVENT,
-  type NoteRevision,
-} from './workspaceRecovery';
-import { WORKSPACE_STORAGE_EVENT } from './workspaceStorage';
+import { readRecovery, type NoteRevision } from './workspaceRecovery';
 
 export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
-  const [revision, refresh] = useState(0);
+  const [, refresh] = useState(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  useEffect(() => {
-    const update = () => refresh((value) => value + 1);
-    for (const event of ['storage', RECOVERY_EVENT, WORKSPACE_STORAGE_EVENT])
-      window.addEventListener(event, update);
-    return () => {
-      for (const event of ['storage', RECOVERY_EVENT, WORKSPACE_STORAGE_EVENT])
-        window.removeEventListener(event, update);
-    };
-  }, []);
-  void revision;
   const history = readRecovery();
   const versions: NoteRevision[] = data.noteRevisions ?? [];
   const run = async (
@@ -50,7 +34,7 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
   return (
     <ViewShell
       title="Recovery"
-      subtitle="Trash and recent changes on this device."
+      subtitle="Trash, previous note versions and browser data migration."
     >
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -64,8 +48,7 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
       )}
       <LegacyRecoveryPanel />
       <Panel title="Trash">
-        {(data.trashedNotes?.length || 0) === 0 &&
-          !history.some((entry) => entry.deleted) && (
+        {(data.trashedNotes?.length || 0) === 0 && (
             <EmptyPanel
               title="Trash is empty"
               description="Deleted notes and records appear here."
@@ -87,35 +70,21 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
             </Button>
           </div>
         ))}
-        {history
-          .filter((entry) => entry.deleted)
-          .map((entry) => (
-            <RecoveryRow
-              key={entry.id}
-              entry={entry}
-              disabled={busy}
-              onRestore={() => void run(() => recoverEntry(entry.id))}
-            />
-          ))}
       </Panel>
-      <Panel title="Recent local edits and moves">
-        {!history.some((entry) => !entry.deleted) && (
-          <EmptyPanel
-            title="No recent changes"
-            description="Saved edits and note moves can be undone here."
-          />
-        )}
-        {history
-          .filter((entry) => !entry.deleted)
-          .map((entry) => (
-            <RecoveryRow
-              key={entry.id}
-              entry={entry}
-              disabled={busy}
-              onRestore={() => void run(() => recoverEntry(entry.id))}
-            />
-          ))}
-      </Panel>
+      {history.length > 0 && (
+        <Panel title="Older browser change journal">
+          <p className="text-sm text-muted-foreground">
+            Older builds recorded {history.length} local change{history.length === 1 ? '' : 's'} in this browser. Every store is
+            synchronized with your account now, so these entries cannot be applied; download them if you need to inspect a
+            previous value.
+          </p>
+          <Button className="mt-3" size="sm" variant="outline" onClick={() => {
+            const url = URL.createObjectURL(new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' }));
+            const link = document.createElement('a'); link.href = url; link.download = 'modulo-browser-change-journal.json'; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }}>Download change journal</Button>
+        </Panel>
+      )}
       <Panel title="Previous note versions">
         {versions.length === 0 && (
           <EmptyPanel
@@ -153,65 +122,5 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
         ))}
       </Panel>
     </ViewShell>
-  );
-}
-function RecoveryRow({
-  entry,
-  disabled,
-  onRestore,
-}: {
-  entry: ReturnType<typeof readRecovery>[number];
-  disabled: boolean;
-  onRestore: () => void;
-}) {
-  const titles = entry.changes.flatMap((change) => {
-    try {
-      const value = JSON.parse(change.before || change.after);
-      const records =
-        value && typeof value === 'object'
-          ? Object.values(value).filter(Array.isArray).flat()
-          : [];
-      const after = JSON.parse(change.after);
-      const next =
-        after && typeof after === 'object'
-          ? (Object.values(after).filter(Array.isArray).flat() as Array<{
-              id?: unknown;
-            }>)
-          : [];
-      return (records as Array<{ id?: unknown; title?: string; name?: string }>)
-        .filter(
-          (item) =>
-            item &&
-            (!entry.deleted || !next.some((record) => record?.id === item.id)),
-        )
-        .map((item) => item.title || item.name)
-        .filter(Boolean)
-        .slice(0, 3);
-    } catch {
-      return [];
-    }
-  });
-  return (
-    <div className="flex items-center gap-3 border-b border-border py-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate">
-          {titles.join(', ') ||
-            (entry.changes.some((change) => change.key === 'modulo-note-tree')
-              ? 'Note move'
-              : 'Workspace change')}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {new Date(entry.date).toLocaleString()}
-        </p>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={disabled}
-        onClick={onRestore}
-      >
-        {entry.deleted ? 'Restore' : 'Undo'}
-      </Button>
-    </div>
   );
 }

@@ -5,21 +5,10 @@ import { themes } from '../../themes/themes';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Switch, cn } from '@/ui';
 
 const Settings: React.FC = () => {
-  const { currentTheme, setTheme, isDarkMode } = useTheme();
+  const { currentTheme, setTheme, isDarkMode, followsSystem: followSystem, setFollowSystem } = useTheme();
   const radioRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const followSystem = !localStorage.getItem('modulo-theme');
-
-  const handleFollowSystemChange = (checked: boolean) => {
-    if (checked) {
-      localStorage.removeItem('modulo-theme');
-      // Trigger system preference detection
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'dark' : 'light');
-    } else {
-      setTheme(currentTheme.name);
-    }
-  };
+  const handleFollowSystemChange = (checked: boolean) => setFollowSystem(checked);
 
   const selectedIndex = themes.findIndex((t) => t.name === currentTheme.name);
 

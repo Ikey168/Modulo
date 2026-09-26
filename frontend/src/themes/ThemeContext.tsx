@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Theme, getThemeByName } from './themes';
 import { setSystemBarAppearance } from '../services/shellWindow';
+import { deviceDocuments } from '../services/deviceDocuments';
+import { claimLegacyDeviceValue } from '../services/legacy/legacyDeviceTransfer';
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -8,6 +10,9 @@ interface ThemeContextType {
   setTheme: (themeName: string) => void;
   toggleDarkMode: () => void;
   isDarkMode: boolean;
+  /** True while no explicit choice is stored on this device. */
+  followsSystem: boolean;
+  setFollowSystem: (follow: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,7 +22,9 @@ interface ThemeProviderProps {
   defaultTheme?: string;
 }
 
-const THEME_STORAGE_KEY = 'modulo-theme';
+/** Device preference: the display theme applies before sign-in, so it is not account data. */
+const THEME_DOCUMENT = 'preference.theme';
+const LEGACY_THEME_KEY = 'modulo-theme';
 
 /** Themes that render on a dark canvas. */
 const DARK_THEMES = new Set(['dark', 'bart']);
@@ -29,20 +36,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // The dark theme this app prefers — 'bart' here, not necessarily 'dark'.
   const darkDefault = DARK_THEMES.has(defaultTheme) ? defaultTheme : 'dark';
 
-  const [themeName, setThemeName] = useState<string>(() => {
-    if (typeof window === 'undefined') return defaultTheme;
-
-    // An explicit choice always wins.
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    if (savedTheme) return savedTheme;
-
-    // Otherwise the configured default, which the app sets deliberately. Only
-    // fall back to the system preference when that default is a light theme
-    // and the system asks for dark.
-    if (DARK_THEMES.has(defaultTheme)) return defaultTheme;
+  // The configured default, which the app sets deliberately. Only fall back
+  // to the system preference when that default is a light theme and the
+  // system asks for dark.
+  const systemTheme = (): string => {
+    if (typeof window === 'undefined' || DARK_THEMES.has(defaultTheme)) return defaultTheme;
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     return prefersDark ? 'dark' : defaultTheme;
-  });
+  };
+  const [themeName, setThemeName] = useState<string>(systemTheme);
+  const [explicit, setExplicit] = useState(false);
+
+  // An explicit choice stored on this device always wins once it is read.
+  useEffect(() => {
+    let active = true;
+    const documents = deviceDocuments();
+    void documents.get<string>(THEME_DOCUMENT)
+      .then(saved => saved ?? claimLegacyDeviceValue(LEGACY_THEME_KEY, THEME_DOCUMENT, documents, raw => raw || undefined))
+      .then(saved => { if (active && saved && getThemeByName(saved).name === saved) { setThemeName(saved); setExplicit(true); } })
+      .catch(() => { /* Unreadable device storage leaves the default theme in place. */ });
+    return () => { active = false; };
+  }, []);
 
   const currentTheme = getThemeByName(themeName);
   // Every dark-canvas theme, not just the one literally named "dark" — the
@@ -71,19 +85,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (!mediaQuery?.addEventListener) return;
 
     const handleChange = (event: MediaQueryListEvent) => {
-      if (localStorage.getItem(THEME_STORAGE_KEY)) return;
+      if (explicit) return;
       setThemeName(event.matches ? darkDefault : 'light');
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [darkDefault]);
+  }, [darkDefault, explicit]);
 
   const setTheme = (newThemeName: string) => {
     setThemeName(newThemeName);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(THEME_STORAGE_KEY, newThemeName);
-    }
+    setExplicit(true);
+    void deviceDocuments().set(THEME_DOCUMENT, newThemeName).catch((error) => {
+      console.error('Theme preference could not be stored on this device:', error);
+    });
+  };
+
+  const setFollowSystem = (follow: boolean) => {
+    if (!follow) { setTheme(themeName); return; }
+    setExplicit(false);
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    setThemeName(prefersDark ? darkDefault : 'light');
+    void deviceDocuments().remove(THEME_DOCUMENT).catch(() => { /* The in-memory choice still applies. */ });
   };
 
   const toggleDarkMode = () => {
@@ -98,6 +121,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     setTheme,
     toggleDarkMode,
     isDarkMode,
+    followsSystem: !explicit,
+    setFollowSystem,
   };
 
   return (

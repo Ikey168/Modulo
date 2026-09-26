@@ -1,5 +1,4 @@
 import { searchEntities, searchExcerpt } from './searchIndex';
-import { readRecovery, recoverEntry } from './workspaceRecovery';
 import { useRef, useState } from 'react';
 import {
   Button,
@@ -71,16 +70,6 @@ export function WorkspaceCommandPalette({
   const updateCapture = (next: QuickCaptureDraft) => {
     if (!setCaptureDraft(next))
       setError('Draft synchronization is unavailable. Keep this page open until the note is created.');
-  };
-  const undo = () => {
-    const latest = readRecovery()[0];
-    if (!latest) return;
-    try {
-      recoverEntry(latest.id);
-      setError('');
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not undo.');
-    }
   };
   const go = (path: string) => {
     onOpenChange(false);
@@ -194,11 +183,6 @@ export function WorkspaceCommandPalette({
             <CommandList>
               <CommandEmpty>No matches.</CommandEmpty>
               <CommandGroup heading="Actions">
-                {readRecovery().length > 0 && (
-                  <CommandItem value="undo" onSelect={undo}>
-                    Undo last local change
-                  </CommandItem>
-                )}
                 <CommandItem value="capture" onSelect={() => setCapture(true)}>
                   Quick capture a note
                 </CommandItem>

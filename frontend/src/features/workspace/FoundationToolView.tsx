@@ -63,6 +63,9 @@ import { useMediaLibraryStore } from './usePluginDataStores';
 import { dayKey } from './noteDates';
 import { isWorkspaceShortcut } from './workspaceKeyboard';
 
+/** Reminders shown in this page session; the record's Due status and log make delivery durable. */
+const firedThisSession = new Set<string>();
+
 export function FoundationToolView({ definition, workspace }: { definition: FoundationToolDefinition; workspace?: WorkspaceViewProps }) {
   const tools: Partial<Record<string, ReactNode>> = {
     [METADATA_RESOLVER_PLUGIN_ID]: <MetadataResolver definition={definition} />,
@@ -233,9 +236,9 @@ function ReminderControl({ definition }: { definition: FoundationToolDefinition 
     const today = isoDate(now);
     for (const reminder of data.records.filter((record) => record.date && !definition.config.completedStatuses.includes(record.status) && reminderReady(record, now))) {
       const key = `${reminder.id}:${reminder.recurrence === 'Once' ? reminder.date : today}`;
-      if (fired.current.has(key) || sessionStorage.getItem(`modulo-reminder-fired:${key}`)) continue;
+      if (fired.current.has(key) || firedThisSession.has(key)) continue;
       new Notification(reminder.title, { body: reminder.values.message || reminder.notes || `Due ${reminder.date}`, tag: key });
-      fired.current.add(key); sessionStorage.setItem(`modulo-reminder-fired:${key}`, '1');
+      fired.current.add(key); firedThisSession.add(key);
       persist((current) => ({ ...current, records: current.records.map((record) => record.id === reminder.id ? { ...record, status: 'Due', log: [{ id: newLifeId('log'), date: today, title: 'Desktop notification delivered' }, ...record.log] } : record) }));
     }
   }, [data.records, definition.config.completedStatuses, persist]);

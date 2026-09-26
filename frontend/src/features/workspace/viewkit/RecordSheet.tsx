@@ -9,7 +9,6 @@ import {
   DialogTitle,
   cn,
 } from '@/ui';
-import { workspaceStorageFailureRevision } from '../workspaceStorage';
 
 export interface FactProps {
   label: string;
@@ -188,14 +187,9 @@ function RecordSheetBody<T>({
     onSavingChange(true);
     setSaving(true);
     setError('');
-    const failureRevision = workspaceStorageFailureRevision();
     try {
       const result = await onSave(draft);
-      // Older screen callbacks return void after writing; honor their storage result too.
-      if (
-        result === false ||
-        workspaceStorageFailureRevision() !== failureRevision
-      ) {
+      if (result === false) {
         setError(
           'Couldn’t save changes. Your draft is still here; try saving again.',
         );

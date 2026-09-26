@@ -1,5 +1,7 @@
+import { IDBFactory } from 'fake-indexeddb';
+import { IndexedDbDeviceDocuments, setDeviceDocuments } from '../../services/deviceDocuments';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ThemeProvider, useTheme } from '../ThemeContext';
@@ -25,9 +27,13 @@ function Probe() {
   );
 }
 
+let documents: IndexedDbDeviceDocuments;
+
 describe('Bart theme', () => {
   beforeEach(() => {
     localStorage.clear();
+    documents = new IndexedDbDeviceDocuments(new IDBFactory());
+    setDeviceDocuments(documents);
     document.documentElement.removeAttribute('data-theme');
   });
 
@@ -54,14 +60,26 @@ describe('Bart theme', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('bart');
   });
 
-  it('lets an explicitly saved theme win over the default', () => {
+  it('lets a theme saved on this device win over the default', async () => {
+    await documents.set('preference.theme', 'light');
+    render(
+      <ThemeProvider defaultTheme="bart">
+        <Probe />
+      </ThemeProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('light/light'));
+  });
+
+  it('moves a theme chosen in an older build into device storage once', async () => {
     localStorage.setItem('modulo-theme', 'light');
     render(
       <ThemeProvider defaultTheme="bart">
         <Probe />
       </ThemeProvider>,
     );
-    expect(screen.getByTestId('probe')).toHaveTextContent('light/light');
+    await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('light/light'));
+    expect(localStorage.getItem('modulo-theme')).toBeNull();
+    expect(await documents.get('preference.theme')).toBe('light');
   });
 
   it('defines a token block carrying the KDE scheme colours', () => {

@@ -5,8 +5,6 @@ import { WorkspaceRecoveryView } from './WorkspaceRecoveryView';
 import { WorkspaceRecordView } from './WorkspaceRecordView';
 import { useWorkspaceIndex } from './useWorkspaceIndex';
 import { flushNoteDrafts, hasUnsavedNotes } from './noteDrafts';
-import { WORKSPACE_STORAGE_EVENT } from './workspaceStorage';
-import { WorkspaceStorageNotice } from './WorkspaceStorageNotice';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import {
@@ -263,10 +261,9 @@ function WorkspaceShell() {
     window.addEventListener('beforeunload', beforeUnload);
     window.addEventListener('online', online);
     window.addEventListener('storage', refresh);
-    window.addEventListener(WORKSPACE_STORAGE_EVENT, refresh);
     return () => {
       window.removeEventListener('keydown', keydown); window.removeEventListener('beforeunload', beforeUnload);
-      window.removeEventListener('online', online); window.removeEventListener('storage', refresh); window.removeEventListener(WORKSPACE_STORAGE_EVENT, refresh);
+      window.removeEventListener('online', online); window.removeEventListener('storage', refresh);
     };
   }, []);
   useEffect(() => {
@@ -478,7 +475,6 @@ function WorkspaceShell() {
       </aside>
 
       {/* Main */}
-      <WorkspaceStorageNotice />
       <WorkspaceCommandPalette open={commandOpen} onOpenChange={setCommandOpen} data={data} views={[...navItems, ...contributedViews.filter((item) => !navItems.some((nav) => nav.id === item.id))]} entities={entities} navigate={goTo} />
       {recordUid && <WorkspaceRecordView uid={recordUid} entities={entities} onClose={() => goTo(view)} navigate={goTo} /> }
       {/* `pb-app-bottom` is the bottom navigation plus the action button, each

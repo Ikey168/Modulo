@@ -9,12 +9,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CoreNote } from '@modulo/core';
 import { NoteDraft, noteDraftKey } from '../noteDrafts';
-import { writeWorkspaceJson } from '../workspaceStorage';
-import {
-  readRecovery,
-  recoverEntry,
-  reverseChange,
-} from '../workspaceRecovery';
+import type { DeviceDocuments } from '../../../services/deviceDocuments';
 import {
   createLifeOsBackup,
   LIFE_OS_STORE_KEY,
@@ -56,150 +51,82 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('note save queue and recovery', () => {
+class MemoryDocuments implements DeviceDocuments {
+  values = new Map<string, string>();
+  failWrites = false;
+  async get<T>(key: string) { const raw = this.values.get(key); return raw === undefined ? undefined : JSON.parse(raw) as T; }
+  async set(key: string, value: unknown) { if (this.failWrites) throw new Error('quota'); this.values.set(key, JSON.stringify(value)); }
+  async remove(key: string) { this.values.delete(key); }
+  async removeIfEqual(key: string, expected: unknown) {
+    if (this.values.get(key) !== JSON.stringify(expected)) return false;
+    this.values.delete(key); return true;
+  }
+}
+
+describe('note save queue and device drafts', () => {
   it('does not acknowledge newer text when an older save completes', async () => {
     vi.useFakeTimers();
+    const documents = new MemoryDocuments();
     let finish!: (value: boolean) => void;
     const save = vi
       .fn()
-      .mockImplementationOnce(
-        () =>
-          new Promise<boolean>((resolve) => {
-            finish = resolve;
-          }),
-      )
+      .mockImplementationOnce(() => new Promise<boolean>((resolve) => { finish = resolve; }))
       .mockResolvedValue(true);
-    const draft = new NoteDraft(
-      7,
-      { title: 'Original', content: 'Body' },
-      save,
-    );
+    const draft = new NoteDraft(7, { title: 'Original', content: 'Body' }, save, documents);
     draft.change({ content: 'First' });
     const pending = draft.flush();
     draft.change({ content: 'Second' });
     expect(draft.snapshot.status).toBe('Unsaved');
-    expect(JSON.parse(localStorage.getItem(noteDraftKey(7))!)).toMatchObject({
-      content: 'Second',
-    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(JSON.parse(documents.values.get(noteDraftKey(7))!)).toMatchObject({ content: 'Second' });
     finish(true);
     await pending;
-    expect(save.mock.calls.map(([text]) => text.content)).toEqual([
-      'First',
-      'Second',
-    ]);
+    expect(save.mock.calls.map(([text]) => text.content)).toEqual(['First', 'Second']);
     expect(draft.snapshot.status).toBe('Saved');
-    expect(localStorage.getItem(noteDraftKey(7))).toBeNull();
+    expect(documents.values.has(noteDraftKey(7))).toBe(false);
   });
   it('retains failed text across a new editor instance and retries', async () => {
-    vi.useFakeTimers();
-    const failed = new NoteDraft(
-      8,
-      { title: 'A', content: '' },
-      async () => false,
-    );
+    const documents = new MemoryDocuments();
+    const failed = new NoteDraft(8, { title: 'A', content: '' }, async () => false, documents);
     failed.change({ content: 'Recovered text' });
     await failed.flush();
     expect(failed.snapshot.status).toBe('Save failed');
     const save = vi.fn().mockResolvedValue(true);
-    const recovered = new NoteDraft(8, { title: 'A', content: '' }, save);
-    expect(recovered.snapshot.content).toBe('Recovered text');
+    const recovered = new NoteDraft(8, { title: 'A', content: '' }, save, documents);
+    await recovered.loaded;
+    expect(recovered.snapshot).toMatchObject({ content: 'Recovered text', status: 'Unsaved' });
     await recovered.flush();
-    expect(save).toHaveBeenCalledWith({
-      title: 'A',
-      content: 'Recovered text',
-    });
+    expect(save).toHaveBeenCalledWith({ title: 'A', content: 'Recovered text' });
   });
   it('keeps an independent tab draft when this tab finishes saving', async () => {
-    vi.useFakeTimers();
+    const documents = new MemoryDocuments();
     let finish!: (value: boolean) => void;
-    const draft = new NoteDraft(
-      7,
-      { title: 'A', content: '' },
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-    );
+    const draft = new NoteDraft(7, { title: 'A', content: '' }, () => new Promise((resolve) => { finish = resolve; }), documents);
     draft.change({ content: 'This tab' });
     const pending = draft.flush();
-    localStorage.setItem(
-      noteDraftKey(7),
-      JSON.stringify({ title: 'A', content: 'Other tab' }),
-    );
+    await Promise.resolve();
+    await documents.set(noteDraftKey(7), { title: 'A', content: 'Other tab' });
     finish(true);
     await pending;
-    expect(localStorage.getItem(noteDraftKey(7))).toContain('Other tab');
+    expect(documents.values.get(noteDraftKey(7))).toContain('Other tab');
   });
-  it('can save remotely even when draft persistence fails', async () => {
-    vi.useFakeTimers();
-    const draft = new NoteDraft(
-      7,
-      { title: 'A', content: '' },
-      async () => true,
-    );
-    const storage = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('quota');
-      });
+  it('reports a draft that device storage could not keep and still saves remotely', async () => {
+    const documents = new MemoryDocuments();
+    documents.failWrites = true;
+    const draft = new NoteDraft(7, { title: 'A', content: '' }, async () => true, documents);
     draft.change({ content: 'Keep me' });
-    expect(draft.snapshot.local).toBe(false);
-    storage.mockRestore();
+    await vi.waitFor(() => expect(draft.snapshot.local).toBe(false));
     await draft.flush();
     expect(draft.snapshot.status).toBe('Saved');
   });
-});
-
-describe('local change recovery', () => {
-  it('restores a deleted record and its links while preserving a later unrelated edit', async () => {
-    const records = {
-      records: [
-        { id: 'a', title: 'Deleted' },
-        { id: 'b', title: 'Other' },
-      ],
-    };
-    localStorage.setItem('records', JSON.stringify(records));
-    localStorage.setItem(
-      'links',
-      JSON.stringify({ relations: [{ id: 'link', fromUid: 'a', toUid: 'b' }] }),
-    );
-    writeWorkspaceJson('records', { records: [records.records[1]] });
-    writeWorkspaceJson('links', { relations: [] });
-    const deletion = readRecovery()[0];
-    expect(deletion.deleted).toBe(true);
-    await Promise.resolve();
-    writeWorkspaceJson('records', { records: [{ id: 'b', title: 'Later' }] });
-    recoverEntry(deletion.id);
-    expect(JSON.parse(localStorage.getItem('records')!).records).toEqual(
-      expect.arrayContaining([
-        { id: 'a', title: 'Deleted' },
-        { id: 'b', title: 'Later' },
-      ]),
-    );
-    expect(localStorage.getItem('links')).toContain('link');
-  });
-  it('refuses to overwrite a conflicting later edit', () => {
-    expect(() =>
-      reverseChange(
-        { title: 'Before' },
-        { title: 'After' },
-        { title: 'Newer' },
-      ),
-    ).toThrow(/changed again/);
-  });
-  it('does not change the collection when journaling runs out of space', () => {
-    localStorage.setItem('records', JSON.stringify({ records: [{ id: 'a' }] }));
-    const original = Storage.prototype.setItem;
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
-      this: Storage,
-      key,
-      value,
-    ) {
-      if (key === 'modulo-workspace-recovery-v1') throw new Error('quota');
-      original.call(this, key, value);
-    });
-    expect(writeWorkspaceJson('records', { records: [] })).toBe(false);
-    expect(localStorage.getItem('records')).toContain('a');
+  it('moves an older browser-profile draft into device storage once', async () => {
+    const documents = new MemoryDocuments();
+    localStorage.setItem(noteDraftKey(9), JSON.stringify({ title: 'Old', content: 'From an older build' }));
+    const draft = new NoteDraft(9, { title: 'Old', content: '' }, async () => true, documents);
+    await draft.loaded;
+    expect(draft.snapshot).toMatchObject({ content: 'From an older build', status: 'Unsaved' });
+    expect(localStorage.getItem(noteDraftKey(9))).toBeNull();
+    expect(documents.values.get(noteDraftKey(9))).toContain('From an older build');
   });
 });
 

@@ -116,8 +116,8 @@ export const LEGACY_KEY_REGISTRY: readonly LegacyKeyOwnership[] = [
     issue: 'P08', note: 'Unsaved editor text; moved to the account-partitioned device draft store and cleared once the server accepts the save.' },
   { key: 'modulo-workspace-recovery-v1', owner: 'workspace', kind: 'recovery', disposition: 'retired', storage: 'localStorage', issue: 'P08',
     note: 'Journal of browser-local store writes. Server CAS history and the legacy recovery store replace it; kept readable for export only.' },
-  { key: 'modulo-theme', owner: 'workspace', kind: 'preference', disposition: 'migrate', storage: 'localStorage', scope: 'plugin',
-    destination: { namespace: 'workspace-settings', key: 'theme', schemaId: 'modulo.workspace.theme' }, issue: 'P08' },
+  { key: 'modulo-theme', owner: 'workspace', kind: 'preference', disposition: 'transfer', storage: 'localStorage', scope: 'device',
+    issue: 'P08', note: 'Display theme applies before sign-in, so it is a device preference in device storage, not account data.' },
   { key: 'modulo:audit-onboarding-events:v1', owner: 'audit-pack', kind: 'diagnostic', disposition: 'transient', storage: 'sessionStorage',
     issue: 'P08', note: 'Onboarding funnel diagnostics; kept in memory for the session only.' },
 

@@ -1,12 +1,15 @@
 import { authService } from '../auth/authService';
 import type { CoreNote } from '@modulo/core';
-import { writeWorkspaceJson } from './workspaceStorage';
+import { deviceDocuments } from '../../services/deviceDocuments';
+import { claimLegacyDraft } from '../../services/legacy/legacyDeviceTransfer';
 
 export type NoteText = { title: string; content: string };
 export type DraftSnapshot = NoteText & {
   status: 'Saved' | 'Unsaved' | 'Saving…' | 'Save failed';
+  /** False when the unsaved text could not be committed to device storage. */
   local: boolean;
 };
+/** Account-scoped so another account on this device never sees or replays the draft. */
 export const noteDraftKey = (id: number) => {
   const session = authService.stateSession?.();
   return session ? `modulo-note-draft-${JSON.stringify([session.issuer, session.subject])}:${id}` : `modulo-note-draft-${id}`;
@@ -18,40 +21,46 @@ export const noteText = (note: CoreNote): NoteText => ({
 const same = (a: NoteText, b: NoteText) =>
   a.title === b.title && a.content === b.content;
 
-/** A single queue per note survives editor navigation and never acknowledges newer text. */
+/**
+ * A single queue per note survives editor navigation and never acknowledges
+ * newer text. Unsaved text is committed to device storage (IndexedDB, or
+ * SQLite on Android) until the server accepts the save.
+ */
 export class NoteDraft {
   snapshot: DraftSnapshot;
+  /** Resolves when any draft recovered from device storage has been applied. */
+  readonly loaded: Promise<void>;
   private saved: NoteText;
   private readonly storageKey: string;
   private listeners = new Set<() => void>();
   private timer?: ReturnType<typeof setTimeout>;
   private pending?: Promise<void>;
+  private writes: Promise<void> = Promise.resolve();
+  private edited = false;
   save: (text: NoteText) => Promise<boolean | void>;
   constructor(
     readonly id: number,
     initial: NoteText,
     save: NoteDraft['save'],
+    private readonly documents = deviceDocuments(),
   ) {
     this.storageKey = noteDraftKey(id);
     this.saved = initial;
     this.save = save;
-    let recovered = initial;
+    this.snapshot = { ...initial, status: 'Saved', local: true };
+    this.loaded = this.recover();
+  }
+  private async recover(): Promise<void> {
+    let recovered: NoteText | undefined;
     try {
-      const raw = JSON.parse(localStorage.getItem(this.storageKey) || 'null');
-      if (
-        raw &&
-        typeof raw.title === 'string' &&
-        typeof raw.content === 'string'
-      )
-        recovered = raw;
+      recovered = await this.documents.get<NoteText>(this.storageKey)
+        ?? await claimLegacyDraft(this.storageKey, this.documents);
     } catch {
-      /* An unreadable draft must not prevent opening the server copy. */
+      return; // An unreadable draft must not prevent opening the server copy.
     }
-    this.snapshot = {
-      ...recovered,
-      status: same(recovered, initial) ? 'Saved' : 'Unsaved',
-      local: true,
-    };
+    if (!recovered || typeof recovered.title !== 'string' || typeof recovered.content !== 'string') return;
+    if (this.edited || same(recovered, this.saved)) return;
+    this.publish({ title: recovered.title, content: recovered.content, status: 'Unsaved' });
   }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -66,13 +75,16 @@ export class NoteDraft {
   }
   change(patch: Partial<NoteText>) {
     if (this.storageKey !== noteDraftKey(this.id)) return;
+    this.edited = true;
     const text = {
       title: this.snapshot.title,
       content: this.snapshot.content,
       ...patch,
     };
-    const local = writeWorkspaceJson(this.storageKey, text);
-    this.publish({ ...text, local, status: 'Unsaved' });
+    this.publish({ ...text, status: 'Unsaved' });
+    this.writes = this.writes.then(() => this.documents.set(this.storageKey, text))
+      .then(() => { if (same(this.snapshot, text)) this.publish({ local: true }); },
+        () => { if (same(this.snapshot, text)) this.publish({ local: false }); });
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       void this.flush();
@@ -118,16 +130,9 @@ export class NoteDraft {
           throw new Error('Save failed');
         this.saved = text;
         if (same(this.snapshot, text)) {
-          // Another tab may have saved its own draft in the meantime.
-          try {
-            if (
-              localStorage.getItem(this.storageKey) ===
-              JSON.stringify(text)
-            )
-              localStorage.removeItem(this.storageKey);
-          } catch {
-            /* The server save succeeded even if local cleanup is unavailable. */
-          }
+          // Another tab may have stored its own newer draft in the meantime; only this text is cleared.
+          await this.writes;
+          await this.documents.removeIfEqual(this.storageKey, text).catch(() => false);
           this.publish({ status: 'Saved', local: true });
         }
       } catch {

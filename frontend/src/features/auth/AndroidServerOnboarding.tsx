@@ -1,3 +1,4 @@
+import { deviceDocuments } from '../../services/deviceDocuments';
 import { useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ModuloMark } from '../home/brand';
@@ -58,13 +59,9 @@ export function renderAndroidServerOnboarding(saved: string | null): void {
   // it was drawing on the bare :root tokens — the emerald palette — while the
   // rest of the app, its splash and its launcher icon are Bart orange. The
   // first screen of the app should not be the only one in a different theme.
-  const saved_theme = (() => {
-    try {
-      return localStorage.getItem('modulo-theme');
-    } catch {
-      return null;
-    }
-  })();
-  document.documentElement.setAttribute('data-theme', saved_theme || 'bart');
+  document.documentElement.setAttribute('data-theme', 'bart');
+  void deviceDocuments().get<string>('preference.theme').then((theme) => {
+    if (theme) document.documentElement.setAttribute('data-theme', theme);
+  }).catch(() => { /* Keep the default theme when device storage is unavailable. */ });
   createRoot(document.getElementById('root')!).render(<AndroidServerOnboarding saved={saved} />);
 }
