@@ -86,9 +86,10 @@ for (const { view, plugin } of views) {
   const title = await page.evaluate(() => document.querySelector('header h1')?.textContent?.trim() ?? '');
   // An unknown view id falls back to the dashboard; that is not this view rendering.
   let shown = await page.evaluate(() => document.querySelector('[data-view]')?.getAttribute('data-view') ?? '');
-  if (view !== 'dashboard' && (shown === 'dashboard' || shown === '')) {
-    // The workspace may still be settling right after boot and drop the first
-    // navigation; open the view once more before failing.
+  // The workspace may still be settling right after boot and drop the first
+  // navigation (slow CI runners take several seconds); re-open the view for a
+  // bounded time before failing.
+  for (let attempt = 0; attempt < 6 && view !== 'dashboard' && (shown === 'dashboard' || shown === ''); attempt += 1) {
     await page.waitForTimeout(1500);
     await open();
     await settle(400);
