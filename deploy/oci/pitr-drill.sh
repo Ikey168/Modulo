@@ -53,7 +53,14 @@ status=failed
 finish() {
   rc=$?
   trap - EXIT
+  if (( rc )) && docker inspect "$container_name" >/dev/null 2>&1; then
+    docker logs "$container_name" >&2 || true
+  fi
   docker rm -f "$container_name" >/dev/null 2>&1 || true
+  if [[ -d $tmp_dir ]] && command -v docker >/dev/null 2>&1 && docker image inspect "${postgres_image:-pgvector/pgvector:pg16}" >/dev/null 2>&1; then
+    docker run --rm --user 0 --volume "$tmp_dir:/restore" \
+      "${postgres_image:-pgvector/pgvector:pg16}" chmod -R 0777 /restore >/dev/null 2>&1 || true
+  fi
   rm -rf -- "$tmp_dir"
   if [[ -n $report_path ]]; then
     report_tmp=$(mktemp "${report_path}.tmp.XXXXXX")
@@ -101,7 +108,7 @@ docker run --rm --user 0 \
   '
 
 postgres_user=${POSTGRES_USER:-modulo}
-docker run --detach --rm --name "$container_name" --network none \
+docker run --detach --name "$container_name" --network none --user 999 \
   --group-add "${MODULO_WAL_GID:-1001}" \
   --env POSTGRES_USER="$postgres_user" \
   --env POSTGRES_PASSWORD=pitr-drill \
