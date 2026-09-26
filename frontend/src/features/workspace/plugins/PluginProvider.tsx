@@ -20,6 +20,8 @@ import webSocketService from '../../../services/websocket';
 export interface PluginsApi {
   state: (id: string) => Promise<PluginStateClient>;
   workspaceState: (namespace: string) => Promise<PluginStateClient>;
+  /** Any of the account's namespaces by its server name, for full-workspace backup and restore (#496). */
+  backupState: (namespace: string) => Promise<PluginStateClient>;
   stateSessionKey: string;
   preferences?: PluginStateClient;
   /** True once the initial activation of installed plugins has finished. */
@@ -140,6 +142,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PluginsApi>(
     () => ({
       state: (id) => runtime.state(id),
+      backupState: (namespace) => {
+        if (!stateHost?.sessionKey) return Promise.reject(new Error('Workspace synchronization is unavailable'));
+        if (!/^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$/.test(namespace) || namespace === 'core' || namespace.startsWith('core.')) {
+          return Promise.reject(new Error('Invalid workspace state namespace'));
+        }
+        return stateHost.open(namespace);
+      },
       workspaceState: (namespace) => {
         if (!stateHost?.sessionKey) return Promise.reject(new Error('Workspace synchronization is unavailable'));
         if (!/^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,117}$/.test(namespace)) return Promise.reject(new Error('Invalid workspace state namespace'));

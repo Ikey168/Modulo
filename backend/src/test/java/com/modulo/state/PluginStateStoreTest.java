@@ -251,4 +251,17 @@ class PluginStateStoreTest {
     private void assertStatus(HttpStatus expected, Runnable action) {
         assertEquals(expected, assertThrows(ResponseStatusException.class, action::run).getStatus());
     }
+
+    @Test void listsOnlyTheOwnersLiveNamespacesForBackup() {
+        store.put("personal", "canvas", "a", 0, "test", 1, "{}");
+        store.put("personal", "canvas", "b", 0, "test", 1, "{}");
+        var gone = store.put("personal", "other", "c", 0, "test", 1, "{}");
+        store.delete("personal", "other", "c", gone.version());
+        owner.set(2L);
+        store.put("personal", "other", "d", 0, "test", 1, "{}");
+        owner.set(1L);
+        assertEquals(List.of(new PluginStateStore.NamespaceSummary("canvas", 2)), store.namespaces("personal"));
+        var refused = assertThrows(ResponseStatusException.class, () -> store.namespaces("team"));
+        assertEquals(HttpStatus.NOT_FOUND, refused.getStatus());
+    }
 }

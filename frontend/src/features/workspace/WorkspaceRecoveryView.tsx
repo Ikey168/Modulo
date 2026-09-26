@@ -1,4 +1,5 @@
 import { LegacyRecoveryPanel } from './LegacyRecoveryPanel';
+import { FullBackupPanel } from './FullBackupPanel';
 import { useState } from 'react';
 import { Button } from '@/ui';
 import { EmptyPanel, Panel, ViewShell } from './viewkit';
@@ -46,6 +47,7 @@ export function WorkspaceRecoveryView({ data }: { data: WorkspaceData }) {
           {message}
         </p>
       )}
+      <FullBackupPanel />
       <LegacyRecoveryPanel />
       <Panel title="Trash">
         {(data.trashedNotes?.length || 0) === 0 && (

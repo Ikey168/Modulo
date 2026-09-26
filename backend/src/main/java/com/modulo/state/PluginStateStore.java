@@ -194,6 +194,26 @@ public class PluginStateStore {
     return new Page(records, more ? records.get(records.size() - 1).key() : null);
   }
 
+  public record NamespaceSummary(String namespace, long records) {}
+
+  /**
+   * The signed-in owner's non-empty namespaces, so a full backup can enumerate
+   * everything the account holds (#496). Host API only: external workloads are
+   * scoped to single namespaces and never see this list.
+   */
+  public List<NamespaceSummary> namespaces(String workspace) {
+    if (access != null) throw error(HttpStatus.FORBIDDEN, "STATE_NAMESPACE_LIST_FORBIDDEN");
+    long owner = users.requireUserId();
+    segment(workspace);
+    if (!"personal".equals(workspace)) throw error(HttpStatus.NOT_FOUND, "STATE_NAMESPACE_NOT_AVAILABLE");
+    return jdbc.query(
+        "SELECT namespace, COUNT(*) FROM plugin_state WHERE owner_id=? AND workspace_id=? AND NOT deleted"
+            + " AND namespace <> 'core' AND namespace NOT LIKE 'core.%' GROUP BY namespace ORDER BY namespace",
+        (rs, n) -> new NamespaceSummary(rs.getString(1), rs.getLong(2)),
+        owner,
+        workspace);
+  }
+
   public List<Change> changes(String workspace, String namespace, long after, int limit) {
     long owner = scope(workspace, namespace, null);
     if (after < 0 || limit < 1 || limit > 200)
