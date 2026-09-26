@@ -3,6 +3,8 @@ import { nativeStateCache } from './services/nativeStateCacheBridge';
 import { configureAndroidServer } from './services/androidServer';
 import { startMobileViewport } from './services/mobileViewport';
 import { outdatedWebView, renderWebViewUpdateRequired } from './services/androidWebView';
+import { nativeShareBridge } from './services/androidShare';
+import { DOWNLOAD_EVENT, installAndroidDownloads } from './services/androidDownloads';
 import './styles/index.css';
 
 // Publish platform + viewport state before the first paint so the shell, the
@@ -19,6 +21,9 @@ async function bootstrap() {
     renderWebViewUpdateRequired(outdated, document.getElementById('root')!);
     return;
   }
+  // `<a download>` does nothing in the WebView; route exports to the system save dialog.
+  const share = nativeShareBridge();
+  if (share) installAndroidDownloads(share, outcome => window.dispatchEvent(new CustomEvent(DOWNLOAD_EVENT, { detail: outcome })));
   let saved: string | null = null;
   try {
     saved = (await nativeStateCache.server()).origin;

@@ -34,9 +34,9 @@ export function TagExplorerView({ notes, tags = [], onOpenNote }: TagExplorerVie
     });
 
   return (
-    <div className="flex flex-1 animate-fade-in overflow-hidden bg-background">
+    <div className="flex min-w-0 flex-1 animate-fade-in flex-col overflow-hidden bg-background md:flex-row">
       {/* Tag tree */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border">
+      <aside className="flex max-h-[40%] w-full shrink-0 flex-col border-b border-border md:max-h-none md:w-60 md:border-b-0 md:border-r">
         <header className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border px-3">
           <Tags className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <span className="text-sm font-medium">Tags</span>

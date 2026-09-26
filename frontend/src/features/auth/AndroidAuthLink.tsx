@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAppDispatch } from '../../store/store';
 import { setCredentials, setError } from './authSlice';
 import { authService } from './authService';
+import { appRouteFromUrl } from '../../services/androidLifecycle';
 
 /** Completes the system-browser OIDC login when Android returns through com.modulo:/oauth2redirect. */
 export function AndroidAuthLink() {
@@ -17,6 +18,8 @@ export function AndroidAuthLink() {
     let working = false;
     const seen = new Set<string>();
     const accept = async (url: string) => {
+      const route = appRouteFromUrl(url);
+      if (route) { if (!disposed) navigate(route); return; }
       let callback: URL;
       try { callback = new URL(url); } catch { return; }
       const privateCallback = callback.protocol === 'com.modulo:' && !callback.hostname &&

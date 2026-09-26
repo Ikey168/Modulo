@@ -42,6 +42,24 @@ CI runs `npm run inventory:android:check --workspace=frontend`. It fails when:
 - Authentication protocol state (OIDC transaction state, return paths) is not
   plugin data and is owned by #488.
 
+## Phone parity evidence
+
+`frontend/scripts/phoneParity.mjs` installs the whole catalog in a
+Pixel-class touch viewport (412x883) against an in-memory plugin-state API and
+opens every contributed view by client-side navigation. For each view it
+records whether the view itself rendered (not the dashboard fallback or an
+install prompt), without page errors or horizontal overflow, and whether it
+offers an enabled control. For plugins with registered record schemas it also
+taps the view's primary create control and records whether the edit reached the
+plugin-state API. Results are in `android-parity-evidence.json`.
+
+This is browser evidence at phone size, not device evidence: it does not prove
+WebView-specific behaviour, native plugins or performance. Device runs belong to
+the `android-emulator` CI job and the release checklist (#497, #498). The
+automatic create probe recognizes common "Add/New/Create" controls only; views
+reported as `no-create-control` or `no-write` need their workflow checked by
+hand or by a view-specific test before parity is claimed.
+
 ## Reconciliation with the working tree
 
 The epic was written against a desktop working tree that was not on `main`.

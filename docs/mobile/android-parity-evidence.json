@@ -1,0 +1,2154 @@
+{
+  "generatedBy": "frontend/scripts/phoneParity.mjs",
+  "note": "Phone-viewport (412x883, touch) sweep of every contributed view with the whole catalog installed against an in-memory plugin-state API. Device runs are recorded by the android-emulator CI job.",
+  "summary": {
+    "views": 206,
+    "failed": 0,
+    "recordViews": 33,
+    "persisted": 9
+  },
+  "results": [
+    {
+      "view": "audit-core-browser",
+      "plugin": "audit-core-browser",
+      "rendered": true,
+      "title": "Core Browser",
+      "shown": "audit-core-browser",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-findings",
+      "plugin": "audit-core-findings",
+      "rendered": true,
+      "title": "Output Findings",
+      "shown": "audit-core-findings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-overview",
+      "plugin": "audit-core-overview",
+      "rendered": true,
+      "title": "Phases",
+      "shown": "audit-core-overview",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-remediation",
+      "plugin": "audit-core-remediation",
+      "rendered": true,
+      "title": "Remediation",
+      "shown": "audit-core-remediation",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-report",
+      "plugin": "audit-core-report",
+      "rendered": true,
+      "title": "Generated Report",
+      "shown": "audit-core-report",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-scope",
+      "plugin": "audit-core-scope",
+      "rendered": true,
+      "title": "Scope",
+      "shown": "audit-core-scope",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-tests",
+      "plugin": "audit-core-tests",
+      "rendered": true,
+      "title": "Tests & Exploits",
+      "shown": "audit-core-tests",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-core-threats",
+      "plugin": "audit-core-threats",
+      "rendered": true,
+      "title": "Threats",
+      "shown": "audit-core-threats",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "audit-reports",
+      "plugin": "audit-reports",
+      "rendered": true,
+      "title": "Report Builder",
+      "shown": "audit-reports",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "bookmark-read-later",
+      "plugin": "bookmark-read-later",
+      "rendered": true,
+      "title": "Bookmarks & Read Later",
+      "shown": "bookmark-read-later",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "business-contracts",
+      "plugin": "business-contracts",
+      "rendered": true,
+      "title": "Contracts",
+      "shown": "business-contracts",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "business-dashboard",
+      "plugin": "business-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "business-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "business-directory",
+      "plugin": "business-directory",
+      "rendered": true,
+      "title": "Directory",
+      "shown": "business-directory",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "business-obligations",
+      "plugin": "business-obligations",
+      "rendered": true,
+      "title": "Obligations",
+      "shown": "business-obligations",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "business-operations",
+      "plugin": "business-operations",
+      "rendered": true,
+      "title": "Operations",
+      "shown": "business-operations",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "business-reconciliation",
+      "plugin": "business-reconciliation",
+      "rendered": true,
+      "title": "Reconciliation",
+      "shown": "business-reconciliation",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "caldav-sync",
+      "plugin": "caldav-sync",
+      "rendered": true,
+      "title": "CalDAV Sync",
+      "shown": "caldav-sync",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "calendar",
+      "plugin": "calendar-view",
+      "rendered": true,
+      "title": "Calendar",
+      "shown": "planner",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "canvas",
+      "plugin": "canvas-board",
+      "rendered": true,
+      "title": "Canvas",
+      "shown": "canvas",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "career-dashboard",
+      "plugin": "career-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "career-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "career-development",
+      "plugin": "career-development",
+      "rendered": true,
+      "title": "Development",
+      "shown": "career-development",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "career-opportunities",
+      "plugin": "career-opportunities",
+      "rendered": true,
+      "title": "Opportunities",
+      "shown": "career-opportunities",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "career-portfolio",
+      "plugin": "career-portfolio",
+      "rendered": true,
+      "title": "Portfolio",
+      "shown": "career-portfolio",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "citation-manager",
+      "plugin": "citation-manager",
+      "rendered": true,
+      "title": "Citation Manager",
+      "shown": "citation-manager",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "daily-briefing",
+      "plugin": "daily-briefing",
+      "rendered": true,
+      "title": "Daily Briefing",
+      "shown": "daily-briefing",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "planner",
+      "plugin": "daily-notes",
+      "rendered": true,
+      "title": "Planner & Calendar",
+      "shown": "planner",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "decision-journal",
+      "plugin": "decision-journal",
+      "rendered": true,
+      "title": "Decision Journal",
+      "shown": "decision-journal",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "document-inbox-ocr",
+      "plugin": "document-inbox-ocr",
+      "rendered": true,
+      "title": "Document Inbox & OCR",
+      "shown": "document-inbox-ocr",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "education-assignments",
+      "plugin": "education-assignments",
+      "rendered": true,
+      "title": "Assignments",
+      "shown": "education-assignments",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "education-core",
+      "plugin": "education-core",
+      "rendered": true,
+      "title": "Learning",
+      "shown": "education-core",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add course",
+      "namespaces": [
+        "workspace-education"
+      ]
+    },
+    {
+      "view": "education-curriculum",
+      "plugin": "education-curriculum",
+      "rendered": true,
+      "title": "Curriculum",
+      "shown": "education-curriculum",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "education-dashboard",
+      "plugin": "education-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "education-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "education-study",
+      "plugin": "education-study",
+      "rendered": true,
+      "title": "Study",
+      "shown": "education-study",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "electronics-dashboard",
+      "plugin": "electronics-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "electronics-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "electronics-lab",
+      "plugin": "electronics-lab",
+      "rendered": true,
+      "title": "Build & Test",
+      "shown": "electronics-lab",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "electronics-parts",
+      "plugin": "electronics-parts",
+      "rendered": true,
+      "title": "Parts & BOM",
+      "shown": "electronics-parts",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "electronics-projects",
+      "plugin": "electronics-projects",
+      "rendered": true,
+      "title": "Projects",
+      "shown": "electronics-projects",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "books",
+      "plugin": "euer-datev",
+      "rendered": true,
+      "title": "Books",
+      "shown": "books",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-write",
+      "control": "Add",
+      "namespaces": []
+    },
+    {
+      "view": "evidence-claims",
+      "plugin": "evidence-claims",
+      "rendered": true,
+      "title": "Claims",
+      "shown": "evidence-claims",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "evidence-dashboard",
+      "plugin": "evidence-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "evidence-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "evidence-library",
+      "plugin": "evidence-library",
+      "rendered": true,
+      "title": "Sources",
+      "shown": "evidence-library",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "evidence-reproducibility",
+      "plugin": "evidence-reproducibility",
+      "rendered": true,
+      "title": "Reproducibility",
+      "shown": "evidence-reproducibility",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "executable-runbooks",
+      "plugin": "executable-runbooks",
+      "rendered": true,
+      "title": "Executable Runbooks",
+      "shown": "executable-runbooks",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "feeds-reading-inbox",
+      "plugin": "feeds-reading-inbox",
+      "rendered": true,
+      "title": "Feeds & Reading Inbox",
+      "shown": "feeds-reading-inbox",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "finance-subscriptions",
+      "plugin": "finance-subscriptions",
+      "rendered": true,
+      "title": "Finance",
+      "shown": "finance-subscriptions",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "findings",
+      "plugin": "findings-tracker",
+      "rendered": true,
+      "title": "Finding Tracker",
+      "shown": "findings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "flashcards-spaced-repetition",
+      "plugin": "flashcards-spaced-repetition",
+      "rendered": true,
+      "title": "Flashcards & Spaced Repetition",
+      "shown": "flashcards-spaced-repetition",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-write",
+      "control": "Create from a note",
+      "namespaces": []
+    },
+    {
+      "view": "focus",
+      "plugin": "focus",
+      "rendered": true,
+      "title": "Focus",
+      "shown": "focus",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-write",
+      "control": "Start",
+      "namespaces": []
+    },
+    {
+      "view": "github-sync",
+      "plugin": "github-sync",
+      "rendered": true,
+      "title": "GitHub Sync",
+      "shown": "github-sync",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "vault",
+      "plugin": "gobd-vault",
+      "rendered": true,
+      "title": "Vault",
+      "shown": "vault",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "graph-stats",
+      "plugin": "graph-stats",
+      "rendered": true,
+      "title": "Graph Analytics",
+      "shown": "graph-stats",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "graph",
+      "plugin": "graph-view",
+      "rendered": true,
+      "title": "Graph",
+      "shown": "graph",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "health-tracker",
+      "plugin": "health-tracker",
+      "rendered": true,
+      "title": "Health",
+      "shown": "health-tracker",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "hobby-dashboard",
+      "plugin": "hobby-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "hobby-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "hobby-fun",
+      "plugin": "hobby-fun",
+      "rendered": true,
+      "title": "Fun Menu",
+      "shown": "hobby-fun",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "hobby-practice",
+      "plugin": "hobby-practice",
+      "rendered": true,
+      "title": "Practice & Artifacts",
+      "shown": "hobby-practice",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "hobby-stack",
+      "plugin": "hobby-stack",
+      "rendered": true,
+      "title": "Stack",
+      "shown": "hobby-stack",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "hobby-studio",
+      "plugin": "hobby-studio",
+      "rendered": true,
+      "title": "Hobbies",
+      "shown": "hobby-studio",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "home-inventory",
+      "plugin": "home-inventory",
+      "rendered": true,
+      "title": "Inventory",
+      "shown": "home-inventory",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "home-maintenance",
+      "plugin": "home-maintenance",
+      "rendered": true,
+      "title": "Home",
+      "shown": "home-maintenance",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "homelab-assets",
+      "plugin": "homelab-assets",
+      "rendered": true,
+      "title": "Infrastructure",
+      "shown": "homelab-assets",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "homelab-dashboard",
+      "plugin": "homelab-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "homelab-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "homelab-operations",
+      "plugin": "homelab-operations",
+      "rendered": true,
+      "title": "Operations",
+      "shown": "homelab-operations",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "information-intake",
+      "plugin": "information-intake",
+      "rendered": true,
+      "title": "Information Intake",
+      "shown": "information-intake",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Start Exploration",
+      "namespaces": [
+        "/api/integrations/noesis/intake/call",
+        "information-intake"
+      ]
+    },
+    {
+      "view": "journal-reflection",
+      "plugin": "journal-reflection",
+      "rendered": true,
+      "title": "Journal",
+      "shown": "journal-reflection",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "pipeline",
+      "plugin": "kanban",
+      "rendered": true,
+      "title": "Pipeline",
+      "shown": "pipeline",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "learning-goals",
+      "plugin": "learning-goals",
+      "rendered": true,
+      "title": "Learning Goals",
+      "shown": "learning-goals",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "life-os-dashboard",
+      "plugin": "life-os-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "life-os-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "life-os-explorer",
+      "plugin": "life-os-explorer",
+      "rendered": true,
+      "title": "Explorer",
+      "shown": "life-os-explorer",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "life-os-portability",
+      "plugin": "life-os-portability",
+      "rendered": true,
+      "title": "Portability",
+      "shown": "life-os-portability",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "life-os-relations",
+      "plugin": "life-os-relations",
+      "rendered": true,
+      "title": "Relations",
+      "shown": "life-os-relations",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "life-os-review",
+      "plugin": "life-os-review",
+      "rendered": true,
+      "title": "Weekly Review",
+      "shown": "life-os-review",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "lists-rankings",
+      "plugin": "lists-rankings",
+      "rendered": true,
+      "title": "Lists & Rankings",
+      "shown": "lists-rankings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "living-documents",
+      "plugin": "living-documents",
+      "rendered": true,
+      "title": "Living Documents",
+      "shown": "living-documents",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "local-folder-bridge",
+      "plugin": "local-folder-bridge",
+      "rendered": true,
+      "title": "Local Folder Bridge",
+      "shown": "local-folder-bridge",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "managed-files",
+      "plugin": "managed-files",
+      "rendered": true,
+      "title": "Managed Files",
+      "shown": "managed-files",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "meal-planner",
+      "plugin": "meal-planner",
+      "rendered": true,
+      "title": "Meals",
+      "shown": "meal-planner",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add meal",
+      "namespaces": [
+        "workspace-meal-planner"
+      ]
+    },
+    {
+      "view": "media-albums",
+      "plugin": "media-albums",
+      "rendered": true,
+      "title": "Albums",
+      "shown": "media-albums",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-animation",
+      "plugin": "media-animation",
+      "rendered": true,
+      "title": "Animation",
+      "shown": "media-animation",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-architecture",
+      "plugin": "media-architecture",
+      "rendered": true,
+      "title": "Architecture",
+      "shown": "media-architecture",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-args",
+      "plugin": "media-args",
+      "rendered": true,
+      "title": "ARGs",
+      "shown": "media-args",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-articles",
+      "plugin": "media-articles",
+      "rendered": true,
+      "title": "Articles",
+      "shown": "media-articles",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-audiobooks",
+      "plugin": "media-audiobooks",
+      "rendered": true,
+      "title": "Audiobooks",
+      "shown": "media-audiobooks",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-board-games",
+      "plugin": "media-board-games",
+      "rendered": true,
+      "title": "Board games",
+      "shown": "media-board-games",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-books",
+      "plugin": "media-books",
+      "rendered": true,
+      "title": "Books",
+      "shown": "media-books",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-card-games",
+      "plugin": "media-card-games",
+      "rendered": true,
+      "title": "Card games",
+      "shown": "media-card-games",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-circus",
+      "plugin": "media-circus",
+      "rendered": true,
+      "title": "Circus & physical theatre",
+      "shown": "media-circus",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-comics-graphic-novels",
+      "plugin": "media-comics-graphic-novels",
+      "rendered": true,
+      "title": "Comics & graphic novels",
+      "shown": "media-comics-graphic-novels",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-commercials-titles",
+      "plugin": "media-commercials-titles",
+      "rendered": true,
+      "title": "Commercials & title sequences",
+      "shown": "media-commercials-titles",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-concerts",
+      "plugin": "media-concerts",
+      "rendered": true,
+      "title": "Concerts",
+      "shown": "media-concerts",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-courses",
+      "plugin": "media-courses",
+      "rendered": true,
+      "title": "Courses",
+      "shown": "media-courses",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-dance",
+      "plugin": "media-dance",
+      "rendered": true,
+      "title": "Ballet & dance",
+      "shown": "media-dance",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-debates",
+      "plugin": "media-debates",
+      "rendered": true,
+      "title": "Debates & dialogues",
+      "shown": "media-debates",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-diary-reviews",
+      "plugin": "media-diary-reviews",
+      "rendered": true,
+      "title": "Media Diary & Reviews",
+      "shown": "media-diary-reviews",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-dj-mixes",
+      "plugin": "media-dj-mixes",
+      "rendered": true,
+      "title": "DJ mixes & mixtapes",
+      "shown": "media-dj-mixes",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-documentaries",
+      "plugin": "media-documentaries",
+      "rendered": true,
+      "title": "Documentaries",
+      "shown": "media-documentaries",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-ebooks",
+      "plugin": "media-ebooks",
+      "rendered": true,
+      "title": "Ebooks",
+      "shown": "media-ebooks",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-essays",
+      "plugin": "media-essays",
+      "rendered": true,
+      "title": "Essays",
+      "shown": "media-essays",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-experimental-film",
+      "plugin": "media-experimental-film",
+      "rendered": true,
+      "title": "Experimental film & video art",
+      "shown": "media-experimental-film",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-graphic-design",
+      "plugin": "media-graphic-design",
+      "rendered": true,
+      "title": "Graphic design & posters",
+      "shown": "media-graphic-design",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-illustration",
+      "plugin": "media-illustration",
+      "rendered": true,
+      "title": "Illustration",
+      "shown": "media-illustration",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-interviews",
+      "plugin": "media-interviews",
+      "rendered": true,
+      "title": "Interviews & conversations",
+      "shown": "media-interviews",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-library",
+      "plugin": "media-library",
+      "rendered": true,
+      "title": "All media",
+      "shown": "media-library",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add media",
+      "namespaces": [
+        "workspace-media-library"
+      ]
+    },
+    {
+      "view": "media-live-performances",
+      "plugin": "media-live-performances",
+      "rendered": true,
+      "title": "Live performances",
+      "shown": "media-live-performances",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-live-recordings",
+      "plugin": "media-live-recordings",
+      "rendered": true,
+      "title": "Live recordings",
+      "shown": "media-live-recordings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-magazines-zines",
+      "plugin": "media-magazines-zines",
+      "rendered": true,
+      "title": "Magazines & zines",
+      "shown": "media-magazines-zines",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-magic",
+      "plugin": "media-magic",
+      "rendered": true,
+      "title": "Magic & illusion",
+      "shown": "media-magic",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-manga",
+      "plugin": "media-manga",
+      "rendered": true,
+      "title": "Manga",
+      "shown": "media-manga",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-movies",
+      "plugin": "media-movies",
+      "rendered": true,
+      "title": "Movies",
+      "shown": "media-movies",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-music-videos",
+      "plugin": "media-music-videos",
+      "rendered": true,
+      "title": "Music videos",
+      "shown": "media-music-videos",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-musicals",
+      "plugin": "media-musicals",
+      "rendered": true,
+      "title": "Musicals",
+      "shown": "media-musicals",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-novellas",
+      "plugin": "media-novellas",
+      "rendered": true,
+      "title": "Novellas",
+      "shown": "media-novellas",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-opera",
+      "plugin": "media-opera",
+      "rendered": true,
+      "title": "Opera",
+      "shown": "media-opera",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-oral-histories",
+      "plugin": "media-oral-histories",
+      "rendered": true,
+      "title": "Oral histories",
+      "shown": "media-oral-histories",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-performance-art",
+      "plugin": "media-performance-art",
+      "rendered": true,
+      "title": "Performance art",
+      "shown": "media-performance-art",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-photography",
+      "plugin": "media-photography",
+      "rendered": true,
+      "title": "Photography",
+      "shown": "media-photography",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-podcasts",
+      "plugin": "media-podcasts",
+      "rendered": true,
+      "title": "Podcasts",
+      "shown": "media-podcasts",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-poetry",
+      "plugin": "media-poetry",
+      "rendered": true,
+      "title": "Poetry",
+      "shown": "media-poetry",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-product-design",
+      "plugin": "media-product-design",
+      "rendered": true,
+      "title": "Industrial & product design",
+      "shown": "media-product-design",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-puzzles",
+      "plugin": "media-puzzles",
+      "rendered": true,
+      "title": "Puzzles",
+      "shown": "media-puzzles",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-radio-documentaries",
+      "plugin": "media-radio-documentaries",
+      "rendered": true,
+      "title": "Radio documentaries & features",
+      "shown": "media-radio-documentaries",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-radio-drama",
+      "plugin": "media-radio-drama",
+      "rendered": true,
+      "title": "Radio drama & audio fiction",
+      "shown": "media-radio-drama",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-readings",
+      "plugin": "media-readings",
+      "rendered": true,
+      "title": "Readings",
+      "shown": "media-readings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-short-films",
+      "plugin": "media-short-films",
+      "rendered": true,
+      "title": "Short films",
+      "shown": "media-short-films",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-short-stories",
+      "plugin": "media-short-stories",
+      "rendered": true,
+      "title": "Short stories",
+      "shown": "media-short-stories",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-songs",
+      "plugin": "media-songs",
+      "rendered": true,
+      "title": "Songs",
+      "shown": "media-songs",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-speeches-lectures",
+      "plugin": "media-speeches-lectures",
+      "rendered": true,
+      "title": "Speeches & lectures",
+      "shown": "media-speeches-lectures",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-standup",
+      "plugin": "media-standup",
+      "rendered": true,
+      "title": "Stand-up",
+      "shown": "media-standup",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-theatre",
+      "plugin": "media-theatre",
+      "rendered": true,
+      "title": "Theatre",
+      "shown": "media-theatre",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-ttrpgs",
+      "plugin": "media-ttrpgs",
+      "rendered": true,
+      "title": "TTRPGs",
+      "shown": "media-ttrpgs",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-tv-series",
+      "plugin": "media-tv-series",
+      "rendered": true,
+      "title": "TV series",
+      "shown": "media-tv-series",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-video-games",
+      "plugin": "media-video-games",
+      "rendered": true,
+      "title": "Video games",
+      "shown": "media-video-games",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-visual-art",
+      "plugin": "media-visual-art",
+      "rendered": true,
+      "title": "Painting & visual art",
+      "shown": "media-visual-art",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-web-series",
+      "plugin": "media-web-series",
+      "rendered": true,
+      "title": "Web series",
+      "shown": "media-web-series",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "media-youtube-videos",
+      "plugin": "media-youtube-videos",
+      "rendered": true,
+      "title": "YouTube videos",
+      "shown": "media-youtube-videos",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "metadata-artwork-resolver",
+      "plugin": "metadata-artwork-resolver",
+      "rendered": true,
+      "title": "Metadata & Artwork Resolver",
+      "shown": "metadata-artwork-resolver",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "mobility-dashboard",
+      "plugin": "mobility-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "mobility-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "mobility-documents",
+      "plugin": "mobility-documents",
+      "rendered": true,
+      "title": "Documents",
+      "shown": "mobility-documents",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "mobility-operations",
+      "plugin": "mobility-operations",
+      "rendered": true,
+      "title": "Operations",
+      "shown": "mobility-operations",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "mobility-vehicles",
+      "plugin": "mobility-vehicles",
+      "rendered": true,
+      "title": "Vehicles",
+      "shown": "mobility-vehicles",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "music-dashboard",
+      "plugin": "music-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "music-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "music-practice",
+      "plugin": "music-practice",
+      "rendered": true,
+      "title": "Practice",
+      "shown": "music-practice",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "music-library",
+      "plugin": "music-studio-library",
+      "rendered": true,
+      "title": "Library & Studio",
+      "shown": "music-library",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "music-track-lab",
+      "plugin": "music-track-lab",
+      "rendered": true,
+      "title": "Track Lab",
+      "shown": "music-track-lab",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "newsletter-inbox",
+      "plugin": "newsletter-inbox",
+      "rendered": true,
+      "title": "Newsletter Inbox",
+      "shown": "newsletter-inbox",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "notes",
+      "plugin": "notes-editor",
+      "rendered": true,
+      "title": "Notes",
+      "shown": "notes",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add subnote to Quarterly planning",
+      "namespaces": [
+        "/api/notes",
+        "/api/note-properties/read",
+        "workspace-note-tree"
+      ]
+    },
+    {
+      "view": "paperless-records",
+      "plugin": "paperless",
+      "rendered": true,
+      "title": "Records",
+      "shown": "paperless-records",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-capture",
+      "plugin": "para-capture",
+      "rendered": true,
+      "title": "Capture",
+      "shown": "para-capture",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-projects",
+      "plugin": "para-core",
+      "rendered": true,
+      "title": "Projects",
+      "shown": "para-projects",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "para-areas",
+      "plugin": "para-core",
+      "rendered": true,
+      "title": "Areas",
+      "shown": "para-areas",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "para-resources",
+      "plugin": "para-core",
+      "rendered": true,
+      "title": "Resources",
+      "shown": "para-resources",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "para-archive",
+      "plugin": "para-core",
+      "rendered": true,
+      "title": "Archive",
+      "shown": "para-archive",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "para-dashboard",
+      "plugin": "para-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "para-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-goals",
+      "plugin": "para-goals",
+      "rendered": true,
+      "title": "Arcs",
+      "shown": "para-goals",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-migration",
+      "plugin": "para-notion-migration",
+      "rendered": true,
+      "title": "Migrate",
+      "shown": "para-migration",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-review",
+      "plugin": "para-review",
+      "rendered": true,
+      "title": "Review",
+      "shown": "para-review",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "para-tasks",
+      "plugin": "para-tasks",
+      "rendered": true,
+      "title": "Tasks",
+      "shown": "para-tasks",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "pdf-toolkit",
+      "plugin": "pdf-toolkit",
+      "rendered": true,
+      "title": "PDF Toolkit",
+      "shown": "pdf-toolkit",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "personal-crm",
+      "plugin": "personal-crm",
+      "rendered": true,
+      "title": "People",
+      "shown": "personal-crm",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "personal-sops",
+      "plugin": "personal-sops",
+      "rendered": true,
+      "title": "Personal SOPs",
+      "shown": "personal-sops",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-write",
+      "control": "New procedure",
+      "namespaces": []
+    },
+    {
+      "view": "places-library",
+      "plugin": "places-library",
+      "rendered": true,
+      "title": "Places",
+      "shown": "places-library",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "project-workspaces",
+      "plugin": "project-workspaces",
+      "rendered": true,
+      "title": "Project Workspaces",
+      "shown": "project-workspaces",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "reading-annotations",
+      "plugin": "reading-annotations",
+      "rendered": true,
+      "title": "Reading Annotations",
+      "shown": "reading-annotations",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "invoices",
+      "plugin": "rechnung",
+      "rendered": true,
+      "title": "Invoices",
+      "shown": "invoices",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "New invoice",
+      "namespaces": [
+        "/api/notes"
+      ]
+    },
+    {
+      "view": "reminders-notifications",
+      "plugin": "reminders-notifications",
+      "rendered": true,
+      "title": "Reminders & Notifications",
+      "shown": "reminders-notifications",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "remote-notification-gateway",
+      "plugin": "remote-notification-gateway",
+      "rendered": true,
+      "title": "Remote Notification Gateway",
+      "shown": "remote-notification-gateway",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "routines-habits",
+      "plugin": "routines-habits",
+      "rendered": true,
+      "title": "Routines",
+      "shown": "routines-habits",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add routine",
+      "namespaces": [
+        "workspace-routines"
+      ]
+    },
+    {
+      "view": "saved-searches",
+      "plugin": "saved-searches",
+      "rendered": true,
+      "title": "Saved Searches",
+      "shown": "saved-searches",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "New search",
+      "namespaces": [
+        "saved-searches"
+      ]
+    },
+    {
+      "view": "security-dashboard",
+      "plugin": "security-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "security-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "security-incidents",
+      "plugin": "security-incidents",
+      "rendered": true,
+      "title": "Incidents",
+      "shown": "security-incidents",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "security-inventory",
+      "plugin": "security-inventory",
+      "rendered": true,
+      "title": "Security Inventory",
+      "shown": "security-inventory",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "security-resilience",
+      "plugin": "security-resilience",
+      "rendered": true,
+      "title": "Resilience",
+      "shown": "security-resilience",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "semantic-search",
+      "plugin": "semantic-search",
+      "rendered": true,
+      "title": "Semantic Search",
+      "shown": "semantic-search",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "skill-tree",
+      "plugin": "skill-tree",
+      "rendered": true,
+      "title": "Skill Tree",
+      "shown": "skill-tree",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "style-studio",
+      "plugin": "style-studio",
+      "rendered": true,
+      "title": "Style Studio",
+      "shown": "style-studio",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "tags",
+      "plugin": "tag-explorer",
+      "rendered": true,
+      "title": "Tags",
+      "shown": "tags",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "timeline",
+      "plugin": "timeline-view",
+      "rendered": true,
+      "title": "Timeline",
+      "shown": "timeline",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "todo",
+      "plugin": "todo-lists",
+      "rendered": true,
+      "title": "Todo",
+      "shown": "todo",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "persisted",
+      "control": "Add",
+      "namespaces": [
+        "todo-lists"
+      ]
+    },
+    {
+      "view": "topic-watchlists",
+      "plugin": "topic-watchlists",
+      "rendered": true,
+      "title": "Topic Watchlists",
+      "shown": "topic-watchlists",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "travel-planner",
+      "plugin": "travel-planner",
+      "rendered": true,
+      "title": "Travel",
+      "shown": "travel-planner",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "ttrpg-campaigns",
+      "plugin": "ttrpg-campaigns",
+      "rendered": true,
+      "title": "Campaigns",
+      "shown": "ttrpg-campaigns",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "ttrpg-dashboard",
+      "plugin": "ttrpg-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "ttrpg-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "ttrpg-sessions",
+      "plugin": "ttrpg-sessions",
+      "rendered": true,
+      "title": "Sessions",
+      "shown": "ttrpg-sessions",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "ttrpg-world",
+      "plugin": "ttrpg-world",
+      "rendered": true,
+      "title": "World & Characters",
+      "shown": "ttrpg-world",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "universal-attachments",
+      "plugin": "universal-attachments",
+      "rendered": true,
+      "title": "Universal Attachments",
+      "shown": "universal-attachments",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "universal-inbox",
+      "plugin": "universal-inbox",
+      "rendered": true,
+      "title": "Universal Inbox",
+      "shown": "universal-inbox",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "vuln-kb",
+      "plugin": "vuln-kb",
+      "rendered": true,
+      "title": "Knowledge Base",
+      "shown": "vuln-kb",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wardrobe-closet",
+      "plugin": "wardrobe-closet",
+      "rendered": true,
+      "title": "Wardrobe",
+      "shown": "wardrobe-closet",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wardrobe-dashboard",
+      "plugin": "wardrobe-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "wardrobe-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wealth-balance-sheet",
+      "plugin": "wealth-balance-sheet",
+      "rendered": true,
+      "title": "Balance Sheet",
+      "shown": "wealth-balance-sheet",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wealth-cashflow",
+      "plugin": "wealth-cashflow",
+      "rendered": true,
+      "title": "Cash Flow & Savings",
+      "shown": "wealth-cashflow",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wealth-dashboard",
+      "plugin": "wealth-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "wealth-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "wealth-investments-goals",
+      "plugin": "wealth-investments-goals",
+      "rendered": true,
+      "title": "Investments",
+      "shown": "wealth-investments-goals",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "web-archive-read-later",
+      "plugin": "web-archive-read-later",
+      "rendered": true,
+      "title": "Web Archive & Read Later",
+      "shown": "web-archive-read-later",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "web-watch",
+      "plugin": "web-watch",
+      "rendered": true,
+      "title": "Web Watch",
+      "shown": "web-watch",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "web3-id",
+      "plugin": "web3-id",
+      "rendered": true,
+      "title": "Web3 Identity",
+      "shown": "web3-id",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "wishlist-purchases",
+      "plugin": "wishlist-purchases",
+      "rendered": true,
+      "title": "Wishlist",
+      "shown": "wishlist-purchases",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "workout-planner",
+      "plugin": "workout-planner",
+      "rendered": true,
+      "title": "Workouts",
+      "shown": "workout-planner",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-create-control"
+    },
+    {
+      "view": "workspace-briefings",
+      "plugin": "workspace-briefings",
+      "rendered": true,
+      "title": "What Changed?",
+      "shown": "workspace-briefings",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "workspace-capsules",
+      "plugin": "workspace-capsules",
+      "rendered": true,
+      "title": "Workspace Capsules",
+      "shown": "workspace-capsules",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "workspace-time-machine",
+      "plugin": "workspace-time-machine",
+      "rendered": true,
+      "title": "Workspace Time Machine",
+      "shown": "workspace-time-machine",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "writing-dashboard",
+      "plugin": "writing-dashboard",
+      "rendered": true,
+      "title": "Dashboard",
+      "shown": "writing-dashboard",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "writing-editorial",
+      "plugin": "writing-editorial",
+      "rendered": true,
+      "title": "Editorial Workflow",
+      "shown": "writing-editorial",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "writing-manuscripts",
+      "plugin": "writing-manuscripts",
+      "rendered": true,
+      "title": "Manuscripts",
+      "shown": "writing-manuscripts",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "writing-publishing",
+      "plugin": "writing-publishing",
+      "rendered": true,
+      "title": "Publishing",
+      "shown": "writing-publishing",
+      "interactive": true,
+      "errors": [],
+      "overflow": []
+    },
+    {
+      "view": "time",
+      "plugin": "zeiterfassung",
+      "rendered": true,
+      "title": "Time",
+      "shown": "time",
+      "interactive": true,
+      "errors": [],
+      "overflow": [],
+      "create": "no-write",
+      "control": "Start",
+      "namespaces": []
+    }
+  ]
+}

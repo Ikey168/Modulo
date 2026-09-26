@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -114,6 +115,15 @@ export function LifeCollectionView({ config }: { config: LifePluginConfig }) {
     setEditing(false);
     setSecretRejected(false);
   };
+  // `?record=<id>` (a reminder notification, a shared link) opens that record once it has loaded.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedRecord = searchParams.get('record');
+  useEffect(() => {
+    if (!linkedRecord || !data.records.some((record) => record.id === linkedRecord)) return;
+    setSelectedId(linkedRecord);
+    setEditing(false);
+    setSearchParams((params) => { params.delete('record'); return params; }, { replace: true });
+  }, [linkedRecord, data.records, setSearchParams]);
   const close = () => {
     setSelectedId(null);
     setNewRecord(null);
@@ -1034,7 +1044,7 @@ function ChecklistSection({
             <button
               type="button"
               aria-label={`Delete ${item.title}`}
-              className="opacity-0 text-muted-foreground transition hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+              className="opacity-0 text-muted-foreground transition hover:text-destructive group-hover:opacity-100 focus:opacity-100 coarse:grid coarse:size-11 coarse:place-items-center coarse:opacity-100"
               onClick={() =>
                 patch(record.id, {
                   checklist: record.checklist.filter(
@@ -1146,7 +1156,7 @@ function LogSection({
               <button
                 type="button"
                 aria-label={`Delete ${entry.title}`}
-                className="opacity-0 text-muted-foreground transition hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+                className="opacity-0 text-muted-foreground transition hover:text-destructive group-hover:opacity-100 focus:opacity-100 coarse:grid coarse:size-11 coarse:place-items-center coarse:opacity-100"
                 onClick={() =>
                   patch(record.id, {
                     log: record.log.filter((item) => item.id !== entry.id),

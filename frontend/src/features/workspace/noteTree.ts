@@ -155,3 +155,25 @@ export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
 
   return { forest, collapsed, toggle, expand, move, setParent };
 }
+
+export interface TreeMoveOption {
+  id: 'up' | 'down' | 'indent' | 'outdent';
+  label: string;
+  target: number;
+  pos: DropPos;
+}
+
+/**
+ * The moves a row offers without drag-and-drop: touch and keyboard users
+ * reorder and nest notes with these (#491). Each maps onto `move()`.
+ */
+export function treeMoveOptions(siblings: TreeNode[], index: number, parent?: TreeNode): TreeMoveOption[] {
+  const options: TreeMoveOption[] = [];
+  const previous = siblings[index - 1];
+  const next = siblings[index + 1];
+  if (previous) options.push({ id: 'up', label: 'Move up', target: previous.note.id, pos: 'before' });
+  if (next) options.push({ id: 'down', label: 'Move down', target: next.note.id, pos: 'after' });
+  if (previous) options.push({ id: 'indent', label: `Nest under ${previous.note.title || 'Untitled Note'}`, target: previous.note.id, pos: 'inside' });
+  if (parent) options.push({ id: 'outdent', label: 'Move out one level', target: parent.note.id, pos: 'after' });
+  return options;
+}

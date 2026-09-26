@@ -56,6 +56,8 @@ import { ChoiceInline } from './viewkit';
 import { desktopServices as nativeDesktop } from '@/platform';
 import type { WorkspaceViewProps } from './plugins/types';
 import { NoteFlashcardCapture } from './NoteFlashcardCapture';
+import { AndroidReminderDelivery } from './AndroidReminderDelivery';
+import { nativeReminders } from './androidReminders';
 import { SourceNoteLink } from './LearningPluginViews';
 import { useLearningCollection } from './useLearningCollection';
 import { useServerWorkspaceStore } from './useWorkspaceStore';
@@ -226,6 +228,10 @@ export function FlashcardReview({ definition, workspace }: { definition: Foundat
 }
 
 function ReminderControl({ definition }: { definition: FoundationToolDefinition }) {
+  return nativeReminders() ? <AndroidReminderDelivery /> : <DesktopReminderControl definition={definition} />;
+}
+
+function DesktopReminderControl({ definition }: { definition: FoundationToolDefinition }) {
   const [data, persist] = useLifeCollection(definition.pluginId);
   const [permission, setPermission] = useState<NotificationPermission>(() => typeof Notification === 'undefined' ? 'denied' : Notification.permission);
   const fired = useRef(new Set<string>());

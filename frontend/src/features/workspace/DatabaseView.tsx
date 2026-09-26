@@ -177,7 +177,7 @@ function TableView({ api }: { api: DatabaseApi }) {
                     onClick={() => api.deleteRow(row.id)}
                     aria-label="Delete row"
                     title="Delete row"
-                    className="flex h-full w-full items-center justify-center py-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100"
+                    className="flex h-full w-full items-center justify-center py-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100 coarse:min-h-11 coarse:opacity-100"
                   >
                     <Trash2 className="size-3" aria-hidden="true" />
                   </button>
@@ -537,7 +537,7 @@ function BoardCard({ api, row, titleCol, groupCol, dragging, onDragStart }: Boar
           onDragStart={handleDragStart}
           aria-label="Drag card to another column"
           title="Drag to move"
-          className="mt-1.5 shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/card:opacity-100 active:cursor-grabbing"
+          className="mt-1.5 shrink-0 cursor-grab text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/card:opacity-100 active:cursor-grabbing coarse:hidden"
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>
@@ -548,10 +548,17 @@ function BoardCard({ api, row, titleCol, groupCol, dragging, onDragStart }: Boar
           type="button"
           onClick={() => api.deleteRow(row.id)}
           aria-label="Delete card"
-          className="mt-1.5 flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover/card:opacity-100"
+          className="mt-1.5 flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover/card:opacity-100 coarse:mt-0 coarse:size-11 coarse:opacity-100"
         >
           <Trash2 className="size-3" aria-hidden="true" />
         </button>
+      </div>
+      {/* Touch has no drag: the grouping column is edited in place to move the card. */}
+      <div className="mt-0.5 hidden items-center gap-1.5 pl-4 text-xs coarse:flex">
+        <span className="w-14 shrink-0 truncate text-[10px] uppercase tracking-wide text-muted-foreground">{groupCol.name}</span>
+        <div className="min-w-0 flex-1">
+          <Cell api={api} row={row} col={groupCol} />
+        </div>
       </div>
       {fields.length > 0 && (
         <div className="mt-0.5 flex flex-col gap-0.5 pl-4">

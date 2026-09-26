@@ -89,11 +89,13 @@ it('cannot deliver or retire data after the account changes mid-migration', asyn
   const { records, transport } = server({ online: () => online });
   const client = await open(transport);
   const storage = new MemoryStorage({ 'modulo-modified-para-v1': areas });
-  const migration = importLegacyState(client, storage, 'modulo-modified-para-v1', 'data', 'modulo.workspace.para', validate);
+  // Observe the outcome at once: the offline refresh may reject before the client is closed.
+  const migration = importLegacyState(client, storage, 'modulo-modified-para-v1', 'data', 'modulo.workspace.para', validate)
+    .then(() => undefined, (error: unknown) => error);
   await new Promise(resolve => setTimeout(resolve, 0));
   client.close(); // sign-out or account switch closes every client of the old principal
   online = true;
-  await expect(migration).rejects.toThrow();
+  expect(await migration).toBeInstanceOf(Error);
   expect(records.size).toBe(0);
   expect(storage.getItem('modulo-modified-para-v1')).toBe(areas);
 });

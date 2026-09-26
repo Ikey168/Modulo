@@ -25,6 +25,7 @@ import { newLearningRecord } from '../learningTools';
 import { isWorkspaceShortcut } from '../workspaceKeyboard';
 import { Field, RecordSheet, SearchInput } from '../viewkit';
 import { LifeCollectionView } from '../LifeCollectionView';
+import { MemoryRouter } from 'react-router-dom';
 import { HOME_MAINTENANCE_CONFIG } from '../lifeConfigs';
 
 const memory = vi.hoisted(() => ({ current: undefined as unknown as ReturnType<typeof createMemoryWorkspace> }));
@@ -237,9 +238,26 @@ describe('shared record editing', () => {
 });
 
 describe('collection editing and empty states', () => {
+  it('opens the record named by ?record= (reminder notifications, #494)', async () => {
+    const user = userEvent.setup();
+    const first = render(<MemoryRouter><LifeCollectionView config={HOME_MAINTENANCE_CONFIG} /></MemoryRouter>);
+    await settle();
+    await user.click(screen.getAllByRole('button', { name: 'Add home item' })[0]);
+    await user.clear(screen.getByLabelText('Title'));
+    await user.type(screen.getByLabelText('Title'), 'Clean gutters');
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    await settle();
+    const id = readLifeCollection(HOME_MAINTENANCE_CONFIG.id).records[0].id;
+    first.unmount();
+
+    render(<MemoryRouter initialEntries={[`/app/home?record=${id}`]}><LifeCollectionView config={HOME_MAINTENANCE_CONFIG} /></MemoryRouter>);
+    await settle();
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Clean gutters');
+  });
+
   it('buffers edits until Save changes and leaves no record when creation is cancelled', async () => {
     const user = userEvent.setup();
-    render(<LifeCollectionView config={HOME_MAINTENANCE_CONFIG} />);
+    render(<MemoryRouter><LifeCollectionView config={HOME_MAINTENANCE_CONFIG} /></MemoryRouter>);
     await settle();
     await user.click(
       screen.getAllByRole('button', { name: 'Add home item' })[0],
@@ -278,7 +296,7 @@ describe('collection editing and empty states', () => {
       records: [{ ...newLearningRecord('Due', 'Chore'), title: 'Filter' }],
     });
     const user = userEvent.setup();
-    render(<LifeCollectionView config={HOME_MAINTENANCE_CONFIG} />);
+    render(<MemoryRouter><LifeCollectionView config={HOME_MAINTENANCE_CONFIG} /></MemoryRouter>);
     await settle();
     await user.type(screen.getByRole('searchbox'), 'does not exist');
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));

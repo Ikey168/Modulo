@@ -45,6 +45,12 @@ import {
   useToast,
 } from '@/ui';
 import { PhoneBottomNav, PhoneFab, PhoneNavDrawer, PhoneTopBar } from './mobile/PhoneChrome';
+import { ShareIntake } from './ShareIntake';
+import { AndroidReminderSync } from './AndroidReminderDelivery';
+import { AndroidDownloadNotices } from './AndroidDownloadNotices';
+import { nativeShareBridge } from '../../services/androidShare';
+import { nativeReminders } from '../../services/nativeReminders';
+import { REMINDERS_PLUGIN_ID } from './foundationTools';
 import { phoneDestinations } from './mobile/phoneNav';
 import { useEdgeSwipe } from './mobile/useEdgeSwipe';
 import { usePullToRefresh } from './mobile/usePullToRefresh';
@@ -476,13 +482,17 @@ function WorkspaceShell() {
       </aside>
 
       {/* Main */}
+      {nativeShareBridge() && <ShareIntake data={data} onOpenNote={openNote} />}
+      {nativeReminders() && plugins.isEnabled(REMINDERS_PLUGIN_ID) && <AndroidReminderSync />}
+      {nativeShareBridge() && <AndroidDownloadNotices />}
       <WorkspaceCommandPalette open={commandOpen} onOpenChange={setCommandOpen} data={data} views={[...navItems, ...contributedViews.filter((item) => !navItems.some((nav) => nav.id === item.id))]} entities={entities} navigate={goTo} />
       {recordUid && <WorkspaceRecordView uid={recordUid} entities={entities} onClose={() => goTo(view)} navigate={goTo} /> }
       {/* `pb-app-bottom` is the bottom navigation plus the action button, each
           0 unless it is mounted (and both 0 above `md` or while the keyboard is
           open), so the view's own scroll container always ends where the phone
           chrome begins instead of underneath it. */}
-      <div ref={contentRef} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pb-app-bottom">
+      {/* data-view names the view actually rendered (an unknown id falls back to the dashboard); phone parity checks read it. */}
+      <div ref={contentRef} data-view={hubMode && activeHubTab ? activeHubTab.id : view} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pb-app-bottom">
         {/* Session banners land here — under the app bar, above the view —
             instead of above the shell, where they pushed the app bar off the
             top of a phone screen. */}

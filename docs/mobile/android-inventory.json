@@ -8459,7 +8459,7 @@
     },
     {
       "file": "frontend/src/features/auth/authService.ts",
-      "line": 72,
+      "line": 73,
       "api": "sessionStorage",
       "allowed": true
     },

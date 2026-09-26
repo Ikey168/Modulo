@@ -7,7 +7,7 @@ import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Findings Tracker is installed (soft integration — the scan is local).
 import { useMemo, useState, type DragEvent } from 'react';
 import { Plus, SquareKanban, X } from 'lucide-react';
-import { Button, cn, EmptyState, Input } from '@/ui';
+import { Button, cn, EmptyState, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui';
 import type { CoreNote } from '@modulo/core';
 import type { WorkspaceViewProps } from './plugins/types';
 import { extractFindings, severityRank, type NoteFinding } from './findings';
@@ -164,12 +164,22 @@ export function PipelineView({ data, onOpenNote }: WorkspaceViewProps) {
           </div>
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2 pt-0">
             {(groups[stage] ?? []).map((note) => (
-              <Card
-                key={note.id}
-                note={note}
-                findings={openFindingsFor(allFindings, engagementLabel(note))}
-                onOpen={() => onOpenNote(note.id)}
-              />
+              <div key={note.id} className="flex flex-col gap-1">
+                <Card
+                  note={note}
+                  findings={openFindingsFor(allFindings, engagementLabel(note))}
+                  onOpen={() => onOpenNote(note.id)}
+                />
+                {/* Drag does not exist on touch or for keyboard users; the stage is also a choice. */}
+                <Select value={stage} onValueChange={(next) => void moveTo(note.id, next)}>
+                  <SelectTrigger aria-label={`Stage of ${note.title}`} className="h-8 text-xs capitalize coarse:h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stages.map((option) => <SelectItem key={option} value={option} className="capitalize">{option.replace(/-/g, ' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             ))}
           </div>
         </div>

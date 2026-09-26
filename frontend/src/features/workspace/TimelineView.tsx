@@ -51,10 +51,10 @@ export function TimelineView({ notes, tags, loading = false, onOpenNote }: Timel
 
   return (
     <div className="flex flex-1 animate-fade-in flex-col overflow-hidden bg-background">
-      <header className="flex h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3">
+      <header className="flex min-h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-1.5">
         <History className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="text-sm font-medium">Timeline</span>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <Select value={tag || 'all'} onValueChange={(v) => setTag(v === 'all' ? '' : v)}>
             <SelectTrigger className="h-8 w-32">
               <SelectValue placeholder="All tags" />

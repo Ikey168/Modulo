@@ -46,6 +46,9 @@ mobile/app/          Capacitor project (npm package "modulo-android-shell")
       MainActivity.java            registers the native plugins
       ModuloStateCachePlugin.java  SQLite offline queue, replica id, server origin
       ShellWindowPlugin.java       edge-to-edge insets, IME, system bar appearance
+      ModuloSecureStorePlugin.java Keystore-encrypted refresh token (#488)
+      ModuloSharePlugin.java       Share-to-Modulo inbox, system save dialog, share sheet (#493)
+      ModuloRemindersPlugin.java   reminder alarms; Reminder*Receiver re-arm after reboot (#494)
 desktop/             Electron shell (unchanged entry points)
 mobile/android/      legacy Notes-only Kotlin scaffold (reference only, see below)
 ```
@@ -146,6 +149,9 @@ and an Android implementation:
 | External links | Custom Tabs | new tab |
 | Secure storage | Keystore-backed plugin | none (tokens stay in memory) |
 | Desktop-only services (local folders, OCR, PDF tools) | server/remote workflows (#495) | Electron `native-services` |
+
+Files, sharing and reminders are specified in
+[android-files-and-reminders.md](../mobile/android-files-and-reminders.md).
 
 A plugin whose workflow needs a capability the platform lacks must show a
 documented alternative route; hiding the view or rendering it read-only is not

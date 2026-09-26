@@ -509,7 +509,7 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
                       e.stopPropagation();
                       mutateActive((b) => removeCard(b, c.noteId));
                     }}
-                    className="-mr-1 -mt-1 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    className="-mr-1 -mt-1 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 coarse:grid coarse:size-11 coarse:place-items-center coarse:opacity-100"
                   >
                     <X className="size-3.5" aria-hidden="true" />
                   </button>
@@ -523,7 +523,7 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
                   onPointerDown={(e) => onHandlePointerDown(e, c.noteId)}
                   onPointerMove={onHandlePointerMove}
                   onPointerUp={onHandlePointerUp}
-                  className="absolute -right-1.5 top-1/2 size-3 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-surface bg-primary opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute -right-1.5 top-1/2 size-3 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-surface bg-primary opacity-0 transition-opacity group-hover:opacity-100 coarse:-right-3 coarse:size-6 coarse:opacity-100"
                 />
               </div>
             );

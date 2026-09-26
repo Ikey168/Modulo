@@ -3,7 +3,7 @@ const platform = vi.hoisted(() => ({ name: 'android' }));
 vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => platform.name } }));
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), exitApp: vi.fn() } }));
 import { App } from '@capacitor/app';
-import { androidBackAction, androidRouteToRestore, rememberAndroidRoute, startAndroidBackButton } from '../androidLifecycle';
+import { androidBackAction, androidRouteToRestore, appRouteFromUrl, rememberAndroidRoute, startAndroidBackButton } from '../androidLifecycle';
 import { outdatedWebView, renderWebViewUpdateRequired } from '../androidWebView';
 import type { DeviceDocuments } from '../deviceDocuments';
 
@@ -90,5 +90,15 @@ describe('Android Back', () => {
     await vi.waitFor(() => expect(App.exitApp).toHaveBeenCalledTimes(1));
     stop();
     window.history.replaceState(null, '', '/');
+  });
+});
+
+describe('notification deep links', () => {
+  it('accepts only workspace routes from com.modulo:/open', () => {
+    expect(appRouteFromUrl('com.modulo:/open?route=%2Fapp%2Freminders-notifications%3Frecord%3Dr1')).toBe('/app/reminders-notifications?record=r1');
+    expect(appRouteFromUrl('com.modulo:/open?route=https%3A%2F%2Fevil.example%2Fapp%2F')).toBeUndefined();
+    expect(appRouteFromUrl('com.modulo:/open?route=%2F%2Fevil.example%2Fapp%2Fx')).toBeUndefined();
+    expect(appRouteFromUrl('com.modulo:/open?route=%2Flogin')).toBeUndefined();
+    expect(appRouteFromUrl('com.modulo:/oauth2redirect?code=1')).toBeUndefined();
   });
 });

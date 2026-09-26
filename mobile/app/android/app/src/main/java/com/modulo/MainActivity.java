@@ -17,6 +17,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ModuloSecureStorePlugin.class);
         // Owns bar appearance and the IME inset; see ShellWindowPlugin.
         registerPlugin(ShellWindowPlugin.class);
+        // Share-to-Modulo, system save and share sheet (#493).
+        registerPlugin(ModuloSharePlugin.class);
+        // Local reminder notifications (#494).
+        registerPlugin(ModuloRemindersPlugin.class);
         super.onCreate(savedInstanceState);
 
         Window window = getWindow();

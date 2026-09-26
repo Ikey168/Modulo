@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { deviceDocuments } from '../../services/deviceDocuments';
 import { secureStore } from '../../services/secureStore';
+import { nativeReminders } from '../../services/nativeReminders';
 import { DeviceOidcStateStore } from './deviceOidcStateStore';
 import { isNetworkFailure, loadNativeSession, nativeSessionKey, saveNativeSession, type NativeSessionRecord } from './nativeSession';
 import { oidcConfig, ROLE_MAPPINGS, UserRole } from './oidcConfig';
@@ -258,6 +259,8 @@ class AuthService {
     this.offline = null;
     this.notifySession();
     if (ANDROID && serverOrigin()) await secureStore().remove(nativeSessionKey(serverOrigin())).catch(() => undefined);
+    // A signed-out device must not keep showing the account's reminders (#494).
+    await nativeReminders()?.cancelAll().catch(() => undefined);
     try {
       this.clearRefreshTimer();
       await this.userManager.signoutRedirect();

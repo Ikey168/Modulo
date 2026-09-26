@@ -101,3 +101,19 @@ export async function androidRouteToRestore(currentPath: string, documents: Devi
   if (!saved.path.startsWith('/app/') || saved.path === currentPath || now - saved.at > ROUTE_MEMORY_MS) return undefined;
   return saved.path;
 }
+
+/**
+ * The in-app route of a `com.modulo:/open?route=/app/...` link (reminder
+ * notifications, #494), or undefined. Only workspace routes are accepted, so a
+ * link from another app cannot navigate to an arbitrary URL.
+ */
+export function appRouteFromUrl(url: string): string | undefined {
+  let link: URL;
+  try { link = new URL(url); } catch { return undefined; }
+  if (link.protocol !== 'com.modulo:' || link.hostname || link.pathname !== '/open') return undefined;
+  const route = link.searchParams.get('route') ?? '';
+  let parsed: URL;
+  try { parsed = new URL(route, 'https://modulo.invalid'); } catch { return undefined; }
+  if (parsed.origin !== 'https://modulo.invalid' || !route.startsWith('/app/') || !parsed.pathname.startsWith('/app/')) return undefined;
+  return parsed.pathname + parsed.search;
+}
