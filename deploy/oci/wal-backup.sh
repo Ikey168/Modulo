@@ -4,6 +4,8 @@ umask 077
 
 backup_root=${BACKUP_ROOT:-/srv/backups/modulo}
 wal_root="$backup_root/wal"
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+compose=(docker compose -f "$script_dir/compose.yml")
 mkdir -p "$backup_root" "$wal_root"
 backup_root=$(realpath "$backup_root")
 wal_root=$(realpath "$wal_root")
@@ -35,6 +37,18 @@ done
 }
 wal_cutoff=$(date -u -d "@$((oldest_base_epoch - 3600))" +%Y-%m-%dT%H:%M:%SZ)
 find "$wal_root" -maxdepth 1 -type f ! -newermt "$wal_cutoff" -delete
+
+# Force a switch on quiet databases so the latest complete segment is shipped
+# during this hourly run instead of waiting for unrelated application writes.
+"${compose[@]}" exec -T db sh -ec '
+  before=$(psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT archived_count FROM pg_stat_archiver")
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT pg_switch_wal()" >/dev/null
+  for _ in $(seq 1 30); do
+    after=$(psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT archived_count FROM pg_stat_archiver")
+    [ "$after" -gt "$before" ] && break
+    sleep 1
+  done
+'
 
 restic backup --tag modulo-wal --host "${RESTIC_BACKUP_HOST:-$(hostname)}" "$wal_root"
 prune_wal_repo=true

@@ -44,7 +44,7 @@ done
 
 snapshot=$(realpath -e -- "$snapshot_arg") || die "snapshot does not exist: $snapshot_arg"
 [[ -d $snapshot ]] || die "snapshot is not a directory: $snapshot"
-for marker in VERIFIED COMPLETE SHA256SUMS; do
+for marker in VERIFIED SHA256SUMS; do
   [[ -f $snapshot/$marker ]] || die "snapshot is missing $marker"
 done
 for archive in postgres.sql.gz neo4j-data.tar.gz noesis-data.tar.gz; do

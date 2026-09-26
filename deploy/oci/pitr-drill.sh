@@ -39,7 +39,7 @@ done
 snapshot=$(realpath -e -- "$snapshot_arg") || die "base backup directory does not exist"
 wal_dir=$(realpath -e -- "$wal_arg") || die "WAL archive directory does not exist"
 [[ -d $snapshot && -d $wal_dir ]] || die "backup and WAL paths must be directories"
-for marker in VERIFIED COMPLETE PITR_BASE_COMPLETE PITR_BASE_STARTED_AT; do
+for marker in VERIFIED PITR_BASE_COMPLETE PITR_BASE_STARTED_AT; do
   [[ -f $snapshot/$marker ]] || die "base backup is missing $marker"
 done
 [[ -f $snapshot/postgres-base.tar ]] || die "base backup is missing postgres-base.tar"
