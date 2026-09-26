@@ -1,6 +1,7 @@
 {
   "name": "modulo-desktop",
   "version": "0.1.0",
+  "desktopName": "com.ikey168.modulo",
   "private": true,
   "description": "Electron desktop shell for Modulo",
   "author": {
@@ -45,6 +46,8 @@
       }
     ],
     "linux": {
+      "icon": "../frontend/public/icons/icon-512x512.png",
+      "syncDesktopName": true,
       "target": [
         "AppImage",
         "deb"
