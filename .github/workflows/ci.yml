@@ -103,7 +103,7 @@ jobs:
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -127,11 +127,21 @@ jobs:
         working-directory: frontend
       - run: npm run phone:audit
         working-directory: frontend
+      - run: npm run phone:parity
+        working-directory: frontend
+      # Budgets are calibrated on the dev server with a 4x CPU throttle; report-only until
+      # recalibrated on the CI runner (#492, #497).
+      - run: npm run phone:perf
+        working-directory: frontend
+        continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: frontend-smoke-results
-          path: frontend/test-results/
+          path: |
+            frontend/test-results/
+            docs/mobile/android-parity-evidence.json
+            docs/mobile/android-performance.json
           retention-days: 7
 
   android-debug:

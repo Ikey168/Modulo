@@ -1,0 +1,26 @@
+{
+  "generatedBy": "frontend/scripts/phonePerf.mjs",
+  "dataset": {
+    "notes": 2000,
+    "links": 4000
+  },
+  "cpuThrottle": 4,
+  "viewport": "412x883 touch",
+  "budget": {
+    "notesListMs": 4000,
+    "noteOpenMs": 2500,
+    "graphFirstFrameMs": 5000,
+    "canvasMs": 4000,
+    "longestTaskMs": 1500,
+    "heapMb": 250
+  },
+  "results": {
+    "notesListMs": 4065,
+    "noteOpenMs": 1268,
+    "graphFirstFrameMs": 1806,
+    "canvasMs": 545,
+    "longestTaskMs": 665,
+    "heapMb": 53
+  },
+  "pageErrors": []
+}

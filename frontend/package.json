@@ -21,6 +21,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "phone:audit": "node scripts/phoneAudit.mjs",
+    "phone:perf": "node scripts/withDevServer.mjs scripts/phonePerf.mjs",
+    "phone:parity": "node scripts/withDevServer.mjs scripts/phoneParity.mjs",
     "lint:ci": "node scripts/lint-ci.mjs",
     "inventory:android": "vite-node scripts/inventoryAndroid.ts",
     "inventory:android:check": "vite-node scripts/inventoryAndroid.ts --check"

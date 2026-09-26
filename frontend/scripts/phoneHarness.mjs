@@ -19,7 +19,7 @@ export const NOTES = ['Quarterly planning', 'Meeting: infra review', 'Reading li
   updatedAt: `2026-09-${String(2 + (i % 10)).padStart(2, '0')}T10:00:00Z`,
 }));
 
-export async function openPhone({ plugins = DEFAULT_PLUGINS, fontScale = 1 } = {}) {
+export async function openPhone({ plugins = DEFAULT_PLUGINS, fontScale = 1, notes = NOTES, links = [] } = {}) {
 // PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH lets a preinstalled browser stand in for Playwright's pinned download.
 const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
 const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 412, height: 883 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
@@ -59,9 +59,9 @@ await page.route('**/api/**', async (route) => {
       markdownContent: body.content ?? '', tags: [], createdAt: TIME, updatedAt: TIME };
     return route.fulfill({ json: note });
   }
-  if (path === '/api/notes') return route.fulfill({ json: NOTES });
-  if (path.startsWith('/api/notes/')) return route.fulfill({ json: NOTES[0] });
-  if (path === '/api/links') return route.fulfill({ json: [] });
+  if (path === '/api/notes') return route.fulfill({ json: notes });
+  if (path.startsWith('/api/notes/')) return route.fulfill({ json: notes.find((note) => String(note.id) === path.split('/')[3]) ?? notes[0] });
+  if (path === '/api/links' || path === '/api/note-links') return route.fulfill({ json: links });
   if (path === '/api/tags') return route.fulfill({ json: [{ id: 1, name: 'work' }, { id: 2, name: 'personal' }, { id: 3, name: 'reading' }] });
   if (path === '/api/blueprints') return route.fulfill({ json: [] });
   if (path === '/api/workflow-runs/summary') return route.fulfill({ json: { counts: [] } });
@@ -125,5 +125,5 @@ function layoutReport() {
   });
 }
 
-return { browser, page, records, writes, errors, settle, layoutReport };
+return { browser, context: ctx, page, records, writes, errors, settle, layoutReport };
 }

@@ -32,11 +32,9 @@ import {
   cn,
   EmptyState,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -649,24 +647,7 @@ function InfoPanel({
           ))
         )}
         {linkableNotes.length > 0 && (
-          <Select
-            key={selectKey}
-            onValueChange={(v) => {
-              onCreateLink(Number(v));
-              setSelectKey((k) => k + 1);
-            }}
-          >
-            <SelectTrigger className="mt-1.5 h-7 text-xs" aria-label="Link to note">
-              <SelectValue placeholder="+ Link to note…" />
-            </SelectTrigger>
-            <SelectContent>
-              {linkableNotes.map((n) => (
-                <SelectItem key={n.id} value={String(n.id)}>
-                  {n.title || 'Untitled Note'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <NoteLinkPicker key={selectKey} notes={linkableNotes} onPick={(id) => { onCreateLink(id); setSelectKey((k) => k + 1); }} />
         )}
       </InfoSection>
 
@@ -768,5 +749,49 @@ function LinkItem({ linkId, note, dir, onSelect, onRemove }: { linkId: string; n
         <X className="size-3" aria-hidden="true" />
       </button>
     </div>
+  );
+}
+
+/**
+ * Searchable "link to note" picker. A select listing every note rendered all of
+ * them on each open note, which on a phone with thousands of notes took
+ * seconds (#492); this renders at most 50 matches.
+ */
+const LINK_PICKER_LIMIT = 50;
+function NoteLinkPicker({ notes, onPick }: { notes: CoreNote[]; onPick: (id: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const matches = useMemo(() => {
+    if (!open) return [];
+    const needle = query.trim().toLocaleLowerCase();
+    const result: CoreNote[] = [];
+    for (const candidate of notes) {
+      if (!needle || (candidate.title || 'Untitled Note').toLocaleLowerCase().includes(needle)) result.push(candidate);
+      if (result.length >= LINK_PICKER_LIMIT) break;
+    }
+    return result;
+  }, [notes, open, query]);
+  return (
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(''); }}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label="Link to note" className="mt-1.5 flex h-7 w-full items-center rounded-md border border-border px-2 text-left text-xs text-muted-foreground hover:bg-surface-2 coarse:h-11">
+          + Link to note…
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search notes" aria-label="Search notes to link" className="h-8 text-xs" />
+        <ul role="listbox" aria-label="Notes to link" className="mt-2 max-h-64 overflow-y-auto">
+          {matches.map((candidate) => (
+            <li key={candidate.id} role="option" aria-selected={false}>
+              <button type="button" onClick={() => { onPick(candidate.id); setOpen(false); }} className="w-full truncate rounded px-2 py-1.5 text-left text-xs hover:bg-surface-2 coarse:min-h-11">
+                {candidate.title || 'Untitled Note'}
+              </button>
+            </li>
+          ))}
+          {matches.length === 0 && <li className="px-2 py-1.5 text-xs text-muted-foreground">No matching notes.</li>}
+        </ul>
+        {matches.length === LINK_PICKER_LIMIT && <p className="mt-1 px-2 text-xxs text-muted-foreground">Showing the first {LINK_PICKER_LIMIT}; type to narrow.</p>}
+      </PopoverContent>
+    </Popover>
   );
 }

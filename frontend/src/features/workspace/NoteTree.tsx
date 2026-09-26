@@ -5,7 +5,7 @@
 // row also offers the same moves from a menu (always visible on touch) and as
 // Alt+Arrow keyboard shortcuts.
 
-import { createContext, useContext, useState, type CSSProperties, type DragEvent } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type DragEvent } from 'react';
 import { ChevronRight, MoreVertical, Plus } from 'lucide-react';
 import { cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/ui';
 import { isAnchored } from './workspaceUtils';
@@ -39,20 +39,58 @@ const useTreeCtx = () => {
   return ctx;
 };
 
+/**
+ * Top-level rows rendered per step. A workspace with thousands of notes would
+ * otherwise build every row before the list appears, which takes seconds on a
+ * phone (#492); more rows are added as the end of the list scrolls into view.
+ */
+export const TREE_PAGE = 50;
+
 export function NoteTree({ tree, selectedId, onSelect, onAddChild }: NoteTreeProps) {
   const [drag, setDrag] = useState<DragState>({ dragId: null, hint: null });
+  const [shown, setShown] = useState(TREE_PAGE);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const limit = shown;
+  const more = tree.forest.length > limit;
+  // A selected note beyond the rendered page (a deep link) is shown on its own, so its row is never missing.
+  const selectedRoot = selectedId == null ? -1 : tree.forest.findIndex((node) => containsNote(node, selectedId));
+
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!more || !target || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setShown((count) => count + TREE_PAGE);
+    }, { rootMargin: '400px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [more, limit]);
 
   const value: TreeContext = { tree, selectedId, onSelect, onAddChild, drag, setDrag };
 
   return (
     <Ctx.Provider value={value}>
       <div role="tree" aria-label="Notes" onDragEnd={() => setDrag({ dragId: null, hint: null })}>
-        {tree.forest.map((node, index) => (
+        {tree.forest.slice(0, limit).map((node, index) => (
           <NoteTreeRow key={node.note.id} node={node} siblings={tree.forest} index={index} />
         ))}
+        {selectedRoot >= limit && (
+          <NoteTreeRow key={tree.forest[selectedRoot].note.id} node={tree.forest[selectedRoot]} siblings={tree.forest} index={selectedRoot} />
+        )}
       </div>
+      {more && (
+        <div ref={sentinel}>
+          <button type="button" onClick={() => setShown((count) => count + TREE_PAGE)}
+            className="w-full rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-surface-2 coarse:min-h-touch">
+            Show more notes ({tree.forest.length - limit} more)
+          </button>
+        </div>
+      )}
     </Ctx.Provider>
   );
+}
+
+function containsNote(node: TreeNode, id: number): boolean {
+  return node.note.id === id || node.children.some((child) => containsNote(child, id));
 }
 
 function NoteTreeRow({ node, siblings, index, parent }: { node: TreeNode; siblings: TreeNode[]; index: number; parent?: TreeNode }) {

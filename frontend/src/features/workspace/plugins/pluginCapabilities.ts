@@ -22,7 +22,7 @@ export const PLUGIN_CAPABILITIES: Readonly<Record<string, readonly Capability[]>
   'caldav-sync': ['remote.fetch'],
   'remote-notification-gateway': ['remote.fetch', 'credentials.secure'],
   'document-inbox-ocr': ['files.pick', 'documents.ocr'],
-  'pdf-toolkit': ['files.pick', 'pdf.tools'],
+  'pdf-toolkit': ['files.pick', 'files.save', 'pdf.tools'],
   'managed-files': ['device.folders'],
   // Foundation tools
   'reminders-notifications': ['reminders.scheduled', 'notifications.local'],

@@ -67,16 +67,23 @@ function orderedSiblings(map: TreeMap, notes: CoreNote[], parent: number | null,
     .map((n) => n.id);
 }
 
-/** Builds the nested forest from the flat note list and the tree map. */
+/**
+ * Builds the nested forest from the flat note list and the tree map. Children
+ * are grouped in one pass (linear in the number of notes) rather than by
+ * scanning every note for each parent, which was quadratic (#492).
+ */
 export function buildForest(map: TreeMap, notes: CoreNote[]): TreeNode[] {
-  const byId = new Map(notes.map((n) => [n.id, n]));
-  const present = new Set(byId.keys());
+  const present = new Set(notes.map((n) => n.id));
+  const groups = new Map<number | null, CoreNote[]>();
+  for (const note of notes) {
+    const p = parentOf(map, note.id);
+    const parent = p != null && present.has(p) ? p : null; // orphans float to the top level
+    const group = groups.get(parent);
+    if (group) group.push(note); else groups.set(parent, [note]);
+  }
+  const order = (a: CoreNote, b: CoreNote) => (map[a.id]?.order ?? END) - (map[b.id]?.order ?? END) || a.id - b.id;
   const build = (parent: number | null, depth: number): TreeNode[] =>
-    orderedSiblings(map, notes, parent, present).map((id) => ({
-      note: byId.get(id)!,
-      depth,
-      children: build(id, depth + 1),
-    }));
+    (groups.get(parent) ?? []).sort(order).map((note) => ({ note, depth, children: build(note.id, depth + 1) }));
   return build(null, 0);
 }
 

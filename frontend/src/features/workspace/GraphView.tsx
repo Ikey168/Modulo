@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PinchTracker } from './pinchGesture';
 import {
   forceSimulation,
   forceLink,
@@ -334,7 +335,8 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // ── Interaction: hover / drag-pan / drag-node / wheel-zoom ──────────────
-    let mode: 'none' | 'pan' | 'drag' = 'none';
+    let mode: 'none' | 'pan' | 'drag' | 'pinch' = 'none';
+    const pinch = new PinchTracker();
     let dragNode: GNode | null = null;
     let last = { x: 0, y: 0 };
     let moved = 0;
@@ -347,6 +349,14 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
     const onPointerDown = (e: PointerEvent) => {
       canvas.setPointerCapture(e.pointerId);
       const p = localPos(e);
+      pinch.down(e.pointerId, p.x, p.y);
+      if (pinch.count === 2) {
+        // A second finger turns the gesture into pinch-zoom; release any node the first one held.
+        if (dragNode) { dragNode.fx = null; dragNode.fy = null; sim.alphaTarget(0); dragNode = null; }
+        mode = 'pinch';
+        return;
+      }
+      if (pinch.count > 2) return;
       last = p;
       moved = 0;
       const hit = nodeAt(p.x, p.y);
@@ -365,6 +375,16 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
 
     const onPointerMove = (e: PointerEvent) => {
       const p = localPos(e);
+      const step = pinch.move(e.pointerId, p.x, p.y);
+      if (mode === 'pinch') {
+        if (step) {
+          userAdjustedView = true;
+          view.x += step.dx;
+          view.y += step.dy;
+          zoomAround(step.cx, step.cy, step.factor);
+        }
+        return;
+      }
       if (mode === 'drag' && dragNode) {
         userAdjustedView = true;
         const w = toWorld(p.x, p.y);
@@ -391,7 +411,13 @@ export function GraphView({ notes, links, selectedId, onSelectNode, onOpenNote }
       }
     };
 
-    const endPointer = () => {
+    const endPointer = (e: PointerEvent) => {
+      pinch.up(e.pointerId);
+      if (mode === 'pinch') {
+        // Lifting fingers after a pinch never selects a node.
+        if (pinch.count === 0) mode = 'none';
+        return;
+      }
       const wasClick = moved < 5;
       if (mode === 'drag' && dragNode) {
         dragNode.fx = null;

@@ -7,6 +7,7 @@ import { isWorkspaceShortcut } from './workspaceKeyboard';
 //
 // Layout (cards and connections) persists per board in synchronized plugin state; several
 // named boards can coexist and the last-open one is restored on reload.
+import { PinchTracker } from './pinchGesture';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasState } from './useCanvasState';
 import { PluginStateNotice } from './plugins/PluginStateNotice';
@@ -149,6 +150,46 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Two-finger pinch zoom and pan on touch (#492). Listened for in the capture phase so, while two
+  // fingers are down, moves never reach the card or background drag handlers underneath.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const pinch = new PinchTracker();
+    const local = (e: PointerEvent) => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const p = local(e);
+      pinch.down(e.pointerId, p.x, p.y);
+      if (pinch.count >= 2) e.stopPropagation();
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const p = local(e);
+      const step = pinch.move(e.pointerId, p.x, p.y);
+      if (pinch.count < 2) return;
+      e.stopPropagation();
+      if (!step) return;
+      setView((v) => {
+        const k2 = clamp(v.k * step.factor, MIN_K, MAX_K);
+        const x = v.x + step.dx;
+        const y = v.y + step.dy;
+        return { k: k2, x: step.cx - (step.cx - x) * (k2 / v.k), y: step.cy - (step.cy - y) * (k2 / v.k) };
+      });
+    };
+    const up = (e: PointerEvent) => pinch.up(e.pointerId);
+    el.addEventListener('pointerdown', down, true);
+    el.addEventListener('pointermove', move, true);
+    el.addEventListener('pointerup', up, true);
+    el.addEventListener('pointercancel', up, true);
+    return () => {
+      el.removeEventListener('pointerdown', down, true);
+      el.removeEventListener('pointermove', move, true);
+      el.removeEventListener('pointerup', up, true);
+      el.removeEventListener('pointercancel', up, true);
+    };
   }, []);
 
   // Frame the board once on first layout: fit to cards, or centre the origin.

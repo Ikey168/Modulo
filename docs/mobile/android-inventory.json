@@ -5729,6 +5729,7 @@
       "schemas": [],
       "capabilities": [
         "files.pick",
+        "files.save",
         "pdf.tools"
       ],
       "nativeDependencies": [
