@@ -10,12 +10,11 @@ import { DAY_BLOCKS, type DayBlockId } from './dayBlocks';
 import { calendarBlockOverview } from './calendarPlanner';
 import { LIFE_PLUGIN_CONFIGS, type LifePluginConfig } from './lifeConfigs';
 import { DOMAIN_COLLECTION_CONFIGS } from './domainConfigs';
-import { BUSINESS_OBLIGATIONS_PLUGIN_ID, BUSINESS_OPERATIONS_PLUGIN_ID, ELECTRONICS_LAB_PLUGIN_ID, HOBBY_PRACTICE_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, INFORMATION_INTAKE_PLUGIN_ID, MUSIC_PRACTICE_PLUGIN_ID, ROUTINES_PLUGIN_ID, STYLE_STUDIO_PLUGIN_ID, TTRPG_SESSIONS_PLUGIN_ID } from './plugins';
+import { BUSINESS_OBLIGATIONS_PLUGIN_ID, BUSINESS_OPERATIONS_PLUGIN_ID, ELECTRONICS_LAB_PLUGIN_ID, HOBBY_PRACTICE_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, MUSIC_PRACTICE_PLUGIN_ID, ROUTINES_PLUGIN_ID, STYLE_STUDIO_PLUGIN_ID, TTRPG_SESSIONS_PLUGIN_ID } from './plugins';
 import { usePlugins } from './plugins/PluginProvider';
 import { useParaStore } from './useParaStore';
 import { useEducationStore } from './useEducationStore';
 import { useRoutinesStore } from './useRoutinesStore';
-import { useInformationIntakeStore } from './useInformationIntakeStore';
 import { useHobbyStore } from './useHobbyStore';
 import { useMusicStore } from './useMusicStore';
 import { useElectronicsStore } from './useElectronicsStore';
@@ -84,7 +83,6 @@ export function CalendarView({ data, onOpenNote, layout: controlledLayout, onLay
   };
   const today = useMemo(() => new Date(), []);
   const routinesEnabled = isEnabled(ROUTINES_PLUGIN_ID);
-  const informationEnabled = isEnabled(INFORMATION_INTAKE_PLUGIN_ID);
   const hobbiesEnabled = isEnabled(HOBBY_PRACTICE_PLUGIN_ID);
   const musicEnabled = isEnabled(MUSIC_PRACTICE_PLUGIN_ID);
   const electronicsEnabled = isEnabled(ELECTRONICS_LAB_PLUGIN_ID);
@@ -141,7 +139,6 @@ export function CalendarView({ data, onOpenNote, layout: controlledLayout, onLay
       blockId={selectedBlock}
       onSelectBlock={setSelectedBlock}
       routinesEnabled={routinesEnabled}
-      informationEnabled={informationEnabled}
       hobbiesEnabled={hobbiesEnabled}
       musicEnabled={musicEnabled}
       electronicsEnabled={electronicsEnabled}
@@ -215,13 +212,12 @@ export function CalendarView({ data, onOpenNote, layout: controlledLayout, onLay
   );
 }
 
-function DayPlannerPopover({ date, dayNotes, data, onOpenNote, blockId, onSelectBlock, routinesEnabled, informationEnabled, hobbiesEnabled, musicEnabled, electronicsEnabled, homelabEnabled, styleEnabled, ttrpgEnabled, businessEnabled, lifeConfigs }: { date: Date; dayNotes: CoreNote[]; data: WorkspaceData; onOpenNote: (id: number) => void; blockId: DayBlockId | null; onSelectBlock: (id: DayBlockId | null) => void; routinesEnabled: boolean; informationEnabled: boolean; hobbiesEnabled: boolean; musicEnabled: boolean; electronicsEnabled: boolean; homelabEnabled: boolean; styleEnabled: boolean; ttrpgEnabled: boolean; businessEnabled: boolean; lifeConfigs: LifePluginConfig[] }) {
+function DayPlannerPopover({ date, dayNotes, data, onOpenNote, blockId, onSelectBlock, routinesEnabled, hobbiesEnabled, musicEnabled, electronicsEnabled, homelabEnabled, styleEnabled, ttrpgEnabled, businessEnabled, lifeConfigs }: { date: Date; dayNotes: CoreNote[]; data: WorkspaceData; onOpenNote: (id: number) => void; blockId: DayBlockId | null; onSelectBlock: (id: DayBlockId | null) => void; routinesEnabled: boolean; hobbiesEnabled: boolean; musicEnabled: boolean; electronicsEnabled: boolean; homelabEnabled: boolean; styleEnabled: boolean; ttrpgEnabled: boolean; businessEnabled: boolean; lifeConfigs: LifePluginConfig[] }) {
   const [para] = useParaStore();
   const [meals] = useMealPlannerStore();
   const [workouts] = useWorkoutPlannerStore();
   const [education] = useEducationStore();
   const [routines] = useRoutinesStore();
-  const [information] = useInformationIntakeStore();
   const [hobbies] = useHobbyStore();
   const [music] = useMusicStore();
   const [electronics] = useElectronicsStore();
@@ -242,7 +238,6 @@ function DayPlannerPopover({ date, dayNotes, data, onOpenNote, blockId, onSelect
     education,
     routinesEnabled ? routines : undefined,
     lifeConfigs.map((config) => ({ config, data: lifeCollections[config.id] })),
-    informationEnabled ? information : undefined,
     hobbiesEnabled ? hobbies : undefined,
     musicEnabled ? music : undefined,
     electronicsEnabled ? electronics : undefined,

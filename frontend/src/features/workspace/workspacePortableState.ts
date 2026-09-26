@@ -8,7 +8,6 @@ import { parseWorkoutPlanner } from './workoutPlanner';
 import { parseMediaLibrary } from './mediaLibrary';
 import { MEDIA_ITEM_SCHEMA, mediaLibraryFromRecords, planMediaWrites } from './mediaLibraryStore';
 import { parseEducation } from './education';
-import { parseInformationIntake } from './informationIntake';
 import { parseHobbyData } from './hobbies';
 import { parseMusicData } from './musicStudio';
 import { parseElectronicsData } from './electronicsWorkbench';
@@ -63,7 +62,6 @@ const STATIC: Record<string, Destination> = {
   'modulo-meal-planner-v2': { namespace: 'meal-planner', key: 'data', schemaId: 'modulo.workspace.meal-planner.v2', parse: parseMealPlanner },
   'modulo-workout-planner-v1': { namespace: 'workout-planner', key: 'data', schemaId: 'modulo.workspace.workout-planner', parse: parseWorkoutPlanner },
   'modulo-education-v1': { namespace: 'education', key: 'data', schemaId: 'modulo.workspace.education', parse: parseEducation },
-  'modulo-information-intake-v1': { namespace: 'information', key: 'data', schemaId: 'modulo.workspace.information', parse: parseInformationIntake },
   'modulo-hobbies-v1': { namespace: 'hobbies', key: 'data', schemaId: 'modulo.workspace.hobbies', parse: parseHobbyData },
   'modulo-music-studio-v1': { namespace: 'music', key: 'data', schemaId: 'modulo.workspace.music', parse: parseMusicData },
   'modulo-electronics-workbench-v1': { namespace: 'electronics', key: 'data', schemaId: 'modulo.workspace.electronics', parse: parseElectronicsData },

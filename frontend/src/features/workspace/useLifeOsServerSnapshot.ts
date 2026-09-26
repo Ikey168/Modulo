@@ -61,7 +61,6 @@ export function useLifeOsServerSnapshot(includeMedia = false): Record<string, un
       if (media.items.length) stores['modulo-media-library-v2'] = media;
     }
     copy('education', 'data', 'modulo-education-v1');
-    copy('information', 'data', 'modulo-information-intake-v1');
     copy('hobbies', 'data', 'modulo-hobbies-v1');
     copy('music', 'data', 'modulo-music-studio-v1');
     copy('electronics', 'data', 'modulo-electronics-workbench-v1');

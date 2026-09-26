@@ -74,14 +74,6 @@ const STORES: StoreDescriptor[] = [
     { key: 'nodes', kind: 'Learning node', route: 'education-core' }, { key: 'sessions', kind: 'Study session', route: 'education-study' },
     { key: 'assignments', kind: 'Assignment', route: 'education-assignments', artifact: true },
   ] },
-  { key: 'modulo-information-intake-v1', source: 'Research', collections: [
-    { key: 'items', kind: 'Intake item', route: 'information-intake' }, { key: 'sessions', kind: 'Research session', route: 'information-workbench' },
-    { key: 'artifacts', kind: 'Research output', route: 'information-outputs', artifact: true }, { key: 'projects', kind: 'Research project', route: 'research-projects' },
-    { key: 'explorationTrails', kind: 'Exploration trail', route: 'research-projects' }, { key: 'syntheses', kind: 'Research synthesis', route: 'research-evidence', artifact: true },
-    { key: 'cases', kind: 'Decision or problem', route: 'research-decisions', artifact: true }, { key: 'creations', kind: 'Creation brief', route: 'research-creation', artifact: true },
-    { key: 'learningPlans', kind: 'Learning transfer', route: 'research-learning' }, { key: 'experiments', kind: 'Research experiment', route: 'research-iteration' },
-    { key: 'maintenanceReviews', kind: 'Knowledge review', route: 'research-maintenance' }, { key: 'transitions', kind: 'Workflow transition', route: 'information-workbench' },
-  ] },
   { key: 'modulo-hobbies-v1', source: 'Hobbies', collections: [
     { key: 'hobbies', kind: 'Hobby', route: 'hobby-stack' }, { key: 'sessions', kind: 'Practice session', route: 'hobby-practice' },
     { key: 'artifacts', kind: 'Hobby artifact', route: 'hobby-practice', artifact: true }, { key: 'funMenu', kind: 'Fun activity', route: 'hobby-fun' },
@@ -152,16 +144,6 @@ const REFERENCE_RULES: ReferenceRule[] = [
   { storeKey: 'modulo-education-v1', collection: 'nodes', field: 'parentId', targetCollection: 'nodes', route: 'education-curriculum' },
   { storeKey: 'modulo-education-v1', collection: 'sessions', field: 'nodeId', targetCollection: 'nodes', route: 'education-study' },
   { storeKey: 'modulo-education-v1', collection: 'assignments', field: 'nodeId', targetCollection: 'nodes', route: 'education-assignments' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'sessions', field: 'itemId', targetCollection: 'items', route: 'information-workbench' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'artifacts', field: 'itemId', targetCollection: 'items', route: 'information-outputs' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'items', field: 'projectId', targetCollection: 'projects', route: 'information-intake' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'explorationTrails', field: 'projectId', targetCollection: 'projects', route: 'research-projects' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'syntheses', field: 'projectId', targetCollection: 'projects', route: 'research-evidence' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'cases', field: 'projectId', targetCollection: 'projects', route: 'research-decisions' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'creations', field: 'projectId', targetCollection: 'projects', route: 'research-creation' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'learningPlans', field: 'projectId', targetCollection: 'projects', route: 'research-learning' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'experiments', field: 'projectId', targetCollection: 'projects', route: 'research-iteration' },
-  { storeKey: 'modulo-information-intake-v1', collection: 'maintenanceReviews', field: 'projectId', targetCollection: 'projects', route: 'research-maintenance' },
   { storeKey: 'modulo-hobbies-v1', collection: 'sessions', field: 'hobbyId', targetCollection: 'hobbies', route: 'hobby-practice' },
   { storeKey: 'modulo-hobbies-v1', collection: 'sessions', field: 'funActivityId', targetCollection: 'funMenu', route: 'hobby-practice' },
   { storeKey: 'modulo-hobbies-v1', collection: 'artifacts', field: 'hobbyId', targetCollection: 'hobbies', route: 'hobby-practice' },
@@ -255,7 +237,7 @@ export function collectLifeOsEntities(notes: CoreNote[] = [], stores: Record<str
           status: firstText(item, ['status', 'stage', 'state']) ?? done,
           date: firstText(item, ['date', 'doDate', 'deadline', 'dueDate', 'renewalDate', 'expiresOn', 'contractEnd', 'nextSession', 'updatedAt', 'createdAt']),
           detail: searchableText(item), noteIds: referencedNotes(item), record: item,
-          tags: stringList(item.tags), route: store.key === 'modulo-information-intake-v1' && collection.key === 'cases' && item.kind === 'Problem' ? 'research-problems' : store.key === 'modulo-information-intake-v1' && collection.key === 'creations' && item.kind === 'Externalization' ? 'research-externalization' : collection.route, artifact: collection.artifact === true,
+          tags: stringList(item.tags), route: collection.route, artifact: collection.artifact === true,
         });
       });
     }

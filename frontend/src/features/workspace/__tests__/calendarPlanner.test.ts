@@ -7,7 +7,6 @@ import { emptyEducation } from '../education';
 import { emptyRoutines, setHabitCount, setRoutineDone } from '../routines';
 import { HOME_MAINTENANCE_CONFIG } from '../lifeConfigs';
 import { emptyLifeCollection } from '../lifeStore';
-import { emptyInformationIntake } from '../informationIntake';
 import { emptyHobbyData } from '../hobbies';
 import { emptyMusicData } from '../musicStudio';
 import { emptyElectronicsData } from '../electronicsWorkbench';
@@ -36,9 +35,6 @@ describe('calendar day block overview', () => {
     routines = setHabitCount(routines, 'habit', '2026-09-03', 1);
     const home = emptyLifeCollection();
     home.records.push({ id: 'home', title: 'Service boiler', status: 'Done', category: 'Maintenance', date: '2026-09-03', recurrence: 'Yearly', blockId: 'ops-people', favorite: false, tags: [], values: {}, checklist: [], log: [] });
-    const information = emptyInformationIntake();
-    information.items.push({ id: 'intake', title: 'Compare passkey libraries', mode: 'Decision Support', status: 'Active', blockId: 'deep-work-a', tags: [], capturedAt: '2026-09-01', lastTouchedAt: '2026-09-01' });
-    information.sessions.push({ id: 'research', itemId: 'intake', mode: 'Decision Support', date: '2026-09-03', durationMinutes: 60, blockId: 'deep-work-a', status: 'Planned' });
     const hobbies = emptyHobbyData();
     hobbies.hobbies.push({ id: 'music', layer: 'Output', title: 'Music Production', purpose: 'Expression', status: 'Active', anchor: 'Artifact', energy: 'High', energyEffect: 'Demanding', socialMode: 'Solo', artifactTarget: 'Track', cadence: 'Weekly', setup: 'REAPER ready', location: 'Studio', nextAction: 'Arrange the chorus' });
     hobbies.sessions.push({ id: 'music-session', hobbyId: 'music', date: '2026-09-03', durationMinutes: 90, blockId: 'early-evening', status: 'Planned', people: [], notes: '' });
@@ -52,7 +48,7 @@ describe('calendar day block overview', () => {
     const ttrpg = emptyTtrpgData(); ttrpg.campaigns.push({ id: 'campaign', title: 'Night City', system: 'Cyberpunk RED', status: 'Active', cadence: 'Weekly', location: 'Berlin', gm: 'V', players: [], tone: '', safetyTools: 'X-card', notes: '' }); ttrpg.sessions.push({ id: 'game', campaignId: 'campaign', title: 'The Heist', date: '2026-09-03', minutes: 240, blockId: 'early-evening', status: 'Planned', attendees: [], prep: '', summary: '', decisions: '', nextHook: '' });
     const business = emptyBusinessAdmin(); business.obligations.push({ id: 'vat', type: 'Tax filing', title: 'File USt-VA', authority: 'Finanzamt', dueDate: '2026-09-03', blockId: 'ops-people', status: 'Open', reference: '', notes: '' }); business.correspondence.push({ id: 'reply', direction: 'Inbound', counterpartyType: 'Authority', subject: 'Reply to letter', date: '2026-09-01', dueDate: '2026-09-03', blockId: 'ops-people', status: 'Open', notes: '' });
 
-    const overview = calendarBlockOverview('2026-09-03', body, para, meals, workouts, education, routines, [{ config: HOME_MAINTENANCE_CONFIG, data: home }], information, hobbies, music, electronics, homelab, wardrobe, ttrpg, business);
+    const overview = calendarBlockOverview('2026-09-03', body, para, meals, workouts, education, routines, [{ config: HOME_MAINTENANCE_CONFIG, data: home }], hobbies, music, electronics, homelab, wardrobe, ttrpg, business);
 
     expect(overview['deep-work-a'][0]).toMatchObject({ title: 'Write draft', source: 'Task' });
     expect(overview['early-evening'][0]).toMatchObject({ title: 'Pasta', source: 'Meal' });
@@ -63,7 +59,6 @@ describe('calendar day block overview', () => {
     expect(overview['morning-prime'].some((item) => item.source === 'Routine' && item.done)).toBe(true);
     expect(overview.reset.some((item) => item.source === 'Habit' && !item.done)).toBe(true);
     expect(overview['ops-people'].some((item) => item.title === 'Service boiler' && item.source === 'Home' && item.done)).toBe(true);
-    expect(overview['deep-work-a'].some((item) => item.source === 'Information' && item.title === 'Compare passkey libraries')).toBe(true);
     expect(overview['early-evening'].some((item) => item.source === 'Hobby' && item.title === 'Music Production')).toBe(true);
     expect(overview['wind-down'].some((item) => item.source === 'Music' && item.title.includes('Guitar'))).toBe(true);
     expect(overview['ops-people'].some((item) => item.source === 'Electronics' && item.title === 'Continuity test')).toBe(true);
@@ -71,7 +66,7 @@ describe('calendar day block overview', () => {
     expect(overview['early-evening'].some((item) => item.source === 'Style')).toBe(true);
     expect(overview['early-evening'].some((item) => item.source === 'TTRPG')).toBe(true);
     expect(overview['ops-people'].filter((item) => item.source === 'Business')).toHaveLength(2);
-    expect(blockOverviewCount(overview)).toBe(18);
+    expect(blockOverviewCount(overview)).toBe(17);
   });
 
   it('only includes records assigned to the selected date and a block', () => {

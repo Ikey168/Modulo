@@ -24,7 +24,6 @@ import {
   WEEKDAY_LABELS,
 } from './planner';
 import type { ParaTask } from './para';
-import { sessionsOn, type IntakeSession } from './informationIntake';
 import { hobbySessionsOn, type HobbySession } from './hobbies';
 import { musicPracticeOn, type MusicPractice } from './musicStudio';
 import { labEntriesOn, type LabEntry } from './electronicsWorkbench';
@@ -35,13 +34,12 @@ import { correspondenceOn, obligationsOn, type BusinessCorrespondence, type Busi
 import { LIFE_PLUGIN_CONFIGS, type LifePluginConfig } from './lifeConfigs';
 import { DOMAIN_COLLECTION_CONFIGS } from './domainConfigs';
 import { emptyLifeCollection, lifeOccurrenceDone, lifeRecordsOn, setLifeOccurrenceDone, type LifeRecord } from './lifeStore';
-import { BUSINESS_OBLIGATIONS_PLUGIN_ID, BUSINESS_OPERATIONS_PLUGIN_ID, CALENDAR_PLUGIN_ID, ELECTRONICS_LAB_PLUGIN_ID, HOBBY_PRACTICE_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, INFORMATION_INTAKE_PLUGIN_ID, MUSIC_PRACTICE_PLUGIN_ID, ROUTINES_PLUGIN_ID, STYLE_STUDIO_PLUGIN_ID, TTRPG_SESSIONS_PLUGIN_ID } from './plugins';
+import { BUSINESS_OBLIGATIONS_PLUGIN_ID, BUSINESS_OPERATIONS_PLUGIN_ID, CALENDAR_PLUGIN_ID, ELECTRONICS_LAB_PLUGIN_ID, HOBBY_PRACTICE_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, MUSIC_PRACTICE_PLUGIN_ID, ROUTINES_PLUGIN_ID, STYLE_STUDIO_PLUGIN_ID, TTRPG_SESSIONS_PLUGIN_ID } from './plugins';
 import { usePlugins } from './plugins/PluginProvider';
 import { habitCount, habitStreak, habitsOn, routineDone, routinesOn, setHabitCount, setRoutineDone } from './routines';
 import { useParaStore } from './useParaStore';
 import { LIFE_COLLECTION_SCHEMA, useLifeCollections } from './useLifeCollection';
 import { useRoutinesStore } from './useRoutinesStore';
-import { useInformationIntakeStore } from './useInformationIntakeStore';
 import { useHobbyStore } from './useHobbyStore';
 import { useMusicStore } from './useMusicStore';
 import { useElectronicsStore } from './useElectronicsStore';
@@ -69,7 +67,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
   const { isEnabled, workspaceState } = usePlugins();
   const [para, persistPara] = useParaStore();
   const [routineData, persistRoutines] = useRoutinesStore();
-  const [informationData, persistInformation] = useInformationIntakeStore();
   const [hobbyData, persistHobbies] = useHobbyStore();
   const [musicData, persistMusic] = useMusicStore();
   const [electronicsData, persistElectronics] = useElectronicsStore();
@@ -97,7 +94,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
   );
   const week = useMemo(() => weekOf(anchor), [anchor]);
   const routinesEnabled = isEnabled(ROUTINES_PLUGIN_ID);
-  const informationEnabled = isEnabled(INFORMATION_INTAKE_PLUGIN_ID);
   const hobbiesEnabled = isEnabled(HOBBY_PRACTICE_PLUGIN_ID);
   const musicEnabled = isEnabled(MUSIC_PRACTICE_PLUGIN_ID);
   const electronicsEnabled = isEnabled(ELECTRONICS_LAB_PLUGIN_ID);
@@ -112,7 +108,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
   const lifeCollections = useLifeCollections(enabledLifeConfigs.map((config) => config.id));
   const dailyRoutines = useMemo(() => routinesEnabled ? routinesOn(routineData, anchor) : [], [routineData, anchor, routinesEnabled]);
   const dailyHabits = useMemo(() => routinesEnabled ? habitsOn(routineData, anchor) : [], [routineData, anchor, routinesEnabled]);
-  const dailyInformation = useMemo(() => informationEnabled ? sessionsOn(informationData, anchor) : [], [informationData, anchor, informationEnabled]);
   const dailyHobbies = useMemo(() => hobbiesEnabled ? hobbySessionsOn(hobbyData, anchor) : [], [hobbyData, anchor, hobbiesEnabled]);
   const dailyMusic = useMemo(() => musicEnabled ? musicPracticeOn(musicData, anchor) : [], [musicData, anchor, musicEnabled]);
   const dailyElectronics = useMemo(() => electronicsEnabled ? labEntriesOn(electronicsData, anchor) : [], [electronicsData, anchor, electronicsEnabled]);
@@ -169,7 +164,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
       }));
   };
 
-  const patchInformationSession = (id: string, update: Partial<IntakeSession>) => persistInformation((current) => ({ ...current, sessions: current.sessions.map((session) => session.id === id ? { ...session, ...update } : session) }));
   const patchHobbySession = (id: string, update: Partial<HobbySession>) => persistHobbies((current) => ({ ...current, sessions: current.sessions.map((session) => session.id === id ? { ...session, ...update } : session) }));
   const patchMusicPractice = (id: string, update: Partial<MusicPractice>) => persistMusic((current) => ({ ...current, practice: current.practice.map((session) => session.id === id ? { ...session, ...update } : session) }));
   const patchLabEntry = (id: string, update: Partial<LabEntry>) => persistElectronics((current) => ({ ...current, lab: current.lab.map((entry) => entry.id === id ? { ...entry, ...update } : entry) }));
@@ -261,7 +255,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
               const routines = dailyRoutines.filter((routine) => routine.blockId === block.id);
               const habits = dailyHabits.filter((habit) => habit.blockId === block.id);
               const lifeRecords = dailyLifeRecords.filter(({ record }) => record.blockId === block.id);
-              const informationSessions = dailyInformation.filter((session) => session.blockId === block.id);
               const hobbySessions = dailyHobbies.filter((session) => session.blockId === block.id);
               const musicSessions = dailyMusic.filter((session) => session.blockId === block.id);
               const electronicsEntries = dailyElectronics.filter((entry) => entry.blockId === block.id);
@@ -352,11 +345,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
                       );
                     })}
 
-                    {informationSessions.map((session) => {
-                      const item = informationData.items.find((candidate) => candidate.id === session.itemId);
-                      const done = session.status === 'Done';
-                      return <div key={session.id} className="flex min-w-0 items-center gap-2"><Checkbox checked={done} aria-label={`Mark ${item?.title ?? session.mode} ${done ? 'open' : 'done'}`} onCheckedChange={(checked) => patchInformationSession(session.id, { status: checked === true ? 'Done' : 'Planned' })} /><span className={cn('min-w-0 flex-1 truncate text-sm', done && 'text-muted-foreground line-through')}>{item?.title ?? session.mode}</span><span className="text-xxs text-muted-foreground">{session.durationMinutes} min</span><button type="button" onClick={() => navigateView('information-workbench')} className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-xxs text-cyan-600 hover:bg-cyan-500/20">{session.mode}</button></div>;
-                    })}
 
                     {hobbySessions.map((session) => {
                       const hobby = hobbyData.hobbies.find((candidate) => candidate.id === session.hobbyId);
@@ -375,7 +363,7 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
                     {businessObligations.map((item) => { const done = ['Submitted', 'Accepted', 'Not applicable'].includes(item.status); return <div key={item.id} className="flex min-w-0 items-center gap-2"><Checkbox checked={done} onCheckedChange={(checked) => patchBusinessObligation(item.id, { status: checked === true ? 'Submitted' : 'Open', submittedOn: checked === true ? anchor : undefined })}/><span className={cn('min-w-0 flex-1 truncate text-sm', done && 'text-muted-foreground line-through')}>{item.title}</span><button type="button" onClick={() => navigateView('business-obligations')} className="rounded bg-warning/10 px-1.5 py-0.5 text-xxs text-warning">Business</button></div>; })}
                     {businessCorrespondence.map((item) => { const done = ['Answered', 'Filed'].includes(item.status); return <div key={item.id} className="flex min-w-0 items-center gap-2"><Checkbox checked={done} onCheckedChange={(checked) => patchBusinessCorrespondence(item.id, { status: checked === true ? 'Answered' : 'Open' })}/><span className={cn('min-w-0 flex-1 truncate text-sm', done && 'text-muted-foreground line-through')}>{item.subject}</span><button type="button" onClick={() => navigateView('business-operations')} className="rounded bg-warning/10 px-1.5 py-0.5 text-xxs text-warning">Business</button></div>; })}
 
-                    {blockPlan[block.id].length === 0 && paraTasks.length === 0 && routines.length === 0 && habits.length === 0 && lifeRecords.length === 0 && informationSessions.length === 0 && hobbySessions.length === 0 && musicSessions.length === 0 && electronicsEntries.length === 0 && homelabRuns.length === 0 && styleLogs.length === 0 && gameSessions.length === 0 && businessObligations.length === 0 && businessCorrespondence.length === 0 && <p className="text-xs text-muted-foreground">No items planned.</p>}
+                    {blockPlan[block.id].length === 0 && paraTasks.length === 0 && routines.length === 0 && habits.length === 0 && lifeRecords.length === 0 && hobbySessions.length === 0 && musicSessions.length === 0 && electronicsEntries.length === 0 && homelabRuns.length === 0 && styleLogs.length === 0 && gameSessions.length === 0 && businessObligations.length === 0 && businessCorrespondence.length === 0 && <p className="text-xs text-muted-foreground">No items planned.</p>}
                     <div className="mt-1 flex gap-1.5">
                       <Input
                         value={drafts[block.id] ?? ''}
@@ -451,7 +439,6 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
               const taskCount = para.tasks.filter((task) => !task.archivedAt && task.doDate === date).length;
               const routineCount = routinesEnabled ? routinesOn(routineData, date).length + habitsOn(routineData, date).length : 0;
               const lifeCount = enabledLifeConfigs.reduce((sum, config) => sum + lifeRecordsOn(lifeCollections[config.id] ?? emptyLifeCollection(), date).length, 0);
-              const informationCount = informationEnabled ? sessionsOn(informationData, date).filter((session) => session.blockId).length : 0;
               const hobbyCount = hobbiesEnabled ? hobbySessionsOn(hobbyData, date).filter((session) => session.blockId).length : 0;
               const musicCount = musicEnabled ? musicPracticeOn(musicData, date).filter((session) => session.blockId).length : 0;
               const electronicsCount = electronicsEnabled ? labEntriesOn(electronicsData, date).filter((entry) => entry.blockId).length : 0;
@@ -476,8 +463,8 @@ export function PlannerView({ data, onOpenNote, navigateView, currentView }: Wor
                     {!note && <CalendarPlus className="ml-auto size-3 text-muted-foreground" aria-hidden="true" />}
                   </span>
                   {headline && <span className="mt-1 truncate text-xs text-muted-foreground">{headline}</span>}
-                  {(blockItems > 0 || taskCount > 0 || routineCount > 0 || lifeCount > 0 || informationCount > 0 || hobbyCount > 0 || musicCount > 0 || electronicsCount > 0 || homelabCount > 0 || styleCount > 0 || ttrpgCount > 0 || businessCount > 0 || open > 0) && <span className="mt-auto text-xxs text-muted-foreground">{blockItems + taskCount + routineCount + lifeCount + informationCount + hobbyCount + musicCount + electronicsCount + homelabCount + styleCount + ttrpgCount + businessCount} blocked · {open} other</span>}
-                  {!note && taskCount === 0 && routineCount === 0 && lifeCount === 0 && informationCount === 0 && hobbyCount === 0 && musicCount === 0 && electronicsCount === 0 && homelabCount === 0 && styleCount === 0 && ttrpgCount === 0 && businessCount === 0 && <span className="mt-1 text-xxs text-muted-foreground">no plan</span>}
+                  {(blockItems > 0 || taskCount > 0 || routineCount > 0 || lifeCount > 0 || hobbyCount > 0 || musicCount > 0 || electronicsCount > 0 || homelabCount > 0 || styleCount > 0 || ttrpgCount > 0 || businessCount > 0 || open > 0) && <span className="mt-auto text-xxs text-muted-foreground">{blockItems + taskCount + routineCount + lifeCount + hobbyCount + musicCount + electronicsCount + homelabCount + styleCount + ttrpgCount + businessCount} blocked · {open} other</span>}
+                  {!note && taskCount === 0 && routineCount === 0 && lifeCount === 0 && hobbyCount === 0 && musicCount === 0 && electronicsCount === 0 && homelabCount === 0 && styleCount === 0 && ttrpgCount === 0 && businessCount === 0 && <span className="mt-1 text-xxs text-muted-foreground">no plan</span>}
                 </button>
               );
             })}

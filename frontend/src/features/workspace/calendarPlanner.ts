@@ -1,6 +1,5 @@
 import { DAY_BLOCKS, dayBlockPlanOf, type DayBlockId } from './dayBlocks';
 import type { EducationData } from './education';
-import type { InformationIntakeData } from './informationIntake';
 import type { HobbyData } from './hobbies';
 import type { MealPlannerData } from './mealPlanner';
 import type { MusicData } from './musicStudio';
@@ -15,7 +14,7 @@ import { habitCount, habitStreak, habitsOn, routineDone, routinesOn, type Routin
 import type { WorkoutPlannerData } from './workoutPlanner';
 import type { BusinessAdminData } from './businessAdmin';
 
-export type BlockItemSource = 'Plan' | 'Task' | 'Meal' | 'Meal prep' | 'Workout' | 'Study' | 'Information' | 'Hobby' | 'Fun' | 'Music' | 'Electronics' | 'Homelab' | 'Style' | 'TTRPG' | 'Business' | 'Routine' | 'Habit' | LifeCalendarSource;
+export type BlockItemSource = 'Plan' | 'Task' | 'Meal' | 'Meal prep' | 'Workout' | 'Study' | 'Hobby' | 'Fun' | 'Music' | 'Electronics' | 'Homelab' | 'Style' | 'TTRPG' | 'Business' | 'Routine' | 'Habit' | LifeCalendarSource;
 export interface BlockOverviewItem {
   id: string;
   title: string;
@@ -34,7 +33,6 @@ export function calendarBlockOverview(
   education: EducationData,
   routines?: RoutinesData,
   lifeCollections: Array<{ config: LifePluginConfig; data: LifeCollectionData }> = [],
-  information?: InformationIntakeData,
   hobbies?: HobbyData,
   music?: MusicData,
   electronics?: ElectronicsData,
@@ -66,10 +64,6 @@ export function calendarBlockOverview(
   for (const session of education.sessions.filter((item) => item.date === date && item.blockId)) {
     const node = education.nodes.find((item) => item.id === session.nodeId);
     overview[session.blockId!].push({ id: session.id, title: node?.title ?? 'Missing learning item', source: 'Study', done: session.status === 'Done', detail: `${session.durationMinutes} min${session.notes ? ` · ${session.notes}` : ''}` });
-  }
-  for (const session of information?.sessions.filter((item) => item.date === date && item.blockId) ?? []) {
-    const intake = information?.items.find((item) => item.id === session.itemId);
-    overview[session.blockId!].push({ id: session.id, title: intake?.title ?? session.mode, source: 'Information', done: session.status === 'Done', detail: `${session.mode} · ${session.durationMinutes} min` });
   }
   for (const session of hobbies?.sessions.filter((item) => item.date === date && item.blockId) ?? []) {
     const hobby = hobbies?.hobbies.find((item) => item.id === session.hobbyId);

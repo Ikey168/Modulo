@@ -1,4 +1,3 @@
-import { RESEARCH_ROLE_IDS } from '../researchRoles';
 // Packs: curated bundles of plugins plus starter blueprints. Installing a pack
 // installs each of its plugins (through the plugin runtime) and adds each of
 // its blueprints (through the client-side blueprint store), so one click sets
@@ -58,8 +57,6 @@ import {
   HOMELAB_OPERATIONS_PLUGIN_ID,
   HOMELAB_DASHBOARD_PLUGIN_ID,
   INFORMATION_INTAKE_PLUGIN_ID,
-  INFORMATION_OUTPUTS_PLUGIN_ID,
-  INFORMATION_WORKBENCH_PLUGIN_ID,
   IPFS_ATTACH_PLUGIN_ID,
   JOURNAL_REFLECTION_PLUGIN_ID,
   LIFE_OS_DASHBOARD_PLUGIN_ID,
@@ -353,10 +350,7 @@ export const PACKS: Pack[] = [
       CALENDAR_PLUGIN_ID,
       MEDIA_LIBRARY_PLUGIN_ID,
       INFORMATION_INTAKE_PLUGIN_ID,
-      INFORMATION_WORKBENCH_PLUGIN_ID,
-      INFORMATION_OUTPUTS_PLUGIN_ID,
       'daily-briefing', 'topic-watchlists', 'newsletter-inbox',
-      ...RESEARCH_ROLE_IDS,
       WRITING_MANUSCRIPTS_PLUGIN_ID,
       WRITING_EDITORIAL_PLUGIN_ID,
       WRITING_PUBLISHING_PLUGIN_ID,
@@ -422,7 +416,7 @@ export const PACKS: Pack[] = [
   },
   {
     id: 'pack-homelab-infrastructure', name: 'Homelab & Infrastructure', description: 'Infrastructure topology, services, deployments, changes, incidents, maintenance, backups, restore tests, and experiments.', icon: Server, category: 'homelab',
-    pluginIds: [HOBBY_STACK_PLUGIN_ID, PLANNER_PLUGIN_ID, CALENDAR_PLUGIN_ID, HOMELAB_ASSETS_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, HOMELAB_DASHBOARD_PLUGIN_ID, INFORMATION_INTAKE_PLUGIN_ID, INFORMATION_OUTPUTS_PLUGIN_ID, HOME_INVENTORY_PLUGIN_ID, WISHLIST_PURCHASES_PLUGIN_ID], blueprints: [],
+    pluginIds: [HOBBY_STACK_PLUGIN_ID, PLANNER_PLUGIN_ID, CALENDAR_PLUGIN_ID, HOMELAB_ASSETS_PLUGIN_ID, HOMELAB_OPERATIONS_PLUGIN_ID, HOMELAB_DASHBOARD_PLUGIN_ID, INFORMATION_INTAKE_PLUGIN_ID, HOME_INVENTORY_PLUGIN_ID, WISHLIST_PURCHASES_PLUGIN_ID], blueprints: [],
   },
   {
     id: 'pack-wardrobe-style', name: 'Wardrobe & Style', description: 'Garments, outfits, capsules, silhouettes, archetypes, wears, experiments, repairs, alterations, and seasonal wardrobe health.', icon: Shirt, category: 'style',
@@ -501,7 +495,7 @@ export const PACKS: Pack[] = [
   {
     id: 'pack-research-lab',
     name: 'Research Lab — Information Intake Modes',
-    description: 'Capture and route information through Awareness, Exploration, Deep Research, Decision Support, Problem-Solving, Creation, Externalization, Internalization, Iteration, and Maintenance.',
+    description: 'Signed-in Information Intake with Noesis workflows for Awareness, Exploration, Deep Research, Decision Support, Problem-Solving, Creation, Externalization, Internalization, Iteration, and Maintenance.',
     icon: Radar,
     category: 'research',
     pluginIds: [
@@ -510,10 +504,7 @@ export const PACKS: Pack[] = [
       PLANNER_PLUGIN_ID,
       CALENDAR_PLUGIN_ID,
       INFORMATION_INTAKE_PLUGIN_ID,
-      INFORMATION_WORKBENCH_PLUGIN_ID,
-      INFORMATION_OUTPUTS_PLUGIN_ID,
       'daily-briefing', 'topic-watchlists', 'newsletter-inbox',
-      ...RESEARCH_ROLE_IDS,
     ],
     blueprints: [],
   },

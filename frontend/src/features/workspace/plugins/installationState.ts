@@ -2,8 +2,22 @@ import type { PluginStateClient, StateJson } from '../../../services/pluginState
 import { importLegacyState } from '../../../services/legacyStateImport';
 import { isRunnable, type InstalledRecord, type PluginManifest } from './types';
 import type { InstallationStorage } from './runtime';
+import { RETIRED_PLUGIN_REPLACEMENTS } from './catalog';
 
 export const INSTALLATION_SCHEMA = 'modulo.workspace.installations';
+
+/** Replace retired plugin ids with their successor, keeping first position and enabling it when any source was enabled. */
+export function replaceRetiredInstallations(value: unknown, replacements: Readonly<Record<string, string>> = RETIRED_PLUGIN_REPLACEMENTS): unknown {
+  if (!Array.isArray(value) || !value.some(record => record && typeof record.id === 'string' && replacements[record.id])) return value;
+  const merged = new Map<string, { id: string; enabled: boolean }>();
+  for (const record of value) {
+    if (!record || typeof record.id !== 'string' || typeof record.enabled !== 'boolean') return value;
+    const id = replacements[record.id] ?? record.id;
+    const previous = merged.get(id);
+    merged.set(id, { id, enabled: (previous?.enabled ?? false) || record.enabled });
+  }
+  return [...merged.values()];
+}
 export function validateInstallations(value: unknown, catalog: PluginManifest[]): InstalledRecord[] {
   if (!Array.isArray(value) || value.some(record => !record || typeof record.id !== 'string' || typeof record.enabled !== 'boolean')
     || new Set(value.map(record => record.id)).size !== value.length) throw new Error('Invalid plugin installation settings');
@@ -32,7 +46,7 @@ export function installationStorage(client: PluginStateClient | undefined, catal
       const record = client?.get('installed');
       if (!record || record.deleted) return defaults;
       if (record.schemaId !== INSTALLATION_SCHEMA || record.schemaVersion !== 1) throw new Error('Unsupported plugin settings version');
-      return validateInstallations(record.value, catalog);
+      return validateInstallations(replaceRetiredInstallations(record.value), catalog);
     },
     save: async records => {
       if (!client || client.status === 'closed') throw new Error('Sign in and load the settings cache before changing plugins.');
@@ -47,7 +61,7 @@ export async function importWorkspacePreferences(client: PluginStateClient, stor
   const installedKey = storage.getItem('modulo-plugins-installed') !== null ? 'modulo-plugins-installed' : 'modulo-plugins';
   await importLegacyState(client, storage, installedKey, 'installed', INSTALLATION_SCHEMA, raw => {
     const records = installedKey === 'modulo-plugins' && Array.isArray(raw) ? raw.map(id => ({ id, enabled: true })) : raw;
-    return validateInstallations(records, catalog).map(record => ({ ...record }));
+    return validateInstallations(replaceRetiredInstallations(records), catalog).map(record => ({ ...record }));
   });
   if (installedKey === 'modulo-plugins-installed' && storage.getItem('modulo-plugins') === oldFlat) storage.removeItem('modulo-plugins');
   const raw = storage.getItem('modulo-hub-tabs');

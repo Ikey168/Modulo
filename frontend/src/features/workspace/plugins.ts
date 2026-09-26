@@ -1,5 +1,4 @@
 import { AWARENESS_PLUGINS } from './awareness/plugins';
-import { RESEARCH_ROLES } from './researchRoles';
 // Sample marketplace catalogue. The plugin store is not yet wired to a backend
 // endpoint, so this list is static and install state is kept client-side.
 import {
@@ -318,16 +317,8 @@ export const EDUCATION_STUDY_PLUGIN_ID = 'education-study';
 export const EDUCATION_ASSIGNMENTS_PLUGIN_ID = 'education-assignments';
 /** Read-only education workload and progress dashboard. */
 export const EDUCATION_DASHBOARD_PLUGIN_ID = 'education-dashboard';
-/** Capture and route information through the ten intent-based intake modes. */
+/** Signed-in Information Intake backed by Noesis workflows (supersedes the local ten-mode router). */
 export const INFORMATION_INTAKE_PLUGIN_ID = 'information-intake';
-/** Execute routed information using mode-specific questions and stopping rules. */
-export const INFORMATION_WORKBENCH_PLUGIN_ID = 'information-workbench';
-/** Durable outputs created by research, decisions, solutions, creation, and practice. */
-export const INFORMATION_OUTPUTS_PLUGIN_ID = 'information-outputs';
-/** Cadence, WIP limits, transitions, and system-health overview for information intake. */
-export const INFORMATION_DASHBOARD_PLUGIN_ID = 'information-dashboard';
-/** Full ten-stage research workflow with shared projects, provenance, gates, and maintenance. */
-export const RESEARCH_WORKFLOW_ENGINE_PLUGIN_ID = 'research-workflow-engine';
 /** Plugin id for German tax automation blueprint nodes. */
 export const TAX_AUTOMATION_PLUGIN_ID = 'tax-automation';
 /** Plugin id for the Noesis daily knowledge brief blueprint node. */
@@ -421,7 +412,6 @@ const MEDIA_PLUGIN_ICONS: Record<MediaType, LucideIcon> = {
 
 export const PLUGINS: PluginInfo[] = [
   ...AWARENESS_PLUGINS.map(plugin => ({ ...plugin, category: 'research', subcategory: 'Awareness', downloads: '0', rating: 'New' })),
-  ...RESEARCH_ROLES.map(role => ({ id: role.id, name: role.name, desc: role.desc, category: 'research', subcategory: role.stage, downloads: '0', rating: 'New', icon: role.icon })),
   ...WORKSPACE_TOOLS.map(tool => ({ ...tool, category: 'productivity', subcategory: 'Workspace', downloads: '0', rating: 'New' })),
   { id: NOTES_PLUGIN_ID, name: 'Markdown Notes', desc: 'Markdown editor with wiki-style [[links]], tags and on-chain anchoring.', category: 'productivity', subcategory: 'Writing', downloads: '24.1k', rating: '4.9', icon: FileText },
   { id: OUTLINE_PLUGIN_ID, name: 'Obsidian Outline', desc: 'Obsidian-style document outline plus in-note heading links: jump between a note’s headings.', category: 'productivity', subcategory: 'Writing', downloads: '13.2k', rating: '4.8', icon: ListTree },
@@ -486,7 +476,7 @@ export const PLUGINS: PluginInfo[] = [
   { id: TIMESTAMP_PROOFS_PLUGIN_ID, name: 'Timestamp Proofs', desc: 'Create portable SHA-256 timestamp manifests with chain or IPFS anchor references when available.', category: 'web3', subcategory: 'Proofs', downloads: '2.4k', rating: '4.3', icon: Stamp },
   { id: 'webhook-trigger', name: 'Webhook Trigger', desc: 'Start a blueprint workflow from an inbound webhook.', category: 'automation', subcategory: 'Triggers', downloads: '6.1k', rating: '4.6', icon: Webhook },
   { id: NOESIS_BRIEF_PLUGIN_ID, name: 'Noesis Daily Brief', desc: 'Blueprint node that pulls the daily knowledge brief — news, economics, tech, web3, and new research publications, every line cited — from a Noesis instance; pair with On Schedule and Create Note to file it as a linked note.', category: 'automation', subcategory: 'Knowledge', downloads: '0.1k', rating: '4.8', icon: Newspaper },
-  { id: INFORMATION_INTAKE_PLUGIN_ID, name: 'Information Intake', desc: 'Signed-in feed triage and linked Noesis workflow sessions, with workspace preferences stored in durable plugin state.', category: 'productivity', subcategory: 'Knowledge', downloads: '0', rating: '—', icon: Newspaper },
+  { id: INFORMATION_INTAKE_PLUGIN_ID, name: 'Information Intake', desc: 'Signed-in feed triage and linked Noesis workflow sessions, with workspace preferences stored in durable plugin state.', category: 'research', subcategory: 'Intake', downloads: '0', rating: '—', icon: Newspaper },
   { id: 'scheduled-digest', name: 'Scheduled Digest', desc: 'Email or post a daily or weekly summary of note changes.', category: 'automation', subcategory: 'Scheduled', downloads: '4.9k', rating: '4.4', icon: CalendarClock },
   { id: SEMANTIC_SEARCH_PLUGIN_ID, name: 'Semantic Search', desc: 'Private local vector search across the entire vault using weighted terms and phrases.', category: 'ai', subcategory: 'Search', downloads: '11.3k', rating: '4.7', icon: ScanSearch },
   { id: AUTO_LINKER_PLUGIN_ID, name: 'Auto-Linker', desc: 'Suggest and create links between notes from local content similarity.', category: 'ai', subcategory: 'Writing', downloads: '8.2k', rating: '4.5', icon: Link2 },
@@ -575,8 +565,6 @@ export const PLUGINS: PluginInfo[] = [
   { id: EDUCATION_STUDY_PLUGIN_ID, name: 'Study Planner', desc: 'Plan study sessions into the shared day blocks and track completed learning time.', category: 'education', subcategory: 'Planning', downloads: '0', rating: 'New', icon: CalendarClock },
   { id: EDUCATION_ASSIGNMENTS_PLUGIN_ID, name: 'Assignments & Assessments', desc: 'Track exercises, assignments, exams, projects, deadlines, submissions, scores, and feedback.', category: 'education', subcategory: 'Assessment', downloads: '0', rating: 'New', icon: ClipboardCheck },
   { id: EDUCATION_DASHBOARD_PLUGIN_ID, name: 'Education Dashboard', desc: 'Active learning, weekly study time, planned sessions, upcoming work, overdue deadlines, and progress.', category: 'education', subcategory: 'Dashboard', downloads: '0', rating: 'New', icon: LayoutDashboard },
-  { id: INFORMATION_WORKBENCH_PLUGIN_ID, name: 'Mode Workbench', desc: 'Mode-specific guiding questions, timeboxes, day blocks, stopping rules, session logs, and downstream transitions.', category: 'research', subcategory: 'Execution', downloads: '0', rating: 'New', icon: Compass },
-  { id: INFORMATION_OUTPUTS_PLUGIN_ID, name: 'Information Outputs', desc: 'Research bundles, decisions, matrices, solution notes, creations, playbooks, retrieval packs, iteration logs, and reviews.', category: 'research', subcategory: 'Knowledge', downloads: '0', rating: 'New', icon: FileText },
   { id: PARA_CORE_PLUGIN_ID, name: 'Modified PARA Core', desc: 'Canonical Projects, Areas, Resources, and lifecycle Archive with stable IDs and cross-links.', category: 'para', subcategory: 'Foundation', downloads: '0', rating: 'New', icon: Compass },
   { id: PARA_CAPTURE_PLUGIN_ID, name: 'PARA Capture & Router', desc: 'A universal inbox that routes raw captures into Tasks, Projects, Areas, or Resources.', category: 'para', subcategory: 'Capture', downloads: '0', rating: 'New', icon: ListFilter },
   { id: PARA_TASKS_PLUGIN_ID, name: 'PARA Tasks', desc: 'Next actions with projects, areas, do dates, deadlines, contexts, energy, priority, and waiting states.', category: 'para', subcategory: 'Execution', downloads: '0', rating: 'New', icon: ListTodo },

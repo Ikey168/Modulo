@@ -1,5 +1,4 @@
 import { AWARENESS_PLUGINS } from '../awareness/plugins';
-import { RESEARCH_ROLES, RESEARCH_ROLE_IDS } from '../researchRoles';
 // The plugin catalog: marketplace metadata (from plugins.ts) enriched with
 // dependencies and lazy loaders. Every marketplace entry is runnable; keeping
 // the metadata and code maps separate preserves lazy-loading and install state.
@@ -57,11 +56,7 @@ import {
   HOMELAB_ASSETS_PLUGIN_ID,
   HOMELAB_OPERATIONS_PLUGIN_ID,
   HOMELAB_DASHBOARD_PLUGIN_ID,
-  INFORMATION_DASHBOARD_PLUGIN_ID,
   INFORMATION_INTAKE_PLUGIN_ID,
-  INFORMATION_OUTPUTS_PLUGIN_ID,
-  INFORMATION_WORKBENCH_PLUGIN_ID,
-  RESEARCH_WORKFLOW_ENGINE_PLUGIN_ID,
   AI_SUMMARY_PLUGIN_ID,
   AUTO_LINKER_PLUGIN_ID,
   FOCUS_PLUGIN_ID,
@@ -475,30 +470,8 @@ const RUNNABLE: Record<string, Runnable> = {
   [INFORMATION_INTAKE_PLUGIN_ID]: {
     load: () => import('./builtins/noesisIntakePlugin'),
   },
-  [INFORMATION_WORKBENCH_PLUGIN_ID]: {
-    dependencies: [INFORMATION_INTAKE_PLUGIN_ID],
-    load: () => import('./builtins/informationWorkbenchPlugin'),
-  },
-  [INFORMATION_OUTPUTS_PLUGIN_ID]: {
-    dependencies: [INFORMATION_INTAKE_PLUGIN_ID, NOTES_PLUGIN_ID],
-    load: () => import('./builtins/informationOutputsPlugin'),
-  },
-  [INFORMATION_DASHBOARD_PLUGIN_ID]: {
-    dependencies: [INFORMATION_INTAKE_PLUGIN_ID, INFORMATION_WORKBENCH_PLUGIN_ID, INFORMATION_OUTPUTS_PLUGIN_ID, RESEARCH_WORKFLOW_ENGINE_PLUGIN_ID],
-    load: async () => ({ default: { activate() {} } }),
-  },
-  [RESEARCH_WORKFLOW_ENGINE_PLUGIN_ID]: {
-    dependencies: ['daily-briefing', ...RESEARCH_ROLE_IDS, INFORMATION_INTAKE_PLUGIN_ID, INFORMATION_WORKBENCH_PLUGIN_ID, INFORMATION_OUTPUTS_PLUGIN_ID],
-    load: async () => ({ default: { activate() {} } }),
-  },
 };
 
-for (const role of RESEARCH_ROLES) {
-  RUNNABLE[role.id] = {
-    dependencies: [INFORMATION_INTAKE_PLUGIN_ID, INFORMATION_OUTPUTS_PLUGIN_ID],
-    load: () => import('./builtins/researchRolePlugin').then(module => ({ default: module.researchRolePlugin(role.id) })),
-  };
-}
 
 export const CATALOG: PluginManifest[] = PLUGINS.map((p) => {
   const runnable = RUNNABLE[p.id];
@@ -525,8 +498,25 @@ CATALOG.push({
   load: RUNNABLE[PAPERLESS_ACTIONS_PLUGIN_ID].load,
 });
 
-// Existing installations expand into the replacement tools on startup. These
-// compatibility entries are intentionally absent from marketplace metadata.
-for (const id of [RESEARCH_WORKFLOW_ENGINE_PLUGIN_ID, INFORMATION_DASHBOARD_PLUGIN_ID]) {
-  CATALOG.push({ id, name: 'Legacy research installation', description: 'Preserves existing installations while enabling individual knowledge tools.', category: 'research', icon: RESEARCH_ROLES[0].icon, ...RUNNABLE[id] });
-}
+
+/**
+ * Plugins removed from the runnable catalog, mapped to the installation that
+ * replaces them. The local ten-mode Information Intake suite was superseded by
+ * the signed-in Noesis Information Intake; its browser data is claimed by that
+ * plugin's legacy importer.
+ */
+export const RETIRED_PLUGIN_REPLACEMENTS: Readonly<Record<string, string>> = Object.freeze({
+  'information-workbench': INFORMATION_INTAKE_PLUGIN_ID,
+  'information-outputs': INFORMATION_INTAKE_PLUGIN_ID,
+  'information-dashboard': INFORMATION_INTAKE_PLUGIN_ID,
+  'research-workflow-engine': INFORMATION_INTAKE_PLUGIN_ID,
+  'research-projects-trails': INFORMATION_INTAKE_PLUGIN_ID,
+  'evidence-synthesis': INFORMATION_INTAKE_PLUGIN_ID,
+  'decision-cases': INFORMATION_INTAKE_PLUGIN_ID,
+  'problem-solving': INFORMATION_INTAKE_PLUGIN_ID,
+  'creation-briefs': INFORMATION_INTAKE_PLUGIN_ID,
+  'procedure-design': INFORMATION_INTAKE_PLUGIN_ID,
+  'practice-plans': INFORMATION_INTAKE_PLUGIN_ID,
+  'knowledge-experiments': INFORMATION_INTAKE_PLUGIN_ID,
+  'knowledge-maintenance': INFORMATION_INTAKE_PLUGIN_ID,
+});

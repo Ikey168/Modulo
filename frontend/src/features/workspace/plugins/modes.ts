@@ -109,16 +109,8 @@ export function viewSectionLabel(view: ViewContribution): string | undefined {
   if (view.mode && canonicalMode(view.mode) === 'knowledge') {
     const stages: Record<string, string> = {
       timeline: 'Maintenance',
-      'research-signals': 'Awareness', 'information-intake': 'Awareness',
-      'research-projects': 'Exploration', 'information-workbench': 'Exploration',
-      'research-evidence': 'Deep Research',
+      'information-intake': 'Awareness',
       'reading-annotations': 'Deep Research',
-      'research-decisions': 'Decision Support', 'research-problems': 'Problem-Solving',
-      'research-externalization': 'Externalization',
-      'research-creation': 'Creation', 'information-outputs': 'Creation',
-      'research-learning': 'Internalization',
-      'research-iteration': 'Iteration',
-      'research-maintenance': 'Maintenance',
       'evidence-reproducibility': 'Iteration',
     };
     if (stages[view.id]) return stages[view.id];

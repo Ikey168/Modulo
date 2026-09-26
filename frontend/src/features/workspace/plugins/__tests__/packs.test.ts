@@ -1,4 +1,3 @@
-import { RESEARCH_ROLE_IDS } from '../../researchRoles';
 import { describe, expect, it } from 'vitest';
 import { PACKS } from '../packs';
 import { CATALOG } from '../catalog';
@@ -24,8 +23,6 @@ import {
   EDUCATION_DASHBOARD_PLUGIN_ID,
   EDUCATION_STUDY_PLUGIN_ID,
   INFORMATION_INTAKE_PLUGIN_ID,
-  INFORMATION_OUTPUTS_PLUGIN_ID,
-  INFORMATION_WORKBENCH_PLUGIN_ID,
   HOBBY_DASHBOARD_PLUGIN_ID,
   HOBBY_FUN_PLUGIN_ID,
   HOBBY_PRACTICE_PLUGIN_ID,
@@ -189,9 +186,6 @@ describe('packs catalog', () => {
     const research = PACKS.find((pack) => pack.id === 'pack-research-lab');
     expect(research?.pluginIds).toEqual(expect.arrayContaining([
       INFORMATION_INTAKE_PLUGIN_ID,
-      INFORMATION_WORKBENCH_PLUGIN_ID,
-      INFORMATION_OUTPUTS_PLUGIN_ID,
-      ...RESEARCH_ROLE_IDS,
       PLANNER_PLUGIN_ID,
     ]));
     expect(research?.pluginIds.some((id) => id.includes('migrat'))).toBe(false);

@@ -1,6 +1,5 @@
-import { INTAKE_MODES } from '../../informationIntake';
-import { RESEARCH_ROLE_IDS } from '../../researchRoles';
 import { PLUGINS } from '../../plugins';
+import { replaceRetiredInstallations } from '../installationState';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import { activeModes, hubTabs, sidebarViews, viewSectionLabel, modeInfo, canonicalMode, HUB_SECTIONS } from '../modes';
@@ -9,14 +8,20 @@ import { PluginRuntime } from '../runtime';
 beforeEach(() => localStorage.clear());
 
 describe('installed-plugin navigation grouping', () => {
-  it('upgrades an existing workflow installation into independent role plugins', async () => {
+  it('replaces retired local research installations with the Noesis Information Intake', async () => {
+    const records = replaceRetiredInstallations([
+      { id: 'research-workflow-engine', enabled: false },
+      { id: 'decision-cases', enabled: true },
+      { id: 'information-workbench', enabled: false },
+    ]);
+    expect(records).toEqual([{ id: 'information-intake', enabled: true }]);
     const runtime = new PluginRuntime(CATALOG, undefined, {
-      load: () => [{ id: 'research-workflow-engine', enabled: true }],
+      load: () => records as { id: string; enabled: boolean }[],
       save: async () => {},
     });
     await runtime.init();
-    for (const id of [...RESEARCH_ROLE_IDS, 'daily-briefing', 'topic-watchlists', 'newsletter-inbox']) expect(runtime.isActive(id), id).toBe(true);
-    expect(runtime.contributions().views.some(view => view.id === 'research-overview')).toBe(false);
+    expect(runtime.isActive('information-intake')).toBe(true);
+    expect(runtime.contributions().views.some(view => view.id.startsWith('research-'))).toBe(false);
     await runtime.dispose();
   });
 
@@ -46,7 +51,7 @@ describe('installed-plugin navigation grouping', () => {
       ['daily-briefing', 'Awareness'],
       ['topic-watchlists', 'Awareness'],
       ['newsletter-inbox', 'Awareness'],
-      ['research-problems', 'Problem-Solving'],
+      ['information-intake', 'Awareness'],
       ['decision-journal', 'Decision Support'],
       ['executable-runbooks', 'Externalization'],
       ['timeline', 'Maintenance'],
@@ -56,7 +61,6 @@ describe('installed-plugin navigation grouping', () => {
       ['flashcards-spaced-repetition', 'Internalization'],
       ['evidence-library', 'Deep Research'],
       ['evidence-reproducibility', 'Iteration'],
-      ['research-maintenance', 'Maintenance'],
     ]) {
       const tab = researchTabs.find((view) => view.id === id);
       expect(tab, `${id} should be directly accessible`).toBeDefined();
@@ -68,7 +72,8 @@ describe('installed-plugin navigation grouping', () => {
     for (const view of views.filter((view) => view.mode && canonicalMode(view.mode) === 'knowledge')) {
       expect(workflowStages, `${view.id} must belong to a workflow stage`).toContain(viewSectionLabel(view));
     }
-    expect(workflowStages).toEqual(['Notes & Tools', ...INTAKE_MODES]);
+    expect(workflowStages).toEqual(['Notes & Tools', 'Awareness', 'Exploration', 'Deep Research', 'Decision Support',
+      'Problem-Solving', 'Creation', 'Externalization', 'Internalization', 'Iteration', 'Maintenance']);
     expect(views.some(view => ['research-overview', 'research-signals', 'information-dashboard'].includes(view.id))).toBe(false);
     expect(PLUGINS.some(plugin => ['research-workflow-engine', 'information-dashboard'].includes(plugin.id))).toBe(false);
     expect(workflowStages).not.toContain('Notes');
