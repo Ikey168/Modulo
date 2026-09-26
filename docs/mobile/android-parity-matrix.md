@@ -184,6 +184,7 @@ server (`online`).
 | `personal-crm` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
 | `personal-sops` | 1 view | CRUD | — | — | personal-sops | queue | P05 | P13 |
 | `places-library` | 1 view | CRUD (notes/state) | — | — | server state | queue | P06 | P13 |
+| `praxis-tasks` | 1 view | CRUD (notes/state) | — | — | /api/praxis, /api/praxis/processes | queue | P07 | P13 |
 | `project-workspaces` | 1 view, 1 note panel | CRUD (notes/state) | — | camera-or-media (CAMERA), file-download (share sheet / SAF create), file-picker (Storage Access Framework) | /api/attachments, /api/attachments/note, /api/attachments/upload | queue | P05 | P15 |
 | `reading-annotations` | 1 view | CRUD (notes/state) | — | desktop-native-services (server/remote service (P17)), external-links (Custom Tabs), file-download (share sheet / SAF create), file-picker (Storage Access Framework), notifications (POST_NOTIFICATIONS) | /api/workspaces/personal | online | P07 | P17 |
 | `rechnung` | 1 view, 1 fence | CRUD | 1 editor, render | file-download (share sheet / SAF create) | rechnung | queue | P07 | P13 |

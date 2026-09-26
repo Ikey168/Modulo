@@ -240,10 +240,27 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
       - run: shellcheck deploy/oci/{backup,restore-drill,offsite-drill,release,status,schema}.sh
 
+  # #525 — Modulo's Praxis client against a real Praxis host (fake executor, mutual
+  # TLS from a generated internal CA, hashed bearer token, delegated user identity).
+  praxis-host:
+    name: Praxis host integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+      - uses: astral-sh/setup-uv@v6
+      - run: mvn -B -q -pl backend -am install -DskipTests -Djacoco.skip=true
+      - run: scripts/praxis-host-it.sh
+
   required:
     name: Required checks
     if: always()
-    needs: [build, boundary-lint, wasm-node-examples, frontend, operations]
+    needs: [build, boundary-lint, wasm-node-examples, frontend, operations, praxis-host]
     runs-on: ubuntu-latest
     steps:
       - name: Require every validation job to succeed
