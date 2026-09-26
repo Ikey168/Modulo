@@ -1,7 +1,6 @@
 package com.modulo.sandbox.service;
 
 import com.google.protobuf.ByteString;
-import com.modulo.blueprint.sandbox.RhinoScriptSandbox;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.blueprint.sandbox.WasmScriptSandbox;
 import com.modulo.plugin.grpc.*;
@@ -49,7 +48,10 @@ public class SandboxPluginService extends PluginServiceGrpc.PluginServiceImplBas
                                 io.grpc.protobuf.services.HealthStatusManager healthManager) {
         this.engineName = engineName;
         this.healthManager = healthManager;
-        this.engine = "rhino".equals(engineName) ? new RhinoScriptSandbox() : new WasmScriptSandbox();
+        if (!"wasm".equals(engineName)) {
+            throw new IllegalArgumentException("Unknown sandbox engine '" + engineName + "' — expected 'wasm'");
+        }
+        this.engine = new WasmScriptSandbox();
         mirrorHealth(false);
     }
 

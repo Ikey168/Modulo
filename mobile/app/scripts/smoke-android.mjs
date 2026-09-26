@@ -96,8 +96,9 @@ try {
   });
 
   await step('reminder-alarms', async () => {
-    // dumpsys does not print a PendingIntent's data, so compare Modulo's alarm count.
-    const moduloAlarms = async () => ((await command('shell', 'dumpsys', 'alarm')).match(/com\.modulo\b/g) ?? []).length;
+    // dumpsys does not print a PendingIntent's data, so compare Modulo's pending alarm count. Only
+    // Alarm{...} records are pending alarms; per-app stats and history keep naming the package after a cancel.
+    const moduloAlarms = async () => ((await command('shell', 'dumpsys', 'alarm')).match(/Alarm\{[^}\n]*com\.modulo\b/g) ?? []).length;
     const baseline = await moduloAlarms();
     const at = Date.now() + 60 * 60 * 1000;
     const local = new Date(at).toISOString().slice(0, 16);
@@ -108,8 +109,11 @@ try {
     const armed = await moduloAlarms();
     if (armed <= baseline) throw new Error('Alarm was not armed');
     await evaluate(`await window.Capacitor.Plugins.ModuloReminders.replaceAll({ reminders: [] });`);
-    const cleared = await moduloAlarms();
-    if (cleared > baseline) throw new Error('Alarm survived removal from the published set');
+    const cleared = await eventually(async () => {
+      const count = await moduloAlarms();
+      if (count > baseline) throw new Error(`${count} pending alarms, baseline ${baseline}`);
+      return count;
+    }, 'Alarm survived removal from the published set');
     return { ...status, baseline, armed, cleared };
   });
 

@@ -14,6 +14,7 @@ export async function installWorkspaceFixture(page: Page, installed: string[]) {
       export const authService = {
         stateSession: () => session,
         subscribeSession: () => () => {},
+        isOffline: () => false,
         getAccessToken: async () => session.accessToken,
         getUser: async () => ({id:session.subject,name:'Smoke owner',email:'smoke@example.test',roles:['ADMIN'],accessToken:session.accessToken}),
         isAuthenticated: () => true,
@@ -49,6 +50,11 @@ export async function installWorkspaceFixture(page: Page, installed: string[]) {
     expect(request.headers().authorization).toBe(`Bearer ${token}`);
     const namespace = decodeURIComponent(match[1]);
     const key = match[2] ? decodeURIComponent(match[2]) : undefined;
+    // The state protocol pins every client to the server's storage generation.
+    if (!key && url.searchParams.has('generation')) {
+      await route.fulfill({ json: { generation: '00000000-0000-4000-8000-000000000001' } });
+      return;
+    }
     if (!key) {
       expect(request.method()).toBe('GET');
       await route.fulfill({ json: {

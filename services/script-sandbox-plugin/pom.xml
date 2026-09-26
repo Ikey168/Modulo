@@ -44,11 +44,6 @@
 
         <!-- Engine dependencies of the shared sandbox sources -->
         <dependency>
-            <groupId>org.mozilla</groupId>
-            <artifactId>rhino</artifactId>
-            <version>1.7.15</version>
-        </dependency>
-        <dependency>
             <groupId>io.roastedroot</groupId>
             <artifactId>quickjs4j</artifactId>
             <version>0.1.0</version>
@@ -109,7 +104,6 @@
                                     <directory>${project.basedir}/../../backend/src/main/java/com/modulo/blueprint/sandbox</directory>
                                     <includes>
                                         <include>ScriptSandbox.java</include>
-                                        <include>RhinoScriptSandbox.java</include>
                                         <include>WasmScriptSandbox.java</include>
                                     </includes>
                                 </resource>
