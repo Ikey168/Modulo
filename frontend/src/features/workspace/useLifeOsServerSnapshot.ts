@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { lifeStoreKey } from './lifeStore';
 import { useWorkspaceStateRecords } from './useWorkspaceStateRecords';
 import { mediaLibraryFromRecords } from './mediaLibraryStore';
+import { useOperationalPortableSnapshot } from './operationalPortable';
 
 const NAMESPACES = [
   'life-os',
@@ -11,7 +12,6 @@ const NAMESPACES = [
   'meal-planner',
   'workout-planner',
   'education',
-  'information',
   'hobbies',
   'music',
   'electronics',
@@ -19,14 +19,8 @@ const NAMESPACES = [
   'wardrobe',
   'ttrpg',
   'business',
-  'time-tracking',
-  'euer',
-  'invoicing',
-  'gobd',
   'foundation-settings',
   'life-collections',
-  'todos',
-  'pipeline',
   'self-hosted-settings',
   'audit-pack',
   'quick-capture',
@@ -40,11 +34,12 @@ const value = (
 ): unknown => records[namespace]?.[key]?.value;
 
 export function useLifeOsServerSnapshot(includeMedia = false): Record<string, unknown> {
+  const operational = useOperationalPortableSnapshot();
   const records = useWorkspaceStateRecords(
     includeMedia ? [...NAMESPACES, 'media-library'] : [...NAMESPACES],
   );
   return useMemo(() => {
-    const stores: Record<string, unknown> = {};
+    const stores: Record<string, unknown> = { ...operational };
     const copy = (namespace: string, key: string, portableKey: string) => {
       const current = value(records, namespace, key);
       if (current !== undefined) stores[portableKey] = current;
@@ -68,29 +63,16 @@ export function useLifeOsServerSnapshot(includeMedia = false): Record<string, un
     copy('wardrobe', 'data', 'modulo-wardrobe-v1');
     copy('ttrpg', 'data', 'modulo-ttrpg-v1');
     copy('business', 'data', 'modulo-business-admin-v1');
-    copy('time-tracking', 'entries', 'modulo-time-entries');
-    copy('invoicing', 'seller-profile', 'modulo-invoice-seller');
-    copy('gobd', 'retention-classes', 'modulo-gobd-classes');
     copy('foundation-settings', 'fsrs-deck-limits', 'modulo-fsrs-deck-limits');
-    copy('todos', 'items', 'modulo-todos');
-    copy('pipeline', 'stages', 'modulo-pipeline-stages');
     copy('self-hosted-settings', 'settings', 'modulo-self-hosted-settings-v1');
     copy('audit-pack', 'onboarding', 'modulo:audit-onboarding:v1');
     copy('quick-capture', 'draft', 'modulo-quick-capture-v1');
     copy('note-tree', 'tree', 'modulo-note-tree');
     copy('note-tree', 'collapsed', 'modulo-note-collapsed');
 
-    const books = value(records, 'euer', 'data');
-    if (books && typeof books === 'object' && !Array.isArray(books)) {
-      const data = books as Record<string, unknown>;
-      stores['modulo-euer-expenses'] = data.expenses ?? [];
-      stores['modulo-euer-categories'] = data.categories ?? [];
-      stores['modulo-euer-exported'] = data.exportedPeriods ?? [];
-    }
-
     for (const [pluginId, record] of Object.entries(records['life-collections'] ?? {})) {
       if (!record.deleted && record.value !== undefined) stores[lifeStoreKey(pluginId)] = record.value;
     }
     return stores;
-  }, [includeMedia, records]);
+  }, [includeMedia, operational, records]);
 }

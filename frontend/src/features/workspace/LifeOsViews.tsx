@@ -110,7 +110,7 @@ export function LifeOsReviewView(props: WorkspaceViewProps) {
 
 export function LifeOsPortabilityView(props: WorkspaceViewProps) {
   const { store, setStore, stores, entities, health } = useIndex(props);
-  const { workspaceState } = usePlugins();
+  const { workspaceState, state: pluginState } = usePlugins();
   const createBackup = () => createLifeOsBackup(
     props.data.notes,
     props.data.allLinks ?? props.data.links,
@@ -142,7 +142,7 @@ export function LifeOsPortabilityView(props: WorkspaceViewProps) {
         { links: props.data.allLinks ?? props.data.links, createLink: props.data.createLink, addTag: props.data.addTag, trashNote: props.data.deleteNote },
         {
           current: currentPortable,
-          restoreServer: (planned) => restorePortableServerStores(planned, currentPortable, workspaceState),
+          restoreServer: (planned) => restorePortableServerStores(planned, workspaceState, pluginState),
         },
       );
       setResult(`Restored ${local.restored.length} stores, skipped ${local.skipped.length}, ignored ${local.unknown.length} unknown keys, and added ${local.importedNotes} missing notes.`);

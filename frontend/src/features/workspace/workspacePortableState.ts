@@ -15,13 +15,8 @@ import { parseHomelabData } from './homelab';
 import { parseWardrobeData } from './wardrobe';
 import { parseTtrpgData } from './ttrpg';
 import { parseBusinessAdmin } from './businessAdmin';
-import { parseTimeEntries } from './timeTracking';
-import { parseSellerProfile } from './invoicing';
-import { parseRetentionClasses } from './gobd';
-import { parseTodos } from './todos';
-import { parseStages } from './pipeline';
 import { containsProhibitedSecuritySecret, parseLifeCollection } from './lifeStore';
-import { parseEuerData } from './usePluginDataStores';
+import { isOperationalPortableKey, restoreOperationalStores } from './operationalPortable';
 import { parseCollapsed, parseTreeMap } from './noteTree';
 type Parser = (value: unknown) => unknown;
 interface Destination { namespace: string; key: string; schemaId: string; parse: Parser; }
@@ -69,12 +64,7 @@ const STATIC: Record<string, Destination> = {
   'modulo-wardrobe-v1': { namespace: 'wardrobe', key: 'data', schemaId: 'modulo.workspace.wardrobe', parse: parseWardrobeData },
   'modulo-ttrpg-v1': { namespace: 'ttrpg', key: 'data', schemaId: 'modulo.workspace.ttrpg', parse: parseTtrpgData },
   'modulo-business-admin-v1': { namespace: 'business', key: 'data', schemaId: 'modulo.workspace.business', parse: parseBusinessAdmin },
-  'modulo-time-entries': { namespace: 'time-tracking', key: 'entries', schemaId: 'modulo.workspace.time.entries', parse: parseTimeEntries },
-  'modulo-invoice-seller': { namespace: 'invoicing', key: 'seller-profile', schemaId: 'modulo.workspace.invoice.seller-profile', parse: parseSellerProfile },
-  'modulo-gobd-classes': { namespace: 'gobd', key: 'retention-classes', schemaId: 'modulo.workspace.gobd.retention-classes', parse: parseRetentionClasses },
   'modulo-fsrs-deck-limits': { namespace: 'foundation-settings', key: 'fsrs-deck-limits', schemaId: 'modulo.workspace.foundation.fsrs-deck-limits', parse: numericSettings },
-  'modulo-todos': { namespace: 'todos', key: 'items', schemaId: 'modulo.workspace.todos', parse: parseTodos },
-  'modulo-pipeline-stages': { namespace: 'pipeline', key: 'stages', schemaId: 'modulo.workspace.pipeline.stages', parse: parseStages },
   'modulo-self-hosted-settings-v1': { namespace: 'self-hosted-settings', key: 'settings', schemaId: 'modulo.workspace.self-hosted.settings', parse: stringSettings },
   'modulo:audit-onboarding:v1': { namespace: 'audit-pack', key: 'onboarding', schemaId: 'modulo.workspace.audit.onboarding', parse: onboarding },
   'modulo-quick-capture-v1': { namespace: 'quick-capture', key: 'draft', schemaId: 'modulo.workspace.quick-capture', parse: quickCapture },
@@ -82,7 +72,6 @@ const STATIC: Record<string, Destination> = {
   'modulo-note-collapsed': { namespace: 'note-tree', key: 'collapsed', schemaId: 'modulo.workspace.note-tree.collapsed', parse: parseCollapsed },
 };
 
-const EUER_KEYS = new Set(['modulo-euer-expenses', 'modulo-euer-categories', 'modulo-euer-exported']);
 const MEDIA_KEY = 'modulo-media-library-v2';
 const dynamicLife = (portableKey: string): Destination | undefined => {
   const match = /^modulo-life-(.+)-v1$/.exec(portableKey);
@@ -100,13 +89,13 @@ const dynamicLife = (portableKey: string): Destination | undefined => {
   };
 };
 export function isServerPortableStoreKey(key: string): boolean {
-  return key in STATIC || key === MEDIA_KEY || EUER_KEYS.has(key) || Boolean(dynamicLife(key));
+  return key in STATIC || key === MEDIA_KEY || isOperationalPortableKey(key) || Boolean(dynamicLife(key));
 }
 
 export async function restorePortableServerStores(
   planned: Record<string, unknown>,
-  current: Record<string, unknown>,
   open: (namespace: string) => Promise<PluginStateClient>,
+  openPlugin: (namespace: string) => Promise<PluginStateClient>,
 ): Promise<string[]> {
   const clients = new Map<string, PluginStateClient>();
   const touched: Array<{ portableKey: string; client: PluginStateClient; key: string }> = [];
@@ -124,7 +113,7 @@ export async function restorePortableServerStores(
   };
 
   for (const [portableKey, raw] of Object.entries(planned)) {
-    if (EUER_KEYS.has(portableKey)) continue;
+    if (isOperationalPortableKey(portableKey)) continue;
     const destination = STATIC[portableKey] ?? dynamicLife(portableKey);
     if (destination) await write(portableKey, destination, raw);
   }
@@ -139,26 +128,12 @@ export async function restorePortableServerStores(
     }
     for (const key of plan.remove) await client.delete(key);
   }
-  const euerPlanned = [...EUER_KEYS].some((key) => Object.prototype.hasOwnProperty.call(planned, key));
-  if (euerPlanned) {
-    const next = parseEuerData({
-      expenses: planned['modulo-euer-expenses'] ?? current['modulo-euer-expenses'] ?? [],
-      categories: planned['modulo-euer-categories'] ?? current['modulo-euer-categories'] ?? [],
-      exportedPeriods: planned['modulo-euer-exported'] ?? current['modulo-euer-exported'] ?? [],
-    });
-    const client = await clientFor('euer');
-    await client.set('data', asJson(next), 'modulo.workspace.euer', 1);
-    for (const portableKey of EUER_KEYS) {
-      if (Object.prototype.hasOwnProperty.call(planned, portableKey))
-        touched.push({ portableKey, client, key: 'data' });
-    }
-  }
-
   await Promise.all([...clients.values()].map((client) => client.synchronize()));
   for (const { client, key } of touched) {
     const record = client.get(key);
     if (!record || record.pending || record.conflict)
       throw new Error('Server restore did not finish synchronizing. Retry after connectivity recovers.');
   }
-  return [...new Set(touched.map((item) => item.portableKey))];
+  const operational = await restoreOperationalStores(planned, openPlugin);
+  return [...new Set([...touched.map((item) => item.portableKey), ...operational])];
 }
