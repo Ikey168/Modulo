@@ -272,8 +272,7 @@ function AttachmentControl({ definition }: { definition: FoundationToolDefinitio
   const [data, persist] = useLifeCollection(definition.pluginId);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const [preview, setPreview] = useState<{ url: string; name: string }>();
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
+  const [preview, setPreview] = useState<File>();
   useEffect(() => {
     const desktop = nativeDesktop(); if (!desktop) return;
     const reconcile = async () => {
@@ -306,7 +305,7 @@ function AttachmentControl({ definition }: { definition: FoundationToolDefinitio
       }
       persist((current) => ({ ...current, records: [...records, ...current.records] }));
       const image = files.find((file) => file.type.startsWith('image/'));
-      if (image) setPreview((current) => { if (current) URL.revokeObjectURL(current.url); return { url: URL.createObjectURL(image), name: image.name }; });
+      if (image) setPreview(image);
       setMessage(`${records.length} file${records.length === 1 ? '' : 's'} stored on the server.`);
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Upload failed.'); }
     finally { setBusy(false); }
@@ -331,7 +330,7 @@ function AttachmentControl({ definition }: { definition: FoundationToolDefinitio
   };
   const cleanMissing = () => { const count = data.records.filter((record) => record.status === 'Missing').length; persist((current) => ({ ...current, records: current.records.filter((record) => record.status !== 'Missing') })); setMessage(`Removed ${count} missing-file record${count === 1 ? '' : 's'}.`); };
   const missing = data.records.filter((record) => record.status === 'Missing').length;
-  return <ToolBand icon={<FileArchive />} title="Attachment storage"><div className="flex flex-wrap items-center gap-3">{preview && /^blob:/.test(preview.url) && <img src={preview.url} alt={`Preview of ${preview.name}`} className="size-10 rounded-md border border-border object-cover" />}<><Label onDragOver={(event) => event.preventDefault()} onDrop={drop} htmlFor="foundation-attachment-upload" className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border-strong bg-background px-4 text-sm hover:bg-muted/20"><Upload className="size-4" />{busy ? 'Storing…' : 'Choose or drop files'}</Label><Input id="foundation-attachment-upload" type="file" multiple className="hidden" onChange={(event) => void uploadFiles(Array.from(event.target.files ?? []))} /></>{data.records.some((record) => record.values.location) && <><Button size="sm" variant="outline" onClick={() => void openLatest()}><ExternalLink />Open latest</Button><Button size="sm" variant="ghost" onClick={() => void removeLatest()}>Remove latest</Button></>}{missing > 0 && <Button size="sm" variant="outline" onClick={cleanMissing}>Clean {missing} missing</Button>}<p className={cn('text-xs', missing ? 'text-warning' : 'text-muted-foreground')}>{message || 'Files are stored on your Modulo server (up to 25 MB each).'}</p></div></ToolBand>;
+  return <ToolBand icon={<FileArchive />} title="Attachment storage"><div className="flex flex-wrap items-center gap-3">{preview && <ImagePreview file={preview} />}<><Label onDragOver={(event) => event.preventDefault()} onDrop={drop} htmlFor="foundation-attachment-upload" className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border-strong bg-background px-4 text-sm hover:bg-muted/20"><Upload className="size-4" />{busy ? 'Storing…' : 'Choose or drop files'}</Label><Input id="foundation-attachment-upload" type="file" multiple className="hidden" onChange={(event) => void uploadFiles(Array.from(event.target.files ?? []))} /></>{data.records.some((record) => record.values.location) && <><Button size="sm" variant="outline" onClick={() => void openLatest()}><ExternalLink />Open latest</Button><Button size="sm" variant="ghost" onClick={() => void removeLatest()}>Remove latest</Button></>}{missing > 0 && <Button size="sm" variant="outline" onClick={cleanMissing}>Clean {missing} missing</Button>}<p className={cn('text-xs', missing ? 'text-warning' : 'text-muted-foreground')}>{message || 'Files are stored on your Modulo server (up to 25 MB each).'}</p></div></ToolBand>;
 }
 
 function AnnotationActions({ definition }: { definition: FoundationToolDefinition }) {
@@ -391,6 +390,31 @@ function CitationControl({ definition }: { definition: FoundationToolDefinition 
   const exportAll = async (format: 'bibtex' | 'ris' | 'csl-json') => { const { exportCitations } = await import('./citationEngine'); downloadText(`modulo-citations.${format === 'bibtex' ? 'bib' : format === 'csl-json' ? 'json' : 'ris'}`, exportCitations(data.records, format)); };
   const formatAll = async () => { try { const { formatCslBibliography, lifeRecordToCsl } = await import('./citationEngine'); const formatted = formatCslBibliography(data.records, style); persist((current) => ({ ...current, records: current.records.map((record, index) => ({ ...record, values: { ...record.values, style, formatted: formatted[index] ?? '', cslJson: JSON.stringify(lifeRecordToCsl(record)) } })) })); setMessage(`Formatted ${data.records.length} citation${data.records.length === 1 ? '' : 's'} with the ${style} CSL style.`); } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Formatting failed.'); } };
   return <ToolBand icon={<FileText />} title="CSL citation workspace"><div className="grid gap-2 xl:grid-cols-[minmax(16rem,0.8fr)_minmax(20rem,1.2fr)_auto]"><div className="flex gap-2"><Input value={doi} onChange={(event) => setDoi(event.target.value)} placeholder="10.xxxx/… or doi.org URL" className="h-9" /><Button size="sm" onClick={() => void lookup()} disabled={busy || !doi.trim()}>{busy ? <Loader2 className="animate-spin" /> : <Search />}Lookup</Button></div><div className="flex gap-2"><Textarea value={source} onChange={(event) => setSource(event.target.value)} placeholder="Paste BibTeX, RIS, or Zotero CSL JSON" rows={1} className="min-h-9 resize-none" /><Button size="sm" variant="outline" onClick={() => void importText()} disabled={!source.trim()}><Upload />Import</Button></div><div className="flex flex-wrap gap-1"><ChoiceInline label="CSL style" value={style} onChange={(value) => setStyle(value as CslStyle)} options={['APA', 'Harvard', 'Vancouver']} className="min-w-32" /><Button size="sm" variant="outline" onClick={() => void formatAll()} disabled={!data.records.length}>Format</Button><Button size="sm" variant="outline" onClick={() => void exportAll('bibtex')} disabled={!data.records.length}><Download />BibTeX</Button><Button size="sm" variant="outline" onClick={() => void exportAll('ris')} disabled={!data.records.length}>RIS</Button><Button size="sm" variant="outline" onClick={() => void exportAll('csl-json')} disabled={!data.records.length}>CSL JSON</Button></div></div>{message && <p className={cn('mt-2 text-xs', /failed|enter|found/i.test(message) ? 'text-destructive' : 'text-muted-foreground')}>{message}</p>}</ToolBand>;
+}
+
+/**
+ * Thumbnail of a picked image, decoded and drawn into a canvas: no URL built from
+ * the user's file ever reaches markup.
+ */
+function ImagePreview({ file }: { file: File }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let current = true;
+    if (typeof createImageBitmap !== 'function') return;
+    void createImageBitmap(file).then((bitmap) => {
+      const target = canvas.current;
+      const context = target?.getContext('2d');
+      if (current && target && context) {
+        const scale = Math.max(target.width / bitmap.width, target.height / bitmap.height);
+        const width = bitmap.width * scale; const height = bitmap.height * scale;
+        context.clearRect(0, 0, target.width, target.height);
+        context.drawImage(bitmap, (target.width - width) / 2, (target.height - height) / 2, width, height);
+      }
+      bitmap.close();
+    }, () => { /* an undecodable image simply shows no thumbnail */ });
+    return () => { current = false; };
+  }, [file]);
+  return <canvas ref={canvas} width={80} height={80} role="img" aria-label={`Preview of ${file.name}`} className="size-10 rounded-md border border-border" />;
 }
 
 function RankingPreview({ definition }: { definition: FoundationToolDefinition }) {
