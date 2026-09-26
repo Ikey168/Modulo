@@ -5,7 +5,8 @@
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
-    "smoke:android": "node scripts/smoke-android.mjs"
+    "smoke:android": "node scripts/smoke-android.mjs",
+    "build:debug": "npm --prefix ../.. ci && npm --prefix ../.. run build:strict --workspace=frontend && npm ci && npm run sync && cd android && ./gradlew assembleDebug --console=plain"
   },
   "dependencies": {
     "@capacitor/android": "8.5.2",

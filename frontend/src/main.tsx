@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { nativeStateCache } from './services/nativeStateCacheBridge';
 import { configureAndroidServer } from './services/androidServer';
 import { startMobileViewport } from './services/mobileViewport';
+import { outdatedWebView, renderWebViewUpdateRequired } from './services/androidWebView';
 import './styles/index.css';
 
 // Publish platform + viewport state before the first paint so the shell, the
@@ -11,6 +12,11 @@ startMobileViewport();
 async function bootstrap() {
   if (Capacitor.getPlatform() !== 'android') {
     await import('./appEntry');
+    return;
+  }
+  const outdated = outdatedWebView(navigator.userAgent);
+  if (outdated !== undefined) {
+    renderWebViewUpdateRequired(outdated, document.getElementById('root')!);
     return;
   }
   let saved: string | null = null;

@@ -4,12 +4,20 @@ This Capacitor project packages `frontend/dist` and uses the shared React plugin
 catalog. It is separate from the older Notes-only `mobile/android` scaffold until
 the release and upgrade path is verified.
 
-From the repository root, run `npm --prefix frontend ci`,
-`npm --prefix frontend run build`, `npm --prefix mobile/app ci`, then
-`npm --prefix mobile/app run sync`. Open `mobile/app/android` in Android Studio.
-For a command-line debug APK, use JDK 21 and Android SDK Platform 36, then run
-`./gradlew assembleDebug` in `mobile/app/android`. The APK appears at
-`app/build/outputs/apk/debug/app-debug.apk`.
+From a clean checkout, with JDK 21 and the Android SDK (Platform 36, Build
+Tools 36) installed and `ANDROID_HOME` set, one command produces the debug APK:
+
+```sh
+npm --prefix mobile/app run build:debug
+```
+
+It installs the workspace dependencies, runs the strict production frontend
+build, syncs `frontend/dist` into the Capacitor project and runs
+`./gradlew assembleDebug`. The APK appears at
+`mobile/app/android/app/build/outputs/apk/debug/app-debug.apk`. CI's
+`android-debug` job runs the same steps and uploads the APK as an artifact.
+The app starts from these bundled assets; nothing is downloaded from the
+server at launch.
 
 With an Android device or emulator connected, install that APK with
 `adb install -r app/build/outputs/apk/debug/app-debug.apk` from the Android

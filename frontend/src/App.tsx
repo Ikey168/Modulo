@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { store } from './store/store';
 import { networkStatusService } from './services/networkStatus';
 import { ThemeProvider } from './themes/ThemeContext';
@@ -20,7 +20,7 @@ import SharedNotePage from './features/notes/sharing/SharedNotePage';
 import PluginSubmission from './features/PluginSubmission';
 import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
-import { startAndroidBackButton } from './services/androidLifecycle';
+import { androidRouteToRestore, rememberAndroidRoute, startAndroidBackButton } from './services/androidLifecycle';
 import { AndroidAuthLink } from './features/auth/AndroidAuthLink';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
@@ -35,6 +35,30 @@ function AndroidBackButton() {
     }).catch(error => console.error('Android Back unavailable:', error));
     return () => { disposed = true; stop?.(); };
   }, [navigate]);
+  return null;
+}
+
+/** Reopen the last route after Android recreated the process, and remember each route change. */
+function AndroidRouteMemory() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const restored = useRef(false);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    void androidRouteToRestore(location.pathname).then(path => {
+      if (path) navigate(path, { replace: true });
+    }).catch(() => { /* Start on the current route when device storage is unavailable. */ })
+      .finally(() => setSettled(true));
+    // Only the first route of this process is a candidate for restoration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    // Do not overwrite the saved route before the restore decision was made.
+    if (!settled) return;
+    void rememberAndroidRoute(`${location.pathname}${location.search}`).catch(() => { /* Best effort. */ });
+  }, [settled, location.pathname, location.search]);
   return null;
 }
 
@@ -61,6 +85,7 @@ function App() {
         <TooltipProvider delayDuration={300}>
         <Router>
           <AndroidBackButton />
+          <AndroidRouteMemory />
           <AndroidAuthLink />
           <Routes>
             {/* Login is the main entry page */}
