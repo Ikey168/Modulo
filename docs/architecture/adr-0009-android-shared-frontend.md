@@ -1,72 +1,179 @@
 # ADR 0009: Shared Android frontend and plugin state
 
-Date: 2026-09-13 · Status: implementation in progress · Epic: [#478](https://github.com/Ikey168/Modulo/issues/478)
+Date: 2026-09-13, revised 2026-09-26 · Status: accepted · Epic: [#478](https://github.com/Ikey168/Modulo/issues/478) · Issue: [#480](https://github.com/Ikey168/Modulo/issues/480)
 
 ## Decision
 
-Package the existing React frontend and complete plugin registry in a Capacitor
-Android application. Keep plugin IDs, contribution registration, record schemas,
-and the server-state protocol shared with web and desktop. Native Android code
-provides device capabilities through explicit interfaces; plugins do not directly
-depend on Electron or a browser-only API.
+Package the existing React frontend and the complete plugin catalog in a
+Capacitor Android application. Plugin IDs, contribution registration, record
+schemas, domain logic, API clients and the server-state protocol stay shared
+with web and Electron. Native Android code provides device capabilities through
+narrow Capacitor plugins; plugins never depend directly on Electron or on a
+browser-only API.
 
-The Modulo server is authoritative for acknowledged plugin state. Each client
-keeps a partitioned, transactional offline queue: IndexedDB on web and Electron,
-SQLite on Android. A queue partition includes server origin, OIDC issuer, subject,
-workspace, namespace, and replica. Writes are durable before the UI reports them
-saved; version conflicts require an explicit resolution path. Account switching
-closes old clients and never displays their cached records in the new session.
+The configured Modulo server is authoritative for acknowledged state. Every
+client keeps a partitioned, transactional offline queue: IndexedDB on web and
+Electron, SQLite on Android. A partition is `[server origin, OIDC issuer,
+subject, workspace, namespace, replica]`. An edit is reported saved only after
+the queue write committed; a stale version produces a conflict, which the client
+first tries to merge per record (see [plugin-state-api.md](plugin-state-api.md))
+before asking the user. Browser `localStorage` is read only by the isolated
+migration module in `frontend/src/services/legacy` (#482); normal plugin data,
+settings, drafts, recovery and queues never use browser Storage (#486).
 
-Existing browser `localStorage` data is read only by a dedicated migration path.
-The migration preserves source bytes until a verified durable copy and server
-acknowledgement exist. Normal plugin data, settings, drafts, recovery, and queues
-do not use `localStorage` or `sessionStorage`. A transient tab-replica identifier
-may use `sessionStorage`; it contains no plugin record or credential.
+## Toolchain and supported versions
 
-## Android boundaries
+| Component | Version | Why |
+| --- | --- | --- |
+| Capacitor (`@capacitor/core`, `android`, `cli`) | 8.5.x, pinned exactly | Current major. Capacitor 8 targets Android API 36 and requires JDK 21. Pinning the exact patch keeps the generated Android project and the npm runtime in step. |
+| Android `minSdk` / `compileSdk` / `targetSdk` | 26 / 36 / 36 | API 26 (Android 8) is Capacitor 8's floor and covers adaptive icons and the platform APIs the shell uses. Google Play requires targeting a recent API level, so compile and target follow the SDK Capacitor 8 is tested against. |
+| Android System WebView / Chrome | 120 or newer at runtime | The shared frontend uses modern CSS (`:has`, container queries) and IndexedDB features; older WebViews are refused at startup rather than rendered partially (#487). |
+| Android Gradle Plugin | 8.13.x | Matches Capacitor 8's generated project. |
+| Gradle | 8.14.3 (wrapper) | Required by AGP 8.13. |
+| JDK | 21 | Required by Capacitor 8 and AGP 8.13. The backend stays on Java 17; the Android build uses its own JDK in CI. |
 
-The packaged application starts from its bundled assets, with a configurable
-HTTPS Modulo server. The current web client assumes same-origin `/api` and a
-browser OIDC redirect. Android cannot use those unchanged: API and websocket
-URLs must resolve against the selected server; OIDC uses the system browser,
-PKCE, an app link return, and OS-backed credential storage. WebView cookies and
-browser storage are not a credential vault. Server switching must revoke or
-discard credentials, close state clients, and quarantine old queues.
+Upgrades move Capacitor, AGP, Gradle and the SDK levels together, following
+Capacitor's migration guide, in a dedicated change with the Android smoke run.
 
-Native file selection, share intent, camera capture, notifications, background
-work, and secure storage belong behind platform interfaces. The React catalog
-remains the source of truth for available plugin views and actions. A plugin with
-a desktop-only action needs a documented Android/server route, not a hidden or
-read-only placeholder. Phone and tablet layouts must be verified against every
-catalog contribution type.
+## Build layout
+
+```
+frontend/            shared React app; `npm run build` emits frontend/dist
+mobile/app/          Capacitor project (npm package "modulo-android-shell")
+  capacitor.config.ts  appId com.modulo, webDir ../../frontend/dist
+  android/             generated Gradle project plus Modulo's native plugins
+    app/src/main/java/com/modulo/
+      MainActivity.java            registers the native plugins
+      ModuloStateCachePlugin.java  SQLite offline queue, replica id, server origin
+      ShellWindowPlugin.java       edge-to-edge insets, IME, system bar appearance
+desktop/             Electron shell (unchanged entry points)
+mobile/android/      legacy Notes-only Kotlin scaffold (reference only, see below)
+```
+
+`npm run sync --prefix mobile/app` copies `frontend/dist` into the APK's
+assets. Web and Electron keep their entry points: the web build is served by
+nginx, Electron loads the same `dist` through `desktop/serve.js`. Platform
+differences are selected at runtime (`Capacitor.getPlatform()`), never by
+forking components.
+
+## Frontend origin, server and API compatibility
+
+- **Packaged origin.** The APK serves the frontend from its own assets
+  (`https://localhost` inside the WebView). Cold launch renders the shell, the
+  cached plugin records from SQLite and the offline notes cache without any
+  network request. No part of the frontend is downloaded from the server.
+- **Configured server.** On first launch the user enters an HTTPS server
+  origin. The shell fetches its public configuration, rejects non-HTTPS and
+  mixed content (`allowMixedContent: false`), and stores the origin natively.
+  API calls, the state API and the websocket resolve against that origin
+  (`window.__MODULO_CONFIG__.serverOrigin`); the browser build keeps same-origin
+  `/api`. Switching servers closes every state client, discards credentials and
+  leaves the old server's queues quarantined in their own partitions.
+- **API compatibility.** The Android client uses the same versioned REST and
+  state endpoints as the web client. The server must allow the packaged origin
+  in CORS, accept bearer tokens without cookies, and keep the state API's
+  `X-Modulo-State-Generation` contract. A server that lacks the state API is
+  rejected during onboarding with an explanation rather than partially used.
+
+## Authentication
+
+OIDC authorization code with PKCE, as a public client. Login opens the
+identity provider in the **system browser via Custom Tabs**, never in an
+embedded WebView, as RFC 8252 requires and as major identity providers
+enforce. The redirect returns through the verified app link
+`https://<server>/app/oidc/android` (with the `com.modulo:` custom scheme as a
+fallback for servers without an `assetlinks.json`). Tokens are held in memory
+by the WebView; the refresh token is stored by a native secure-storage plugin
+backed by the Android Keystore, not by WebView storage. Logout and server
+switches revoke and delete it. Implemented by #488.
+
+## Storage
+
+| Data | Web / Electron | Android |
+| --- | --- | --- |
+| Plugin state queue and cache | IndexedDB `modulo-plugin-state` (`snapshots`, `replicas`) | SQLite via `ModuloStateCachePlugin` |
+| Offline notes cache | IndexedDB `modulo-offline-notes` | SQLite (same plugin, distinct partitions) |
+| Device documents (unsaved drafts, theme) | IndexedDB `modulo-device-documents` | SQLite (same plugin) |
+| Legacy migration recovery copies | IndexedDB `modulo-legacy-recovery` | none; Android never had a browser profile |
+| Credentials | memory (browser session) | memory plus Keystore-backed refresh token |
+
+Both device adapters pass the same contract suite
+(`statePersistenceContract.test.ts`). Android system backup is disabled for the
+private database (`allowBackup="false"`): a restored queue would carry another
+installation's replica identity.
+
+## Navigation and layout
+
+The shared frontend's phone layer (`frontend/src/features/workspace/mobile`)
+provides the app bar, bottom navigation, edge-swipe drawer, capture button,
+bottom sheets and pull-to-refresh. It switches on pointer type and viewport,
+not on platform, so a tablet in landscape keeps the desktop list/detail split.
+The hardware Back button maps to history navigation, then closes sheets, then
+exits from the dashboard. Deep links (`/app/...`) open the matching route.
+
+## Native capability contract
+
+Plugins reach device features only through `frontend/src/platform`
+(implemented by #489), which exposes one interface per capability with a web
+and an Android implementation:
+
+| Capability | Android route | Web/Electron route |
+| --- | --- | --- |
+| Files: pick, save, share | Storage Access Framework, share sheet, `FileProvider` | file input, download, Web Share |
+| Camera capture | camera intent (`CAMERA` only when requested) | `capture` input |
+| Notifications and reminders | `POST_NOTIFICATIONS`, exact alarms only where granted | Notification API / Electron |
+| Background synchronisation | lifecycle resume, network callbacks, WorkManager for queued sync | focus/online events |
+| External links | Custom Tabs | new tab |
+| Secure storage | Keystore-backed plugin | none (tokens stay in memory) |
+| Desktop-only services (local folders, OCR, PDF tools) | server/remote workflows (#495) | Electron `native-services` |
+
+A plugin whose workflow needs a capability the platform lacks must show a
+documented alternative route; hiding the view or rendering it read-only is not
+parity. The Android inventory lists every plugin's device needs (#479).
+
+## Trust boundaries
+
+- The APK's own assets are trusted code. Content from the configured server
+  (notes, plugin records, rendered Markdown, attachments) is untrusted data: it
+  is rendered through the same sanitising Markdown pipeline as the web client
+  and never evaluated.
+- The WebView loads only the packaged origin. Server pages, identity provider
+  pages and external links open outside it (Custom Tabs), so a server cannot
+  inject script into the app's origin or read its storage.
+- The native bridge exposes only the Modulo plugins above plus Capacitor's
+  audited core plugins. Each native method validates its arguments (partition
+  shape, HTTPS origin) instead of trusting the WebView.
+- External plugin workloads (ADR 0004) run server-side; the Android app never
+  downloads or executes plugin code at runtime. Plugin packaging is the same
+  bundled catalog as the web build.
+
+## Backend and deployment implications
+
+- CORS must allow the packaged origin for the API, state API and websocket.
+- The server should publish `/.well-known/assetlinks.json` for the app-link
+  redirect and register the Android redirect URIs on the Keycloak client.
+- The Keycloak client for Android is public (PKCE), separate from any
+  confidential web client.
+- Nothing in the backend is Android-specific beyond these settings; all data
+  paths are the existing owner-scoped APIs.
 
 ## Older Android scaffold
 
-`mobile/android` has a Notes-only Kotlin/Room UI, a fixed
-`https://api.modulo.app/` host in `NetworkClient.kt`, and an unfinished refresh
-path in `TokenManager.kt`. Its `NotesFragment` still marks edit/delete and sync
-status as TODO. Keep its Room schema and encrypted-token code as migration
-references, but do not extend the Notes UI as a second product. The new
-Capacitor project lives in `mobile/app`; before shipping with the same
-`com.modulo` package identity, test signing continuity and a data migration from
-the old installed version. The old network/auth stubs must not be packaged in
-the new application.
-
-## Rollout and verification
-
-First inventory all catalog entries and storage paths. Introduce durable state
-and lossless legacy migration, then migrate every domain store. Build and test the
-packaged shell, authentication, platform adapters, and whole-catalog workflows.
-Gate release on zero normal plugin `localStorage` access, cross-device recovery,
-account separation, signed upgrade tests, and an Android device matrix. The old
-Kotlin Notes scaffold under `mobile/android` remains distinct until an upgrade
-path and package identity are verified; a new shell alone does not retire it.
+`mobile/android` (Notes-only Kotlin/Room) is not buildable as checked in and is
+not packaged by the new shell; [android-inventory.md](../mobile/android-inventory.md)
+records each defect. Its Room `NoteEntity`/`NoteDao` schema and encrypted token
+code are kept only as references for migrating an installed copy of the old app
+with the same `com.modulo` identity. Its UI, fixed hosts and token stubs are not
+reused, and it is not extended as a second product. It is deleted once the
+signed release pipeline has proven upgrade continuity (#498).
 
 ## Rejected alternatives
 
-- Loading the web deployment as the entire app would avoid an installable offline
-  frontend and leave local work dependent on network availability.
-- Keeping the old Notes-only Kotlin UI would duplicate the 180-plugin catalog and
-  leave most workflows missing.
-- Treating IndexedDB or SQLite as the source of truth would not synchronize new
-  devices and would keep account transitions ambiguous.
+- Loading the web deployment as the entire app: no offline launch, and the
+  server would control the app's origin.
+- Keeping the Notes-only Kotlin UI: duplicates the catalog and leaves most
+  workflows missing.
+- Treating IndexedDB or SQLite as the source of truth: new devices would not
+  receive data and account transitions would be ambiguous.
+- An embedded WebView for login: rejected by RFC 8252 and by identity
+  providers, and it exposes credentials to the app.

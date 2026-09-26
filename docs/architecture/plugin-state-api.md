@@ -127,3 +127,25 @@ UUID as `X-Modulo-State-Generation` on PUT and DELETE. The authenticated externa
 callback supports the same handshake, including write-only grants. Missing headers
 receive 428 `STATE_STORAGE_GENERATION_REQUIRED`; stale generations receive 412
 `STATE_STORAGE_GENERATION_CHANGED`. See the [restore procedure](../operations/state-acceptance.md).
+
+## Client conflict merging
+
+A `409` on a write means another client changed the record since this client's
+base version. For host-owned workspace documents (`modulo.workspace.*` schemas)
+the client first attempts a record-level three-way merge
+(`frontend/src/services/stateMerge.ts`) of the base it edited, its latest local
+value and the server's current value:
+
+- different records of a collection (matched by `id`), and different fields of
+  one record, are both kept;
+- membership lists of strings or numbers apply both sides' additions and
+  removals;
+- a value changed differently on both sides, or a record edited on one side and
+  deleted on the other, is a conflict and is kept for explicit review.
+
+A clean merge is rebased onto the server version and written with that version
+as `expectedVersion`, so the server's compare-and-set still guards it. Other
+schemas never merge automatically: their conflicts always go to review. A
+device that edits its empty default before its first synchronization therefore
+merges with the existing server document instead of overwriting it; the
+server's `expectedVersion=0` check already prevented the overwrite.
