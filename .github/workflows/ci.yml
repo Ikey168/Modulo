@@ -111,7 +111,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - run: node frontend/scripts/verifyMobileInventory.mjs
+      - run: npm run inventory:android:check --workspace=frontend
       - run: npm run lint:ci --workspace=frontend
       - run: npm run test:run --workspace=frontend -- --maxWorkers=2
       - run: npm run build:strict --workspace=frontend
