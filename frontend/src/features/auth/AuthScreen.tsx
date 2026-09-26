@@ -5,7 +5,7 @@ import { ModuloMark } from '../home/brand';
 // Full-screen themed container matching the workspace design system.
 export function AuthScreen({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6 font-sans text-sm text-foreground">
+    <div className="flex min-h-app items-center justify-center bg-background p-6 font-sans text-sm text-foreground">
       {children}
     </div>
   );

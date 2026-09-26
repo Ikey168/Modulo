@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { IDBFactory } from 'fake-indexeddb';
 import { WorkspaceStateHost, acquireStateReplica } from '../workspaceStateHost';
+import { IndexedDbReplicaPool } from '../pluginStateTransport';
 import { PluginStateClient, type StatePersistence, type StateRecord, type StateSnapshot, type StateTransport } from '../pluginStateClient';
 import type { StateSession } from '../pluginStateTransport';
 import { PluginRuntime } from '../../features/workspace/plugins/runtime';
@@ -74,18 +76,57 @@ describe('workspace state host', () => {
     target.dispatchEvent(new Event('online')); await host.synchronize(); expect(remote.list).toHaveBeenCalled();
     stop(); host.close(); expect(vi.getTimerCount()).toBe(0);
   });
+  it('refreshes only the open record announced by the state change feed', async () => {
+    const remote = transport();
+    vi.mocked(remote.get).mockResolvedValue(record('data', 2, 72));
+    const host = new WorkspaceStateHost({ origin: scope.origin, replica: Promise.resolve('replica'),
+      persistence: memory(), session: () => ({ issuer: scope.issuer, subject: scope.subject, accessToken: 'token' }),
+      transport: () => remote, autoRetry: false });
+    const client = await host.open('workspace-para');
+    await host.refresh('workspace-para', 'data');
+    expect(remote.get).toHaveBeenCalledWith('data', expect.any(AbortSignal));
+    expect(client.get('data')).toMatchObject({ value: 72, pending: false });
+    vi.mocked(remote.get).mockClear();
+    await host.refresh('workspace-not-open', 'data');
+    expect(remote.get).not.toHaveBeenCalled();
+    host.close();
+  });
+  it('a disposed setup does not briefly claim the reload replica in StrictMode', async () => {
+    const locks = { request: vi.fn(async (name: string, _options: unknown, callback: (lock: unknown) => Promise<void>) => callback({ name })) } as unknown as LockManager;
+    const pool = { list: async () => ['existing-tab'], add: vi.fn(async () => {}) };
+    const abandoned = acquireStateReplica(pool, locks);
+    const rejected = expect(abandoned.replica).rejects.toThrow('closed');
+    abandoned.close();
+    const replacement = acquireStateReplica(pool, locks);
+    expect(await replacement.replica).toBe('existing-tab');
+    expect(pool.add).not.toHaveBeenCalled();
+    await rejected; expect(locks.request).toHaveBeenCalledTimes(1); replacement.close();
+  });
   it('cloned tabs acquire different replica leases instead of overwriting a shared queue', async () => {
     const held = new Set<string>();
     const locks = { request: async (name: string, _options: unknown, callback: (lock: unknown) => Promise<void>) => {
       if (held.has(name)) return callback(null);
       held.add(name); try { await callback({ name }); } finally { held.delete(name); }
     } } as unknown as LockManager;
-    const storage = new Map<string, string>();
-    const adapter = { getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => storage.set(key, value) } as unknown as Storage;
-    const first = acquireStateReplica(adapter, locks); const firstId = await first.replica;
-    const second = acquireStateReplica(adapter, locks); const secondId = await second.replica;
+    const pool = new IndexedDbReplicaPool(new IDBFactory());
+    const first = acquireStateReplica(pool, locks); const firstId = await first.replica;
+    const second = acquireStateReplica(pool, locks); const secondId = await second.replica;
     expect(firstId).not.toBe(secondId); first.close(); second.close();
+  });
+  it('a new tab adopts the queue identity of a closed tab so its offline edits still synchronize', async () => {
+    const held = new Set<string>();
+    const locks = { request: async (name: string, _options: unknown, callback: (lock: unknown) => Promise<void>) => {
+      if (held.has(name)) return callback(null);
+      held.add(name); try { await callback({ name }); } finally { held.delete(name); }
+    } } as unknown as LockManager;
+    const pool = new IndexedDbReplicaPool(new IDBFactory());
+    const closedTab = acquireStateReplica(pool, locks); const closedId = await closedTab.replica;
+    closedTab.close();
+    await Promise.resolve();
+    const nextTab = acquireStateReplica(pool, locks);
+    expect(await nextTab.replica).toBe(closedId);
+    expect(await pool.list()).toEqual([closedId]);
+    nextTab.close();
   });
 });
 

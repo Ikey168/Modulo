@@ -15,6 +15,33 @@ module.exports = {
   plugins: ['react-refresh'],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+    // Android P08 (#486): plugin records, settings, drafts, recovery data and
+    // queues use durable plugin state or device storage (IndexedDB/SQLite),
+    // never browser Storage. Only the isolated legacy migration module and
+    // authentication protocol state may reference it.
+    'no-restricted-globals': [
+      'error',
+      { name: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments; legacy reads belong in services/legacy (#486).' },
+      { name: 'sessionStorage', message: 'Keep session-only state in memory; legacy reads belong in services/legacy (#486).' },
+      // Patching or reading through the prototype is the same persistence by another name (#497).
+      { name: 'Storage', message: 'Browser Storage is not a plugin persistence layer (#497).' },
+    ],
+    'no-restricted-properties': [
+      'error',
+      { object: 'window', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#486).' },
+      { object: 'window', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
+      { object: 'globalThis', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#486).' },
+      { object: 'globalThis', property: 'sessionStorage', message: 'Keep session-only state in memory (#486).' },
+      { object: 'self', property: 'localStorage', message: 'Use durable plugin state or services/deviceDocuments (#497).' },
+      { object: 'self', property: 'sessionStorage', message: 'Keep session-only state in memory (#497).' },
+      { object: 'window', property: 'moduloDesktop', message: 'Use desktopServices()/capabilities from @/platform (#489).' },
+    ],
+    // Any other route to browser Storage (document.defaultView.localStorage, an iframe's window, ...).
+    'no-restricted-syntax': [
+      'error',
+      { selector: "MemberExpression[property.name=/^(localStorage|sessionStorage)$/]:not([object.name=/^(window|globalThis|self)$/])",
+        message: 'Browser Storage is not a plugin persistence layer (#497).' },
+    ],
     // B9 boundary guard — feature-pack code must import via @modulo/core, not workspace internals.
     // Flipped to 'error' in B9 (#302) after B4–B7 cleared all violations.
     // See docs/architecture/B2-boundary-audit.md for violation history.
@@ -47,6 +74,26 @@ module.exports = {
     ],
   },
   overrides: [
+    // The platform module is the only reader of the Electron bridge (#489).
+    {
+      files: ['src/platform/**', 'src/services/desktop.ts', 'src/types/desktop.d.ts'],
+      rules: { 'no-restricted-properties': 'off' },
+    },
+    // The isolated legacy migration reader, authentication protocol state and
+    // tests are the only permitted browser Storage users (#482, #486, #488).
+    {
+      files: [
+        'src/services/legacy/**',
+        'src/features/auth/**',
+        'src/components/mobile/OAuthCallback.tsx',
+        'src/setupTests.ts',
+        'tests/**',
+        '**/__tests__/**',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+      ],
+      rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off', 'no-restricted-syntax': 'off' },
+    },
     // src/core/ is the implementation of @modulo/core — it legitimately imports workspaceApi.
     {
       files: ['src/core/**/*.ts', 'src/core/**/*.tsx'],

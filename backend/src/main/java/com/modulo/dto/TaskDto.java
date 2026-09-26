@@ -21,6 +21,7 @@ public class TaskDto {
     private String priority;
     private String status;
     private boolean completed;
+    private String tags;
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

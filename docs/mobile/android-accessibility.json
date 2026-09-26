@@ -1,0 +1,66 @@
+{
+  "generatedBy": "frontend/scripts/phoneA11y.mjs",
+  "rules": "WCAG 2.1 A/AA (axe-core)",
+  "results": [
+    {
+      "device": "phone",
+      "screen": "/app/dashboard",
+      "violations": []
+    },
+    {
+      "device": "phone",
+      "screen": "/app/notes",
+      "violations": []
+    },
+    {
+      "device": "phone",
+      "screen": "/app/notes?note=4",
+      "violations": []
+    },
+    {
+      "device": "phone",
+      "screen": "/app/graph",
+      "violations": []
+    },
+    {
+      "device": "phone",
+      "screen": "/app/marketplace",
+      "violations": []
+    },
+    {
+      "device": "phone",
+      "screen": "/app/recovery",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/dashboard",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/notes",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/notes?note=4",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/graph",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/marketplace",
+      "violations": []
+    },
+    {
+      "device": "tablet",
+      "screen": "/app/recovery",
+      "violations": []
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- lazy plugin module exports a descriptor beside its private React surface */
 // Planner (#370) — grows the daily-notes idea into a planning surface: today's
 // dated journal note with carry-over of yesterday's unfinished items, plus a
 // week overview. Productivity hub tab. Implements the `daily-notes` catalog id.
@@ -12,7 +13,7 @@ function PlannerSurface(p: WorkspaceViewProps) {
 
 const plannerPlugin: PluginModule = {
   activate(ctx) {
-    ctx.addView({ id: 'planner', label: 'Planner', icon: CalendarDays, order: 60, mode: 'productivity', component: PlannerSurface });
+    ctx.addView({ id: 'planner', label: 'Planner & Calendar', icon: CalendarDays, order: 60, mode: 'productivity', component: PlannerSurface });
     ctx.addEditorAction({
       id: 'insert-daily-plan',
       label: 'Insert daily plan',

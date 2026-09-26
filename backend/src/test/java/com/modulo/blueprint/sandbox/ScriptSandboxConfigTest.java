@@ -19,11 +19,6 @@ class ScriptSandboxConfigTest {
     }
 
     @Test
-    void rhinoSelectsRhinoEngine() {
-        assertThat(config.localEngine("rhino")).isInstanceOf(RhinoScriptSandbox.class);
-    }
-
-    @Test
     void wasmSelectsWasmEngine() {
         assertThat(config.localEngine("wasm")).isInstanceOf(WasmScriptSandbox.class);
     }
@@ -46,7 +41,14 @@ class ScriptSandboxConfigTest {
     @Test
     void wrappedSandboxWorksWithNoPluginManagerPresent() {
         // The Pi/minimal path: no manager, no plugin — pure pass-through.
-        ScriptSandbox sandbox = config.scriptSandbox("rhino", noManager());
+        ScriptSandbox sandbox = config.scriptSandbox("wasm", noManager());
         assertThat(sandbox.execute("(note) => note.title", "t", "c")).isEqualTo("t");
+    }
+
+    @Test
+    void retiredRhinoValueFailsLoudly() {
+        assertThatThrownBy(() -> config.localEngine("rhino"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("expected 'wasm'");
     }
 }

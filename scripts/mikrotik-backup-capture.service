@@ -1,0 +1,7 @@
+[Unit]
+Description=Capture encrypted MikroTik RouterOS exports and backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ik/ChatGPT/Modulo/scripts/mikrotik-backup-capture.sh

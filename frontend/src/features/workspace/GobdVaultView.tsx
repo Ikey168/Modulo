@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 import { useRetentionSettings } from './useBusinessSettings';
 import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // GoBD vault view (#368): all retained documents (notes tagged retain/…) with
@@ -51,7 +52,7 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey(new Date());
   const entries = useMemo(() => vaultEntries(data.notes, classes, today), [data.notes, classes, today]);
   const unanchored = entries.filter((e) => !e.anchored);
 
@@ -125,13 +126,13 @@ export function GobdVaultView({ data, onOpenNote }: WorkspaceViewProps) {
                 → {e.retainUntil}
               </span>
               {e.anchored ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 px-2 py-0.5 text-xxs text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 rounded-full border border-success/40 px-2 py-0.5 text-xxs text-success">
                   <ShieldCheck className="size-3" aria-hidden="true" />
                   anchored
                 </span>
               ) : (
                 <>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 px-2 py-0.5 text-xxs text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 px-2 py-0.5 text-xxs text-warning">
                     <TriangleAlert className="size-3" aria-hidden="true" />
                     not anchored
                   </span>

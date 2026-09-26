@@ -1,14 +1,15 @@
 // Notion-style collapsible note tree with HTML5 drag-and-drop reordering and
 // nesting. The hierarchy itself lives in `noteTree.ts` (a client-side map over
 // the flat note list); this component only renders it and turns pointer drags
-// into `move()` calls. Drag-and-drop is desktop-only (HTML5 DnD); on touch the
-// tree stays fully usable for navigation, expand/collapse and adding subnotes.
+// into `move()` calls. HTML5 drag-and-drop does not exist on touch, so every
+// row also offers the same moves from a menu (always visible on touch) and as
+// Alt+Arrow keyboard shortcuts.
 
-import { createContext, useContext, useState, type CSSProperties, type DragEvent } from 'react';
-import { ChevronRight, Plus } from 'lucide-react';
-import { cn } from '@/ui';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type DragEvent } from 'react';
+import { ChevronRight, MoreVertical, Plus } from 'lucide-react';
+import { cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/ui';
 import { isAnchored } from './workspaceUtils';
-import type { DropPos, NoteTreeApi, TreeNode } from './noteTree';
+import { treeMoveOptions, type DropPos, type TreeMoveOption, type NoteTreeApi, type TreeNode } from './noteTree';
 
 interface NoteTreeProps {
   tree: NoteTreeApi;
@@ -28,6 +29,8 @@ interface TreeContext extends NoteTreeProps {
   setDrag: (s: DragState) => void;
 }
 
+type TreeMoveOptionId = TreeMoveOption['id'];
+
 const Ctx = createContext<TreeContext | null>(null);
 
 const useTreeCtx = () => {
@@ -36,23 +39,61 @@ const useTreeCtx = () => {
   return ctx;
 };
 
+/**
+ * Top-level rows rendered per step. A workspace with thousands of notes would
+ * otherwise build every row before the list appears, which takes seconds on a
+ * phone (#492); more rows are added as the end of the list scrolls into view.
+ */
+export const TREE_PAGE = 50;
+
 export function NoteTree({ tree, selectedId, onSelect, onAddChild }: NoteTreeProps) {
   const [drag, setDrag] = useState<DragState>({ dragId: null, hint: null });
+  const [shown, setShown] = useState(TREE_PAGE);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const limit = shown;
+  const more = tree.forest.length > limit;
+  // A selected note beyond the rendered page (a deep link) is shown on its own, so its row is never missing.
+  const selectedRoot = selectedId == null ? -1 : tree.forest.findIndex((node) => containsNote(node, selectedId));
+
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!more || !target || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setShown((count) => count + TREE_PAGE);
+    }, { rootMargin: '400px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [more, limit]);
 
   const value: TreeContext = { tree, selectedId, onSelect, onAddChild, drag, setDrag };
 
   return (
     <Ctx.Provider value={value}>
       <div role="tree" aria-label="Notes" onDragEnd={() => setDrag({ dragId: null, hint: null })}>
-        {tree.forest.map((node) => (
-          <NoteTreeRow key={node.note.id} node={node} />
+        {tree.forest.slice(0, limit).map((node, index) => (
+          <NoteTreeRow key={node.note.id} node={node} siblings={tree.forest} index={index} />
         ))}
+        {selectedRoot >= limit && (
+          <NoteTreeRow key={tree.forest[selectedRoot].note.id} node={tree.forest[selectedRoot]} siblings={tree.forest} index={selectedRoot} />
+        )}
       </div>
+      {more && (
+        <div ref={sentinel}>
+          <button type="button" onClick={() => setShown((count) => count + TREE_PAGE)}
+            className="w-full rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-surface-2 coarse:min-h-touch">
+            Show more notes ({tree.forest.length - limit} more)
+          </button>
+        </div>
+      )}
     </Ctx.Provider>
   );
 }
 
-function NoteTreeRow({ node }: { node: TreeNode }) {
+function containsNote(node: TreeNode, id: number): boolean {
+  return node.note.id === id || node.children.some((child) => containsNote(child, id));
+}
+
+function NoteTreeRow({ node, siblings, index, parent }: { node: TreeNode; siblings: TreeNode[]; index: number; parent?: TreeNode }) {
   const { tree, selectedId, onSelect, onAddChild, drag, setDrag } = useTreeCtx();
   const { note, depth, children } = node;
 
@@ -61,6 +102,8 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
   const selected = note.id === selectedId;
   const hint = drag.hint?.id === note.id ? drag.hint.pos : null;
   const dragging = drag.dragId === note.id;
+  const moves = treeMoveOptions(siblings, index, parent);
+  const keyMoves: Record<string, TreeMoveOptionId> = { ArrowUp: 'up', ArrowDown: 'down', ArrowRight: 'indent', ArrowLeft: 'outdent' };
 
   // Chevron column keeps a fixed width so titles line up whether or not a row
   // has children; each level adds a small indent.
@@ -101,6 +144,7 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
         <div
           role="treeitem"
           tabIndex={0}
+          aria-label={note.title || 'Untitled Note'}
           aria-selected={selected}
           aria-expanded={hasChildren ? !collapsed : undefined}
           draggable
@@ -109,15 +153,30 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
           onDrop={onDrop}
           onClick={() => onSelect(note.id)}
           onKeyDown={(e) => {
+            if (e.altKey && keyMoves[e.key]) {
+              const option = moves.find((candidate) => candidate.id === keyMoves[e.key]);
+              e.preventDefault();
+              if (option) tree.move(note.id, option.target, option.pos);
+              return;
+            }
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               onSelect(note.id);
+            } else if (e.key === 'ArrowRight' && hasChildren && collapsed) {
+              e.preventDefault();
+              tree.expand(note.id);
+            } else if (e.key === 'ArrowLeft' && hasChildren && !collapsed) {
+              e.preventDefault();
+              tree.toggle(note.id);
             }
           }}
           style={{ paddingLeft: indent }}
           className={cn(
             'group/row flex w-full cursor-pointer items-center gap-0.5 rounded-md py-1 pr-1.5 text-left transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            // A 26px row is a comfortable desktop list and an unusable phone
+            // one: three of them fit inside a fingertip.
+            'coarse:min-h-touch coarse:gap-1 coarse:rounded-lg coarse:py-2 coarse:pr-1 coarse:active:bg-surface-2',
             selected ? 'bg-surface-3' : 'hover:bg-surface-2',
             dragging && 'opacity-40',
             hint === 'inside' && 'bg-primary/10 ring-1 ring-inset ring-primary/60',
@@ -130,26 +189,26 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
                 e.stopPropagation();
                 tree.toggle(note.id);
               }}
-              aria-label={collapsed ? 'Expand' : 'Collapse'}
+              aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${note.title || 'Untitled Note'}`}
               tabIndex={-1}
-              className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
+              className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground coarse:h-11 coarse:w-7 coarse:rounded-lg"
             >
               <ChevronRight
                 aria-hidden="true"
-                className={cn('size-3 transition-transform', !collapsed && 'rotate-90')}
+                className={cn('size-3 transition-transform coarse:size-4', !collapsed && 'rotate-90')}
               />
             </button>
           ) : (
-            <span className="size-4 shrink-0" aria-hidden="true" />
+            <span className="size-4 shrink-0 coarse:h-11 coarse:w-7" aria-hidden="true" />
           )}
 
           <span
             className={cn(
-              'min-w-0 flex-1 truncate text-[13px]',
+              'min-w-0 flex-1 truncate text-[13px] coarse:text-[15px]',
               selected ? 'font-medium text-foreground' : 'text-subtle-foreground',
             )}
           >
-            {note.title}
+            {note.title || 'Untitled Note'}
           </span>
 
           {isAnchored(note) && (
@@ -165,17 +224,44 @@ function NoteTreeRow({ node }: { node: TreeNode }) {
               e.stopPropagation();
               onAddChild(note.id);
             }}
-            aria-label={`Add subnote to ${note.title}`}
+            aria-label={`Add subnote to ${note.title || 'Untitled Note'}`}
             title="Add subnote"
             tabIndex={-1}
-            className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
+            /* Revealed on hover, which touch does not have: on a phone the
+               control was present, invisible and 16px across. */
+            className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 coarse:h-11 coarse:w-11 coarse:rounded-full coarse:opacity-100 coarse:active:bg-surface-3"
           >
-            <Plus className="size-3" aria-hidden="true" />
+            <Plus className="size-3 coarse:size-4" aria-hidden="true" />
           </button>
+          {moves.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Move ${note.title || 'Untitled Note'}`}
+                  title="Move (Alt+Arrow keys)"
+                  tabIndex={-1}
+                  className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-colors hover:bg-surface-3 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100 coarse:h-11 coarse:w-11 coarse:rounded-full coarse:opacity-100 coarse:active:bg-surface-3"
+                >
+                  <MoreVertical className="size-3 coarse:size-4" aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {moves.map((option) => (
+                  <DropdownMenuItem key={option.id} onSelect={() => tree.move(note.id, option.target, option.pos)}>
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
-      {hasChildren && !collapsed && children.map((child) => <NoteTreeRow key={child.note.id} node={child} />)}
+      {hasChildren && !collapsed && children.map((child, childIndex) => (
+        <NoteTreeRow key={child.note.id} node={child} siblings={children} index={childIndex} parent={node} />
+      ))}
     </div>
   );
 }

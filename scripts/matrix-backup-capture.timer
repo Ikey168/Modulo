@@ -1,0 +1,12 @@
+[Unit]
+Description=Capture Matrix and Mautrix backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:40:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=matrix-backup-capture.service
+
+[Install]
+WantedBy=timers.target
+

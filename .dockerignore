@@ -31,3 +31,16 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+# Root-context frontend builds must not include local credentials or dependencies.
+**/node_modules
+**/target
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+**/test-results
+**/playwright-report
+**/coverage
+.agents
+**/*.env
+**/.releases

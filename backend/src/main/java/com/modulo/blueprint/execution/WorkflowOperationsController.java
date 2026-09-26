@@ -43,6 +43,23 @@ public class WorkflowOperationsController {
         users.requireUserId());
   }
 
+  @GetMapping("/schedules")
+  public List<Map<String, Object>> schedules() {
+    long owner = users.requireUserId();
+    return jdbc.queryForList(
+        "SELECT s.blueprint_id,p.blueprint_name,s.node_id,s.cron,s.zone,s.next_fire,s.enabled,"
+            + " s.max_attempts,s.backoff_seconds,(SELECT j.state FROM workflow_schedule_jobs j"
+            + " WHERE j.owner_id=s.owner_id AND j.blueprint_id=s.blueprint_id AND"
+            + " j.node_id=s.node_id ORDER BY j.created_at DESC,j.id DESC LIMIT 1) AS"
+            + " last_delivery_state,(SELECT j.error_class FROM workflow_schedule_jobs j WHERE"
+            + " j.owner_id=s.owner_id AND j.blueprint_id=s.blueprint_id AND j.node_id=s.node_id"
+            + " ORDER BY j.created_at DESC,j.id DESC LIMIT 1) AS last_error_class FROM"
+            + " workflow_schedules s JOIN plugin_registry p ON p.id=s.blueprint_id AND"
+            + " p.owner_id=s.owner_id WHERE s.owner_id=? ORDER BY s.enabled DESC,s.next_fire,"
+            + " s.blueprint_id,s.node_id LIMIT 500",
+        owner);
+  }
+
   @PostMapping("/alerts/{id}/read")
   public void read(@PathVariable UUID id) {
     if (jdbc.update(

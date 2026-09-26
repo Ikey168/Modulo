@@ -23,7 +23,7 @@ import org.testcontainers.junit.jupiter.*;
 @Testcontainers
 class WorkflowRunServiceTest {
   @Container
-  static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
 
   static DriverManagerDataSource source;
   JdbcTemplate jdbc;
@@ -295,6 +295,30 @@ class WorkflowRunServiceTest {
     when(owner.requireUserId()).thenReturn(2L);
     assertThrows(org.springframework.web.server.ResponseStatusException.class,()->new WorkflowOperationsController(operations,owner,jdbc).read(jdbc.queryForObject("SELECT id FROM workflow_alerts",UUID.class)));
     assertTrue(new WorkflowOperationsController(operations,owner,jdbc).alerts().isEmpty());
+  }
+
+  @Test
+  void scheduleInventoryIsVisibleOnlyToItsOwner() {
+    var operations =
+        new WorkflowOperationsService(
+            jdbc,
+            new DataSourceTransactionManager(source),
+            new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    long alice = blueprint("morning-review").getId();
+    jdbc.update(
+        "INSERT INTO workflow_schedules"
+            + " (blueprint_id,owner_id,node_id,cron,zone,next_fire,max_attempts,backoff_seconds)"
+            + " VALUES (?,1,'daily','0 0 8 * * *','Europe/Berlin',CURRENT_TIMESTAMP + INTERVAL '1"
+            + " hour',3,60)",
+        alice);
+    var controller = new WorkflowOperationsController(operations, owner, jdbc);
+    var schedules = controller.schedules();
+    assertEquals(1, schedules.size());
+    assertEquals("morning-review", schedules.get(0).get("blueprint_name"));
+    assertEquals("Europe/Berlin", schedules.get(0).get("zone"));
+    assertFalse(schedules.get(0).containsKey("owner_id"));
+    when(owner.requireUserId()).thenReturn(2L);
+    assertTrue(controller.schedules().isEmpty());
   }
 
   @Test

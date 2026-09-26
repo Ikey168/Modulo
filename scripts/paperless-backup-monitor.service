@@ -1,0 +1,7 @@
+[Unit]
+Description=Paperless backup freshness probe
+After=paperless-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/scripts/paperless-backup-monitor.sh

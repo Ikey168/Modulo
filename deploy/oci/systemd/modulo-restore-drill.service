@@ -1,0 +1,12 @@
+[Unit]
+Description=Restore and verify Modulo from the encrypted off-host backup
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+EnvironmentFile=/etc/modulo/backup.env
+WorkingDirectory=/srv/modulo/deploy/oci
+ExecStart=/srv/modulo/deploy/oci/offsite-drill.sh

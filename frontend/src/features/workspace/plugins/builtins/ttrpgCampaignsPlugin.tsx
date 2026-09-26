@@ -1,0 +1,1 @@
+import { Dices as Dice20 } from 'lucide-react'; import { CampaignsView } from '../../TtrpgViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'ttrpg-campaigns',label:'Campaigns',icon:Dice20,order:20,mode:'ttrpg',component:CampaignsView})}};export default plugin;

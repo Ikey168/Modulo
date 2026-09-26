@@ -1,112 +1,46 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux'; // Import Provider
-import { store } from './store/store';   // Import store
-import App from './App';
+import { Capacitor } from '@capacitor/core';
+import { nativeStateCache } from './services/nativeStateCacheBridge';
+import { configureAndroidServer } from './services/androidServer';
+import { startMobileViewport } from './services/mobileViewport';
+import { outdatedWebView, renderWebViewUpdateRequired } from './services/androidWebView';
+import { nativeShareBridge } from './services/androidShare';
+import { DOWNLOAD_EVENT, installAndroidDownloads } from './services/androidDownloads';
 import './styles/index.css';
-import { registerFeature, mountFeature } from '@modulo/core';
-import { helloWorldPack } from './features/helloWorld/helloWorldPack';
-import { noteWorkbenchPack } from './features/noteWorkbench/noteWorkbenchPack';
 
-// Bootstrap built-in feature packs. Each pack declares its capabilities and
-// receives a ModuloCoreAPI instance via onMount. Errors are non-fatal — a pack
-// failure should never prevent the host app from rendering.
-registerFeature(helloWorldPack);
-mountFeature(helloWorldPack.id).catch((err) => {
-  console.error('[feature-registry] failed to mount', helloWorldPack.id, err);
-});
+// Publish platform + viewport state before the first paint so the shell, the
+// Android onboarding screen and every safe-area inset are correct on frame one.
+startMobileViewport();
 
-// note-workbench: PKM experience pack (Notes editor, [[link]] parser, graph views).
-// Set VITE_NOTE_WORKBENCH_ENABLED=false to boot Core + Blueprint engine headlessly
-// without the workbench UI — useful for integration test runs and CI blueprints.
-if (import.meta.env.VITE_NOTE_WORKBENCH_ENABLED !== 'false') {
-  registerFeature(noteWorkbenchPack);
-  mountFeature(noteWorkbenchPack.id).catch((err) => {
-    console.error('[feature-registry] failed to mount', noteWorkbenchPack.id, err);
-  });
-}
-
-// Service Worker: register only in production. A precaching SW in dev serves a
-// stale, cached index.html (cache-first navigation) and breaks HMR, so in dev we
-// proactively unregister any existing worker and clear its caches.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-
-        // Check for updates
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New content available, notify user
-                if (confirm('New version available! Reload to update?')) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  window.location.reload();
-                }
-              }
-            });
-          }
-        });
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
-  });
-
-  // Listen for service worker messages
-  navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'CACHE_UPDATED') {
-      console.log('Cache updated, new content available');
-    }
-  });
-} else if ('serviceWorker' in navigator) {
-  // Dev: tear down any service worker / caches left over from a production build
-  // so the dev server's fresh index.html is always served.
-  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
-  if (typeof caches !== 'undefined') {
-    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+async function bootstrap() {
+  if (Capacitor.getPlatform() !== 'android') {
+    await import('./appEntry');
+    return;
   }
+  const outdated = outdatedWebView(navigator.userAgent);
+  if (outdated !== undefined) {
+    renderWebViewUpdateRequired(outdated, document.getElementById('root')!);
+    return;
+  }
+  // `<a download>` does nothing in the WebView; route exports to the system save dialog.
+  const share = nativeShareBridge();
+  if (share) installAndroidDownloads(share, outcome => window.dispatchEvent(new CustomEvent(DOWNLOAD_EVENT, { detail: outcome })));
+  let saved: string | null = null;
+  try {
+    saved = (await nativeStateCache.server()).origin;
+    if (saved) {
+      configureAndroidServer(saved);
+      await import('./appEntry');
+      return;
+    }
+  } catch (error) {
+    console.error('Android server configuration failed:', error);
+  }
+  const { renderAndroidServerOnboarding } = await import('./features/auth/AndroidServerOnboarding');
+  renderAndroidServerOnboarding(saved);
 }
 
-// Handle PWA install prompt
-let deferredPrompt: any;
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent Chrome 67 and earlier from automatically showing the prompt
-  e.preventDefault();
-  // Stash the event so it can be triggered later
-  deferredPrompt = e;
-  
-  // Show install button or notification
-  console.log('PWA install prompt available');
-  
-  // Make it available globally for install button
-  (window as any).installPWA = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the PWA install prompt');
-        } else {
-          console.log('User dismissed the PWA install prompt');
-        }
-        deferredPrompt = null;
-      });
-    }
-  };
+void bootstrap().catch(error => {
+  console.error('Modulo could not start:', error);
+  const root = document.getElementById('root');
+  if (root) root.textContent = 'Modulo could not start. Close and reopen the app to retry.';
 });
-
-window.addEventListener('appinstalled', () => {
-  console.log('PWA was installed');
-  deferredPrompt = null;
-});
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Provider store={store}> {/* Wrap App with Provider */}
-      <App />
-    </Provider>
-  </React.StrictMode>,
-);

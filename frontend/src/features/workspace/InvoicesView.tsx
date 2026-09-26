@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 import { useSellerSettings } from './useBusinessSettings';
 import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // Invoices tab in the Business hub (#364): every ```invoice fence across the
@@ -5,7 +6,7 @@ import { OperationalStateNotice } from './plugins/OperationalStateNotice';
 // per-invoice ZUGFeRD (EN 16931 CII) XML export, and a "new invoice note"
 // action that continues the sequential number series.
 import { useMemo, useState } from 'react';
-import { FileDown, FilePlus2, ReceiptText, Settings2 } from 'lucide-react';
+import { FileDown, FilePlus2, ReceiptText } from 'lucide-react';
 import { Button, EmptyState, Input, Label, useToast } from '@/ui';
 import type { WorkspaceViewProps } from './plugins/types';
 import { InvoiceStatusChip } from './InvoiceCard';
@@ -21,6 +22,7 @@ import {
   type InvoiceStatus,
   type SellerProfile,
 } from './invoicing';
+import { EntryPopover, EntryPopoverBody, PopoverEditor } from './EntryPopover';
 
 function download(filename: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -73,11 +75,13 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
   const { toast } = useToast();
   const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
   const [showProfile, setShowProfile] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const synced = useSellerSettings();
 
   const seller = synced.value;
   const invoices = useMemo(() => extractInvoices(data.notes), [data.notes]);
   const filtered = invoices.filter((i) => status === 'all' || i.invoice.status === status);
+  const selected = invoices.find((entry) => entry.noteId === selectedNoteId) ?? null;
 
   const outstanding = invoices
     .filter((i) => i.invoice.status === 'sent' || i.invoice.status === 'overdue')
@@ -89,11 +93,10 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
       invoices.map((i) => i.invoice.number),
       now.getFullYear(),
     );
-    const date = now.toISOString().slice(0, 10);
+    const date = dayKey(now);
     const created = await data.createNote(`Rechnung ${number}`, `${invoiceTemplate(number, date)}\n`);
     if (created) {
-      toast({ title: `Rechnung ${number} created`, description: 'Fill in the client and line items.' });
-      onOpenNote(created.id);
+      toast({ title: `Rechnung ${number} created`, description: 'It is ready in the invoice list.' });
     }
   };
 
@@ -126,10 +129,7 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
             <FilePlus2 className="size-4" aria-hidden="true" />
             New invoice
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setShowProfile((v) => !v)}>
-            <Settings2 className="size-4" aria-hidden="true" />
-            Seller profile
-          </Button>
+          <PopoverEditor title="Seller profile"><SellerProfileForm key={synced.sessionKey} initial={seller} onSaved={(profile) => { if (!synced.ready) return; synced.set(profile); setShowProfile(false); toast({ title: 'Seller profile saved' }); }} /></PopoverEditor>
           <span className="ml-auto text-xs text-muted-foreground">
             Outstanding: <span className="font-medium tabular-nums">{formatEur(outstanding)}</span>
           </span>
@@ -187,14 +187,14 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
               <li key={`${entry.noteId}-${entry.invoice.number}`} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
                 <button
                   type="button"
-                  onClick={() => onOpenNote(entry.noteId)}
+                  onClick={() => setSelectedNoteId(entry.noteId)}
                   className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="font-mono text-sm font-medium">{entry.invoice.number}</span>
                   <span className="min-w-0 flex-1 truncate text-sm">{entry.invoice.clientName}</span>
                   <InvoiceStatusChip status={entry.invoice.status} />
                   {missing.length > 0 && (
-                    <span className="text-xxs text-amber-600 dark:text-amber-400">§14: {missing.length} missing</span>
+                    <span className="text-xxs text-warning">§14: {missing.length} missing</span>
                   )}
                   <span className="tabular-nums text-sm">{formatEur(totals.gross)}</span>
                 </button>
@@ -207,6 +207,11 @@ export function InvoicesView({ data, onOpenNote }: WorkspaceViewProps) {
           })}
         </ul>
       )}
+      <EntryPopover open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelectedNoteId(null); }} title={selected ? `Invoice ${selected.invoice.number}` : 'Invoice'} description={selected ? `${selected.invoice.clientName} · ${selected.invoice.status}` : undefined}>
+        {selected && <EntryPopoverBody><div className="space-y-5 p-5"><div className="flex flex-wrap items-center gap-2"><InvoiceStatusChip status={selected.invoice.status}/><span className="text-sm text-muted-foreground">Issued {selected.invoice.date}{selected.invoice.dueDate ? ` · due ${selected.invoice.dueDate}` : ''}</span><Button className="ml-auto" size="sm" onClick={() => onOpenNote(selected.noteId)}>Edit invoice note</Button></div><div className="grid gap-3 sm:grid-cols-3"><InvoiceFact label="Client" value={selected.invoice.clientName}/><InvoiceFact label="VAT mode" value={selected.invoice.vatMode}/><InvoiceFact label="Total" value={formatEur(computeTotals(selected.invoice).gross)}/></div><section className="overflow-hidden rounded-lg border border-border"><header className="border-b border-border bg-muted/20 px-3 py-2 text-sm font-medium">Line items</header><div className="divide-y divide-border">{selected.invoice.lines.map((line, index) => <div key={`${line.description}-${index}`} className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 text-sm"><span>{line.description}</span><span className="text-muted-foreground">{line.quantity} × {formatEur(line.unitPrice)}</span><strong>{formatEur(line.quantity * line.unitPrice)}</strong></div>)}</div></section></div></EntryPopoverBody>}
+      </EntryPopover>
     </div>
   );
 }
+
+function InvoiceFact({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-border bg-muted/20 p-3"><p className="text-xxs uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-sm font-medium">{value || 'Not set'}</p></div>; }

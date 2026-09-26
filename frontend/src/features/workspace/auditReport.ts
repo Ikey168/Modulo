@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 // Audit report generator (#359) — pure builders. A report compiles an
 // engagement's notes and findings into markdown (stored as a note, so it can
 // be anchored via the existing on-chain flow) and into standalone HTML for the
@@ -35,7 +36,7 @@ export function engagementsIn(notes: CoreNote[]): string[] {
 }
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return dayKey(d);
 }
 
 export function buildReport({ engagement, notes, date }: ReportInput): BuiltReport {

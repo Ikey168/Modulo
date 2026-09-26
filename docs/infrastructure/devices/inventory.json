@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-09-21",
+  "owner": "account-owner",
+  "authority": "Modulo Knowledge note #51 and this versioned inventory",
+  "reviewCadence": "quarterly and after any device replacement or role change",
+  "devices": [
+    {
+      "id": "desktop",
+      "label": "Desktop PC",
+      "currentName": "desktop",
+      "canonicalName": "desktop",
+      "targetRole": "physical-engineering-workstation",
+      "observedRole": "physical-engineering-workstation-and-local-development",
+      "trustBoundary": "personal",
+      "lifecycleState": "active",
+      "platform": {
+        "osFamily": "Fedora Linux",
+        "osVersion": "44",
+        "architecture": "x86_64"
+      },
+      "network": {
+        "lan": "192.168.88.136",
+        "zeroTier": "10.165.78.30",
+        "zeroTierStatus": "verified"
+      },
+      "access": {
+        "administration": "local owner session; outbound key-based SSH",
+        "inboundSsh": "disabled",
+        "passwordLogin": "not-applicable"
+      },
+      "state": {
+        "authorities": [
+          "Git remotes for source",
+          "Modulo/Paperless for managed records",
+          "encrypted recovery custody for secrets"
+        ],
+        "uniqueStateStatus": "owner-review-required"
+      },
+      "rebuildProfile": "desktop-engineering",
+      "evidence": {
+        "status": "verified",
+        "sources": [
+          "local runtime inspection 2026-09-20",
+          "Modulo Knowledge note #215"
+        ],
+        "gaps": [
+          "Repository authority audit found 25 repositories and 18 dirty worktrees. The no-remote audit workspaces `audit-targets/citrea-hp` and `audit-targets/cronos-zkevm` contain modified/generated test and analysis state; preserve or deliberately classify that state before claiming endpoint disposability."
+        ]
+      }
+    },
+    {
+      "id": "laptop",
+      "label": "Laptop",
+      "currentName": "ik-note",
+      "canonicalName": "laptop",
+      "targetRole": "thin-portable-workstation",
+      "observedRole": "owner-evidence-required",
+      "trustBoundary": "personal",
+      "lifecycleState": "active-unverified",
+      "platform": {
+        "osFamily": "Linux target",
+        "osVersion": "owner-evidence-required",
+        "architecture": "owner-evidence-required"
+      },
+      "network": {
+        "lan": "dynamic; last observed as 192.168.88.254",
+        "zeroTier": "owner-evidence-required",
+        "zeroTierStatus": "unverified"
+      },
+      "access": {
+        "administration": "local owner session; key-based SSH target",
+        "inboundSsh": "unreachable during review",
+        "passwordLogin": "unverified"
+      },
+      "state": {
+        "authorities": [
+          "Git remotes for source",
+          "managed personal-file authority",
+          "encrypted recovery custody for secrets"
+        ],
+        "uniqueStateStatus": "owner-review-required"
+      },
+      "rebuildProfile": "laptop-thin",
+      "evidence": {
+        "status": "partial",
+        "sources": [
+          "MikroTik DHCP observation 2026-09-20",
+          "Modulo Knowledge note #55"
+        ],
+        "gaps": [
+          "Verify OS, disk encryption, ZeroTier membership, SSH policy, patching, backup/sync coverage, and absence of unique state while the device is awake."
+        ]
+      }
+    },
+    {
+      "id": "phone",
+      "label": "Phone",
+      "currentName": "android-device",
+      "canonicalName": "phone",
+      "targetRole": "communications-authentication-and-capture",
+      "observedRole": "owner-evidence-required",
+      "trustBoundary": "personal",
+      "lifecycleState": "active-unverified",
+      "platform": {
+        "osFamily": "Android",
+        "osVersion": "owner-evidence-required",
+        "architecture": "owner-evidence-required"
+      },
+      "network": {
+        "lan": "dynamic Android DHCP client observed",
+        "zeroTier": "owner-evidence-required",
+        "zeroTierStatus": "unverified"
+      },
+      "access": {
+        "administration": "physical owner access only",
+        "inboundSsh": "not-applicable",
+        "passwordLogin": "not-applicable"
+      },
+      "state": {
+        "authorities": [
+          "approved cloud/application exports",
+          "password manager and offline recovery custody",
+          "Modulo capture after explicit sync"
+        ],
+        "uniqueStateStatus": "owner-review-required"
+      },
+      "rebuildProfile": "phone-owner-recovery",
+      "evidence": {
+        "status": "partial",
+        "sources": [
+          "MikroTik Android DHCP observation 2026-09-20",
+          "Modulo Knowledge note #51"
+        ],
+        "gaps": [
+          "Verify OS/update state, screen and storage protection, ZeroTier membership, device backup/export coverage, and recovery-factor custody on the physical device."
+        ]
+      }
+    },
+    {
+      "id": "pi5",
+      "label": "Raspberry Pi 5",
+      "currentName": "pi5",
+      "canonicalName": "home-pi",
+      "targetRole": "always-on-homeserver",
+      "observedRole": "records-communications-and-private-services-host",
+      "trustBoundary": "home-infrastructure",
+      "lifecycleState": "active",
+      "platform": {
+        "osFamily": "Debian GNU/Linux",
+        "osVersion": "13",
+        "architecture": "aarch64"
+      },
+      "network": {
+        "lan": "10.10.20.10",
+        "zeroTier": "10.165.78.10",
+        "zeroTierStatus": "verified"
+      },
+      "access": {
+        "administration": "key-based SSH over trusted LAN or private network",
+        "inboundSsh": "enabled",
+        "passwordLogin": "disabled; keyboard-interactive and root login disabled; public-key authentication enabled"
+      },
+      "state": {
+        "authorities": [
+          "versioned deployment definitions",
+          "encrypted Paperless backups",
+          "service-specific protected configuration and recovery references"
+        ],
+        "uniqueStateStatus": "protected-but-restore-gates-remain"
+      },
+      "rebuildProfile": "pi-homeserver",
+      "evidence": {
+        "status": "verified",
+        "sources": [
+          "key-based live runtime inspection 2026-09-20",
+          "Modulo Knowledge notes #39, #150, #151, #178, and #215"
+        ],
+        "gaps": [
+          "Complete service-specific recovery acceptance for Matrix and the remaining private services; do not place experimental hardware or disposable lab workloads on the homeserver."
+        ]
+      }
+    },
+    {
+      "id": "netcup",
+      "label": "Netcup development server",
+      "currentName": "v2202609388785525256.ultrasrv.de",
+      "providerHostname": "v2202609388785525256.ultrasrv.de",
+      "canonicalName": "dev-netcup",
+      "targetRole": "canonical-remote-development-compute",
+      "observedRole": "provisioned-disposable-development-server",
+      "trustBoundary": "development",
+      "lifecycleState": "active-partial",
+      "platform": {
+        "osFamily": "Debian GNU/Linux",
+        "osVersion": "13",
+        "architecture": "x86_64"
+      },
+      "network": {
+        "public": "185.162.249.37/22; 2a03:4000:1a:36b:b438:5cff:fe84:c4f3",
+        "zeroTier": "not-assigned; network membership is ACCESS_DENIED",
+        "zeroTierStatus": "blocked-pending-network-authorization"
+      },
+      "access": {
+        "administration": "key-based SSH as named administrator ik; root direct login disabled; controlled sudo is available",
+        "inboundSsh": "reachable; live RSA, ECDSA and ED25519 fingerprints match provider evidence",
+        "passwordLogin": "disabled; keyboard-interactive disabled; root login disabled",
+        "hostKeyFingerprints": {
+          "rsa": "SHA256:bt3bDG8xtPBv87gf1X4oo2ZrO/AQoCAeGo1yQgPS/6c",
+          "ecdsa": "SHA256:OuHCcJpS7cjLKgwmhMDLlDjQnpjqGbuAy+8rnXD8ttE",
+          "ed25519": "SHA256:lzInG4zr0aX7rnYuMG7lqgwbMk2jYHiL4MaQt5c9JTk"
+        }
+      },
+      "state": {
+        "authorities": [
+          "Git remotes for source",
+          "reproducible development services and disposable caches",
+          "provider control plane for host lifecycle"
+        ],
+        "uniqueStateStatus": "none-observed; source is in Git and current build, package, container and Noesis fixture data is regenerable"
+      },
+      "rebuildProfile": "netcup-development",
+      "evidence": {
+        "status": "partial",
+        "sources": [
+          "Modulo Knowledge notes #53, #159 and #163",
+          "owner-supplied Netcup provisioning evidence 2026-09-20",
+          "live key-based administrator, OS, address, SSH-policy, ZeroTier and service inspection 2026-09-21",
+          "live DNS, TCP/22 and SSH host-key verification 2026-09-21",
+          "idempotent Ansible development profile, Modulo build/test and Noesis ingest/answer evidence 2026-09-21"
+        ],
+        "gaps": [
+          "Authorize the host in the intended ZeroTier network, then verify private SSH and ACL behavior.",
+          "Complete the explicitly scheduled provider destroy/rebuild exercise."
+        ]
+      }
+    },
+    {
+      "id": "oracle",
+      "label": "Oracle production server",
+      "currentName": "modulo-noesis-a1",
+      "canonicalName": "prod-oracle",
+      "targetRole": "modulo-and-noesis-production-only",
+      "observedRole": "production-runtime",
+      "trustBoundary": "production",
+      "lifecycleState": "active",
+      "platform": {
+        "osFamily": "Ubuntu Linux",
+        "osVersion": "24.04",
+        "architecture": "aarch64"
+      },
+      "network": {
+        "lan": "not-applicable",
+        "zeroTier": "network 88c5b1f339774e42 joined; node 419271fdab; no assigned address until controller authorization",
+        "zeroTierStatus": "blocked-pending-network-authorization"
+      },
+      "access": {
+        "administration": "dedicated key-based production access plus protected release path",
+        "inboundSsh": "enabled for key-based production administration",
+        "passwordLogin": "disabled; keyboard-interactive and root login disabled; public-key authentication enabled"
+      },
+      "state": {
+        "authorities": [
+          "GitHub and versioned deploy/oci definitions",
+          "production database and encrypted off-host backups",
+          "provider control plane for host lifecycle"
+        ],
+        "uniqueStateStatus": "protected-with-open-provider-and-restore-evidence"
+      },
+      "rebuildProfile": "oracle-production",
+      "evidence": {
+        "status": "partial",
+        "sources": [
+          "live Modulo production API 2026-09-20",
+          "key-based live host and container inspection 2026-09-20",
+          "live ZeroTier 1.16.2 installation, signed repository verification and network join 2026-09-21",
+          "OCI runtime metadata recorded in Modulo Knowledge notes #109 and #163",
+          "versioned deploy/oci runbooks"
+        ],
+        "gaps": [
+          "Authorize ZeroTier node 419271fdab in network 88c5b1f339774e42, assign the permanent logical name prod-oracle, and verify its private address and SSH path.",
+          "Exercise one protected immutable-image release through the documented CI/CD promotion path and restore from an independently authenticated off-host backup."
+        ]
+      }
+    }
+  ]
+}

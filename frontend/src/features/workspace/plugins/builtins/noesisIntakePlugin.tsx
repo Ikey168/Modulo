@@ -5,7 +5,7 @@ import { NoesisIntakeView } from './NoesisIntakeView';
 const noesisIntakePlugin: PluginModule = {
   activate(ctx) {
     ctx.addView({ id: 'information-intake', label: 'Information Intake', icon: Newspaper,
-      order: 90, component: NoesisIntakeView });
+      order: 20, mode: 'research', component: NoesisIntakeView });
   },
 };
 

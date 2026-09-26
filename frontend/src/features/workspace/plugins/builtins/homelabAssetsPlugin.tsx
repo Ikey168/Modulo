@@ -1,0 +1,1 @@
+import { Server } from 'lucide-react'; import { HomelabAssetsView } from '../../HomelabViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'homelab-assets',label:'Infrastructure',icon:Server,order:20,mode:'homelab',component:HomelabAssetsView})}};export default plugin;

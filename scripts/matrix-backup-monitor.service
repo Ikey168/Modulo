@@ -1,0 +1,8 @@
+[Unit]
+Description=Verify Matrix backup freshness and checksums
+After=matrix-backup-capture.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/scripts/matrix-backup-monitor.sh
+

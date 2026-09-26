@@ -3,16 +3,87 @@ import {
   type StateSnapshot, type StateTransport,
 } from './pluginStateClient';
 
-/** Local recovery cache only; acknowledged server state remains the durable system of record. */
-export class BrowserStatePersistence implements StatePersistence {
-  constructor(private readonly storage: Storage) {}
-  async load(partition: string): Promise<StateSnapshot | null> {
-    const raw = this.storage.getItem(`modulo.plugin-state.v1:${partition}`);
-    return raw === null ? null : JSON.parse(raw) as StateSnapshot;
+const STATE_DATABASE = 'modulo-plugin-state';
+const STATE_DATABASE_VERSION = 2;
+
+/** One device database: `snapshots` holds each partition's offline queue, `replicas` the device's queue identities. */
+export function openStateDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open(STATE_DATABASE, STATE_DATABASE_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots');
+      if (!db.objectStoreNames.contains('replicas')) db.createObjectStore('replicas');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Could not open plugin state cache.'));
+    request.onblocked = () => reject(new Error('Plugin state cache upgrade is blocked by another tab.'));
+  });
+}
+
+/**
+ * Replica identities known on this device. A tab reuses the first identity no
+ * other tab holds, so a queue left by a closed tab is adopted and synchronized
+ * by the next one instead of being stranded.
+ */
+export class IndexedDbReplicaPool {
+  constructor(private readonly factory: IDBFactory = indexedDB) {}
+
+  async list(): Promise<string[]> {
+    const db = await openStateDatabase(this.factory);
+    try {
+      return await new Promise<string[]>((resolve, reject) => {
+        const request = db.transaction('replicas', 'readonly').objectStore('replicas').getAllKeys();
+        request.onsuccess = () => resolve((request.result as IDBValidKey[]).filter((key): key is string => typeof key === 'string').sort());
+        request.onerror = () => reject(request.error ?? new Error('Could not read offline queue identities.'));
+      });
+    } finally { db.close(); }
   }
+
+  async add(replica: string): Promise<void> {
+    const db = await openStateDatabase(this.factory);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('replicas', 'readwrite');
+        transaction.objectStore('replicas').put(new Date().toISOString(), replica);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error('Could not record offline queue identity.'));
+        transaction.onabort = () => reject(transaction.error ?? new Error('Offline queue identity write was aborted.'));
+      });
+    } finally { db.close(); }
+  }
+}
+
+/** Durable per-partition offline queue. The server remains authoritative for acknowledged state. */
+export class IndexedDbStatePersistence implements StatePersistence {
+  constructor(private readonly factory: IDBFactory = indexedDB) {}
+
+  private open(): Promise<IDBDatabase> { return openStateDatabase(this.factory); }
+
+  async load(partition: string): Promise<StateSnapshot | null> {
+    const db = await this.open();
+    try {
+      return await new Promise<StateSnapshot | null>((resolve, reject) => {
+        const request = db.transaction('snapshots', 'readonly').objectStore('snapshots').get(partition);
+        request.onsuccess = () => resolve(request.result === undefined ? null : request.result as StateSnapshot);
+        request.onerror = () => reject(request.error ?? new Error('Could not read plugin state cache.'));
+      });
+    } finally { db.close(); }
+  }
+
   async save(partition: string, snapshot: StateSnapshot): Promise<void> {
-    // Storage failure must reject the edit, never masquerade as a successful local save.
-    this.storage.setItem(`modulo.plugin-state.v1:${partition}`, JSON.stringify(snapshot));
+    if (snapshot.partition !== partition) throw new Error('Plugin state cache partition mismatch.');
+    const db = await this.open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('snapshots', 'readwrite');
+        transaction.objectStore('snapshots').put(snapshot, partition);
+        // Request success alone does not make the outbox durable; wait for commit.
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error('Could not save plugin state cache.'));
+        transaction.onabort = () => reject(transaction.error ?? new Error('Plugin state cache write was aborted.'));
+      });
+    } finally { db.close(); }
   }
 }
 
@@ -27,9 +98,11 @@ export function createStateTransport(scope: StateScope,
     expectedVersion?: number, cursor?: string, generationOnly = false): Promise<unknown> => {
     const current = await session();
     if (signal.aborted) throw new DOMException('State request aborted', 'AbortError');
-    if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject || !current.accessToken) {
+    if (!current || current.issuer !== scope.issuer || current.subject !== scope.subject) {
       throw new StateRequestError(401, 'STATE_SESSION_CHANGED');
     }
+    // Same account, session not renewed yet (offline launch): keep edits queued and retry.
+    if (!current.accessToken) throw new TypeError('Waiting for the session to renew; changes stay on this device.');
     const url = generationOnly ? `${base}?generation` : key === undefined ? `${base}?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
       : `${base}/${encodeURIComponent(key)}` + (expectedVersion === undefined ? '' : `?expectedVersion=${expectedVersion}`);
     const response = await fetcher(url, { method, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error',

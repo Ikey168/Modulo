@@ -38,8 +38,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register the "/ws" endpoint for WebSocket connections
+        String[] origins = java.util.Arrays.copyOf(allowedOrigins, allowedOrigins.length + 1);
+        origins[allowedOrigins.length] = "https://localhost"; // Packaged Capacitor WebView; CONNECT still requires a bearer token.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigins)  // Empty means same-origin; additional origins must be configured.
+                .setAllowedOrigins(origins)
                 .withSockJS();  // Enable SockJS fallback options
     }
 }

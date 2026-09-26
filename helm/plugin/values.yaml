@@ -8,6 +8,9 @@ pluginName: example-plugin
 replicaCount: 1
 
 image:
+  # Marketplace deployments must use the exact reviewed digest. Tags remain
+  # available for explicitly deployed development workloads.
+  digest: ""
   repository: modulo-plugin-example
   pullPolicy: IfNotPresent
   tag: "latest"

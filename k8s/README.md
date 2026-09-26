@@ -85,7 +85,7 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
    docker push your-registry.com/modulo-backend:latest
    
    # Build frontend image
-   docker build -t your-registry.com/modulo-frontend:latest ./frontend
+   docker build -f frontend/Dockerfile -t your-registry.com/modulo-frontend:latest .
    docker push your-registry.com/modulo-frontend:latest
    ```
 

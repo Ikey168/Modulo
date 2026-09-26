@@ -184,3 +184,41 @@
 .bp-code-textarea:focus {
   border-color: hsl(var(--ring));
 }
+
+/* ------------------------------------------------------------------ *
+ * Touch.
+ *
+ * React Flow draws its zoom/fit controls at 26px and its node handles at
+ * 6px — sizes that assume a cursor with pixel accuracy. On a phone the
+ * controls are below any usable target and the handles cannot be grabbed
+ * at all, which is the difference between a canvas you can read and one
+ * you can edit.
+ * ------------------------------------------------------------------ */
+@media (pointer: coarse) {
+  .react-flow__controls-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .react-flow__controls-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* The handle stays drawn at its designed size; the *target* around it
+     grows, so connecting two nodes does not depend on a 6px hit. */
+  .react-flow__handle {
+    position: relative;
+  }
+
+  .react-flow__handle::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+  }
+
+  .bp-code-textarea {
+    font-size: 14px;
+    padding: 8px;
+  }
+}

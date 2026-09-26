@@ -1,0 +1,24 @@
+services:
+  paperless-sync:
+    build:
+      context: ./paperless-sync
+    container_name: paperless-sync
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MODULO_BASE_URL: https://modulo.141.147.5.114.sslip.io
+      PAPERLESS_BASE_URL: http://localhost:8000
+      PAPERLESS_SYNC_INTERVAL_SECONDS: "300"
+      PAPERLESS_FULL_RECONCILE_SECONDS: "21600"
+      PAPERLESS_SYNC_SECRET_DIR: /run/secrets/paperless-sync
+      PAPERLESS_SYNC_STATE_DIR: /var/lib/paperless-sync
+    volumes:
+      - ./paperless-sync/secrets:/run/secrets/paperless-sync:ro
+      - ./paperless-sync/state:/var/lib/paperless-sync
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

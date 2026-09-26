@@ -2,13 +2,12 @@ version: '3.8'
 
 services:
   frontend:
+    environment:
+      MODULO_OIDC_ISSUER: ${VITE_KEYCLOAK_URL:-http://localhost:8180/realms/modulo}
+      MODULO_OIDC_CLIENT_ID: modulo-frontend
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:8080}
-        - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL:-http://localhost:8180/realms/modulo}
-        - VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID:-modulo-frontend}
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "80:80"
     depends_on:
@@ -77,12 +76,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
-      # NOTE: the schema is owned entirely by Hibernate (ddl-auto=update). The
-      # only non-entity tables (plugin_registry et al.) are seeded by
-      # database/init/02-plugin-registry.sql at Postgres first-init. Flyway is
-      # intentionally NOT part of this stack: its V1 migration defines a
-      # UUID-based notes/users/tags schema that collides with the JPA entities
-      # (BIGINT ids) on the `application` schema and fails the whole run.
+      ipfs:
+        condition: service_healthy
+      # Flyway owns PostgreSQL DDL; see docs/operations/schema-migrations.md.
     networks:
       - modulo-network
     restart: unless-stopped
@@ -120,12 +116,12 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:z
+      - ./database/init/01-init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro,z
     networks:
       - modulo-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5

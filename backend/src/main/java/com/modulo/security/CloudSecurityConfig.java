@@ -162,7 +162,9 @@ public class CloudSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allowed origins from configuration
-        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
+        java.util.List<String> corsOrigins = new java.util.ArrayList<>(Arrays.asList(allowedOrigins));
+        corsOrigins.add("https://localhost");
+        configuration.setAllowedOriginPatterns(corsOrigins);
         
         // Allowed methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

@@ -37,6 +37,8 @@ public class BlueprintEntry {
     public Map<String, Object> getIr() { return ir; }
     public void setIr(Map<String, Object> ir) { this.ir = ir; }
 
+    public String getAutonomyLevel() { return BlueprintAutonomyLevel.fromIr(ir).name(); }
+
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 

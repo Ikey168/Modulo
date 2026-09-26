@@ -1,3 +1,4 @@
+import { legacyBrowserStorage, readLegacyValue } from '../../services/legacy/browserLegacyStorage';
 import { useEffect, useRef, useState } from 'react';
 import type { CanvasState } from './canvasStore';
 import { CANVAS_PLUGIN_ID } from './plugins';
@@ -24,7 +25,7 @@ export function useCanvasState() {
     let disposed = false; let unsubscribe: (() => void) | undefined;
     current.current = emptySyncedCanvas(); setState(current.current); setClient(undefined); setError(undefined);
     queued.current = Promise.resolve(); writes.current = 0; failed.current = []; setReadError(false);
-    try { setLegacy(localStorage.getItem(LEGACY_CANVAS_KEY) !== null); } catch { setLegacy(false); }
+    setLegacy(readLegacyValue(LEGACY_CANVAS_KEY) !== null);
     void plugins.state(CANVAS_PLUGIN_ID).then(stateClient => {
       if (disposed) return;
       const refresh = () => {
@@ -78,10 +79,12 @@ export function useCanvasState() {
     }),
     importLegacy: () => recover(async () => {
       if (!active) throw new Error('Sign in to import canvas boards');
-      await importLegacyCanvas(active, localStorage); setLegacy(localStorage.getItem(LEGACY_CANVAS_KEY) !== null);
+      const storage = legacyBrowserStorage();
+      if (storage) await importLegacyCanvas(active, storage);
+      setLegacy(readLegacyValue(LEGACY_CANVAS_KEY) !== null);
     }),
     exportRecovery: () => {
-      const raw = JSON.stringify({ legacy: localStorage.getItem(LEGACY_CANVAS_KEY),
+      const raw = JSON.stringify({ legacy: readLegacyValue(LEGACY_CANVAS_KEY),
         synchronized: active?.recoverySnapshot(), localDisplay: current.current }, null, 2);
       const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'canvas-recovery.json'; anchor.click();

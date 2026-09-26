@@ -1,3 +1,4 @@
+import { dayKey } from './noteDates';
 // Planner (#370) — daily/weekly planning over dated journal notes. A day's
 // note is the note whose title is the ISO date (`2026-07-21`); the planner
 // derives everything from note titles and bodies, so there is no extra
@@ -5,10 +6,12 @@
 // never mutates the source.
 
 import type { CoreNote } from '@modulo/core';
+import { dayBlocksMarkdown } from './dayBlocks';
 
 export const DAILY_TITLE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
+/** Local calendar date; timestamps remain full UTC ISO strings. */
+export const isoDate = dayKey;
 
 export function isDailyTitle(title: string): boolean {
   return DAILY_TITLE_RE.test(title.trim());
@@ -23,6 +26,7 @@ export function dailyTemplate(date: string): string {
 
 - [ ]
 
+${dayBlocksMarkdown()}
 ## Notes
 
 `;
@@ -31,7 +35,11 @@ export function dailyTemplate(date: string): string {
 /** Unchecked `- [ ]` items in a body, with the checkbox marker stripped. */
 export function uncheckedItems(body: string): string[] {
   const out: string[] = [];
+  let inDayBlocks = false;
   for (const line of body.split('\n')) {
+    if (/^##\s+day blocks\s*$/i.test(line.trim())) { inDayBlocks = true; continue; }
+    if (inDayBlocks && /^##\s+/.test(line.trim())) inDayBlocks = false;
+    if (inDayBlocks) continue;
     const m = /^\s*[-*]\s+\[ \]\s+(.*)$/.exec(line);
     if (m && m[1].trim() !== '') out.push(m[1].trim());
   }
@@ -47,7 +55,8 @@ export function carryOverBlock(items: string[], fromDate: string): string {
 export function addDays(date: string, delta: number): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + delta);
-  return isoDate(d);
+  // This is arithmetic on date-only strings, deliberately kept in UTC.
+  return d.toISOString().slice(0, 10);
 }
 
 /** Monday-first week containing the given date. */

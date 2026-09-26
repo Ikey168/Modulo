@@ -12,8 +12,7 @@ import org.springframework.context.annotation.Configuration;
  * Selects the {@link ScriptSandbox} implementation via
  * {@code modulo.blueprint.sandbox} (#397).
  *
- *   rhino (default) — {@link RhinoScriptSandbox}, the original engine
- *   wasm            — {@link WasmScriptSandbox}, QuickJS-on-WASM (#398)
+ *   wasm — {@link WasmScriptSandbox}, QuickJS-on-WASM (#398)
  *
  * An unknown value fails startup loudly rather than silently falling back:
  * a typo must never quietly select a different isolation engine.
@@ -29,7 +28,7 @@ public class ScriptSandboxConfig {
     private static final Logger logger = LoggerFactory.getLogger(ScriptSandboxConfig.class);
 
     @Bean
-    public ScriptSandbox scriptSandbox(@Value("${modulo.blueprint.sandbox:rhino}") String engine,
+    public ScriptSandbox scriptSandbox(@Value("${modulo.blueprint.sandbox:wasm}") String engine,
                                        ObjectProvider<PluginManager> pluginManager) {
         return new RemoteScriptSandbox(pluginManager::getIfAvailable, localEngine(engine));
     }
@@ -37,15 +36,12 @@ public class ScriptSandboxConfig {
     /** The in-process engine selection (#397) — package-visible for tests. */
     ScriptSandbox localEngine(String engine) {
         switch (engine) {
-            case "rhino":
-                logger.info("Blueprint script sandbox: rhino");
-                return new RhinoScriptSandbox();
             case "wasm":
                 logger.info("Blueprint script sandbox: wasm (QuickJS via quickjs4j)");
                 return new WasmScriptSandbox();
             default:
                 throw new IllegalStateException(
-                    "Unknown modulo.blueprint.sandbox value '" + engine + "' — expected 'rhino' or 'wasm'");
+                    "Unknown modulo.blueprint.sandbox value '" + engine + "' — expected 'wasm'");
         }
     }
 }

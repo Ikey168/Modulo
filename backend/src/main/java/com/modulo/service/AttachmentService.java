@@ -56,7 +56,7 @@ public class AttachmentService {
     @Value("${azure.storage.max-file-size:10485760}") // 10MB default
     private long maxFileSize;
 
-    @Value("${azure.storage.allowed-content-types:image/jpeg,image/png,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}")
+    @Value("${azure.storage.allowed-content-types:image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,message/rfc822,audio/webm,audio/ogg,audio/mpeg,audio/mp4,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}")
     private String allowedContentTypes;
 
     public AttachmentUploadResponse uploadAttachment(MultipartFile file, Long noteId, String uploadedBy) {
@@ -239,7 +239,7 @@ public class AttachmentService {
         
         String[] allowed = allowedContentTypes.split(",");
         for (String type : allowed) {
-            if (contentType.trim().equalsIgnoreCase(type.trim())) {
+            if (contentType.split(";", 2)[0].trim().equalsIgnoreCase(type.trim())) {
                 return true;
             }
         }

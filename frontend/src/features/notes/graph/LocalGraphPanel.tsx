@@ -8,7 +8,7 @@ import {
   GraphFilters,
   SavedView,
   DEFAULT_FILTERS,
-  loadSavedViews,
+  useSavedGraphViews,
   saveView,
   deleteView,
 } from './savedViews';
@@ -93,7 +93,7 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<GraphFilters>(DEFAULT_FILTERS);
-  const [views, setViews] = useState<SavedView[]>(() => loadSavedViews());
+  const [views, setViews] = useSavedGraphViews();
   const [viewName, setViewName] = useState('');
 
   const load = useCallback(
@@ -167,13 +167,13 @@ const LocalGraphPanel: React.FC<Props> = ({ noteId, onOpenNote, refreshKey }) =>
     if (!name) {
       return;
     }
-    setViews(saveView(name, filters));
+    setViews((current) => saveView(current, name, filters));
     setViewName('');
   };
 
   const handleApplyView = (view: SavedView) => setFilters(view.filters);
 
-  const handleDeleteView = (id: string) => setViews(deleteView(id));
+  const handleDeleteView = (id: string) => setViews((current) => deleteView(current, id));
 
   return (
     <div>

@@ -3,7 +3,7 @@ import { PluginStateClient, StateRequestError, type StateRecord, type StateTrans
 import { importCollection, readCollection, saveCollection, validateCollection, type OperationalCollection } from '../operationalState';
 import { TODO_COLLECTION, TIME_COLLECTION, EXPENSE_COLLECTION } from '../operationalSchemas';
 import { datevCsv } from '../euer';
-import { importLegacyState } from '../../../services/legacyStateImport';
+import { importLegacyState } from '../../../services/legacy/legacyStateImport';
 import { validateSeller, validateStrings, validateRetentionClass } from '../operationalSchemas';
 import { toInvoiceLines } from '../timeTracking';
 const scope = { origin: 'https://app.example', issuer: 'https://id.example', subject: 'alice', workspace: 'personal', namespace: 'operational', replica: 'a' };

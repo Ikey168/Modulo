@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ApprovalError, decideApproval, getApproval, getApprovalEvidence, getDecisionSignature, listApprovals, type Approval } from './approvalService';
 const field = 'border border-border bg-background px-3 py-2 text-sm rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
-export const signatureLabel = (state: string) => ({SERVER_SIGNED:'Server signed · not locally verified', WALLET_SIGNED:'Wallet signed · not locally verified', UNSIGNED:'Unsigned · unverifiable'}[state] || 'Unverifiable signature state');
+import { signatureLabel } from './signatureLabel';
 const date = (value: string) => new Date(value).toLocaleString();
 export function ApprovalInbox() {
   const [params, setParams] = useSearchParams();

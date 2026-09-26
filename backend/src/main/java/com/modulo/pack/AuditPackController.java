@@ -46,6 +46,12 @@ public class AuditPackController {
     return audit.engagement(users.requireUserId(), id);
   }
 
+  @DeleteMapping("/engagements/{id}/demo")
+  public Map<String, Boolean> removeDemo(@PathVariable UUID id) {
+    audit.removeDemo(users.requireUserId(), id);
+    return Map.of("removed", true);
+  }
+
   @PostMapping("/engagements/{id}/findings")
   public Object finding(@PathVariable UUID id, @RequestBody AuditPackService.Finding body) {
     return audit.finding(users.requireUserId(), id, body);

@@ -1,9 +1,12 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { PluginStateClient, StateRequestError, type StateRecord, type StateTransport } from '../pluginStateClient';
-import { BrowserStatePersistence } from '../pluginStateTransport';
+import { IDBFactory } from 'fake-indexeddb';
+import { IndexedDbStatePersistence } from '../pluginStateTransport';
+import type { StatePersistence } from '../pluginStateClient';
+let idb=new IDBFactory();
 const firstGeneration='00000000-0000-0000-0000-000000000001', restoredGeneration='00000000-0000-0000-0000-000000000002';
 const clients: PluginStateClient[]=[];
-afterEach(()=>{ clients.forEach(client=>client.close()); clients.length=0; localStorage.clear(); });
+afterEach(()=>{ clients.forEach(client=>client.close()); clients.length=0; idb=new IDBFactory(); });
 function fixture() {
   let generation=firstGeneration, online=true, expired=false;
   const records=new Map<string,StateRecord>();
@@ -26,7 +29,7 @@ function fixture() {
       delete:async()=>{throw new Error('unused');},
     };
   };
-  const open=async(owner='alice',replica='a',persistence=new BrowserStatePersistence(localStorage))=>{
+  const open=async(owner='alice',replica='a',persistence:StatePersistence=new IndexedDbStatePersistence(idb))=>{
     const client=await PluginStateClient.open({origin:'https://app',issuer:'https://id',subject:owner,workspace:'personal',namespace:'acceptance',replica},persistence,transport(owner),{autoRetry:false}); clients.push(client);return client;
   };
   return {open,records,puts,online:(value:boolean)=>{online=value;},expired:(value:boolean)=>{expired=value;},restore:()=>{generation=restoredGeneration;}};
@@ -71,14 +74,14 @@ it('partitions retained offline queues for two owners on the same browser',async
   const resumed=await server.open();await resumed.synchronize();expect(server.records.get('alice:private')?.value).toEqual({text:'alice'});expect(server.records.has('bob:private')).toBe(false);
 });
 it('does not acknowledge a mutation when the recovery cache is full',async()=>{
-  const server=fixture();const persistence=new BrowserStatePersistence({getItem:()=>null,setItem:()=>{throw new DOMException('quota','QuotaExceededError');}} as unknown as Storage);
+  const server=fixture();const persistence:StatePersistence={load:async()=>null,save:async()=>{throw new DOMException('quota','QuotaExceededError');}};
   const client=await server.open('alice','quota',persistence);
   await expect(client.set('private',{value:1},'fixture',1)).rejects.toThrow('quota');
   expect(client.list()).toEqual([]);expect(server.puts).not.toHaveBeenCalled();
 });
 it('renders a retained cache even while the storage handshake cannot reach the server',async()=>{
   const server=fixture();const saved=await server.open();await saved.set('cached',{text:'available offline'},'fixture',1);await saved.synchronize();saved.close();
-  const client=await PluginStateClient.open({origin:'https://app',issuer:'https://id',subject:'alice',workspace:'personal',namespace:'acceptance',replica:'a'},new BrowserStatePersistence(localStorage),{
+  const client=await PluginStateClient.open({origin:'https://app',issuer:'https://id',subject:'alice',workspace:'personal',namespace:'acceptance',replica:'a'},new IndexedDbStatePersistence(idb),{
     generation:()=>new Promise<string>(()=>{}),get:async()=>undefined,put:async()=>{throw new Error('blocked');},delete:async()=>{throw new Error('blocked');},
   },{autoRetry:false});clients.push(client);
   expect(client.get('cached')?.value).toEqual({text:'available offline'});

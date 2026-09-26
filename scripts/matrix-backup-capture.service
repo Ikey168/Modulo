@@ -1,0 +1,9 @@
+[Unit]
+Description=Capture Matrix and Mautrix backup into protected custody
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/scripts/matrix-backup-capture.sh
+

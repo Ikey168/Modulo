@@ -2,12 +2,13 @@ import { webcrypto } from 'node:crypto';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { PluginStateClient, StateRequestError,
   type StateRecord, type StateTransport } from '../../../../../services/pluginStateClient';
-import { BrowserStatePersistence } from '../../../../../services/pluginStateTransport';
+import { IDBFactory } from 'fake-indexeddb';
+import { IndexedDbStatePersistence } from '../../../../../services/pluginStateTransport';
 import { importLegacyIntake, planLegacyIntakeMigration } from '../legacyIntakeMigration';
 
 beforeAll(() => vi.stubGlobal('crypto', webcrypto));
 const clients: PluginStateClient[] = [];
-afterEach(() => { clients.forEach(client => client.close()); clients.length = 0; localStorage.clear(); });
+afterEach(() => { clients.forEach(client => client.close()); clients.length = 0; });
 
 it('replays a queued Research Workflow migration after restart and discovers it on a second device', async () => {
   const records = new Map<string, StateRecord>();
@@ -36,10 +37,10 @@ it('replays a queued Research Workflow migration after restart and discovers it 
       delete: async () => { throw new Error('Unexpected deletion'); },
     };
   };
-  const open = async (replica: string, storage: Storage) => {
+  const open = async (replica: string, storage: IDBFactory) => {
     const client = await PluginStateClient.open({ origin: 'https://modulo.example',
       issuer: 'https://identity.example', subject: 'researcher', workspace: 'personal',
-      namespace: 'information-intake', replica }, new BrowserStatePersistence(storage),
+      namespace: 'information-intake', replica }, new IndexedDbStatePersistence(storage),
     transport(), { autoRetry: false });
     clients.push(client);
     return client;
@@ -51,7 +52,7 @@ it('replays a queued Research Workflow migration after restart and discovers it 
     transitions: [{ id: 'transition-1', itemId: 'item-1', projectId: 'project-1',
       fromMode: 'Exploration', toMode: 'Deep Research', reason: 'Investigate further' }],
   });
-  const firstStorage = localStorage;
+  const firstStorage = new IDBFactory();
   let first = await open('device-one', firstStorage);
   const plan = await planLegacyIntakeMigration(raw, first);
   expect(plan).toMatchObject({ status: 'ready', toCreate: 3 });
@@ -71,11 +72,7 @@ it('replays a queued Research Workflow migration after restart and discovers it 
   expect((await importLegacyIntake(replay, first)).staged).toBe(0);
   expect(records.size).toBe(4);
 
-  const secondValues = new Map<string, string>();
-  const secondStorage = {
-    getItem: (key: string) => secondValues.get(key) ?? null,
-    setItem: (key: string, value: string) => { secondValues.set(key, value); },
-  } as Storage;
+  const secondStorage = new IDBFactory();
   const second = await open('device-two', secondStorage);
   await second.refreshAll();
   const secondPlan = await planLegacyIntakeMigration(raw, second);

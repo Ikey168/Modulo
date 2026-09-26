@@ -17,6 +17,7 @@ import {
   Textarea,
 } from '@/ui';
 import type { Task, TaskDraft, TaskPriority, TaskStatus } from './types';
+import { DEVICE_TAG_OPTIONS, parseTaskTags, serializeTaskTags } from '@/features/taskTags';
 
 interface Note {
   id: number;
@@ -64,6 +65,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
         ...task,
         dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
         startDate: task.startDate ? task.startDate.split('T')[0] : '',
+        tags: serializeTaskTags(task.tags),
         syncWithGoogleCalendar: !!task.googleCalendarEventId
       });
     } else if (noteId) {
@@ -104,6 +106,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
     );
   };
 
+  const toggleDeviceTag = (tag: string) => {
+    setFormData(prev => {
+      const tags = parseTaskTags(prev.tags);
+      const nextTags = tags.some(candidate => candidate.toLocaleLowerCase() === tag.toLocaleLowerCase())
+        ? tags.filter(candidate => candidate.toLocaleLowerCase() !== tag.toLocaleLowerCase())
+        : [...tags, tag];
+      return { ...prev, tags: serializeTaskTags(nextTags) };
+    });
+  };
+
   const validateForm = () => {
     if (!formData.title.trim()) {
       setError('Task title is required');
@@ -134,6 +146,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
     try {
       const taskData = {
         ...formData,
+        tags: serializeTaskTags(formData.tags),
         dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : undefined,
         startDate: formData.startDate ? `${formData.startDate}T00:00:00` : undefined,
         userId
@@ -357,13 +370,32 @@ const TaskForm: React.FC<TaskFormProps> = ({
             type="text"
             id="tags"
             name="tags"
-            value={formData.tags}
+            value={formData.tags ?? ''}
             onChange={handleInputChange}
-            placeholder="Enter tags (comma separated)"
+            placeholder="device:pi5, communications"
+            maxLength={255}
           />
           <small className="text-xs leading-snug text-muted-foreground">
-            Separate tags with commas, e.g., "work, urgent, project-alpha"
+            Separate tags with commas. Device tags identify where the work happens.
           </small>
+          <div className="flex flex-wrap gap-1.5" aria-label="Device tags">
+            {DEVICE_TAG_OPTIONS.map(option => {
+              const selected = parseTaskTags(formData.tags).some(tag => tag.toLocaleLowerCase() === option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => toggleDeviceTag(option.value)}
+                  className={`rounded border px-2 py-1 text-xs transition-colors ${selected
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'}`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1.5">

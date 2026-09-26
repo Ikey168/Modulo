@@ -359,7 +359,7 @@ export default function PluginSubmission() {
 
   if (submissionResult) {
     return (
-      <div className="min-h-screen bg-background px-4 py-8">
+      <div className="min-h-app bg-background px-4 py-8">
         <div className="mx-auto max-w-2xl animate-fade-in">
           <Card>
             <CardHeader className="items-center text-center">
@@ -433,7 +433,7 @@ export default function PluginSubmission() {
   const progressValue = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
+    <div className="min-h-app bg-background px-4 py-8">
       <div className="mx-auto max-w-3xl animate-fade-in space-y-6">
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">

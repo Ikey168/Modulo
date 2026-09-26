@@ -14,3 +14,5 @@ export function isDesktop(): boolean {
 export function desktopInfo(): Window['moduloDesktop'] {
   return typeof window !== 'undefined' ? window.moduloDesktop : undefined;
 }
+
+

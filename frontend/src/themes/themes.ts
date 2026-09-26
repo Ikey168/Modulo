@@ -283,7 +283,59 @@ export const purpleTheme: Theme = {
   },
 };
 
+/**
+ * Mirrors the KDE Plasma "Bart" look-and-feel (burnt-orange selection on a
+ * near-black warm canvas). Kept in sync with the [data-theme='bart'] token
+ * block in styles/index.css, which is what the UI actually reads.
+ */
+export const bartTheme: Theme = {
+  name: 'bart',
+  displayName: 'Bart (KDE)',
+  colors: {
+    background: {
+      primary: '#151414',
+      secondary: '#1c1a1a',
+      tertiary: '#272424',
+      card: '#1c1a1a',
+      overlay: 'rgba(0, 0, 0, 0.6)',
+    },
+    text: {
+      primary: '#edf0f2',
+      secondary: '#b7bac3',
+      tertiary: '#8b8f99',
+      inverse: '#151414',
+    },
+    border: {
+      primary: '#2c2929',
+      secondary: '#3e3a3a',
+      focus: '#fdbc4b',
+    },
+    brand: {
+      primary: '#d95a3c',
+      secondary: '#e57a5f',
+      accent: '#fdbc4b',
+    },
+    status: {
+      success: '#a2caa5',
+      warning: '#fdbc4b',
+      error: '#eb7072',
+      info: '#3daee9',
+    },
+    interactive: {
+      hover: '#272424',
+      active: '#333030',
+      disabled: '#5a5555',
+    },
+  },
+  shadows: {
+    small: '0 1px 3px rgba(0, 0, 0, 0.5)',
+    medium: '0 4px 12px rgba(0, 0, 0, 0.5)',
+    large: '0 12px 32px rgba(0, 0, 0, 0.6)',
+  },
+};
+
 export const themes: Theme[] = [
+  bartTheme,
   darkTheme,
   lightTheme,
   blueTheme,

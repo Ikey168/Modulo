@@ -1,13 +1,18 @@
+import { secureStore } from '../../services/secureStore';
 import React, { useState, useEffect } from 'react';
 import { useLocation, Navigate, useSearchParams, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { loginWithOIDC, setCredentials, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from './authSlice';
 import { Button, Spinner } from '@/ui';
 import { ModuloMark } from '../home/brand';
+import { Capacitor } from '@capacitor/core';
+import { authService } from './authService';
+import { nativeStateCache } from '../../services/nativeStateCacheBridge';
 
 // Mirrors RequireAuth: when enabled, sign-in skips Keycloak and enters the app
 // as a mock user. Gated on import.meta.env so it can't ship to production.
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+const ANDROID = Capacitor.getPlatform() === 'android';
 
 const LoginPage: React.FC = () => {
   const location = useLocation();
@@ -63,7 +68,8 @@ const LoginPage: React.FC = () => {
       dispatch(clearError());
 
       // Store return URL for after authentication
-      sessionStorage.setItem('returnTo', from);
+      if (ANDROID) authService.setNativeReturnTo(from);
+      else sessionStorage.setItem('returnTo', from);
 
       await dispatch(loginWithOIDC()).unwrap();
       // Redirect will happen via authService
@@ -75,7 +81,7 @@ const LoginPage: React.FC = () => {
   const error = authError || localError;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 font-sans text-foreground">
+    <div className="relative flex min-h-app items-center justify-center overflow-hidden bg-background px-6 font-sans text-foreground">
       {/* Ambient emerald glow */}
       <div className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl" />
 
@@ -94,7 +100,7 @@ const LoginPage: React.FC = () => {
             <span>{error}</span>
             <button
               type="button"
-              className="text-base leading-none text-destructive transition-opacity hover:opacity-70"
+              className="-my-2 flex size-8 shrink-0 items-center justify-center text-base leading-none text-destructive transition-opacity hover:opacity-70 coarse:size-11"
               onClick={() => {
                 setLocalError(null);
                 dispatch(clearError());
@@ -111,9 +117,19 @@ const LoginPage: React.FC = () => {
           {isLoading ? 'Signing in…' : DEV_BYPASS ? 'Continue (dev)' : 'Sign in'}
         </Button>
 
+        {ANDROID && window.__MODULO_CONFIG__?.serverOrigin && <div className="mt-5 w-full text-xs text-muted-foreground">
+          <p className="truncate" title={window.__MODULO_CONFIG__.serverOrigin}>{window.__MODULO_CONFIG__.serverOrigin}</p>
+          <button type="button" className="mt-2 inline-flex items-center text-primary underline underline-offset-2 coarse:min-h-touch" onClick={() => {
+            // Credentials belong to one server; queued edits stay in that server's partitions.
+            void secureStore().clear().then(() => nativeStateCache.clearServer()).then(() => window.location.reload())
+              .catch(reason => setLocalError(reason instanceof Error ? reason.message : 'Could not change server.'));
+          }}>Change server</button>
+          <p className="mt-2 leading-relaxed">Pending edits for this server stay on this device until you reconnect.</p>
+        </div>}
+
         <Link
           to="/about"
-          className="mt-8 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="mt-8 inline-flex items-center px-4 text-xs text-muted-foreground transition-colors hover:text-foreground coarse:min-h-touch"
         >
           about
         </Link>

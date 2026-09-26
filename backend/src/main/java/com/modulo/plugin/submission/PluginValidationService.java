@@ -121,6 +121,9 @@ public class PluginValidationService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.modulo.plugin.manager.PluginSecurityManager securityManager;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.modulo.plugin.trust.MarketplaceTrustService trustService;
+
     /**
      * Image-based (EXTERNAL) submission validation (#395): digest pinning,
      * declared permissions against the allowlist, contract compatibility,
@@ -162,11 +165,24 @@ public class PluginValidationService {
             result.setCompatibilityCheckPassed(true);
         }
 
-        // Signature/provenance hook (docs/CONTAINER_IMAGE_SIGNING.md): not
-        // enforced yet — recorded as a warning so reviewers see it, and so the
-        // enforcement point already exists when cosign verification lands.
-        result.addWarning("Image signature/provenance not verified (enforcement follows "
-            + "docs/CONTAINER_IMAGE_SIGNING.md; review manually until then)");
+        // Trust Center (#441): verify the exact pinned digest. Missing verifier
+        // tooling/evidence is not silently treated as success; strict
+        // marketplace publication fails closed while still recording which
+        // evidence type was unavailable for reviewer diagnosis.
+        if (result.getErrors().isEmpty() && trustService == null) {
+            result.addError("[TRUST] OCI evidence verifier is unavailable; submission cannot be approved");
+        } else if (result.getErrors().isEmpty()) {
+            try {
+                Map<String, Object> trust = trustService.verifySubmission(submission);
+                String status = Objects.toString(trust.get("trustStatus"), "UNKNOWN");
+                if (!"VERIFIED".equals(status)) {
+                    result.addError("[TRUST] OCI evidence is not fully verified (" + status
+                        + "): signature, provenance, SBOM and vulnerability checks are required");
+                }
+            } catch (RuntimeException failure) {
+                result.addError("[TRUST] OCI evidence verification failed: " + failure.getMessage());
+            }
+        }
 
         // The pod boundary is the security model for image submissions —
         // there is no JAR to byte-scan.

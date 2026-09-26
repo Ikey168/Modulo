@@ -29,6 +29,20 @@ export interface BlueprintNodeData extends Record<string, unknown> {
 export type FlowNode = RFNode<BlueprintNodeData>;
 export type FlowEdge = RFEdge;
 
+/** Remove selected canvas nodes and any edges attached to them. */
+export function pruneFlowNodes(
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  shouldKeep: (node: FlowNode) => boolean,
+): { nodes: FlowNode[]; edges: FlowEdge[] } {
+  const available = new Set(nodes.filter(shouldKeep).map((node) => node.id));
+  if (available.size === nodes.length) return { nodes, edges };
+  return {
+    nodes: nodes.filter((node) => available.has(node.id)),
+    edges: edges.filter((edge) => available.has(edge.source) && available.has(edge.target)),
+  };
+}
+
 // --- Handle id encoding -----------------------------------------------------
 // exec input:  'e-in'
 // exec output: 'e-out:<execOutName>'

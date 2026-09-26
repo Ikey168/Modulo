@@ -39,6 +39,8 @@ export interface StateSnapshot {
   sequence: number;
   generation?: string;
   entries: StateEntry[];
+  /** Original browser queue bytes retained until its pending edits are acknowledged. */
+  legacySource?: string;
 }
 export interface StatePersistence {
   load(partition: string): Promise<StateSnapshot | null>;
@@ -68,6 +70,11 @@ export interface StateView {
   conflict?: StateEntry['conflict'];
 }
 
+import { mergeState } from './stateMerge';
+
+/** Host-owned workspace documents are collections of identified records and merge per record. */
+export const mergeWorkspaceDocuments = (schemaId: string): boolean => schemaId.startsWith('modulo.workspace.');
+
 function copy<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
 function validateJson(value: StateJson, depth = 0, seen = new Set<object>()): void {
   if (depth > 63) throw new Error('State JSON is too deeply nested');
@@ -95,11 +102,32 @@ function matches(record: StateRecord | undefined, mutation: StateMutation): bool
     && canonical(record.value) === canonical(mutation.value)));
 }
 const segment = /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$/;
+function validJson(value: StateJson): boolean {
+  try { validateJson(value); return true; } catch { return false; }
+}
 function validRecord(record: StateRecord | undefined, key: string): boolean {
   return record === undefined || (!!record && record.key === key && typeof record.schemaId === 'string'
     && Number.isSafeInteger(record.version) && record.version > 0
     && Number.isSafeInteger(record.schemaVersion) && record.schemaVersion > 0
-    && typeof record.deleted === 'boolean' && Object.prototype.hasOwnProperty.call(record, 'value'));
+    && typeof record.deleted === 'boolean' && Object.prototype.hasOwnProperty.call(record, 'value')
+    && validJson(record.value));
+}
+
+export function validateStateSnapshot(stored: StateSnapshot, partition: string): void {
+  if (stored.format !== 1 || stored.partition !== partition || !Array.isArray(stored.entries)
+    || !Number.isSafeInteger(stored.sequence) || stored.sequence < 0
+    || (stored.legacySource !== undefined && typeof stored.legacySource !== 'string')
+    || stored.entries.some(entry => !entry || typeof entry.key !== 'string' || !segment.test(entry.key)
+      || !validRecord(entry.remote, entry.key)
+      || (entry.pending && (!Number.isSafeInteger(entry.pending.sequence) || entry.pending.sequence < 1
+        || entry.pending.sequence > stored.sequence || !validRecord(entry.pending.base, entry.key)
+        || !Object.prototype.hasOwnProperty.call(entry.pending, 'value') || !validJson(entry.pending.value)
+        || typeof entry.pending.deleted !== 'boolean'))
+      || (entry.conflict && (!validRecord(entry.conflict.base, entry.key)
+        || !validRecord(entry.conflict.remote, entry.key))))
+    || new Set(stored.entries.map(entry => entry.key)).size !== stored.entries.length) {
+    throw new Error('Unsupported or malformed state cache; preserve it for recovery');
+  }
 }
 
 /** A single replica's durable queue. The host supplies authenticated transport and closes it on logout. */
@@ -118,7 +146,8 @@ export class PluginStateClient {
   private _error?: string;
 
   private constructor(scope: StateScope, private readonly persistence: StatePersistence,
-    private readonly transport: StateTransport, private readonly autoRetry: boolean) {
+    private readonly transport: StateTransport, private readonly autoRetry: boolean,
+    private readonly mergeable: (schemaId: string) => boolean) {
     if (!scope.origin || !scope.issuer || !scope.subject || !scope.replica
       || !segment.test(scope.workspace) || !segment.test(scope.namespace)) throw new Error('Invalid state scope');
     this.partition = JSON.stringify([scope.origin, scope.issuer, scope.subject,
@@ -127,22 +156,12 @@ export class PluginStateClient {
   }
 
   static async open(scope: StateScope, persistence: StatePersistence, transport: StateTransport,
-    options: { autoRetry?: boolean } = {}): Promise<PluginStateClient> {
-    const client = new PluginStateClient(scope, persistence, transport, options.autoRetry ?? true);
+    options: { autoRetry?: boolean; mergeable?: (schemaId: string) => boolean } = {}): Promise<PluginStateClient> {
+    const client = new PluginStateClient(scope, persistence, transport, options.autoRetry ?? true,
+      options.mergeable ?? mergeWorkspaceDocuments);
     const stored = await persistence.load(client.partition);
     if (stored) {
-      if (stored.format !== 1 || stored.partition !== client.partition || !Array.isArray(stored.entries)
-        || !Number.isSafeInteger(stored.sequence) || stored.sequence < 0
-        || stored.entries.some(entry => !entry || typeof entry.key !== 'string' || !segment.test(entry.key)
-          || !validRecord(entry.remote, entry.key)
-          || (entry.pending && (!Number.isSafeInteger(entry.pending.sequence) || entry.pending.sequence < 1
-            || entry.pending.sequence > stored.sequence || !validRecord(entry.pending.base, entry.key)
-            || !Object.prototype.hasOwnProperty.call(entry.pending, 'value') || typeof entry.pending.deleted !== 'boolean'))
-          || (entry.conflict && (!validRecord(entry.conflict.base, entry.key)
-            || !validRecord(entry.conflict.remote, entry.key))))
-        || new Set(stored.entries.map(entry => entry.key)).size !== stored.entries.length) {
-        throw new Error('Unsupported or malformed state cache; preserve it for recovery');
-      }
+      validateStateSnapshot(stored, client.partition);
       client.snapshot = copy(stored);
       if (stored.entries.some(entry => entry.conflict)) client._status = 'conflict';
       if (stored.entries.some(entry => entry.pending)) client.scheduleSync();
@@ -269,7 +288,8 @@ export class PluginStateClient {
       }
       for (const record of page.records) records.set(record.key, record);
       cursor = page.nextCursor ?? undefined;
-      if (cursor && (cursors.has(cursor) || cursors.size >= 100)) {
+      // 200 records per page; allow namespaces up to the server's 500k-record quota.
+      if (cursor && (cursors.has(cursor) || cursors.size >= 2_600)) {
         throw new StateRequestError(502, 'STATE_INVALID_SERVER_CURSOR');
       }
       if (cursor) cursors.add(cursor);
@@ -358,6 +378,7 @@ export class PluginStateClient {
         } catch (error) {
           if (!(error instanceof StateRequestError) || error.status !== 409) throw error;
           if (matches(error.current, sent)) acknowledged = error.current;
+          else if (await this.rebase(entry.key, sent, error.current)) continue;
           else {
             await this.change(snapshot => {
               const current = this.entry(snapshot, entry.key);
@@ -389,6 +410,29 @@ export class PluginStateClient {
         this.retryTimer = setTimeout(() => { if (!this.abort.signal.aborted) void this.synchronize(); }, delay);
       }
     }
+  }
+
+  /**
+   * Rebase a rejected edit onto the newer server record when both sides
+   * changed different records or fields. Uses the latest local edit, not the
+   * copy that was in flight, so edits made during the request are kept.
+   */
+  private async rebase(key: string, sent: StateMutation, remote: StateRecord | undefined): Promise<boolean> {
+    if (!remote || remote.deleted || sent.deleted || remote.schemaId !== sent.schemaId
+      || remote.schemaVersion !== sent.schemaVersion || !this.mergeable(sent.schemaId)) return false;
+    let rebased = false;
+    await this.change(snapshot => {
+      const entry = this.entry(snapshot, key);
+      const pending = entry.pending;
+      if (!pending || pending.deleted || entry.conflict) return;
+      const merged = mergeState(sent.base && !sent.base.deleted ? sent.base.value : undefined, pending.value, remote.value);
+      if (!merged.ok || merged.value === undefined) return;
+      validateJson(merged.value);
+      entry.remote = remote;
+      entry.pending = { ...pending, sequence: ++snapshot.sequence, base: remote, value: copy(merged.value) };
+      rebased = true;
+    });
+    return rebased;
   }
 
   private ensureGeneration(): Promise<void> {

@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Tier-0 identity and recovery dependency map</title>
+  <desc id="desc">A three-layer diagram showing recovery factors, identity control systems, and downstream Tier-0 services. It highlights a circular dependency between Cloudflare DNS, the SimpleLogin alias domain, and the Cloudflare login alias.</desc>
+  <defs>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.09"/>
+    </filter>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#15803d"/></marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#c2410c"/></marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#0f766e"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#7e22ce"/></marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#dc2626"/></marker>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .band { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.5; }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; filter: url(#shadow); }
+      .card-blue { fill: #eff6ff; stroke: #93c5fd; }
+      .card-green { fill: #f0fdf4; stroke: #86efac; }
+      .card-orange { fill: #fff7ed; stroke: #fdba74; }
+      .card-purple { fill: #faf5ff; stroke: #d8b4fe; }
+      .card-slate { fill: #f8fafc; stroke: #cbd5e1; }
+      .service { fill: #ffffff; stroke: #dbe3ee; stroke-width: 1.2; }
+      .title { font: 700 34px 'Geist', 'Inter', sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 16px 'Geist', 'Inter', sans-serif; fill: #475569; }
+      .section { font: 650 14px 'Geist', 'Inter', sans-serif; letter-spacing: 1.7px; fill: #64748b; }
+      .node-title { font: 650 20px 'Geist', 'Inter', sans-serif; fill: #0f172a; }
+      .node-body { font: 400 15px 'Geist', 'Inter', sans-serif; fill: #475569; }
+      .node-meta { font: 500 13px 'Geist', 'Inter', sans-serif; fill: #64748b; }
+      .service-title { font: 650 16px 'Geist', 'Inter', sans-serif; fill: #0f172a; }
+      .service-meta { font: 400 12.5px 'Geist', 'Inter', sans-serif; fill: #64748b; }
+      .edge-label { font: 600 12.5px 'Geist', 'Inter', sans-serif; paint-order: stroke; stroke: #f8fafc; stroke-width: 5px; stroke-linejoin: round; }
+      .legend { font: 500 13px 'Geist', 'Inter', sans-serif; fill: #475569; }
+      .pill { font: 650 12px 'Geist', 'Inter', sans-serif; }
+      .risk-title { font: 700 14px 'Geist', 'Inter', sans-serif; fill: #991b1b; }
+      .risk-body { font: 500 13px 'Geist', 'Inter', sans-serif; fill: #7f1d1d; }
+      .blue { stroke: #2563eb; }
+      .green { stroke: #15803d; }
+      .orange { stroke: #c2410c; }
+      .teal { stroke: #0f766e; }
+      .purple { stroke: #7e22ce; }
+      .gray { stroke: #64748b; }
+      .red { stroke: #dc2626; }
+      .edge { fill: none; stroke-width: 2.5; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1600" height="1200"/>
+  <text class="title" x="80" y="62">Tier-0 identity &amp; recovery map</text>
+  <text class="subtitle" x="80" y="90">Current dependencies and planned factor redundancy · reviewed 19 Sep 2026</text>
+
+  <rect class="band" x="60" y="112" width="1480" height="185" rx="20"/>
+  <rect class="band" x="60" y="350" width="1480" height="265" rx="20"/>
+  <rect class="band" x="60" y="690" width="1480" height="350" rx="20"/>
+  <text class="section" x="90" y="140">RECOVERY FACTORS &amp; INDEPENDENT CHANNELS</text>
+  <text class="section" x="90" y="378">IDENTITY &amp; CONTROL PLANE</text>
+  <text class="section" x="90" y="718">DOWNSTREAM TIER-0 ACCOUNTS</text>
+
+  <!-- Edges are drawn before nodes so cards remain visually dominant. -->
+  <path class="edge blue" d="M410 214 H455" marker-end="url(#arrow-blue)"/>
+  <path class="edge blue" d="M250 265 V326 H250 V405" marker-end="url(#arrow-blue)"/>
+  <path class="edge blue" d="M295 265 V325 H615 V405" marker-end="url(#arrow-blue)"/>
+  <path class="edge blue" d="M340 265 V318 H1345 V405" marker-end="url(#arrow-blue)"/>
+  <path class="edge blue" d="M135 265 V655 H155 V690" marker-end="url(#arrow-blue)"/>
+
+  <path class="edge green" d="M615 265 C570 330 370 330 300 405" marker-end="url(#arrow-green)"/>
+  <path class="edge orange" d="M455 455 H410" marker-end="url(#arrow-orange)"/>
+  <path class="edge orange" d="M775 445 H820" marker-end="url(#arrow-orange)"/>
+  <path class="edge red" d="M820 530 H775" marker-end="url(#arrow-red)"/>
+  <path class="edge teal" d="M410 565 V635 H980 V585" marker-start="url(#arrow-teal)" marker-end="url(#arrow-teal)"/>
+  <path class="edge teal" d="M1140 455 H1185" marker-end="url(#arrow-teal)"/>
+
+  <path class="edge teal" d="M980 585 V660 H590 V690" marker-end="url(#arrow-teal)"/>
+  <path class="edge purple" d="M1345 585 V660 H1010 V690" marker-end="url(#arrow-purple)" stroke-dasharray="9 7"/>
+  <path class="edge gray" d="M980 265 V315 H1515 V660 H1290 V690" marker-end="url(#arrow-gray)" stroke-dasharray="3 7"/>
+  <path class="edge gray" d="M1345 265 V650 H1375 V690" marker-end="url(#arrow-gray)" stroke-dasharray="3 7"/>
+
+  <text class="edge-label" x="420" y="202" fill="#2563eb">FIDO2</text>
+  <text class="edge-label" x="325" y="320" fill="#2563eb">hardware-key protection</text>
+  <text class="edge-label" x="432" y="398" fill="#c2410c" text-anchor="middle">DNS + MX</text>
+  <text class="edge-label" x="798" y="398" fill="#c2410c" text-anchor="middle">custom-domain DNS</text>
+  <text class="edge-label" x="798" y="608" fill="#dc2626" text-anchor="middle">Cloudflare login alias</text>
+  <text class="edge-label" x="650" y="608" fill="#0f766e" text-anchor="middle">account email ↔ alias delivery</text>
+  <text class="edge-label" x="1162" y="398" fill="#0f766e" text-anchor="middle">login alias</text>
+
+  <!-- Recovery factor cards -->
+  <rect class="card card-blue" x="90" y="160" width="320" height="105" rx="15"/>
+  <text class="node-title" x="115" y="194">FIDO2 key fleet</text>
+  <text class="node-body" x="115" y="220">1 active · 2 to order</text>
+  <rect x="115" y="235" width="118" height="22" rx="11" fill="#dbeafe"/>
+  <text class="pill" x="174" y="250" fill="#1d4ed8" text-anchor="middle">TARGET: 3 KEYS</text>
+
+  <rect class="card card-green" x="455" y="160" width="320" height="105" rx="15"/>
+  <text class="node-title" x="480" y="194">Independent mailbox</text>
+  <text class="node-body" x="480" y="220">paleport@proton.me</text>
+  <text class="node-meta" x="480" y="246">Recovery for primary identity</text>
+
+  <rect class="card card-slate" x="820" y="160" width="320" height="105" rx="15"/>
+  <text class="node-title" x="845" y="194">Ente Auth</text>
+  <text class="node-body" x="845" y="220">TOTP on phone</text>
+  <text class="node-meta" x="845" y="246">Fallback where configured</text>
+
+  <rect class="card card-slate" x="1185" y="160" width="320" height="105" rx="15"/>
+  <text class="node-title" x="1210" y="194">Recovery phone</text>
+  <text class="node-body" x="1210" y="220">+49 151 42094656</text>
+  <text class="node-meta" x="1210" y="246">klarmobil line</text>
+
+  <!-- Identity and control cards -->
+  <rect class="card card-green" x="90" y="405" width="320" height="180" rx="15"/>
+  <text class="node-title" x="115" y="441">Primary identity &amp; mail</text>
+  <text class="node-body" x="115" y="470">ilja@krasnjanski.com</text>
+  <line x1="115" y1="491" x2="385" y2="491" stroke="#bbf7d0"/>
+  <text class="node-meta" x="115" y="518">Google mail routing</text>
+  <text class="node-meta" x="115" y="542">SimpleLogin account contact</text>
+  <text class="node-meta" x="115" y="566">Recovered via Proton mailbox</text>
+
+  <rect class="card card-orange" x="455" y="405" width="320" height="180" rx="15"/>
+  <text class="node-title" x="480" y="441">Cloudflare</text>
+  <text class="node-body" x="480" y="470">Registrar + authoritative DNS</text>
+  <line x1="480" y1="491" x2="750" y2="491" stroke="#fed7aa"/>
+  <text class="node-meta" x="480" y="518">krasnjanski.com</text>
+  <text class="node-meta" x="480" y="542">krasnjanski-mail.com</text>
+  <text class="node-meta" x="480" y="566">Login alias delivered by SimpleLogin</text>
+
+  <rect class="card card-orange" x="820" y="405" width="320" height="180" rx="15"/>
+  <text class="node-title" x="845" y="441">SimpleLogin</text>
+  <text class="node-body" x="845" y="470">Service-specific login aliases</text>
+  <line x1="845" y1="491" x2="1115" y2="491" stroke="#fed7aa"/>
+  <text class="node-meta" x="845" y="518">Custom domain: krasnjanski-mail.com</text>
+  <text class="node-meta" x="845" y="542">209 enabled aliases</text>
+  <text class="node-meta" x="845" y="566">Routes to domain mailboxes</text>
+
+  <rect class="card card-purple" x="1185" y="405" width="320" height="180" rx="15"/>
+  <text class="node-title" x="1210" y="441">Bitwarden</text>
+  <text class="node-body" x="1210" y="470">Credential custody</text>
+  <line x1="1210" y1="491" x2="1480" y2="491" stroke="#e9d5ff"/>
+  <text class="node-meta" x="1210" y="518">Account references</text>
+  <text class="node-meta" x="1210" y="542">Recovery-kit pointer only</text>
+  <text class="node-meta" x="1210" y="566">No secrets in this map</text>
+
+  <!-- Critical cycle callout -->
+  <rect x="455" y="622" width="685" height="48" rx="12" fill="#fef2f2" stroke="#fca5a5"/>
+  <circle cx="480" cy="646" r="10" fill="#dc2626"/>
+  <text x="480" y="650" text-anchor="middle" font-family="Geist, Inter, sans-serif" font-size="13" font-weight="700" fill="#ffffff">!</text>
+  <text class="risk-title" x="500" y="642">CIRCULAR RECOVERY DEPENDENCY</text>
+  <text class="risk-body" x="500" y="660">Cloudflare DNS → SimpleLogin alias domain → Cloudflare login email</text>
+
+  <!-- Downstream account container and account cells -->
+  <rect x="90" y="690" width="1420" height="350" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text class="section" x="120" y="722">DOWNSTREAM TIER-0 ACCOUNTS</text>
+
+  <rect class="service" x="120" y="752" width="425" height="72" rx="12"/>
+  <text class="service-title" x="142" y="781">GitHub organization</text>
+  <text class="service-meta" x="142" y="805">Ikey168 · dev-github alias</text>
+
+  <rect class="service" x="588" y="752" width="425" height="72" rx="12"/>
+  <text class="service-title" x="610" y="781">Oracle Cloud</text>
+  <text class="service-meta" x="610" y="805">Tenancy: quaesitor · Frankfurt</text>
+
+  <rect class="service" x="1056" y="752" width="425" height="72" rx="12"/>
+  <text class="service-title" x="1078" y="781">netcup</text>
+  <text class="service-meta" x="1078" y="805">Customer Control Panel</text>
+
+  <rect class="service" x="120" y="842" width="425" height="72" rx="12"/>
+  <text class="service-title" x="142" y="871">ZeroTier</text>
+  <text class="service-meta" x="142" y="895">ZeroTier network owner / identity provider to confirm</text>
+
+  <rect class="service" x="588" y="842" width="425" height="72" rx="12"/>
+  <text class="service-title" x="610" y="871">klarmobil</text>
+  <text class="service-meta" x="610" y="895">Recovery line +49 151 42094656</text>
+
+  <rect class="service" x="1056" y="842" width="425" height="72" rx="12"/>
+  <text class="service-title" x="1078" y="871">ALDI TALK</text>
+  <text class="service-meta" x="1078" y="895">Separate carrier account</text>
+
+  <rect class="service" x="120" y="932" width="425" height="72" rx="12"/>
+  <text class="service-title" x="142" y="961">Google account</text>
+  <text class="service-meta" x="142" y="985">admin-google alias · deduplicate scope</text>
+
+  <rect class="service" x="588" y="932" width="425" height="72" rx="12"/>
+  <text class="service-title" x="610" y="961">Apple Account</text>
+  <text class="service-meta" x="610" y="985">admin-apple alias</text>
+
+  <rect class="service" x="1056" y="932" width="425" height="72" rx="12"/>
+  <text class="service-title" x="1078" y="961">Microsoft account</text>
+  <text class="service-meta" x="1078" y="985">admin-microsoft alias</text>
+
+  <!-- Legend -->
+  <text class="section" x="90" y="1085">LEGEND</text>
+  <line x1="90" y1="1114" x2="135" y2="1114" class="edge blue" marker-end="url(#arrow-blue)"/><text class="legend" x="148" y="1119">FIDO2 protection</text>
+  <line x1="300" y1="1114" x2="345" y2="1114" class="edge green" marker-end="url(#arrow-green)"/><text class="legend" x="358" y="1119">Recovery email</text>
+  <line x1="505" y1="1114" x2="550" y2="1114" class="edge orange" marker-end="url(#arrow-orange)"/><text class="legend" x="563" y="1119">DNS / mail control</text>
+  <line x1="735" y1="1114" x2="780" y2="1114" class="edge teal" marker-end="url(#arrow-teal)"/><text class="legend" x="793" y="1119">Alias / account email</text>
+  <line x1="990" y1="1114" x2="1035" y2="1114" class="edge purple" stroke-dasharray="9 7" marker-end="url(#arrow-purple)"/><text class="legend" x="1048" y="1119">Credential custody</text>
+  <line x1="1245" y1="1114" x2="1290" y2="1114" class="edge gray" stroke-dasharray="3 7" marker-end="url(#arrow-gray)"/><text class="legend" x="1303" y="1119">TOTP / phone fallback</text>
+
+  <text class="node-meta" x="90" y="1166">Solid edges show current dependencies. Dashed/dotted edges show custody or fallback paths. Planned keys are not treated as enrolled until tested.</text>
+</svg>

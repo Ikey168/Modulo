@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { store } from './store/store';
 import { networkStatusService } from './services/networkStatus';
 import { ThemeProvider } from './themes/ThemeContext';
@@ -20,8 +20,60 @@ import SharedNotePage from './features/notes/sharing/SharedNotePage';
 import PluginSubmission from './features/PluginSubmission';
 import MySubmissions from './features/MySubmissions';
 import { getFeatureRegistry } from '@modulo/core';
+import { androidRouteToRestore, rememberAndroidRoute, startAndroidBackButton } from './services/androidLifecycle';
+import { AndroidAuthLink } from './features/auth/AndroidAuthLink';
+import { flushNoteDrafts, hasUnprotectedNotes, hasUnsavedNotes } from './features/workspace/noteDrafts';
 
 const NOTE_WORKBENCH_ID = 'com.modulo.note-workbench';
+
+/**
+ * Back from the dashboard leaves the app: send pending note edits first. Text
+ * already committed to device storage survives the exit even when the server
+ * is unreachable; only text held nowhere else asks before leaving.
+ */
+async function saveNotesBeforeExit(): Promise<boolean> {
+  if (!hasUnsavedNotes()) return true;
+  await Promise.race([flushNoteDrafts(), new Promise(resolve => setTimeout(resolve, 3000))]);
+  if (!hasUnprotectedNotes()) return true;
+  return window.confirm('A note edit could not be saved on this device or the server. Leave Modulo and discard it?');
+}
+
+function AndroidBackButton() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void startAndroidBackButton(navigate, { beforeExit: saveNotesBeforeExit }).then(remove => {
+      if (disposed) remove(); else stop = remove;
+    }).catch(error => console.error('Android Back unavailable:', error));
+    return () => { disposed = true; stop?.(); };
+  }, [navigate]);
+  return null;
+}
+
+/** Reopen the last route after Android recreated the process, and remember each route change. */
+function AndroidRouteMemory() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const restored = useRef(false);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    void androidRouteToRestore(location.pathname).then(path => {
+      if (path) navigate(path, { replace: true });
+    }).catch(() => { /* Start on the current route when device storage is unavailable. */ })
+      .finally(() => setSettled(true));
+    // Only the first route of this process is a candidate for restoration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    // Do not overwrite the saved route before the restore decision was made.
+    if (!settled) return;
+    void rememberAndroidRoute(`${location.pathname}${location.search}`).catch(() => { /* Best effort. */ });
+  }, [settled, location.pathname, location.search]);
+  return null;
+}
 
 function App() {
   useEffect(() => {
@@ -41,10 +93,13 @@ function App() {
   const workbenchPack = getFeatureRegistry().getAll().find((p) => p.id === NOTE_WORKBENCH_ID);
 
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider defaultTheme="bart">
       <Provider store={store}>
         <TooltipProvider delayDuration={300}>
         <Router>
+          <AndroidBackButton />
+          <AndroidRouteMemory />
+          <AndroidAuthLink />
           <Routes>
             {/* Login is the main entry page */}
             <Route path="/" element={<LoginPage />} />
@@ -74,7 +129,7 @@ function App() {
               const Component = route.component;
               const element = route.requiresAuth ? (
                 <RequireAuth>
-                  <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
+                  <Suspense fallback={<div className="flex h-app items-center justify-center bg-background text-muted-foreground">Loading…</div>}>
                     <Component />
                   </Suspense>
                 </RequireAuth>

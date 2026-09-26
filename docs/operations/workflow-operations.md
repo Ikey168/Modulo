@@ -20,6 +20,13 @@ uses 90 days unless an owner saves a policy.
 
 ## Metrics and dashboard
 
+The Execution Center lists every recurring schedule owned by the signed-in
+user, including its Blueprint and trigger node, cron expression, time zone,
+next fire time, retry policy, and most recent delivery state. The owner-scoped
+API is `GET /api/workflow-ops/schedules`; it never returns schedule rows from
+another account. Disabled schedules remain visible so a stopped recurring path
+does not disappear from operational review.
+
 The worker refreshes gauges every 30 seconds. The default management listener is
 port 8081 at `/actuator/prometheus`; the monitoring scrape target now matches it.
 Profiles that override the management port must update their scrape target.

@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Modulo → Noesis capture",
+  "version": "0.1.0",
+  "description": "Capture an explicitly selected page, selection, PDF, or tab set for cited Noesis research.",
+  "permissions": [
+    "activeTab",
+    "alarms",
+    "contextMenus",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.mjs",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Send to Noesis",
+    "default_popup": "popup.html"
+  },
+  "incognito": "not_allowed",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "modulo-noesis-capture@ikey168.github.io",
+      "strict_min_version": "109.0"
+    }
+  }
+}

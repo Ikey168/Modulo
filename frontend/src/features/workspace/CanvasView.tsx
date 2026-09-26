@@ -1,3 +1,4 @@
+import { isWorkspaceShortcut } from './workspaceKeyboard';
 // Canvas - a freeform, pan-and-zoom board where note cards are arranged
 // spatially and connected. The pan/zoom/drag interaction mirrors the knowledge
 // graph's `view {x,y,k}` transform, but cards are DOM nodes (they carry text
@@ -6,6 +7,7 @@
 //
 // Layout (cards and connections) persists per board in synchronized plugin state; several
 // named boards can coexist and the last-open one is restored on reload.
+import { PinchTracker } from './pinchGesture';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasState } from './useCanvasState';
 import { PluginStateNotice } from './plugins/PluginStateNotice';
@@ -150,6 +152,46 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  // Two-finger pinch zoom and pan on touch (#492). Listened for in the capture phase so, while two
+  // fingers are down, moves never reach the card or background drag handlers underneath.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const pinch = new PinchTracker();
+    const local = (e: PointerEvent) => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const p = local(e);
+      pinch.down(e.pointerId, p.x, p.y);
+      if (pinch.count >= 2) e.stopPropagation();
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const p = local(e);
+      const step = pinch.move(e.pointerId, p.x, p.y);
+      if (pinch.count < 2) return;
+      e.stopPropagation();
+      if (!step) return;
+      setView((v) => {
+        const k2 = clamp(v.k * step.factor, MIN_K, MAX_K);
+        const x = v.x + step.dx;
+        const y = v.y + step.dy;
+        return { k: k2, x: step.cx - (step.cx - x) * (k2 / v.k), y: step.cy - (step.cy - y) * (k2 / v.k) };
+      });
+    };
+    const up = (e: PointerEvent) => pinch.up(e.pointerId);
+    el.addEventListener('pointerdown', down, true);
+    el.addEventListener('pointermove', move, true);
+    el.addEventListener('pointerup', up, true);
+    el.addEventListener('pointercancel', up, true);
+    return () => {
+      el.removeEventListener('pointerdown', down, true);
+      el.removeEventListener('pointermove', move, true);
+      el.removeEventListener('pointerup', up, true);
+      el.removeEventListener('pointercancel', up, true);
+    };
+  }, []);
+
   // Frame the board once on first layout: fit to cards, or centre the origin.
   useEffect(() => {
     if (didInit.current) return;
@@ -166,8 +208,8 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (!selectedConn) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!isWorkspaceShortcut(e)) return;
+      e.preventDefault();
       mutateActive((b) => removeConnection(b, selectedConn));
       setSelectedConn(null);
     };
@@ -508,7 +550,7 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
                       e.stopPropagation();
                       mutateActive((b) => removeCard(b, c.noteId));
                     }}
-                    className="-mr-1 -mt-1 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    className="-mr-1 -mt-1 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 coarse:grid coarse:size-11 coarse:place-items-center coarse:opacity-100"
                   >
                     <X className="size-3.5" aria-hidden="true" />
                   </button>
@@ -522,7 +564,7 @@ export function CanvasView({ notes, onOpenNote }: CanvasViewProps) {
                   onPointerDown={(e) => onHandlePointerDown(e, c.noteId)}
                   onPointerMove={onHandlePointerMove}
                   onPointerUp={onHandlePointerUp}
-                  className="absolute -right-1.5 top-1/2 size-3 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-surface bg-primary opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute -right-1.5 top-1/2 size-3 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-surface bg-primary opacity-0 transition-opacity group-hover:opacity-100 coarse:-right-3 coarse:size-6 coarse:opacity-100"
                 />
               </div>
             );

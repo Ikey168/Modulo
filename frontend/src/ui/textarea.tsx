@@ -8,6 +8,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
       ref={ref}
       className={cn(
         'flex min-h-[80px] w-full rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-[13px] ' +
+          // Readable at arm's length, and no focus-zoom on mobile browsers.
+          'coarse:text-base ' +
           'text-foreground placeholder:text-muted-foreground transition-colors resize-y ' +
           'focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 ' +
           'disabled:cursor-not-allowed disabled:opacity-50',

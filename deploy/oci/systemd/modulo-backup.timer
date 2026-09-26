@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly local backup of Modulo and Noesis
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+Unit=modulo-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,51 +1,70 @@
 /*
- * Modulo login skin — keeps the Keycloak login visually continuous with the
- * app (frontend/src/styles/index.css + LoginPage.tsx): green-black canvas
- * with an ambient emerald glow, borderless centered column, emerald primary
- * button, Inter type, sharp corners.
+ * Modulo login skin — a shadcn/ui-style card that keeps the Keycloak login
+ * visually continuous with the app (frontend/src/styles/index.css +
+ * LoginPage.tsx). Tracks the app's default theme, "bart" (KDE Plasma look):
+ * near-black warm canvas, burnt-orange accent, amber focus ring, Inter type.
  *
- * CSS-only: targets the stable element IDs (#kc-*) plus both PatternFly
- * class generations (.pf-c-* / .pf-v5-c-*) used by recent Keycloak versions.
+ * Keycloak is a separate application with its own stylesheet, so the app's
+ * CSS custom properties do not reach it — these values are duplicated here
+ * deliberately and must be changed alongside the [data-theme='bart'] block.
+ *
+ * CSS-only: no FreeMarker templates are forked (Keycloak upgrades keep
+ * working). Targets the stable #kc-* ids plus both PatternFly class
+ * generations (.pf-c-* / .pf-v5-c-*) used by recent Keycloak versions.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --m-background: #090e0c;
-  --m-foreground: #f3f6f4;
-  --m-muted: #72807a;
-  --m-border: #2a322e;
-  --m-input-bg: #0d1310;
-  --m-primary: #10b981;
-  --m-primary-hover: #34d399;
-  --m-primary-fg: #02120b;
-  --m-destructive: #ef4444;
-  --m-radius: 4px;
+  --m-bg: #151414;            /* Bart Window/View BackgroundNormal   */
+  --m-card: #1b1919;          /* one step up from the canvas         */
+  --m-fg: #edf0f2;            /* Bart View ForegroundNormal          */
+  --m-muted: #9a9ea9;
+  --m-faint: #74777f;
+  --m-border: #2e2a2a;
+  --m-border-strong: #423c3c;
+  --m-input-bg: #121010;
+  --m-primary: #d95a3c;       /* Bart Selection BackgroundNormal     */
+  --m-primary-hover: #e26a4c;
+  --m-primary-fg: #17110f;    /* dark ink on orange → ~4.8:1         */
+  --m-ring: #fdbc4b;          /* Bart amber focus                    */
+  --m-destructive: #eb7072;
+  --m-radius: 10px;
+  --m-radius-sm: 7px;
+  --m-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-/* ---- page canvas ------------------------------------------------------- */
+/* ---- page canvas -------------------------------------------------------- */
 
 html,
 body,
 body.login-pf {
-  background: var(--m-background) !important;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--m-bg) !important;
+  color: var(--m-fg);
+  font-family: var(--m-font);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Ambient emerald glow behind the form, like the app's login screen */
 .login-pf-page {
   position: relative;
   background:
-    radial-gradient(640px 420px at 50% 33%, rgba(16, 185, 129, 0.12), transparent 70%),
-    var(--m-background);
+    radial-gradient(680px 460px at 50% 30%, rgba(217, 90, 60, 0.10), transparent 72%),
+    var(--m-bg);
   min-height: 100vh;
-  padding-top: 12vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
 }
 
-/* ---- header / brand ----------------------------------------------------- */
+/* ---- brand mark above the card ------------------------------------------ */
 
-/* Replace the realm name text with the Modulo mark (same SVG as the app's
-   ModuloMark component, emerald), then let the card title carry the words. */
+#kc-header,
+.login-pf-page .login-pf-header {
+  margin: 0 0 20px;
+}
+
 #kc-header-wrapper {
   font-size: 0;
   line-height: 0;
@@ -57,39 +76,80 @@ body.login-pf {
   display: block;
   width: 40px;
   height: 40px;
-  margin: 0 auto 24px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 22 22' fill='none'%3E%3Cline x1='5' y1='17.5' x2='17' y2='4.5' stroke='%2310b981' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='6.2' cy='6.2' r='3.4' fill='%2310b981'/%3E%3Ccircle cx='15.8' cy='15.8' r='3.4' fill='%2310b981' opacity='0.7'/%3E%3C/svg%3E");
+  margin: 0 auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 22 22' fill='none'%3E%3Cline x1='5' y1='17.5' x2='17' y2='4.5' stroke='%23d95a3c' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='6.2' cy='6.2' r='3.4' fill='%23d95a3c'/%3E%3Ccircle cx='15.8' cy='15.8' r='3.4' fill='%23d95a3c' opacity='0.7'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-size: contain;
 }
 
-#kc-page-title {
-  color: var(--m-foreground);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-/* ---- card → borderless centered column ---------------------------------- */
+/* ---- the card ----------------------------------------------------------- */
 
 .card-pf,
+.pf-c-login__main,
 .pf-v5-c-login__main {
-  background: transparent !important;
-  border: none;
-  box-shadow: none;
-  max-width: 340px;
+  background: var(--m-card) !important;
+  border: 1px solid var(--m-border) !important;
+  border-radius: var(--m-radius) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.02) inset,
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 18px 40px -20px rgba(0, 0, 0, 0.65) !important;
+  width: 100%;
+  max-width: 380px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 30px 30px 34px !important;
 }
 
-.login-pf-page .login-pf-header {
-  margin-bottom: 0;
+/* Keycloak nests header/body panels — keep them flush inside the card. */
+.pf-c-login__main-header,
+.pf-v5-c-login__main-header,
+.pf-c-login__main-body,
+.pf-v5-c-login__main-body,
+#kc-content,
+#kc-content-wrapper,
+#kc-form,
+#kc-form-wrapper {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-/* ---- form fields --------------------------------------------------------- */
+/* ---- title -------------------------------------------------------------- */
+
+#kc-page-title {
+  color: var(--m-fg);
+  font-family: var(--m-font);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 2px 0 24px;
+}
+
+/* ---- form layout -------------------------------------------------------- */
+
+.pf-c-form__group,
+.pf-v5-c-form__group,
+.form-group {
+  margin-bottom: 16px;
+}
+
+.pf-c-form__label,
+.pf-v5-c-form__label,
+.pf-c-form__label-text,
+.pf-v5-c-form__label-text,
+label {
+  color: var(--m-fg);
+  font-family: var(--m-font);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+/* ---- inputs ------------------------------------------------------------- */
 
 .pf-c-form-control,
 .pf-v5-c-form-control,
@@ -97,52 +157,104 @@ body.login-pf {
 input[type='text'],
 input[type='password'],
 input[type='email'] {
+  width: 100%;
   background: var(--m-input-bg) !important;
-  border: 1px solid var(--m-border) !important;
-  border-radius: var(--m-radius) !important;
-  color: var(--m-foreground) !important;
-  font-family: inherit;
+  border: 1px solid var(--m-border-strong) !important;
+  border-radius: var(--m-radius-sm) !important;
+  color: var(--m-fg) !important;
+  font-family: var(--m-font);
   font-size: 14px;
-  height: 38px;
-  box-shadow: none;
+  line-height: 1.4;
+  height: 40px;
+  padding: 0 12px;
+  box-shadow: none !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+input::placeholder {
+  color: var(--m-faint);
+}
+
 .pf-c-form-control:focus,
+.pf-v5-c-form-control:focus,
 .pf-v5-c-form-control:focus-within,
 input[type='text']:focus,
 input[type='password']:focus,
 input[type='email']:focus {
-  border-color: var(--m-primary) !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
-  outline: none;
+  border-color: var(--m-ring) !important;
+  box-shadow: 0 0 0 3px rgba(253, 188, 75, 0.22) !important;
+  outline: none !important;
 }
 
-.pf-c-form__label,
-.pf-v5-c-form__label,
-label {
-  color: var(--m-muted);
-  font-size: 12px;
-  font-weight: 500;
+/* ---- password field + reveal toggle (input group) ----------------------- */
+
+.pf-c-input-group,
+.pf-v5-c-input-group {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--m-radius-sm);
+  background: transparent;
 }
 
-/* ---- primary button ------------------------------------------------------ */
+/* the text input inside a group: square off the toggle-side corner */
+.pf-c-input-group .pf-c-form-control,
+.pf-v5-c-input-group .pf-v5-c-form-control,
+.pf-v5-c-input-group input {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+}
+
+/* the reveal (eye) button matches the input height/border */
+.pf-c-button.pf-m-control,
+.pf-v5-c-button.pf-m-control,
+button[aria-label='Show password'],
+button[aria-label='Hide password'] {
+  background: var(--m-input-bg) !important;
+  border: 1px solid var(--m-border-strong) !important;
+  border-left: none !important;
+  border-top-right-radius: var(--m-radius-sm) !important;
+  border-bottom-right-radius: var(--m-radius-sm) !important;
+  color: var(--m-muted) !important;
+  height: 40px;
+  width: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pf-c-button.pf-m-control:hover,
+.pf-v5-c-button.pf-m-control:hover {
+  color: var(--m-fg) !important;
+  background: #191616 !important;
+}
+
+.pf-v5-c-input-group:focus-within .pf-v5-c-form-control,
+.pf-v5-c-input-group:focus-within .pf-v5-c-button.pf-m-control {
+  border-color: var(--m-ring) !important;
+}
+
+/* ---- primary submit button --------------------------------------------- */
 
 #kc-login,
 .pf-c-button.pf-m-primary,
 .pf-v5-c-button.pf-m-primary,
 input[type='submit'] {
   background: var(--m-primary) !important;
-  border: none;
-  border-radius: var(--m-radius) !important;
+  border: none !important;
+  border-radius: var(--m-radius-sm) !important;
   color: var(--m-primary-fg) !important;
-  font-family: inherit;
+  font-family: var(--m-font);
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   height: 40px;
   width: 100%;
-  transition: background-color 0.15s ease;
+  margin-top: 6px;
   cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.02s ease;
 }
 
 #kc-login:hover,
@@ -152,78 +264,96 @@ input[type='submit']:hover {
   background: var(--m-primary-hover) !important;
 }
 
-/* ---- links, secondary text ------------------------------------------------ */
+#kc-login:active,
+.pf-v5-c-button.pf-m-primary:active {
+  transform: translateY(0.5px);
+}
+
+#kc-login:focus-visible,
+.pf-v5-c-button.pf-m-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(253, 188, 75, 0.35);
+}
+
+/* ---- "remember me" + options row ---------------------------------------- */
+
+#kc-form-options,
+.checkbox label,
+.pf-c-check__label,
+.pf-v5-c-check__label {
+  color: var(--m-muted);
+  font-size: 13px;
+}
+
+.pf-c-check__input,
+.pf-v5-c-check__input,
+input[type='checkbox'] {
+  accent-color: var(--m-primary);
+  width: 15px;
+  height: 15px;
+}
+
+/* ---- links, secondary + footer text ------------------------------------ */
 
 a,
+#kc-registration a,
 .pf-c-button.pf-m-link,
 .pf-v5-c-button.pf-m-link {
   color: var(--m-primary-hover);
   font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  color: var(--m-foreground);
+  color: var(--m-fg);
   text-decoration: none;
 }
 
 #kc-registration,
 #kc-info,
+#kc-info-wrapper,
 .login-pf-page .login-pf-signup,
 .pf-c-login__main-footer-band,
 .pf-v5-c-login__main-footer-band {
   color: var(--m-muted);
   font-size: 13px;
   text-align: center;
+  margin-top: 18px;
 }
 
-.checkbox label,
-.pf-c-check__label,
-.pf-v5-c-check__label,
-#kc-form-options {
-  color: var(--m-muted);
-  font-size: 13px;
-}
-
-/* ---- alerts (error / warning / info) -------------------------------------- */
+/* ---- alerts (error / warning / info) ----------------------------------- */
 
 .alert-error,
 .pf-c-alert.pf-m-danger,
 .pf-v5-c-alert.pf-m-danger {
-  background: rgba(239, 68, 68, 0.1) !important;
-  border: 1px solid rgba(239, 68, 68, 0.25) !important;
-  border-radius: 8px;
+  background: rgba(235, 112, 114, 0.10) !important;
+  border: 1px solid rgba(235, 112, 114, 0.28) !important;
+  border-radius: var(--m-radius-sm) !important;
   color: var(--m-destructive) !important;
+  margin-bottom: 18px;
 }
 
 .alert-error .pf-c-alert__title,
 .pf-c-alert.pf-m-danger .pf-c-alert__title,
 .pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title,
-.kc-feedback-text {
+.kc-feedback-text,
+#input-error,
+.pf-v5-c-form__helper-text.pf-m-error {
   color: var(--m-destructive) !important;
   font-size: 13px;
 }
 
-/* ---- locale picker, password reveal, misc chrome --------------------------- */
+/* ---- locale picker + misc chrome --------------------------------------- */
 
 #kc-locale a,
 #kc-current-locale-link {
   color: var(--m-muted);
 }
 
-.pf-c-button.pf-m-control,
-.pf-v5-c-button.pf-m-control {
-  background: var(--m-input-bg);
-  border: 1px solid var(--m-border);
-  border-left: none;
-  color: var(--m-muted);
-}
-
-/* Kill the default PatternFly white panel backgrounds anywhere they linger */
+/* Kill any lingering PatternFly white panels */
 .pf-c-login,
-.pf-v5-c-login,
-.pf-c-login__main,
-#kc-content,
-#kc-content-wrapper {
+.pf-v5-c-login {
   background: transparent !important;
 }

@@ -87,4 +87,34 @@ class PackManifestV2Test {
     assertTrue(PackManifestValidator.validate(manifest).ok());
     assertNull(SemVer.parse("999999999999999999.0.0"));
   }
+
+  @Test
+  void liveNodeRegistryAllowsPluginBlueprintNodes() throws Exception {
+    var manifest = sample("security-audit");
+    var blueprint =
+        manifest.getResources().stream()
+            .filter(resource -> "blueprint".equals(resource.get("kind")))
+            .findFirst()
+            .orElseThrow();
+    @SuppressWarnings("unchecked")
+    var spec = (Map<String, Object>) blueprint.get("spec");
+    @SuppressWarnings("unchecked")
+    var ir = (Map<String, Object>) spec.get("ir");
+    @SuppressWarnings("unchecked")
+    var nodes = (List<Map<String, Object>>) ir.get("nodes");
+    nodes.get(0).put("type", "acme.lookup");
+    manifest.getCapabilities().add("acme:lookup");
+    @SuppressWarnings("unchecked")
+    var resourceCapabilities = (List<String>) blueprint.get("capabilities");
+    resourceCapabilities.add("acme:lookup");
+
+    var registry = new com.modulo.blueprint.BlueprintNodeRegistry();
+    registry.register(
+        "acme-plugin",
+        com.modulo.blueprint.BlueprintNodeRegistration.action(
+            "acme.lookup", 1, "acme:lookup", context -> new com.modulo.blueprint.BlueprintNodeResult(Map.of(), "then")));
+
+    assertEquals("UNKNOWN_BLUEPRINT_NODE", PackManifestValidator.validate(manifest).reason());
+    assertTrue(PackManifestValidator.validate(manifest, registry).ok());
+  }
 }

@@ -14,11 +14,14 @@ import com.modulo.plugin.manager.PluginLoader;
 import com.modulo.plugin.manager.PluginManager;
 import com.modulo.plugin.manager.PluginSecurityManager;
 import com.modulo.plugin.registry.PluginRegistry;
+import com.modulo.plugin.trust.MarketplaceTrustService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -32,10 +35,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 class ExternalOnlyPolicyTest {
 
     private final PluginValidationService validation = new PluginValidationService();
+    private final MarketplaceTrustService trust = mock(MarketplaceTrustService.class);
 
     @BeforeEach
     void wireSecurityManager() {
         ReflectionTestUtils.setField(validation, "securityManager", new PluginSecurityManager());
+        ReflectionTestUtils.setField(validation, "trustService", trust);
+        when(trust.verifySubmission(any())).thenReturn(Map.of("trustStatus", "VERIFIED"));
     }
 
     private PluginSubmission imageSubmission() {
@@ -57,12 +63,41 @@ class ExternalOnlyPolicyTest {
 
     @Test
     void wellFormedImageSubmissionValidates() {
-        ValidationResult result = validation.validateSubmission(imageSubmission());
+        PluginSubmission submission = imageSubmission();
+        ValidationResult result = validation.validateSubmission(submission);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.isSecurityCheckPassed()).isTrue();
         assertThat(result.isCompatibilityCheckPassed()).isTrue();
-        // Provenance hook surfaces as a warning until cosign enforcement lands.
-        assertThat(result.getWarnings()).anyMatch(w -> w.contains("provenance"));
+        // Evidence is enforced now, not merely advertised as a future hook.
+        verify(trust).verifySubmission(submission);
+        assertThat(submission.isSecurityCheckPassed()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"UNKNOWN", "PARTIAL", "FAILED", "UNAVAILABLE", "STALE"})
+    void incompleteOrFailedEvidenceBlocksSubmission(String status) {
+        when(trust.verifySubmission(any())).thenReturn(Map.of("trustStatus", status));
+        PluginSubmission submission = imageSubmission();
+        ValidationResult result = validation.validateSubmission(submission);
+        assertThat(result.getErrors()).anyMatch(error -> error.startsWith("[TRUST]") && error.contains(status));
+        assertThat(result.isSecurityCheckPassed()).isFalse();
+        assertThat(submission.isSecurityCheckPassed()).isFalse();
+    }
+
+    @Test
+    void absentVerifierFailsClosed() {
+        ReflectionTestUtils.setField(validation, "trustService", null);
+        ValidationResult result = validation.validateSubmission(imageSubmission());
+        assertThat(result.isSecurityCheckPassed()).isFalse();
+        assertThat(result.getErrors()).anyMatch(error -> error.startsWith("[TRUST]") && error.contains("unavailable"));
+    }
+
+    @Test
+    void verifierFailureBlocksSubmission() {
+        when(trust.verifySubmission(any())).thenThrow(new IllegalStateException("verification failed"));
+        ValidationResult result = validation.validateSubmission(imageSubmission());
+        assertThat(result.isSecurityCheckPassed()).isFalse();
+        assertThat(result.getErrors()).anyMatch(error -> error.startsWith("[TRUST]"));
     }
 
     @Test

@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PluginRuntime } from '../runtime';
-import type { PluginManifest, PluginModule } from '../types';
+import type { InstalledRecord, PluginManifest, PluginModule } from '../types';
+import { DIGEST_NODES, WEBHOOK_NODES } from '../../../blueprint/auditAutomationNodes';
+import { NOESIS_NODES } from '../../../blueprint/noesisNodes';
+import { NOTES_NODES } from '../../../blueprint/nodeCatalog';
+import { TAX_NODES } from '../../../blueprint/taxAutomationNodes';
 
 // A trivial module that contributes one view named after the plugin, so we can
 // observe activation through `contributions().views`.
@@ -47,23 +51,35 @@ describe('PluginRuntime — install state', () => {
     expect(rt.isInstalled('outline')).toBe(false);
   });
 
-  it('migrates the legacy flat id list, dropping non-runnable ids', () => {
+  it('does not implicitly read unscoped browser installation records', () => {
     localStorage.setItem('modulo-plugins', JSON.stringify(['graph', 'coming-soon']));
     const { catalog } = makeCatalog();
     const rt = new PluginRuntime(catalog);
     expect(rt.isInstalled('graph')).toBe(true);
     expect(rt.isInstalled('coming-soon')).toBe(false); // metadata-only → not installable
-    expect(rt.isInstalled('notes')).toBe(false); // not in the legacy list
+    expect(rt.isInstalled('notes')).toBe(true); // built-in default, not the unclaimed legacy list
   });
 
-  it('persists installs across runtime instances', async () => {
+  it('persists installs across runtime instances through injected storage', async () => {
     const { catalog } = makeCatalog();
-    const rt1 = new PluginRuntime(catalog);
+    let records: InstalledRecord[] = [{ id: 'notes', enabled: true }, { id: 'graph', enabled: true }];
+    const storage = { load: () => records, save: async (next: InstalledRecord[]) => { records = next; } };
+    const rt1 = new PluginRuntime(catalog, undefined, storage);
     await rt1.init();
     await rt1.install('outline');
-    const rt2 = new PluginRuntime(catalog);
+    const rt2 = new PluginRuntime(catalog, undefined, storage);
     expect(rt2.isInstalled('outline')).toBe(true);
     expect(rt2.isInstalled('notes')).toBe(true);
+  });
+
+  it('installs dependencies added to an already-installed plugin manifest', async () => {
+    const { catalog } = makeCatalog();
+    const records: InstalledRecord[] = [{ id: 'outline', enabled: true }];
+    const rt = new PluginRuntime(catalog, undefined, { load: () => records,
+      save: async (next) => { records.splice(0, records.length, ...next); } });
+    await rt.init();
+    expect(rt.isInstalled('notes')).toBe(true);
+    expect(rt.contributions().views.map((view) => view.id)).toEqual(expect.arrayContaining(['notes', 'outline']));
   });
 });
 
@@ -189,5 +205,64 @@ describe('PluginRuntime — blueprint node contributions', () => {
 
     await rt.uninstall('bp');
     expect(rt.contributions().blueprintNodes).toHaveLength(0);
+  });
+
+  it.each([
+    ['notes', NOTES_NODES],
+    ['webhook-trigger', WEBHOOK_NODES],
+    ['scheduled-digest', DIGEST_NODES],
+    ['tax-automation', TAX_NODES],
+    ['noesis-brief', NOESIS_NODES],
+  ] as const)('removes all blueprint nodes contributed by %s on uninstall', async (id, descriptors) => {
+    const catalog: PluginManifest[] = [{
+      id,
+      name: id,
+      description: '',
+      category: 'test',
+      icon: NOOP,
+      load: () => Promise.resolve({
+        default: { activate: (ctx) => descriptors.forEach((node) => ctx.addBlueprintNode(node)) },
+      }),
+    }];
+    const rt = new PluginRuntime(catalog);
+
+    await rt.install(id);
+    expect(rt.contributions().blueprintNodes.map((node) => node.type)).toEqual(descriptors.map((node) => node.type));
+
+    await rt.uninstall(id);
+    expect(rt.contributions().blueprintNodes).toHaveLength(0);
+  });
+
+  it('does not resurrect a node when uninstall races lazy activation', async () => {
+    let resolveLoad!: (module: { default: PluginModule }) => void;
+    const loading = new Promise<{ default: PluginModule }>((resolve) => { resolveLoad = resolve; });
+    const catalog: PluginManifest[] = [{
+      id: 'slow-node',
+      name: 'Slow Node',
+      description: '',
+      category: 'test',
+      icon: NOOP,
+      load: () => loading,
+    }];
+    const rt = new PluginRuntime(catalog);
+    const installing = rt.install('slow-node');
+    await Promise.resolve();
+
+    await rt.uninstall('slow-node');
+    resolveLoad({ default: { activate: (ctx) => ctx.addBlueprintNode({
+      type: 'action.slow',
+      version: 1,
+      category: 'action',
+      title: 'Slow',
+      description: '',
+      execIn: true,
+      execOut: ['then'],
+      inputs: [],
+      outputs: [],
+    }) } });
+    await installing;
+
+    expect(rt.contributions().blueprintNodes).toHaveLength(0);
+    expect(rt.isActive('slow-node')).toBe(false);
   });
 });

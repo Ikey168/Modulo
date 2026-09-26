@@ -1,10 +1,6 @@
-// Client-side store for the Saved Searches plugin. A saved search is a named
-// query (text plus required tags) persisted in localStorage, evaluated live
-// over the current notes. The list operations are pure and unit-tested; the
-// matcher mirrors the notes filter's semantics (title or tag contains the text).
+// Pure Saved Searches operations. Persistence lives in the plugin-state client;
+// the old browser key is read only by the explicit migration path in the view.
 import type { CoreNote } from '@modulo/core';
-
-const STORE_KEY = 'modulo-saved-searches';
 
 export interface SavedSearch {
   id: string;
@@ -24,33 +20,6 @@ export function newId(): string {
   }
   seq += 1;
   return `ss_${seq}_${Math.floor(Math.random() * 1e9).toString(36)}`;
-}
-
-function isSearch(s: unknown): s is SavedSearch {
-  return Boolean(s) && typeof (s as SavedSearch).id === 'string' && typeof (s as SavedSearch).name === 'string';
-}
-
-export function loadSavedSearches(): SavedSearch[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(isSearch).map((s) => ({ ...s, text: s.text ?? '', tags: Array.isArray(s.tags) ? s.tags : [] }));
-      }
-    }
-  } catch {
-    /* corrupt or unavailable storage falls back to an empty list */
-  }
-  return [];
-}
-
-export function saveSavedSearches(list: SavedSearch[]): void {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(list));
-  } catch {
-    /* storage full or unavailable; state still applies for this session */
-  }
 }
 
 export function addSearch(list: SavedSearch[], name: string): SavedSearch[] {

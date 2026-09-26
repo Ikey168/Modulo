@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly off-host Modulo restore drill
+
+[Timer]
+OnCalendar=*-*-01 05:00:00 UTC
+Persistent=true
+Unit=modulo-restore-drill.service
+
+[Install]
+WantedBy=timers.target

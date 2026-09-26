@@ -1,12 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { CoreNote, CoreTag } from '@modulo/core';
 import {
   addSearch,
-  loadSavedSearches,
   matchNotes,
   removeSearch,
   renameSearch,
-  saveSavedSearches,
   updateSearch,
 } from '../savedSearchesStore';
 
@@ -17,8 +15,6 @@ const note = (id: number, title: string, ...tags: string[]): CoreNote => ({
   content: '',
   tags: tags.map(tag),
 });
-
-beforeEach(() => localStorage.clear());
 
 describe('savedSearchesStore - list operations', () => {
   it('adds, renames, updates, and removes', () => {
@@ -33,19 +29,6 @@ describe('savedSearchesStore - list operations', () => {
     expect(list).toHaveLength(0);
   });
 
-  it('round-trips through localStorage', () => {
-    const list = updateSearch(addSearch([], 'Work'), '', {}); // no-op update keeps shape
-    saveSavedSearches(list);
-    const loaded = loadSavedSearches();
-    expect(loaded).toHaveLength(1);
-    expect(loaded[0].name).toBe('Work');
-  });
-
-  it('returns an empty list for missing or corrupt storage', () => {
-    expect(loadSavedSearches()).toEqual([]);
-    localStorage.setItem('modulo-saved-searches', '{ not json');
-    expect(loadSavedSearches()).toEqual([]);
-  });
 });
 
 describe('savedSearchesStore - matching', () => {

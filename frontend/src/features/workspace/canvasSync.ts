@@ -1,3 +1,5 @@
+import { assertImported, decodeLegacyJson, preserveLegacySource, retireLegacySource } from '../../services/legacy/legacyStateImport';
+import type { LegacyStorage } from '../../services/legacy/browserLegacyStorage';
 import type { PluginStateClient, StateJson } from '../../services/pluginStateClient';
 import type { CanvasBoard, CanvasState } from './canvasStore';
 
@@ -54,13 +56,17 @@ export async function saveCanvasDiff(client: PluginStateClient, previous: Canvas
 }
 
 /** Called only after the signed-in user explicitly chooses to import browser-global legacy data. */
-export async function importLegacyCanvas(client: PluginStateClient, storage: Storage): Promise<void> {
+export async function importLegacyCanvas(client: PluginStateClient, storage: LegacyStorage): Promise<void> {
   const raw = storage.getItem(LEGACY_CANVAS_KEY);
   if (raw === null) return;
-  const source = JSON.parse(raw) as CanvasState;
-  if (!source || !Array.isArray(source.boards) || source.boards.length === 0) throw new Error('Invalid legacy canvas; export it for recovery');
-  const boards = source.boards.map(parseCanvasBoard);
-  if (new Set(boards.map(board => board.id)).size !== boards.length) throw new Error('Duplicate legacy board IDs');
+  const { source, boards } = decodeLegacyJson(LEGACY_CANVAS_KEY, raw, value => {
+    const parsed = value as CanvasState;
+    if (!parsed || !Array.isArray(parsed.boards) || parsed.boards.length === 0) throw new Error('Invalid legacy canvas');
+    const items = parsed.boards.map(parseCanvasBoard);
+    if (new Set(items.map(board => board.id)).size !== items.length) throw new Error('Duplicate legacy board IDs');
+    return { source: parsed, boards: items };
+  });
+  await preserveLegacySource(client, { [LEGACY_CANVAS_KEY]: raw });
   await client.refreshAll();
   for (const board of boards) {
     const key = `board.${board.id}`;
@@ -73,9 +79,7 @@ export async function importLegacyCanvas(client: PluginStateClient, storage: Sto
     } else await client.create(key, json(board), CANVAS_SCHEMA, 1);
   }
   await client.synchronize();
-  if (boards.some(board => client.get(`board.${board.id}`)?.pending || client.get(`board.${board.id}`)?.conflict)) {
-    throw new Error('Canvas import has not synchronized. Browser data has been preserved.');
-  }
+  assertImported(client, boards.map(board => ({ key: `board.${board.id}`, schemaId: CANVAS_SCHEMA, value: json(board) })));
   if (boards.some(board => board.id === source.activeId) && !client.get('active-board')) {
     await client.create('active-board', source.activeId, 'modulo.canvas.preference', 1);
     await client.synchronize();
@@ -85,5 +89,5 @@ export async function importLegacyCanvas(client: PluginStateClient, storage: Sto
   await client.synchronize();
   if (client.get(MARKER)?.pending || client.get(MARKER)?.conflict) throw new Error('Migration confirmation is pending');
   // Another tab may have edited the old store while this import was in progress.
-  if (storage.getItem(LEGACY_CANVAS_KEY) === raw) storage.removeItem(LEGACY_CANVAS_KEY);
+  retireLegacySource(storage, { [LEGACY_CANVAS_KEY]: raw });
 }

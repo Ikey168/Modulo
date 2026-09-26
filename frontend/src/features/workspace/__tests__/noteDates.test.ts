@@ -9,6 +9,7 @@ import {
   sameDay,
   startOfWeek,
   weekGrid,
+  yearGrid,
 } from '../noteDates';
 
 const note = (id: number, updatedAt?: string, createdAt?: string): CoreNote => ({
@@ -54,6 +55,14 @@ describe('noteDates - date helpers', () => {
     expect(week).toHaveLength(7);
     expect(dayKey(week[0])).toBe('2026-01-05');
     expect(dayKey(week[6])).toBe('2026-01-11');
+  });
+
+  it('yearGrid returns twelve complete month grids', () => {
+    const year = yearGrid(2026);
+    expect(year).toHaveLength(12);
+    expect(year.every((month) => month.length === 42)).toBe(true);
+    expect(year[0].some((date) => dayKey(date) === '2026-01-01')).toBe(true);
+    expect(year[11].some((date) => dayKey(date) === '2026-12-31')).toBe(true);
   });
 });
 

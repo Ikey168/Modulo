@@ -3,6 +3,8 @@ package com.modulo.blueprint.interpreter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
+import com.modulo.blueprint.BlueprintNodeRegistry;
+import com.modulo.blueprint.BlueprintNodeRegistration;
 import com.modulo.blueprint.BlueprintRepository;
 import com.modulo.entity.Note;
 import com.modulo.entity.Tag;
@@ -42,6 +44,7 @@ class BlueprintInterpreterServiceTest {
     @InjectMocks private BlueprintInterpreterService interpreter;
 
     @Mock private BlueprintRepository blueprintRepository;
+    @Mock private BlueprintNodeRegistry nodeRegistry;
     @Mock private BlueprintCapabilityService capabilityService;
     @Mock private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
     @Mock private PluginEventBus eventBus;
@@ -85,6 +88,15 @@ class BlueprintInterpreterServiceTest {
         when(capabilityService.isGranted(anyLong(), any())).thenReturn(true);
     }
 
+    @Test
+    void optionalRegistryWithNoCoreTypesDoesNotBreakStartup() {
+        when(nodeRegistry.coreNodeTypes()).thenReturn(null);
+
+        interpreter.registerCoreNodeHandlers();
+
+        verify(nodeRegistry, never()).register(anyString(), any(BlueprintNodeRegistration.class));
+    }
+
     private Note owned(Note note) {
         note.setUserId(1L); return note;
     }
@@ -96,6 +108,40 @@ class BlueprintInterpreterServiceTest {
         e.setName("test-bp");
         e.setIr(ir);
         return e;
+    }
+
+    @Test
+    void manualTriggerUsesTheOwnedNoteAndStableRequestKey() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("manual", "trigger.manual", 1, null)), "edges", List.of()));
+        Note note = owned(new Note("Procedure", "Inspect inputs"));
+        var request = java.util.UUID.randomUUID();
+        var result = interpreter.fireManual(blueprint, "manual", note, request);
+        assertThat(result).isNotNull();
+        verify(workflowRuns).create(eq(1L), eq(1L), eq("1"), anyString(), eq("manual"), eq("trigger.manual"), eq("manual:" + request));
+        verify(workflowRuns).finishStep(any(), any(), eq("SUCCEEDED"), eq(Map.of("note", note)), isNull(), anyLong());
+        verify(workflowRuns).transition(any(), eq("RUNNING"), eq("SUCCEEDED"), isNull());
+    }
+
+    @Test
+    void repeatedManualRequestDoesNotRunTheGraphAgain() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("manual", "trigger.manual", 1, null)), "edges", List.of()));
+        var existing = java.util.UUID.randomUUID();
+        when(workflowRuns.create(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()))
+            .thenReturn(new com.modulo.blueprint.execution.WorkflowRunService.Lease(existing, 1L, false));
+        assertThat(interpreter.fireManual(blueprint, "manual", owned(new Note("Procedure", "Body")), java.util.UUID.randomUUID())).isEqualTo(existing);
+        verify(workflowRuns, never()).begin(any());
+        verify(workflowRuns, never()).startStep(any(), anyInt(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void manualRequestsCannotFireAnotherTriggerTypeOrReadAForeignNote() {
+        var blueprint = entry(Map.of("irVersion", 1, "nodes", List.of(node("saved", "trigger.note.saved", 1, null)), "edges", List.of()));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> interpreter.fireManual(blueprint, "saved", owned(new Note("Procedure", "Body")), java.util.UUID.randomUUID()))
+            .isInstanceOf(IllegalArgumentException.class);
+        Note foreign = new Note("Private", "Body"); foreign.setUserId(2L);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> interpreter.fireManual(blueprint, "saved", foreign, java.util.UUID.randomUUID()))
+            .isInstanceOf(IllegalArgumentException.class);
+        verify(workflowRuns, never()).create(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     /** trigger.note.saved → action.note.create: firing the trigger runs the action and logs success. */
@@ -123,6 +169,25 @@ class BlueprintInterpreterServiceTest {
         verify(noteService, atLeastOnce()).save(any(Note.class));
         // ... and a success execution log was written.
         verify(workflowRuns).transition(any(),eq("RUNNING"),eq("SUCCEEDED"),isNull());
+    }
+
+    @Test
+    void manualAutonomyDoesNotRegisterAutomaticTriggers() {
+        Map<String, Object> ir = Map.of(
+            "irVersion", 1,
+            "metadata", Map.of("autonomyLevel", "MANUAL"),
+            "nodes", List.of(
+                node("manual", "trigger.manual", 1, null),
+                node("saved", "trigger.note.saved", 1, null),
+                node("webhook", "trigger.webhook", 1, Map.of("secret", "test-only"))
+            ),
+            "edges", List.of()
+        );
+
+        interpreter.registerBlueprint(entry(ir));
+
+        verify(eventBus, never()).subscribe(anyString(), any());
+        assertThat(noteListeners).isEmpty();
     }
 
     /** AI summary feeds the tag value of action.tag.add. */
@@ -189,11 +254,10 @@ class BlueprintInterpreterServiceTest {
         verify(noteService, atMost(BlueprintExecutionContext.MAX_STEPS + 1)).save(any(Note.class));
     }
 
-    /** action.code.execute runs through whichever ScriptSandbox engine is configured (#397/#400). */
+    /** action.code.execute runs through the supported WASM ScriptSandbox engine (#397/#400/#401). */
     @Test
     void codeExecuteRunsThroughConfiguredSandboxEngine() {
         for (com.modulo.blueprint.sandbox.ScriptSandbox engine : List.of(
-                new com.modulo.blueprint.sandbox.RhinoScriptSandbox(),
                 new com.modulo.blueprint.sandbox.WasmScriptSandbox())) {
             org.springframework.test.util.ReflectionTestUtils.setField(interpreter, "scriptSandbox", engine);
 

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PluginStateClient, StateRequestError, type StateRecord, type StateTransport } from '../../../../services/pluginStateClient';
-import { importLegacyState } from '../../../../services/legacyStateImport';
+import { importLegacyState } from '../../../../services/legacy/legacyStateImport';
 import { useDurableRecord } from '../useDurableRecord';
 import { validateSavedSearches } from '../../savedSearchesStore';
 const api = vi.hoisted(() => ({ state: vi.fn(), stateSessionKey: 'alice', isEnabled: () => true }));
@@ -58,7 +58,10 @@ describe('durable settings', () => {
     await waitFor(() => expect(hook.result.current.ready).toBe(true)); expect(hook.result.current.value).toEqual([]);
     act(() => hook.result.current.set(searches));
     await waitFor(() => expect(alice.client.get('queries')?.value).toEqual(searches));
-    alice.client.close(); api.stateSessionKey = 'bob'; api.state.mockResolvedValue(bob.client); hook.rerender();
+    api.stateSessionKey = 'bob'; api.state.mockResolvedValue(bob.client); hook.rerender();
+    expect(hook.result.current.value).toEqual([]);
+    expect(hook.result.current.ready).toBe(false);
+    alice.client.close();
     await waitFor(() => expect(hook.result.current.ready).toBe(true)); expect(hook.result.current.value).toEqual([]);
     hook.unmount();
   });

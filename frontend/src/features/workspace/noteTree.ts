@@ -1,9 +1,10 @@
-// Notion-style note hierarchy, modelled entirely on the client (the backend
+// Notion-style note hierarchy layered over the flat note list (the backend
 // CoreNote has no parent/order fields yet). A small map of noteId → {parent,
-// order} is persisted to localStorage and layered over the flat note list to
-// produce a draggable, collapsible tree with subnotes.
+// order} and the collapsed-node set are stored as workspace state on the
+// server, so the tree is the same on every device.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useServerWorkspaceStore } from './useWorkspaceStore';
 import type { CoreNote } from '@modulo/core';
 
 export type DropPos = 'before' | 'after' | 'inside';
@@ -24,21 +25,22 @@ const TREE_KEY = 'modulo-note-tree';
 const COLLAPSE_KEY = 'modulo-note-collapsed';
 const END = Number.MAX_SAFE_INTEGER;
 
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
+const record = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+
+export function parseTreeMap(value: unknown): TreeMap {
+  const map: TreeMap = {};
+  for (const [key, raw] of Object.entries(record(value))) {
+    const id = Number(key);
+    const entry = record(raw);
+    if (!Number.isInteger(id) || typeof entry.order !== 'number') continue;
+    map[id] = { parent: typeof entry.parent === 'number' ? entry.parent : null, order: entry.order };
   }
+  return map;
 }
-function save(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage full/unavailable — state still applies for this session */
-  }
-}
+
+export const parseCollapsed = (value: unknown): number[] =>
+  Array.isArray(value) ? value.filter((id): id is number => Number.isInteger(id)) : [];
 
 const parentOf = (map: TreeMap, id: number): number | null => map[id]?.parent ?? null;
 
@@ -65,16 +67,23 @@ function orderedSiblings(map: TreeMap, notes: CoreNote[], parent: number | null,
     .map((n) => n.id);
 }
 
-/** Builds the nested forest from the flat note list and the tree map. */
+/**
+ * Builds the nested forest from the flat note list and the tree map. Children
+ * are grouped in one pass (linear in the number of notes) rather than by
+ * scanning every note for each parent, which was quadratic (#492).
+ */
 export function buildForest(map: TreeMap, notes: CoreNote[]): TreeNode[] {
-  const byId = new Map(notes.map((n) => [n.id, n]));
-  const present = new Set(byId.keys());
+  const present = new Set(notes.map((n) => n.id));
+  const groups = new Map<number | null, CoreNote[]>();
+  for (const note of notes) {
+    const p = parentOf(map, note.id);
+    const parent = p != null && present.has(p) ? p : null; // orphans float to the top level
+    const group = groups.get(parent);
+    if (group) group.push(note); else groups.set(parent, [note]);
+  }
+  const order = (a: CoreNote, b: CoreNote) => (map[a.id]?.order ?? END) - (map[b.id]?.order ?? END) || a.id - b.id;
   const build = (parent: number | null, depth: number): TreeNode[] =>
-    orderedSiblings(map, notes, parent, present).map((id) => ({
-      note: byId.get(id)!,
-      depth,
-      children: build(id, depth + 1),
-    }));
+    (groups.get(parent) ?? []).sort(order).map((note) => ({ note, depth, children: build(note.id, depth + 1) }));
   return build(null, 0);
 }
 
@@ -113,8 +122,11 @@ export interface NoteTreeApi {
 }
 
 export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
-  const [map, setMap] = useState<TreeMap>(() => load<TreeMap>(TREE_KEY, {}));
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(load<number[]>(COLLAPSE_KEY, [])));
+  const [map, setMap] = useServerWorkspaceStore<TreeMap>(
+    'note-tree', 'tree', 'modulo.workspace.note-tree', {}, parseTreeMap, TREE_KEY, 'Note tree');
+  const [collapsedIds, setCollapsedIds] = useServerWorkspaceStore<number[]>(
+    'note-tree', 'collapsed', 'modulo.workspace.note-tree.collapsed', [], parseCollapsed, COLLAPSE_KEY, 'Collapsed notes');
+  const collapsed = useMemo(() => new Set(collapsedIds), [collapsedIds]);
 
   const forest = useMemo(() => buildForest(map, notes), [map, notes]);
 
@@ -122,11 +134,10 @@ export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
     (dragId: number, targetId: number, pos: DropPos) => {
       setMap((prev) => {
         const nx = moveNote(prev, notes, dragId, targetId, pos);
-        if (nx !== prev) save(TREE_KEY, nx);
         return nx;
       });
     },
-    [notes],
+    [notes, setMap],
   );
 
   const setParent = useCallback(
@@ -135,32 +146,41 @@ export function useNoteTree(notes: CoreNote[]): NoteTreeApi {
         const present = new Set(notes.map((n) => n.id));
         const order = orderedSiblings(prev, notes, parent, present).filter((x) => x !== id).length;
         const nx: TreeMap = { ...prev, [id]: { parent, order } };
-        save(TREE_KEY, nx);
         return nx;
       });
     },
-    [notes],
+    [notes, setMap],
   );
 
   const toggle = useCallback((id: number) => {
-    setCollapsed((prev) => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id);
-      else s.add(id);
-      save(COLLAPSE_KEY, [...s]);
-      return s;
-    });
-  }, []);
+    setCollapsedIds((prev) => prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]);
+  }, [setCollapsedIds]);
 
   const expand = useCallback((id: number) => {
-    setCollapsed((prev) => {
-      if (!prev.has(id)) return prev;
-      const s = new Set(prev);
-      s.delete(id);
-      save(COLLAPSE_KEY, [...s]);
-      return s;
-    });
-  }, []);
+    setCollapsedIds((prev) => prev.includes(id) ? prev.filter((value) => value !== id) : prev);
+  }, [setCollapsedIds]);
 
   return { forest, collapsed, toggle, expand, move, setParent };
+}
+
+export interface TreeMoveOption {
+  id: 'up' | 'down' | 'indent' | 'outdent';
+  label: string;
+  target: number;
+  pos: DropPos;
+}
+
+/**
+ * The moves a row offers without drag-and-drop: touch and keyboard users
+ * reorder and nest notes with these (#491). Each maps onto `move()`.
+ */
+export function treeMoveOptions(siblings: TreeNode[], index: number, parent?: TreeNode): TreeMoveOption[] {
+  const options: TreeMoveOption[] = [];
+  const previous = siblings[index - 1];
+  const next = siblings[index + 1];
+  if (previous) options.push({ id: 'up', label: 'Move up', target: previous.note.id, pos: 'before' });
+  if (next) options.push({ id: 'down', label: 'Move down', target: next.note.id, pos: 'after' });
+  if (previous) options.push({ id: 'indent', label: `Nest under ${previous.note.title || 'Untitled Note'}`, target: previous.note.id, pos: 'inside' });
+  if (parent) options.push({ id: 'outdent', label: 'Move out one level', target: parent.note.id, pos: 'after' });
+  return options;
 }

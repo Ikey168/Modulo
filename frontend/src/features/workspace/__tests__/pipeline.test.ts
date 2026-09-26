@@ -5,11 +5,10 @@ import {
   engagementLabel,
   groupByStage,
   isEngagement,
-  readStages,
+  parseStages,
   stageOf,
   stageTag,
   toStageId,
-  writeStages,
 } from '../pipeline';
 
 const note = (id: number, tags: string[]): CoreNote => ({
@@ -55,13 +54,10 @@ describe('groupByStage', () => {
 
 describe('column persistence', () => {
   it('round-trips custom stages and falls back to defaults', () => {
-    expect(readStages()).toEqual(DEFAULT_STAGES);
-    writeStages(['triage', 'done']);
-    expect(readStages()).toEqual(['triage', 'done']);
-    localStorage.setItem('modulo-pipeline-stages', '{ not json');
-    expect(readStages()).toEqual(DEFAULT_STAGES);
-    localStorage.setItem('modulo-pipeline-stages', '[]');
-    expect(readStages()).toEqual(DEFAULT_STAGES);
+    expect(parseStages(undefined)).toEqual(DEFAULT_STAGES);
+    expect(parseStages(['triage', 'done'])).toEqual(['triage', 'done']);
+    expect(parseStages('{ not json')).toEqual(DEFAULT_STAGES);
+    expect(parseStages([])).toEqual(DEFAULT_STAGES);
   });
 
   it('normalises column labels to stage ids', () => {

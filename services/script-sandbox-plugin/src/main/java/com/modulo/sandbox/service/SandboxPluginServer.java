@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
  *
  * Environment:
  *   PORT           gRPC port (default 9090)
- *   SANDBOX_ENGINE wasm (default) | rhino
+ *   SANDBOX_ENGINE wasm (the only engine)
  */
 public final class SandboxPluginServer {
 

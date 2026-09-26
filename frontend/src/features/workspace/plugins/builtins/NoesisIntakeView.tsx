@@ -1,3 +1,4 @@
+import { readLegacyValue } from '../../../../services/legacy/browserLegacyStorage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlugins } from '../PluginProvider';
 import { usePluginState } from '../usePluginState';
@@ -547,7 +548,7 @@ export function NoesisIntakeView() {
       const client = await plugins.state('information-intake');
       await client.refreshAll();
       setMigration(await planLegacyIntakeMigration(
-        window.localStorage.getItem(LEGACY_INTAKE_KEY), client));
+        readLegacyValue(LEGACY_INTAKE_KEY), client));
     } catch (cause) {
       setMigrationError(cause instanceof Error ? cause.message : String(cause));
     } finally { setMigrationBusy(false); }
@@ -559,7 +560,7 @@ export function NoesisIntakeView() {
     try {
       const client = await plugins.state('information-intake');
       const current = await planLegacyIntakeMigration(
-        window.localStorage.getItem(LEGACY_INTAKE_KEY), client);
+        readLegacyValue(LEGACY_INTAKE_KEY), client);
       if (current.status !== 'ready' || current.sourceDigest !== migration.sourceDigest)
         throw new Error('The local or synced intake data changed. Preview the migration again.');
       const result = await importLegacyIntake(current, client);
@@ -577,7 +578,7 @@ export function NoesisIntakeView() {
       const client = await plugins.state('information-intake');
       await client.refreshAll();
       const current = await planLegacyIntakeMigration(
-        window.localStorage.getItem(LEGACY_INTAKE_KEY), client);
+        readLegacyValue(LEGACY_INTAKE_KEY), client);
       if (current.status !== 'ready' || !current.reportExists
         || current.sourceDigest !== migration.sourceDigest)
         throw new Error('The local or synced intake data changed. Preview the migration again.');

@@ -38,6 +38,16 @@ An installed EXTERNAL workload declares `state.read` and/or `state.write` in its
 required permissions. The backend registry and active runtime grant must agree.
 A workload token identifies the registered plugin; it does not identify a user.
 
+Outbound-only agents that cannot keep an inbound gRPC runtime connected use an
+owner-provisioned workload instead. An authenticated owner creates one with
+`POST /api/plugin-state/workloads`, supplying `pluginId`, permissions, and a
+lifetime between one hour and 90 days. The response contains metadata plus a
+one-time workload token; only its SHA-256 hash is stored. `GET` lists safe
+metadata and `DELETE /api/plugin-state/workloads/{id}` revokes the workload and
+its active grants. A maximum of ten active workloads is retained per owner and
+plugin. Reserved namespaces cannot receive a workload. Persistent workloads are
+owner-bound, so a grant belonging to any other owner is rejected.
+
 The authenticated owner consents with `POST /api/plugin-state/grants`:
 
 ```json
@@ -71,6 +81,13 @@ the host API. The namespace must equal the authenticated plugin ID. Reserved
 Reads require `state.read`; writes/deletes require `state.write`. A write-only
 version conflict returns the actual version but excludes the existing document.
 External callers cannot register schemas or issue their own owner grants.
+
+An owner-provisioned workload can rotate an otherwise valid grant before expiry
+with `POST /api/plugin-state/callback/grants/rotate` and the same two headers.
+The replacement inherits the old grant's workspace, namespace and permissions,
+is limited to one hour, and atomically revokes the old grant. The endpoint does
+not widen either the workload or grant permissions. This lets outbound agents
+stay unattended without storing an owner browser session or API token.
 
 Unknown, foreign, expired and revoked grants return 404 `STATE_ACCESS_DENIED`.
 The callback route permits the HTTP request to reach this dual-token check; it
@@ -110,3 +127,25 @@ UUID as `X-Modulo-State-Generation` on PUT and DELETE. The authenticated externa
 callback supports the same handshake, including write-only grants. Missing headers
 receive 428 `STATE_STORAGE_GENERATION_REQUIRED`; stale generations receive 412
 `STATE_STORAGE_GENERATION_CHANGED`. See the [restore procedure](../operations/state-acceptance.md).
+
+## Client conflict merging
+
+A `409` on a write means another client changed the record since this client's
+base version. For host-owned workspace documents (`modulo.workspace.*` schemas)
+the client first attempts a record-level three-way merge
+(`frontend/src/services/stateMerge.ts`) of the base it edited, its latest local
+value and the server's current value:
+
+- different records of a collection (matched by `id`), and different fields of
+  one record, are both kept;
+- membership lists of strings or numbers apply both sides' additions and
+  removals;
+- a value changed differently on both sides, or a record edited on one side and
+  deleted on the other, is a conflict and is kept for explicit review.
+
+A clean merge is rebased onto the server version and written with that version
+as `expectedVersion`, so the server's compare-and-set still guards it. Other
+schemas never merge automatically: their conflicts always go to review. A
+device that edits its empty default before its first synchronization therefore
+merges with the existing server document instead of overwriting it; the
+server's `expectedVersion=0` check already prevented the overwrite.

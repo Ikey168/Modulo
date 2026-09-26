@@ -11,6 +11,9 @@ const Switch = React.forwardRef<
     ref={ref}
     className={cn(
       'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent shadow-xs transition-colors',
+      // 20px tall is fine to read and too small to hit; the target is padded
+      // out to 44px without changing the drawing.
+      "coarse:relative coarse:after:absolute coarse:after:left-1/2 coarse:after:top-1/2 coarse:after:h-11 coarse:after:w-[calc(100%+1rem)] coarse:after:-translate-x-1/2 coarse:after:-translate-y-1/2 coarse:after:content-['']",
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       'disabled:cursor-not-allowed disabled:opacity-50',
       'data-[state=checked]:bg-primary data-[state=unchecked]:border-border-strong data-[state=unchecked]:bg-surface-3',

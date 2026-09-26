@@ -37,14 +37,12 @@ services:
     restart: unless-stopped
 
   frontend:
+    environment:
+      MODULO_OIDC_ISSUER: ${MODULO_URL}/auth/realms/modulo
+      MODULO_OIDC_CLIENT_ID: modulo-frontend
     build:
-      context: ../../frontend
-      dockerfile: Dockerfile
-      args:
-        # Same-origin API and auth, routed by Caddy — one public URL for everything.
-        - VITE_API_URL=${MODULO_URL:?set MODULO_URL in .env}
-        - VITE_KEYCLOAK_URL=${MODULO_URL}/auth/realms/modulo
-        - VITE_KEYCLOAK_CLIENT_ID=modulo-frontend
+      context: ../..
+      dockerfile: frontend/Dockerfile
     mem_limit: 128m
     restart: unless-stopped
     healthcheck:
@@ -81,6 +79,7 @@ services:
       # No collector / no IPFS node in this stack.
       - OTEL_SDK_DISABLED=true
       - MODULO_INTEGRATIONS_IPFS_ENABLED=false
+      - MODULO_BLUEPRINT_SANDBOX=wasm
       # Optional on-chain anchoring via an external L2 RPC. Unset keeps the
       # application.yml default (an unreachable localhost node) — anchoring
       # calls then fail gracefully while everything else works.
@@ -127,11 +126,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../database/init:/docker-entrypoint-initdb.d:ro
+      - ../../database/init/01-init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
     mem_limit: 512m
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-modulo}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-modulo}"]
       interval: 10s
       timeout: 5s
       retries: 5
