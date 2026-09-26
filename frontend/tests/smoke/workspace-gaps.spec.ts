@@ -19,19 +19,19 @@ test('offline note edits survive reload and synchronize on reconnect', async ({ 
   await page.route(/\/api\/notes(?:\/|$)/, route => disconnected ? route.abort('internetdisconnected') : route.fallback());
   await page.goto('/app/notes?note=2'); await expect(page.getByLabel('Note title')).toHaveValue('Project evidence');
   disconnected = true; await page.getByLabel('Note title').fill('Offline evidence update');
-  await expect(page.getByRole('region', { name: 'Offline note synchronization' })).toContainText('1 note edit saved on this device');
+  await expect(page.getByLabel('Offline note synchronization', { exact: true })).toContainText('1 note edit saved on this device');
   expect(state.notes[1].title).toBe('Project evidence');
   await page.reload(); await expect(page.getByLabel('Note title')).toHaveValue('Offline evidence update');
   disconnected = false; await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect.poll(() => state.notes[1].title).toBe('Offline evidence update');
-  await expect(page.getByRole('region', { name: 'Offline note synchronization' })).toHaveCount(0);
+  await expect(page.getByLabel('Offline note synchronization', { exact: true })).toHaveCount(0);
 });
 test('offline conflict preserves both copies until a reviewed choice', async ({ page }) => {
   const state = await installWorkspaceToolsFixture(page); let disconnected = false;
   await page.route(/\/api\/notes(?:\/|$)/, route => disconnected ? route.abort('internetdisconnected') : route.fallback());
   await page.goto('/app/notes?note=2'); await expect(page.getByLabel('Note title')).toHaveValue('Project evidence');
   disconnected = true; await page.getByLabel('Note title').fill('Local review');
-  await expect(page.getByRole('region', { name: 'Offline note synchronization' })).toBeVisible();
+  await expect(page.getByLabel('Offline note synchronization', { exact: true })).toBeVisible();
   state.notes[1] = { ...state.notes[1], title: 'Remote review', content: 'Concurrent server text', version: 2 };
   disconnected = false; await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await page.getByText('Local review — Changed on the server').click();
@@ -39,7 +39,7 @@ test('offline conflict preserves both copies until a reviewed choice', async ({ 
   expect(state.notes[1].title).toBe('Remote review');
   await page.getByRole('button', { name: 'Keep local edit' }).click();
   await expect.poll(() => state.notes[1].title).toBe('Local review');
-  await expect(page.getByRole('region', { name: 'Offline note synchronization' })).toHaveCount(0);
+  await expect(page.getByLabel('Offline note synchronization', { exact: true })).toHaveCount(0);
 });
 test('attachment extraction is reviewed and retained in its source note', async ({ page }) => {
   const state = await installWorkspaceToolsFixture(page);

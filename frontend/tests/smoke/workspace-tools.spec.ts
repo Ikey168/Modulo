@@ -173,10 +173,11 @@ test('all eight plugin views fit a mobile viewport without page errors', async (
   const titles = ['Executable Runbooks', 'Universal Inbox', 'Workspace Time Machine', 'Local Folder Bridge', 'What Changed?', 'Living Documents', 'Workspace Capsules', 'Decision Journal'];
   for (const [index, id] of ids.slice(1).entries()) {
     await page.goto(`/app/${id}`);
-    await expect(page.getByRole('heading', { name: titles[index], exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('heading', { name: titles[index], exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await expect(page.getByRole('combobox', { name: 'Planning view', exact: true })).toBeVisible();
-    const heading = await page.getByRole('heading', { name: titles[index], exact: true }).boundingBox();
+    // Phones switch between a hub's views from the picker under the app bar.
+    await expect(page.getByRole('button', { name: new RegExp(`^${titles[index].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} — choose an? \\w+ view$`) })).toBeVisible();
+    const heading = await page.getByRole('main').getByRole('heading', { name: titles[index], exact: true }).boundingBox();
     expect(heading!.x).toBeLessThan(40);
   }
   expect(errors).toEqual([]);
