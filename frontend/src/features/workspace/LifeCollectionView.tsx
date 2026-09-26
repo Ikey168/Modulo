@@ -56,6 +56,7 @@ import { useEducationStore } from './useEducationStore';
 import { useMediaLibraryStore } from './usePluginDataStores';
 import { useRemoveLifeOsRelations } from './useLifeOsRelations';
 import { CrossPluginLinks } from './CrossPluginLinks';
+import { NoesisRecordPanel } from './NoesisRecordPanel';
 
 export function LifeCollectionView({ config }: { config: LifePluginConfig }) {
 
@@ -764,6 +765,9 @@ function LifeRecordPage({
               record={editing ? draft : record}
               patch={editing ? patchDraft : patch}
             />
+          )}
+          {!isNew && (
+            <NoesisRecordPanel pluginId={config.id} collection="records" recordId={record.id} title={record.title} summary={record.notes} />
           )}
           <CrossPluginLinks
             uid={`${lifeStoreKey(config.id)}:records:${record.id}`}
