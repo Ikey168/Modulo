@@ -107,7 +107,7 @@ docker run --detach --rm --name "$container_name" --network none \
   --env POSTGRES_PASSWORD=pitr-drill \
   --volume "$tmp_dir/data:/var/lib/postgresql/data" \
   --volume "$wal_dir:/recovery-wal:ro" \
-  "$postgres_image" -c archive_mode=off >/dev/null
+  "$postgres_image" postgres -c archive_mode=off >/dev/null
 
 reached_target=false
 for _ in {1..180}; do
