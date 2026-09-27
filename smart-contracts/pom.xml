@@ -17,7 +17,7 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.10.3</version> <!-- Consider managing this version in parent's dependencyManagement -->
+            <version>4.14.0</version> <!-- Consider managing this version in parent's dependencyManagement -->
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

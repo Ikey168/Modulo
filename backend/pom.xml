@@ -36,6 +36,22 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- One grpc-java and protobuf version for everything, including the
+                 modules grpc-spring-boot-starter pulls in (grpc-services, grpc-inprocess). -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>1.84.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-bom</artifactId>
+                <version>3.25.9</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!--
                 rest-assured 5.3.2 transitively resolves json-path / xml-path down to
                 4.5.1, which depend on the legacy org.codehaus.groovy 3.0.x modules and
@@ -160,7 +176,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8</artifactId>
-            <version>2.35.0</version>
+            <version>2.35.2</version>
             <scope>test</scope>
         </dependency>
         
@@ -242,27 +258,27 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.9.8</version>
+            <version>4.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>crypto</artifactId>
-            <version>4.9.8</version>
+            <version>4.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>utils</artifactId>
-            <version>4.9.8</version>
+            <version>4.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>contracts</artifactId>
-            <version>4.9.8</version>
+            <version>4.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>tuples</artifactId>
-            <version>4.9.8</version>
+            <version>4.14.0</version>
         </dependency>
 
         <!-- IPFS HTTP Client for decentralized storage - using HTTP client approach -->
@@ -281,7 +297,7 @@
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
-            <version>2.0.32</version>
+            <version>2.0.37</version>
         </dependency>
 
         <!-- JSON processing for IPFS metadata -->
@@ -315,12 +331,12 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
-            <version>12.20.3</version>
+            <version>12.35.1</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
-            <version>1.8.2</version>
+            <version>1.18.6</version>
         </dependency>
 
         <!-- Bucket4j for rate limiting -->
@@ -339,17 +355,17 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.63.0</version>
+            <version>1.84.0</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.63.0</version>
+            <version>1.84.0</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.63.0</version>
+            <version>1.84.0</version>
         </dependency>
         <!-- grpc-java generated stubs carry @javax.annotation.Generated, which Jakarta EE 9+
              no longer provides. Compile-time only (the annotation has source retention). -->
@@ -362,7 +378,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.25.5</version>
+            <version>3.25.9</version>
         </dependency>
 
         <!-- OpenTelemetry dependencies -->
@@ -424,7 +440,7 @@
         <dependency>
             <groupId>io.nats</groupId>
             <artifactId>jnats</artifactId>
-            <version>2.26.0</version>
+            <version>2.26.3</version>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
@@ -751,9 +767,9 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.25.5:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:3.25.9:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.63.0:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.84.0:exe:${os.detected.classifier}</pluginArtifact>
                 </configuration>
                 <executions>
                     <execution>
