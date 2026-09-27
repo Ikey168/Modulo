@@ -121,7 +121,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreBrowserPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreBrowserPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -154,7 +154,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreFindingsPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreFindingsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -187,7 +187,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreOverviewPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreOverviewPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -220,7 +220,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreRemediationPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreRemediationPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -253,7 +253,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreReportPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreReportPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -286,7 +286,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreScopePlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreScopePlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -319,7 +319,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreTestsPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreTestsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -352,7 +352,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/auditCoreThreatsPlugin.tsx",
+      "module": "frontend/src/packs/audit-core/plugins/auditCoreThreatsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -505,7 +505,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessContractsPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessContractsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -542,7 +542,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessDashboardPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -569,7 +569,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessDirectoryPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessDirectoryPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -598,7 +598,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessObligationsPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessObligationsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -628,7 +628,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessOperationsPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessOperationsPlugin.tsx",
       "storage": [
         {
           "key": "modulo-business-admin-v1",
@@ -672,7 +672,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/businessReconciliationPlugin.tsx",
+      "module": "frontend/src/packs/business-admin/plugins/businessReconciliationPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -818,7 +818,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -845,7 +845,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -872,7 +872,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -899,7 +899,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1117,7 +1117,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/educationAssignmentsPlugin.tsx",
+      "module": "frontend/src/packs/education/plugins/educationAssignmentsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1144,7 +1144,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/educationCorePlugin.tsx",
+      "module": "frontend/src/packs/education/plugins/educationCorePlugin.tsx",
       "storage": [
         {
           "key": "modulo-education-v1",
@@ -1187,7 +1187,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/educationCurriculumPlugin.tsx",
+      "module": "frontend/src/packs/education/plugins/educationCurriculumPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1219,7 +1219,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/educationDashboardPlugin.tsx",
+      "module": "frontend/src/packs/education/plugins/educationDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1248,7 +1248,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/educationStudyPlugin.tsx",
+      "module": "frontend/src/packs/education/plugins/educationStudyPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1279,7 +1279,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/electronicsDashboardPlugin.tsx",
+      "module": "frontend/src/packs/electronics/plugins/electronicsDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1309,7 +1309,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/electronicsLabPlugin.tsx",
+      "module": "frontend/src/packs/electronics/plugins/electronicsLabPlugin.tsx",
       "storage": [
         {
           "key": "modulo-electronics-workbench-v1",
@@ -1352,7 +1352,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/electronicsPartsPlugin.tsx",
+      "module": "frontend/src/packs/electronics/plugins/electronicsPartsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1381,7 +1381,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/electronicsProjectsPlugin.tsx",
+      "module": "frontend/src/packs/electronics/plugins/electronicsProjectsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1410,7 +1410,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/euerPlugin.tsx",
+      "module": "frontend/src/packs/freelancer/plugins/euerPlugin.tsx",
       "storage": [
         {
           "key": "modulo-euer-expenses",
@@ -1479,7 +1479,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1510,7 +1510,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1537,7 +1537,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1564,7 +1564,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1684,7 +1684,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/financeSubscriptionsPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/financeSubscriptionsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -1922,7 +1922,7 @@
         ],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/gobdPlugin.tsx",
+      "module": "frontend/src/packs/freelancer/plugins/gobdPlugin.tsx",
       "storage": [
         {
           "key": "modulo-gobd-classes",
@@ -2051,7 +2051,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/healthTrackerPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/healthTrackerPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2082,7 +2082,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/hobbyDashboardPlugin.tsx",
+      "module": "frontend/src/packs/hobbies/plugins/hobbyDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2111,7 +2111,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/hobbyFunPlugin.tsx",
+      "module": "frontend/src/packs/hobbies/plugins/hobbyFunPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2141,7 +2141,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/hobbyPracticePlugin.tsx",
+      "module": "frontend/src/packs/hobbies/plugins/hobbyPracticePlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2168,7 +2168,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/hobbyStackPlugin.tsx",
+      "module": "frontend/src/packs/hobbies/plugins/hobbyStackPlugin.tsx",
       "storage": [
         {
           "key": "modulo-hobbies-v1",
@@ -2209,7 +2209,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/hobbyStudioPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/hobbyStudioPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2236,7 +2236,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/homeInventoryPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/homeInventoryPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2263,7 +2263,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/homeMaintenancePlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/homeMaintenancePlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2292,7 +2292,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/homelabAssetsPlugin.tsx",
+      "module": "frontend/src/packs/homelab/plugins/homelabAssetsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2322,7 +2322,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/homelabDashboardPlugin.tsx",
+      "module": "frontend/src/packs/homelab/plugins/homelabDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2352,7 +2352,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/homelabOperationsPlugin.tsx",
+      "module": "frontend/src/packs/homelab/plugins/homelabOperationsPlugin.tsx",
       "storage": [
         {
           "key": "modulo-homelab-v1",
@@ -2484,7 +2484,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/journalReflectionPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/journalReflectionPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -2647,7 +2647,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/lifeOsDashboardPlugin.tsx",
+      "module": "frontend/src/packs/life-os/plugins/lifeOsDashboardPlugin.tsx",
       "storage": [
         {
           "key": "modulo-life-os-v1",
@@ -2696,7 +2696,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/lifeOsExplorerPlugin.tsx",
+      "module": "frontend/src/packs/life-os/plugins/lifeOsExplorerPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -2733,7 +2733,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/lifeOsPortabilityPlugin.tsx",
+      "module": "frontend/src/packs/life-os/plugins/lifeOsPortabilityPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -2770,7 +2770,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/lifeOsRelationsPlugin.tsx",
+      "module": "frontend/src/packs/life-os/plugins/lifeOsRelationsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -2807,7 +2807,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/lifeOsReviewPlugin.tsx",
+      "module": "frontend/src/packs/life-os/plugins/lifeOsReviewPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -3026,7 +3026,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mealPlannerPlugin.tsx",
+      "module": "frontend/src/packs/health-training/plugins/mealPlannerPlugin.tsx",
       "storage": [
         {
           "key": "modulo-meal-planner-v2",
@@ -3080,7 +3080,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3109,7 +3109,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3138,7 +3138,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3167,7 +3167,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3196,7 +3196,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3225,7 +3225,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3254,7 +3254,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3283,7 +3283,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3312,7 +3312,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3341,7 +3341,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3370,7 +3370,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3399,7 +3399,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3428,7 +3428,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3457,7 +3457,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3486,7 +3486,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3515,7 +3515,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3584,7 +3584,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3613,7 +3613,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3642,7 +3642,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3671,7 +3671,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3700,7 +3700,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3729,7 +3729,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3758,7 +3758,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3787,7 +3787,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3814,7 +3814,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaLibraryPlugin.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaLibraryPlugin.tsx",
       "storage": [
         {
           "key": "modulo-media-library-v2",
@@ -3868,7 +3868,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3897,7 +3897,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3926,7 +3926,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3955,7 +3955,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -3984,7 +3984,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4013,7 +4013,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4042,7 +4042,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4071,7 +4071,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4100,7 +4100,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4129,7 +4129,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4158,7 +4158,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4187,7 +4187,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4216,7 +4216,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4245,7 +4245,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4274,7 +4274,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4303,7 +4303,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4332,7 +4332,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4361,7 +4361,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4390,7 +4390,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4419,7 +4419,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4448,7 +4448,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4477,7 +4477,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4506,7 +4506,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4535,7 +4535,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4564,7 +4564,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4593,7 +4593,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4622,7 +4622,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4651,7 +4651,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4680,7 +4680,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4709,7 +4709,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4738,7 +4738,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4767,7 +4767,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/mediaTypePlugins.tsx",
+      "module": "frontend/src/packs/media/plugins/mediaTypePlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4888,7 +4888,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4915,7 +4915,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4942,7 +4942,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -4969,7 +4969,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5000,7 +5000,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/musicDashboardPlugin.tsx",
+      "module": "frontend/src/packs/music/plugins/musicDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5030,7 +5030,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/musicPracticePlugin.tsx",
+      "module": "frontend/src/packs/music/plugins/musicPracticePlugin.tsx",
       "storage": [
         {
           "key": "modulo-music-studio-v1",
@@ -5073,7 +5073,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/musicAssetsPlugin.tsx",
+      "module": "frontend/src/packs/music/plugins/musicAssetsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5102,7 +5102,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/musicProjectsPlugin.tsx",
+      "module": "frontend/src/packs/music/plugins/musicProjectsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5390,7 +5390,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paperlessPlugin.tsx",
+      "module": "frontend/src/packs/paperless/plugins/paperlessPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5415,7 +5415,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paperlessActionsPlugin.ts",
+      "module": "frontend/src/packs/paperless/plugins/paperlessActionsPlugin.ts",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5445,7 +5445,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraCapturePlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraCapturePlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5475,7 +5475,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraCorePlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraCorePlugin.tsx",
       "storage": [
         {
           "key": "modulo-modified-para-v1",
@@ -5521,7 +5521,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraDashboardPlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5550,7 +5550,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraGoalsPlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraGoalsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5582,7 +5582,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraMigrationPlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraMigrationPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [
@@ -5619,7 +5619,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraReviewPlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraReviewPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5648,7 +5648,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/paraTasksPlugin.tsx",
+      "module": "frontend/src/packs/para/plugins/paraTasksPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5764,7 +5764,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/personalCrmPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/personalCrmPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5793,7 +5793,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/personalSopsPlugin.tsx",
+      "module": "frontend/src/packs/personal-sops/plugins/personalSopsPlugin.tsx",
       "storage": [
         {
           "key": "modulo-personal-sops-v1",
@@ -5834,7 +5834,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/placesLibraryPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/placesLibraryPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -5993,7 +5993,7 @@
         ],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/rechnungPlugin.tsx",
+      "module": "frontend/src/packs/freelancer/plugins/rechnungPlugin.tsx",
       "storage": [
         {
           "key": "modulo-invoice-seller",
@@ -6121,7 +6121,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/routinesHabitsPlugin.tsx",
+      "module": "frontend/src/packs/routines/plugins/routinesHabitsPlugin.tsx",
       "storage": [
         {
           "key": "modulo-routines-habits-v1",
@@ -6234,7 +6234,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6261,7 +6261,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6288,7 +6288,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6315,7 +6315,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6430,7 +6430,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/styleStudioPlugin.tsx",
+      "module": "frontend/src/packs/wardrobe/plugins/styleStudioPlugin.tsx",
       "storage": [
         {
           "key": "modulo-wardrobe-v1",
@@ -6692,7 +6692,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/travelPlannerPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/travelPlannerPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6721,7 +6721,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/ttrpgCampaignsPlugin.tsx",
+      "module": "frontend/src/packs/ttrpg/plugins/ttrpgCampaignsPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6752,7 +6752,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/ttrpgDashboardPlugin.tsx",
+      "module": "frontend/src/packs/ttrpg/plugins/ttrpgDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6782,7 +6782,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/ttrpgSessionsPlugin.tsx",
+      "module": "frontend/src/packs/ttrpg/plugins/ttrpgSessionsPlugin.tsx",
       "storage": [
         {
           "key": "modulo-ttrpg-v1",
@@ -6825,7 +6825,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/ttrpgWorldPlugin.tsx",
+      "module": "frontend/src/packs/ttrpg/plugins/ttrpgWorldPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -6977,7 +6977,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/wardrobeClosetPlugin.tsx",
+      "module": "frontend/src/packs/wardrobe/plugins/wardrobeClosetPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7007,7 +7007,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/wardrobeDashboardPlugin.tsx",
+      "module": "frontend/src/packs/wardrobe/plugins/wardrobeDashboardPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7034,7 +7034,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7061,7 +7061,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7092,7 +7092,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7119,7 +7119,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7317,7 +7317,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/wishlistPurchasesPlugin.tsx",
+      "module": "frontend/src/packs/personal-life/plugins/wishlistPurchasesPlugin.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7344,7 +7344,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/workoutPlannerPlugin.tsx",
+      "module": "frontend/src/packs/health-training/plugins/workoutPlannerPlugin.tsx",
       "storage": [
         {
           "key": "modulo-workout-planner-v1",
@@ -7542,7 +7542,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7569,7 +7569,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7596,7 +7596,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7623,7 +7623,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/domainPackPlugins.tsx",
+      "module": "frontend/src/packs/domain-collections/plugins/domainPackPlugins.tsx",
       "storage": [],
       "schemas": [],
       "capabilities": [],
@@ -7652,7 +7652,7 @@
         "editorActions": [],
         "blueprintNodes": []
       },
-      "module": "frontend/src/features/workspace/plugins/builtins/zeiterfassungPlugin.tsx",
+      "module": "frontend/src/packs/freelancer/plugins/zeiterfassungPlugin.tsx",
       "storage": [
         {
           "key": "modulo-time-entries",

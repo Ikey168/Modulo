@@ -1,7 +1,10 @@
 // ESLint config for the Modulo frontend.
 // Boundary rule (no-restricted-imports) guards the @modulo/core API surface:
 // feature-pack code must not bypass the core API by importing workspace internals
-// directly. Rule is 'error' as of B9 (#302) — violations block CI.
+// directly. Rule is 'error' as of B9 (#302) — violations block CI. The same
+// rule also keeps domain packs (src/packs/<pack>/) from importing each other (#548).
+const boundary = require('./.eslintrc.boundary.cjs');
+
 module.exports = {
   root: true,
   env: { browser: true, es2020: true },
@@ -47,31 +50,8 @@ module.exports = {
     // See docs/architecture/decisions.md#core-experience-boundary for violation history.
     // Rationale (why a typed core behind a public API, not a generic graph):
     // docs/architecture/decisions.md#adr-0002 (B8 #301).
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['**/features/workspace/workspaceApi', '../features/workspace/workspaceApi'],
-            message:
-              'Import from @modulo/core instead of workspaceApi directly. See B1 #294 / B9 #302.',
-          },
-          {
-            group: ['**/features/workspace/types', '../features/workspace/types'],
-            message:
-              'Use CoreNote/CoreLink/CoreTag from @modulo/core instead of workspace types. See B1 #294 / B9 #302.',
-          },
-          {
-            group: [
-              '**/features/workspace/useWorkspaceData',
-              '../features/workspace/useWorkspaceData',
-            ],
-            message:
-              'Use createCoreAPI() from @modulo/core instead of useWorkspaceData. See B1 #294 / B9 #302.',
-          },
-        ],
-      },
-    ],
+    // The rule and its per-pack overrides are defined once, in .eslintrc.boundary.cjs.
+    'no-restricted-imports': boundary.rules['no-restricted-imports'],
   },
   overrides: [
     // The platform module is the only reader of the Electron bridge (#489).
@@ -99,5 +79,7 @@ module.exports = {
       files: ['src/core/**/*.ts', 'src/core/**/*.tsx'],
       rules: { 'no-restricted-imports': 'off' },
     },
+    // Pack boundary (#548): src/packs/<a>/ must not import src/packs/<b>/.
+    ...boundary.overrides,
   ],
 };

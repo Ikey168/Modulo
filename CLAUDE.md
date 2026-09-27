@@ -22,7 +22,9 @@ For anything deeper, start at [docs/README.md](docs/README.md).
 frontend/src/
   core/          @modulo/core — the only API feature code may use
   features/      workspace, notes, blueprint, executions, approvals, packs, knowledge, praxis, …
-  features/workspace/plugins/   plugin catalog (catalog.ts) and built-in plugins
+  features/workspace/           workspace shell, core views, viewkit/, shared domain models and stores
+  features/workspace/plugins/   plugin runtime, catalog (catalog.ts) and core built-in plugins
+  packs/<pack>/  domain pack views, pack-only helpers, plugins/ entry modules, tests
   services/      low-level REST/WS clients, deviceDocuments, legacy migration readers
 backend/src/main/java/com/modulo/
   blueprint/     interpreter, node registry, sandbox, execution (workflow runs), approval
@@ -41,6 +43,10 @@ docs/            see docs/README.md; docs/reference/generated/ is machine-writte
   `@modulo/core` (alias in both `vite.config.ts` and `tsconfig.json`). Enforced
   by ESLint (`error`) and the `boundary-lint` CI job. `npm run lint:boundary:ci`
   is the strict check.
+- **Pack boundary.** Code in `src/packs/<a>/` must not import `src/packs/<b>/`.
+  Shared code goes in `features/workspace/` (or `@modulo/core`, `@/ui`,
+  `services/`). Same ESLint rule and CI job as the core boundary; the
+  per-pack overrides are generated in `frontend/.eslintrc.boundary.cjs`.
 - **No browser storage.** ESLint forbids `localStorage` and `sessionStorage`.
   Plugin data uses plugin state. Device-only documents use
   `services/deviceDocuments`.

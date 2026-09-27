@@ -1,4 +1,4 @@
-import { MediaLibraryView } from '../MediaLibraryView';
+import { MediaLibraryView } from '../../../packs/media/MediaLibraryView';
 import { mediaLibraryFromRecords } from '../mediaLibraryStore';
 import { createMemoryWorkspace } from '../../../__tests__/helpers/memoryWorkspaceState';
 import { LIFE_COLLECTION_SCHEMA } from '../useLifeCollection';
