@@ -258,27 +258,27 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.14.0</version>
+            <version>4.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>crypto</artifactId>
-            <version>4.14.0</version>
+            <version>4.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>utils</artifactId>
-            <version>4.14.0</version>
+            <version>4.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>contracts</artifactId>
-            <version>4.14.0</version>
+            <version>4.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>tuples</artifactId>
-            <version>4.14.0</version>
+            <version>4.13.0</version>
         </dependency>
 
         <!-- IPFS HTTP Client for decentralized storage - using HTTP client approach -->
