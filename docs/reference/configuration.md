@@ -102,8 +102,8 @@ See [Database operations](../operations/database.md).
 | `modulo.security.max-login-attempts` | | `3` | 1–10. |
 | `modulo.security.account-lockout-duration-seconds` | | `900` | At least 60. |
 | `modulo.security.keycloak.jwk-set-uri` | `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` | unset | When set, `ResourceServerSecurityConfig` validates Keycloak bearer tokens with this JWKS. Use an address reachable from the backend. |
-| `modulo.security.keycloak.issuer-uri` | `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` | unset | Expected `iss`. Must be the browser-facing issuer URL. |
-| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | | unset (`oidc` profile sets it) | Read by `AuthenticatedUserService`. |
+| `modulo.security.keycloak.issuer-uri` | `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` | unset | Expected `iss`, and the issuer whose tokens `AuthenticatedUserService` resolves to accounts (provisioning them on first use). Must be the browser-facing issuer URL. |
+| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | | unset | Fallback trusted issuer for `AuthenticatedUserService` when `modulo.security.keycloak.issuer-uri` is empty. |
 | `spring.security.oauth2.client.registration.{google,azure}.*` | | `test` | Legacy OAuth2 login clients. |
 | `modulo.security.allowed-origins` | `MODULO_SECURITY_ALLOWED_ORIGINS` | empty (WebSocket); `http://localhost:3000,https://modulo-app.com` (`cloud`) | Allowed origins for `/ws` and, under `cloud`, CORS. |
 | `modulo.security.rate-limit.enabled` | | `true` | `RateLimitingFilter`, per client IP. Returns 429. |

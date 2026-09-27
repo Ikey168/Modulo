@@ -9,12 +9,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 @Service
 public class AuthMigrationService {
@@ -38,9 +41,34 @@ public class AuthMigrationService {
      */
     @Transactional
     public User processAuthentication(OAuth2User oauth2User, AuthProvider provider) {
-        String email = oauth2User.getAttribute("email");
-        String subject = oauth2User.getAttribute("sub");
-        String name = oauth2User.getAttribute("name");
+        return processAuthentication(oauth2User::getAttribute, provider, true, null);
+    }
+
+    /**
+     * Just-in-time provisioning for a bearer token that the resource server has already
+     * validated and whose issuer the caller has checked. Uses the same rules as the OAuth
+     * login path (subject first, then the migration rules), with two differences: an
+     * existing account is linked by email only when the token says {@code email_verified},
+     * and {@code preferred_username} becomes the username when it is free.
+     *
+     * <p>Runs in its own transaction so that a caller inside a read-only transaction can
+     * still provision.</p>
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public User provisionFromBearerToken(Jwt jwt) {
+        boolean emailVerified = Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified"));
+        return processAuthentication(jwt::getClaim, AuthProvider.KEYCLOAK, emailVerified,
+                jwt.getClaimAsString("preferred_username"));
+    }
+
+    private User processAuthentication(Function<String, Object> claims, AuthProvider provider,
+                                       boolean linkByEmail, String preferredUsername) {
+        String email = claim(claims, "email");
+        String subject = claim(claims, "sub");
+        String name = claim(claims, "name");
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Authentication has no subject");
+        }
 
         logger.info("Processing authentication for provider: {}, email: {}", provider, email);
 
@@ -52,13 +80,24 @@ public class AuthMigrationService {
         }
 
         // Next, try to find user by email (for migration scenarios)
-        Optional<User> userByEmail = userRepository.findByEmail(email);
+        Optional<User> userByEmail = email == null ? Optional.empty() : userRepository.findByEmail(email);
         if (userByEmail.isPresent()) {
-            return handleExistingUserMigration(userByEmail.get(), oauth2User, provider, subject);
+            if (linkByEmail) {
+                return handleExistingUserMigration(userByEmail.get(), claims, provider, subject);
+            }
+            // Never adopt an existing account on an unverified email; the new account
+            // simply does not carry the (already taken) address.
+            logger.warn("Not linking {} subject {} to an existing account: email is not verified", provider, subject);
+            email = null;
         }
 
         // Create new user
-        return createNewUser(oauth2User, provider, subject, email, name);
+        return createNewUser(claims, provider, subject, email, name, preferredUsername);
+    }
+
+    private static String claim(Function<String, Object> claims, String name) {
+        Object value = claims.apply(name);
+        return value == null ? null : value.toString();
     }
 
     /**
@@ -81,7 +120,7 @@ public class AuthMigrationService {
      * Handles migration of existing users to new authentication provider
      */
     @Transactional
-    private User handleExistingUserMigration(User existingUser, OAuth2User oauth2User, AuthProvider provider, String subject) {
+    private User handleExistingUserMigration(User existingUser, Function<String, Object> claims, AuthProvider provider, String subject) {
         logger.info("Handling migration for existing user: {} with provider: {}", existingUser.getEmail(), provider);
 
         // Check if user already has this provider configured
@@ -92,9 +131,9 @@ public class AuthMigrationService {
 
         // Handle different migration scenarios
         if (dualAuthEnabled) {
-            return handleDualAuthMigration(existingUser, oauth2User, provider, subject);
+            return handleDualAuthMigration(existingUser, claims, provider, subject);
         } else {
-            return handleDirectMigration(existingUser, oauth2User, provider, subject);
+            return handleDirectMigration(existingUser, claims, provider, subject);
         }
     }
 
@@ -102,7 +141,7 @@ public class AuthMigrationService {
      * Handles dual-auth period where users can authenticate with both legacy and new providers
      */
     @Transactional
-    private User handleDualAuthMigration(User existingUser, OAuth2User oauth2User, AuthProvider provider, String subject) {
+    private User handleDualAuthMigration(User existingUser, Function<String, Object> claims, AuthProvider provider, String subject) {
         logger.info("Processing dual-auth migration for user: {} with provider: {}", existingUser.getEmail(), provider);
 
         // Add the new provider to the user's auth providers
@@ -123,7 +162,7 @@ public class AuthMigrationService {
         }
 
         // Update user profile information from the new provider
-        updateUserProfileFromOAuth(existingUser, oauth2User);
+        updateUserProfileFromOAuth(existingUser, claims);
 
         // Log the migration activity
         logMigrationActivity(existingUser, provider, "dual_auth_added");
@@ -135,7 +174,7 @@ public class AuthMigrationService {
      * Handles direct migration without dual-auth period
      */
     @Transactional
-    private User handleDirectMigration(User existingUser, OAuth2User oauth2User, AuthProvider provider, String subject) {
+    private User handleDirectMigration(User existingUser, Function<String, Object> claims, AuthProvider provider, String subject) {
         logger.info("Processing direct migration for user: {} to provider: {}", existingUser.getEmail(), provider);
 
         // Clear existing auth providers and set the new one as primary
@@ -148,7 +187,7 @@ public class AuthMigrationService {
         existingUser.setMigrationDate(LocalDateTime.now());
 
         // Update user profile information
-        updateUserProfileFromOAuth(existingUser, oauth2User);
+        updateUserProfileFromOAuth(existingUser, claims);
 
         // Log the migration activity
         logMigrationActivity(existingUser, provider, "direct_migration");
@@ -160,12 +199,13 @@ public class AuthMigrationService {
      * Creates a new user from OAuth authentication
      */
     @Transactional
-    private User createNewUser(OAuth2User oauth2User, AuthProvider provider, String subject, String email, String name) {
+    private User createNewUser(Function<String, Object> claims, AuthProvider provider, String subject,
+                               String email, String name, String preferredUsername) {
         logger.info("Creating new user for provider: {}, email: {}", provider, email);
 
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setUsername(email); // Use email as username for OAuth users
+        newUser.setUsername(chooseUsername(preferredUsername, email, provider, subject));
         
         // Set name fields
         if (name != null) {
@@ -186,7 +226,7 @@ public class AuthMigrationService {
         newUser.setLastLoginAt(LocalDateTime.now());
 
         // Extract additional profile information
-        updateUserProfileFromOAuth(newUser, oauth2User);
+        updateUserProfileFromOAuth(newUser, claims);
 
         User savedUser = userRepository.save(newUser);
         
@@ -194,6 +234,19 @@ public class AuthMigrationService {
         logMigrationActivity(savedUser, provider, "new_user_created");
         
         return savedUser;
+    }
+
+    /**
+     * The OAuth login path has always used the email as username. Bearer provisioning
+     * prefers {@code preferred_username}. Usernames are unique, so a taken or missing
+     * candidate falls back to one derived from the provider subject.
+     */
+    private String chooseUsername(String preferredUsername, String email, AuthProvider provider, String subject) {
+        String candidate = preferredUsername != null && !preferredUsername.isBlank() ? preferredUsername : email;
+        if (candidate != null && !candidate.isBlank() && (preferredUsername == null || !userRepository.existsByUsername(candidate))) {
+            return candidate;
+        }
+        return provider.name().toLowerCase(java.util.Locale.ROOT) + ":" + subject;
     }
 
     /**
@@ -209,22 +262,22 @@ public class AuthMigrationService {
     /**
      * Updates user profile information from OAuth provider
      */
-    private void updateUserProfileFromOAuth(User user, OAuth2User oauth2User) {
+    private void updateUserProfileFromOAuth(User user, Function<String, Object> claims) {
         // Update basic profile fields if they're not set
         if (user.getFirstName() == null) {
-            user.setFirstName(oauth2User.getAttribute("given_name"));
+            user.setFirstName(claim(claims, "given_name"));
         }
         if (user.getLastName() == null) {
-            user.setLastName(oauth2User.getAttribute("family_name"));
+            user.setLastName(claim(claims, "family_name"));
         }
 
         // Store additional OAuth attributes
-        String picture = oauth2User.getAttribute("picture");
+        String picture = claim(claims, "picture");
         if (picture != null) {
             user.getCustomAttributes().put("profile_picture", picture);
         }
 
-        String locale = oauth2User.getAttribute("locale");
+        String locale = claim(claims, "locale");
         if (locale != null) {
             user.getCustomAttributes().put("locale", locale);
         }

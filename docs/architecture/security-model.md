@@ -102,28 +102,38 @@ Every data access resolves the caller to a row in `users` through
 [`AuthenticatedUserService`](../../backend/src/main/java/com/modulo/security/AuthenticatedUserService.java).
 Display names and emails are never identities.
 
-- **Bearer JWT**: the token's `iss` must equal
-  `spring.security.oauth2.resourceserver.jwt.issuer-uri` (a different property
-  from `modulo.security.keycloak.issuer-uri`), and `sub` is looked up in
-  `users.keycloak_subject`.
+- **Bearer JWT**: the token's `iss` must equal the trusted issuer, which is
+  `modulo.security.keycloak.issuer-uri` (the property the bearer chain validates
+  against) or, when that is empty, `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+  `sub` is looked up in `users.keycloak_subject`. With no issuer configured, no
+  bearer token resolves to an account.
 - **OAuth2 login session**: `sub` is looked up by registration (`google`,
   `azure` or `keycloak` subject column).
 - **Local `UserDetails`**: looked up by username.
 
-An anonymous request gets 401. An authenticated identity with no matching
-provisioned user gets 403 `Authenticated account is not provisioned`.
+**Just-in-time provisioning.** The first request with a valid token from the
+trusted issuer and an unknown `sub` creates the account through
+`AuthMigrationService.provisionFromBearerToken`, the same rules the OAuth login
+path uses: username from `preferred_username` (or `keycloak:<sub>` when taken),
+email and names from the token. An existing account is linked by email only when
+the token carries `email_verified: true`, and then only through the migration
+rules below; an unverified email is never used to adopt an account (the new
+account is created without it). Provisioning runs in its own transaction and is
+serialized per JVM so concurrent first requests create one row.
+
+An anonymous request gets 401. A token from any other issuer, or any other
+authenticated identity with no matching user, gets 403 `Authenticated account is
+not provisioned`.
 
 ### Provider migration (dual auth)
 
 Accounts that predate Keycloak can hold Google or Azure subjects.
 `AuthMigrationService` links a new provider to an existing user on login
-(matched by provider subject, then by email) and tracks a migration status.
+(matched by provider subject, then by email; for bearer tokens only a verified
+email) and tracks a migration status.
 Settings: `modulo.auth.dual-auth-enabled` (default `true`),
 `modulo.auth.default-provider` (`KEYCLOAK`),
-`modulo.auth.migration-grace-period-days` (30),
-`modulo.auth.conflict-resolution-strategy` (`EMAIL_MAPPING`),
-`modulo.auth.auto-migrate-legacy-users` (`false`),
-`modulo.auth.require-manual-review-threshold` (2). Admin endpoints live under
+`modulo.auth.migration-grace-period-days` (30). Admin endpoints live under
 `/auth/migration` (`status`, `statistics`, `manual-review`, `dual-auth`,
 `resolve-conflict`, `force-migrate`, `users-by-provider`, `settings`).
 

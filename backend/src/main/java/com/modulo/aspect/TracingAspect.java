@@ -50,6 +50,10 @@ public class TracingAspect {
         return tracingService.traceFunction(operationName, SpanKind.INTERNAL, attributes, () -> {
             try {
                 return joinPoint.proceed();
+            } catch (RuntimeException | Error unchecked) {
+                // Rethrow as is: wrapping would turn a ResponseStatusException (401/403/404)
+                // into a generic 500.
+                throw unchecked;
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
@@ -74,6 +78,10 @@ public class TracingAspect {
         return tracingService.traceFunction(operationName, SpanKind.INTERNAL, attributes, () -> {
             try {
                 return joinPoint.proceed();
+            } catch (RuntimeException | Error unchecked) {
+                // Rethrow as is: wrapping would turn a ResponseStatusException (401/403/404)
+                // into a generic 500.
+                throw unchecked;
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
@@ -96,6 +104,10 @@ public class TracingAspect {
         return tracingService.traceFunction(operationName, SpanKind.CLIENT, attributes, () -> {
             try {
                 return joinPoint.proceed();
+            } catch (RuntimeException | Error unchecked) {
+                // Rethrow as is: wrapping would turn a ResponseStatusException (401/403/404)
+                // into a generic 500.
+                throw unchecked;
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }

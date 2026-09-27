@@ -85,7 +85,8 @@ class StateAcceptanceTest {
         user.setId(id);
         when(repository.findByKeycloakSubject("owner-" + id)).thenReturn(Optional.of(user));
       }
-      return new AuthenticatedUserService(repository, ISSUER);
+      return new AuthenticatedUserService(
+          repository, mock(com.modulo.service.AuthMigrationService.class), ISSUER, "");
     }
 
     @Bean

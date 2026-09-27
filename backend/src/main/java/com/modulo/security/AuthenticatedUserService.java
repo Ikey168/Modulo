@@ -2,6 +2,7 @@ package com.modulo.security;
 
 import com.modulo.entity.User;
 import com.modulo.repository.jpa.UserRepository;
+import com.modulo.service.AuthMigrationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -15,16 +16,37 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
-/** Resolves a verified login to a persisted owner; display names and emails are not identities. */
+/**
+ * Resolves a verified login to a persisted owner; display names and emails are not identities.
+ *
+ * <p>Bearer tokens are trusted only from the issuer the resource server validates:
+ * {@code modulo.security.keycloak.issuer-uri}, falling back to
+ * {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}. The first request with a
+ * valid token from that issuer provisions the account (see
+ * {@link AuthMigrationService#provisionFromBearerToken}).</p>
+ */
 @Service
 public class AuthenticatedUserService {
     private final UserRepository users;
+    private final AuthMigrationService provisioning;
     private final String issuer;
+    /** Serialises first-request provisioning so concurrent requests for a new subject create one row. */
+    private final Object provisioningLock = new Object();
 
     public AuthenticatedUserService(UserRepository users,
-            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String issuer) {
+            AuthMigrationService provisioning,
+            @Value("${modulo.security.keycloak.issuer-uri:}") String keycloakIssuer,
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String springIssuer) {
         this.users = users;
-        this.issuer = issuer;
+        this.provisioning = provisioning;
+        this.issuer = keycloakIssuer != null && !keycloakIssuer.isBlank()
+                ? keycloakIssuer.trim()
+                : (springIssuer == null ? "" : springIssuer.trim());
+    }
+
+    /** The issuer whose bearer tokens resolve to accounts; empty when none is configured. */
+    public String trustedIssuer() {
+        return issuer;
     }
 
     public User requireUser() {
@@ -43,6 +65,14 @@ public class AuthenticatedUserService {
             String subject = jwt.getSubject();
             if (!issuer.isBlank() && issuer.equals(tokenIssuer) && subject != null && !subject.isBlank()) {
                 resolved = users.findByKeycloakSubject(subject);
+                if (resolved.isEmpty()) {
+                    synchronized (provisioningLock) {
+                        resolved = users.findByKeycloakSubject(subject);
+                        if (resolved.isEmpty()) {
+                            resolved = Optional.of(provisioning.provisionFromBearerToken(jwt));
+                        }
+                    }
+                }
             }
         } else if (authentication instanceof OAuth2AuthenticationToken) {
             var oauth = (OAuth2AuthenticationToken) authentication;
