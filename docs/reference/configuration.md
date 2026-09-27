@@ -45,6 +45,10 @@ The `oidc` and `cloud` profiles, which switched on alternative security
 configurations, are gone too: security is the same in every profile (see
 [Security model](../architecture/security-model.md#how-the-backend-authenticates-a-request)).
 
+The manifests and scripts that activated the removed cluster and Azure profiles
+are preserved in commit `86644da` (see
+[Deployment](../operations/deployment.md#archived-cloud-deployments)).
+
 ## Server and management
 
 | Key | Env var | Default | Notes |

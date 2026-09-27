@@ -12,21 +12,14 @@ vulnerability is described in [`SECURITY.md`](../../SECURITY.md).
 
 | Check | Tool | Local | CI | Gate |
 |-------|------|-------|----|------|
-| Secrets in commits | Gitleaks | `pre-commit` hook, `gitleaks detect` | [`secret-scanning.yml`](../../.github/workflows/secret-scanning.yml) (see note) | Blocks PR |
-| Authorization policy tests | OPA, Conftest | `make policy-ci` | [`policy-ci.yml`](../../.github/workflows/policy-ci.yml) (see note) | Blocks PR |
+| Secrets in commits | Gitleaks | `pre-commit` hook, `gitleaks detect` | [`secret-scanning.yml`](../../.github/workflows/secret-scanning.yml) | Blocks PR |
+| Authorization policy tests | OPA | `make policy-ci` | [`policy-ci.yml`](../../.github/workflows/policy-ci.yml) | Blocks PR |
 | Dynamic scan (DAST) | OWASP ZAP | Docker | [`owasp-zap.yml`](../../.github/workflows/owasp-zap.yml) | Fails on any High |
 | Static analysis (SAST) | CodeQL | CodeQL CLI | GitHub default code scanning (see below) | |
 | Penetration tests | [`security-penetration-testing/`](../../security-penetration-testing) | `npm run test:security:all` | Manual | |
 | In-app probes | `/api/security/testing/*` | [`scripts/security-assessment.sh`](../../scripts/security-assessment.sh) | Manual, non-production only | |
-| Image signatures | Cosign, Kyverno | | see [Releases](releases-and-supply-chain.md) | |
+| Image signatures | Cosign | | see [Releases](releases-and-supply-chain.md) | |
 | Dependency and image SBOMs | Syft, BuildKit | | release and signed builds | |
-
-**Workflows that do not currently run.** `secret-scanning.yml`,
-`policy-ci.yml` and `test-image-signing.yml` are not valid YAML: each has an
-unindented heredoc or step inside a `run: |` block (around lines 65, 251 and 184
-respectively), so GitHub rejects the file and never runs the job. Until they are
-fixed, run the local equivalents below before merging changes to secrets,
-policies or signing.
 
 ## Secret scanning
 
@@ -40,8 +33,10 @@ Gitleaks rules with:
 | `blockchain-private-key` | `private_key = 0x<64 hex>` |
 | `jwt-secret` | `jwt_secret = <32+ base64>` |
 
-It also has allowlists for documentation placeholders, test fixtures and build
-output, and skips entropy checks for some file types.
+It also has allowlists for documentation placeholders, test fixtures, build
+output, plugin-state store keys (`modulo-<name>-v<n>`), public key fingerprints and
+the generated files under `docs/reference/generated/`, and skips some binary file
+types.
 
 Local setup, once:
 
@@ -60,9 +55,18 @@ gitleaks detect --config .gitleaks.toml  # full history scan
 gitleaks protect --staged                # staged changes only
 ```
 
-In CI the workflow runs `gitleaks/gitleaks-action` with full history on pushes,
-PRs to `main`/`develop` and daily at 02:00 UTC, uploads SARIF to the Security tab,
-and comments on the PR when it finds something.
+In CI the workflow runs the Gitleaks CLI (pinned to 8.28.0, the same version as
+the pre-commit hook) with `.gitleaks.toml` on pull requests to `main`/`develop`,
+pushes to `main` and manual runs. It scans only the commits being introduced (the
+PR's base..head, or the pushed range) and prints findings, redacted, in the job
+log. It does not scan the whole tree or history: the tree still contains known
+development defaults (the dev JWT and encryption keys in
+`backend/src/main/resources/application.*`, the Hardhat default account key and
+the placeholders in `smart-contracts/.env.encrypted.example`), so a full scan
+reports them. Run `gitleaks dir --config .gitleaks.toml .` to see them locally.
+
+`.gitleaks.toml` uses the `[[allowlists]]` table form, which needs Gitleaks 8.25
+or later.
 
 When a secret is detected:
 
@@ -96,13 +100,14 @@ code. The rules themselves are described in
 | `make policy-build` | Bundle to `dist/policy-bundle.tar.gz` |
 | `make policy-security-scan` | Greps for `password`, `secret`, `token`, `key` literals |
 | `make policy-ci` | fmt, lint, test, build |
-| `make install-policy-ci` | Installs OPA 0.58.0 and Conftest 0.46.0 |
+| `make install-policy-ci` | Installs OPA 0.59.0 |
 
-The CI workflow (triggered by changes under `policy/` or `infra/opa/`) adds
-bundle validation, a Conftest run against a generated sample Compose file,
-JUnit results, a coverage report (target 80 %), a PR comment, and a
-"Policy Change Analysis" job that lists the `.rego` files and diffs changed
-against the base branch.
+The CI workflow (triggered by changes under `policy/` or `infra/opa/`) pins OPA
+0.59.0, the version the `opa` Compose service runs, and runs `opa fmt --list
+--fail`, `opa check`, `opa test` on both directories, reports `policy/` test
+coverage (currently about 60 %; there is no threshold) and uploads the built
+bundles as an artifact. `infra/opa/` is loaded with `--ignore '*.yaml'` because
+it also holds the OPA server configuration files.
 
 Before merging a policy change: tests pass, coverage has not dropped, and every
 new rule has a deny test as well as an allow test.
@@ -150,7 +155,7 @@ Only scan systems you own. Active scans send attack payloads.
 
 [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml)
 configures the `security-and-quality` suite for `backend/src` and `frontend/src`
-and ignores build output, `node_modules`, `.github`, `k8s` and `azure`. No
+and ignores build output, `node_modules`, `.github`, `k8s` and `scripts`. No
 workflow in `.github/workflows` runs CodeQL. Analysis comes from GitHub's
 default code-scanning setup in the repository settings, which runs `Analyze`
 jobs on pull requests for `actions`, `go`, `javascript-typescript` and `python`.

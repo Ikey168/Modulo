@@ -8,14 +8,19 @@ settings behind each piece are in the
 
 ## Where things run
 
-| Signal | Local compose | Kubernetes | OCI host |
-|--------|---------------|------------|----------|
-| Health | `/api/health*`, actuator on 8081 | actuator probes | `/health`, `/api/health`, `status.sh`, `verify-deployment.py` |
-| Metrics | Prometheus `:9090`, Grafana `:3000` | [`k8s/observability`](../../k8s/observability) | not deployed |
-| Traces | OTel collector `:4317` → Jaeger `:16686` | OTel collector → Tempo | disabled |
-| Logs | Loki `:3100`, stdout | Loki | `docker compose logs`, `journalctl` for backups |
-| Authorization audit | OPA → audit-collector → Loki + Elasticsearch | | |
-| Application audit | `audit_events` table, `GET /api/audit` | same | same |
+| Signal | Local compose | OCI host |
+|--------|---------------|----------|
+| Health | `/api/health*`, actuator on 8081 | `/health`, `/api/health`, `status.sh`, `verify-deployment.py` |
+| Metrics | Prometheus `:9090`, Grafana `:3000` | not deployed |
+| Traces | OTel collector `:4317` → Jaeger `:16686` | disabled |
+| Logs | Loki `:3100`, stdout | `docker compose logs`, `journalctl` for backups |
+| Authorization audit | OPA → audit-collector → Loki + Elasticsearch | |
+| Application audit | `audit_events` table, `GET /api/audit` | same |
+
+The Kubernetes observability stack (Prometheus, Grafana, Loki, Tempo, SLO rules
+and dashboards under `k8s/observability`) was retired with the cluster
+deployment and is preserved at the Git tag
+commit [`86644da`](deployment.md#archived-cloud-deployments).
 
 ## Health endpoints
 
@@ -53,19 +58,15 @@ Actuator runs on `management.server.port` (8081 by default) at base path `/actua
 | `/actuator/prometheus` | Micrometer metrics for Prometheus |
 | `/actuator/metrics`, `/actuator/info` | Standard |
 
-Kubernetes probes in [`k8s/04-api-deployment.yaml`](../../k8s/04-api-deployment.yaml):
-liveness every 15 s after 120 s, readiness every 10 s after 60 s, startup on
-`/actuator/health`; each fails after 3 attempts. The probes target port 8080, so
-set `MANAGEMENT_SERVER_PORT=8080` or move them (see
-[Deployment](deployment.md#kubernetes-with-plain-manifests)).
+Probes for a container orchestrator should call the liveness and readiness
+groups on the management port (8081 unless `MANAGEMENT_SERVER_PORT` changes it).
 
 ### Diagnosing a failing health check
 
 ```sh
 curl -s localhost:8080/api/health/detailed | jq .checks
 curl -s localhost:8081/actuator/health | jq .
-kubectl describe pod -l app=spring-boot-api -n modulo      # probe events
-kubectl logs deploy/spring-boot-api -n modulo --tail=200
+docker compose logs backend --tail=200
 ```
 
 - `database: DOWN` in `/detailed` or `/ready`: check `SPRING_DATASOURCE_*`, that
@@ -100,9 +101,8 @@ scrapes itself, `audit-collector:8080/metrics`, `opa:8181/metrics`,
 
 | File | Loaded by | Alerts |
 |------|-----------|--------|
-| [`monitoring/prometheus/rules/workflow-alerts.yml`](../../monitoring/prometheus/rules/workflow-alerts.yml) | Kubernetes/your Prometheus; unit-tested by [`workflow-observability.yml`](../../.github/workflows/workflow-observability.yml) with `promtool test rules` | `WorkflowFailureBurst`, `WorkflowDeadLetters`, `WorkflowScheduleLag` (> 60 s for 2 min), `WorkflowQueueBacklog` (> 100 for 5 min) |
+| [`monitoring/prometheus/rules/workflow-alerts.yml`](../../monitoring/prometheus/rules/workflow-alerts.yml) Your own Prometheus; unit-tested by [`workflow-observability.yml`](../../.github/workflows/workflow-observability.yml) with `promtool test rules` | `WorkflowFailureBurst`, `WorkflowDeadLetters`, `WorkflowScheduleLag` (> 60 s for 2 min), `WorkflowQueueBacklog` (> 100 for 5 min) |
 | [`monitoring/alerts/authorization-audit-alerts.yaml`](../../monitoring/alerts/authorization-audit-alerts.yaml) | Compose Prometheus (mounted as `/etc/prometheus/rules`) | Denial rate, audit service down, slow decisions, suspicious patterns, forwarding failures, token validation failures, no audit logs received, policy errors, authorization SLO |
-| [`k8s/observability/prometheus-slo-rules.yaml`](../../k8s/observability/prometheus-slo-rules.yaml) | Kubernetes Prometheus | SLI recording rules and burn-rate alerts (see [SLOs](#service-level-objectives)) |
 
 The compose stack mounts `monitoring/alerts`, not `monitoring/prometheus/rules`,
 so the workflow alerts are not loaded locally. Compose also points at an
@@ -121,10 +121,10 @@ What to do when a workflow alert fires is in [Runbooks](runbooks.md#workflow-ope
   Grafana 10.2.3's file provisioner fails on the authorization dashboard every
   10 s ("could not resolve dashboards:uid"); the same JSON imports cleanly
   through the UI. Move it back once Grafana fixes the provisioner.
-- [`k8s/observability/dashboards`](../../k8s/observability/dashboards) has
-  application performance, JVM, database, SLO overview, sync/blockchain and
-  cost dashboards for the Kubernetes stack, deployed by
-  [`k8s/deploy-observability.sh`](../../k8s/deploy-observability.sh).
+- The application performance, JVM, database, SLO overview, sync/blockchain and
+  cost dashboards of the retired Kubernetes stack are in the
+  commit [`86644da`](deployment.md#archived-cloud-deployments)
+  (`k8s/observability/dashboards`).
 
 ## Tracing
 
@@ -246,9 +246,15 @@ No backend code emits `modulo_sync_operations_duration_seconds` yet, so the sync
 SLO has no data until that metric exists.
 
 Recording rules `modulo:sli:*`, `modulo:slo:*_compliance` and
-`modulo:slo:*_burn_rate_{5m,30m,1h,6h,24h}` are in
-[`k8s/observability/prometheus-slo-rules.yaml`](../../k8s/observability/prometheus-slo-rules.yaml).
-Alerting is multi-window burn rate:
+`modulo:slo:*_burn_rate_{5m,30m,1h,6h,24h}` and the burn-rate alerts were
+defined only for the retired Kubernetes Prometheus
+(`k8s/observability/prometheus-slo-rules.yaml`, preserved at the
+commit [`86644da`](deployment.md#archived-cloud-deployments)). No
+running Prometheus loads them. Before porting them to
+`monitoring/prometheus/rules/`, fix the alert annotations: they call a `div`
+template function that Prometheus does not have, so `promtool check rules`
+rejects the alerting file (the recording rules pass). The intended alerting is
+multi-window burn rate:
 
 | Severity | Burn rate | Windows | Budget gone in | Response |
 |----------|-----------|---------|----------------|----------|

@@ -27,8 +27,6 @@ paths-ignore:
   - "frontend/build/**"
   - ".github/**"
   - "k8s/**"
-  - "azure/**"
-  - "terraform/**"
   - "scripts/**"
   - "docs/**"
   - "**/*.md"

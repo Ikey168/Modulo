@@ -1,41 +1,64 @@
-version: '3.8'
+# Backing services for native development.
+#
+# Run the backend and frontend on the host (see docs/getting-started/local-development.md)
+# and start only what they need here:
+#
+#   docker compose -f docker-compose.dev.yml up -d                            # PostgreSQL + Keycloak
+#   docker compose -f docker-compose.dev.yml --profile observability up -d    # + Jaeger for traces
+#
+# or `npm run start:dev` for the first form. The service definitions mirror
+# docker-compose.yml; keep them in step. This is a separate Compose project
+# (modulo-dev) with its own volumes, so it never touches the full stack's data,
+# but it uses the same host ports, so don't run both at once.
+
+name: modulo-dev
 
 services:
-  frontend:
-    build:
-      target: builder # Use the builder stage for development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8080
-    command: npm run dev
-
-  backend:
-    volumes:
-      - ./backend:/workspace/app
-      - ~/.m2:/root/.m2
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DEVTOOLS_REMOTE_SECRET=secret
-      - MODULO_BLUEPRINT_SANDBOX=wasm
-    ports:
-      - "8080:8080"
-      - "5005:5005" # Debug port
-    command: ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-
   db:
+    image: postgres:16-alpine
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=modulodb_dev
-      - POSTGRES_USER=postgres_dev
-      - POSTGRES_PASSWORD=postgres_dev
+      - POSTGRES_DB=${POSTGRES_DB:-modulodb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/init/01-init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro,z
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HEALTH_ENABLED=true
+    ports:
+      # Host 8180 -> container 8080; the backend uses 8080 and 8081 on the host.
+      - "8180:8080"
+    volumes:
+      - ./keycloak/realm-modulo.json:/opt/keycloak/data/import/realm-modulo.json:ro,z
+      - ./keycloak/themes:/opt/keycloak/themes:ro,z
+    restart: unless-stopped
+
+  # Optional: receives OTLP traces from a backend running with the dev profile
+  # (otel.exporter.otlp.endpoint=http://localhost:4317). UI on http://localhost:16686.
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    profiles: ["observability"]
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
 
 volumes:
   postgres_dev_data:

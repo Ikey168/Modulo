@@ -100,9 +100,9 @@ jobs:
         if: env.TEST_TARGET == 'development'
         run: |
           # Start the application in the background for testing
-          docker-compose -f docker-compose.dev.yml up -d
+          docker compose up -d --build
           # Wait for services to be ready
-          timeout 300 bash -c 'until curl -s http://localhost:3000/health; do sleep 5; done'
+          timeout 300 bash -c 'until curl -s http://localhost/health; do sleep 5; done'
           timeout 300 bash -c 'until curl -s http://localhost:8080/api/health; do sleep 5; done'
 
       - name: Run OWASP Top 10 Tests
@@ -216,7 +216,7 @@ jobs:
       - name: Cleanup test environment (development only)
         if: env.TEST_TARGET == 'development' && always()
         run: |
-          docker-compose -f docker-compose.dev.yml down
+          docker compose down
 
   comprehensive-security-report:
     name: Generate Comprehensive Security Report

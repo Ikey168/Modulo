@@ -92,17 +92,39 @@ Things to know about the compose stack:
 |------|---------|------------|
 | [`docker-compose.backup.yml`](../../docker-compose.backup.yml) | `db-backup` cron container and a `restore-drill` container (profile `backup`) | `docker compose -f docker-compose.yml -f docker-compose.backup.yml --profile backup up -d` |
 | [`docker-compose.envoy-opa.yml`](../../docker-compose.envoy-opa.yml) | Envoy in front of the backend with OPA ext-authz ([`infra/opa`](../../infra/opa)) | `make envoy-opa-up` |
-| [`docker-compose.dev.yml`](../../docker-compose.dev.yml) | Intended hot-reload overlay | Not usable as is: it targets a `builder` frontend stage and a `./mvnw` wrapper, neither of which exists. Run natively instead. |
 
 ## Run the backend and frontend natively
 
 This is the fastest edit loop. Start only the backing services you need in
 Docker, then run the two apps on the host.
 
+### Backing services
+
+[`docker-compose.dev.yml`](../../docker-compose.dev.yml) is a standalone Compose
+project (`modulo-dev`) with just the services a native backend and frontend need.
+Its definitions mirror `docker-compose.yml`, but it has its own data volume, so it
+never touches the full stack's database. It uses the same host ports, so stop one
+stack before starting the other.
+
+```sh
+docker compose -f docker-compose.dev.yml up -d                           # or: npm run start:dev
+docker compose -f docker-compose.dev.yml --profile observability up -d   # also start Jaeger
+docker compose -f docker-compose.dev.yml down                            # stop (add -v to drop the database)
+```
+
+| Service | Host port | Notes |
+|---------|-----------|-------|
+| db (PostgreSQL 16) | 5432 | `modulodb`, user/password `postgres`/`postgres`; volume `postgres_dev_data` |
+| keycloak | 8180 | Same realm import and theme as the full stack; admin `admin`/`admin`, app login `demo`/`demo` |
+| jaeger (profile `observability`) | 16686, 4317, 4318 | Receives OTLP traces directly from a native backend (its default exporter endpoint is `localhost:4317`) |
+
+Metrics, logs and dashboards (Prometheus, Loki, Grafana) are only in the full
+stack; see [Observability](../operations/observability.md).
+
 ### Backend
 
 ```sh
-docker compose up -d db keycloak
+docker compose -f docker-compose.dev.yml up -d   # backing services (see above)
 ```
 
 With the `dev` profile
@@ -150,7 +172,7 @@ calls that need a real token will still fail against a secured backend.
 
 ### Keycloak only
 
-`docker compose up -d keycloak` is enough for login. The realm's
+`docker compose -f docker-compose.dev.yml up -d keycloak` is enough for login. The realm's
 `modulo-frontend` client allows redirects to `localhost:3000`, `:3001`, `:5173`
 and `:80`. [`scripts/bootstrap-dev.sh`](../../scripts/bootstrap-dev.sh) can add
 extra demo users, roles, a confidential backend client and optional Google/GitHub
@@ -322,9 +344,9 @@ Key Vault); see [Deployment](../operations/deployment.md#secrets).
 | Every API call returns 404 when the backend runs natively | The `/api` context path doubles the prefix. Start with `SERVER_SERVLET_CONTEXT_PATH=/`. |
 | Backend fails at startup with `JWT secret must be a valid base64 string` or `API key must start with 'mod_'` | `ModuloProperties` validation. Set `MODULO_SECURITY_JWT_SECRET` (base64, 32+ chars) and `MODULO_SECURITY_API_KEY` (`mod_` + 16+ alphanumerics). |
 | Backend fails with `Context path is required` | `SERVER_SERVLET_CONTEXT_PATH` was set to an empty string. Use `/`. |
-| Log floods with `Failed to export spans` | No collector at `OTEL_EXPORTER_OTLP_ENDPOINT` (default `localhost:4317`). Start `otel-collector` or point the variable at a reachable collector. |
+| Log floods with `Failed to export spans` | No collector at `OTEL_EXPORTER_OTLP_ENDPOINT` (default `localhost:4317`). Start Jaeger with `docker compose -f docker-compose.dev.yml --profile observability up -d`, start the full stack's `otel-collector`, or point the variable at a reachable collector. |
 | Login redirects fail or tokens are rejected | Issuer mismatch. The frontend and `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` must both use the browser-facing URL (`http://localhost:8180/realms/modulo`). |
 | Keycloak will not start on 8080 | It is mapped to host 8180 on purpose; 8080 and 8081 belong to the backend and audit-collector. |
 | Backend refuses to start against an existing PostgreSQL | Flyway validation against a schema that Hibernate created earlier. Follow the adoption procedure in [Database operations](../operations/database.md#adopting-an-existing-database). |
-| `docker compose -f docker-compose.dev.yml` fails | The overlay is stale (see above). |
+| `docker compose -f docker-compose.dev.yml up` fails with "port is already allocated" | The full stack (or another local service) holds 5432 or 8180. `docker compose down` the other stack first. |
 | Upload of a large file fails with 413 or multipart errors | Multipart limit is 25 MB per file and 100 MB per request (`spring.servlet.multipart.*`); attachments are further limited to 10 MB by the app. |

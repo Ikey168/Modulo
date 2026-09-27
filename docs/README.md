@@ -52,7 +52,7 @@ the page is the bug: fix it in the same change.
 
 | Page | Covers |
 |---|---|
-| [Deployment](operations/deployment.md) | Docker Compose, Kubernetes/Helm/Argo CD, the Oracle production host |
+| [Deployment](operations/deployment.md) | The Oracle production host, the Raspberry Pi, Kubernetes for external plugins, and the archived cloud stacks (commit `86644da`) |
 | [Releases and supply chain](operations/releases-and-supply-chain.md) | Release pipeline, image signing, SBOMs, promotion |
 | [Database](operations/database.md) | Flyway migrations, backup and restore |
 | [Observability](operations/observability.md) | Health endpoints, OpenTelemetry, audit logging, SLOs, load testing |

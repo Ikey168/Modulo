@@ -2,13 +2,17 @@ View logs for a Modulo Docker service.
 
 Parse $ARGUMENTS for: [service] [--dev|--full] [--lines=N]
 
-**Dev stack services** (docker-compose.dev.yml):
+**Dev stack services** (docker-compose.dev.yml; the backend and frontend run natively):
+- db
+- keycloak
+- jaeger (only with `--profile observability`)
+
+**Full stack services** (docker-compose.yml):
 - frontend
 - backend
 - db
-
-**Full stack services** (docker-compose.yml — adds):
 - keycloak
+- ipfs
 - audit-collector
 - otel-collector
 - jaeger
@@ -22,7 +26,7 @@ Defaults: dev stack, 150 lines, follow mode off.
 
 If service is provided in $ARGUMENTS:
 ```
-docker-compose -f /home/Ikey/Modulo/docker-compose[.dev].yml logs --tail=<N> <service>
+docker compose -f /home/Ikey/Modulo/docker-compose[.dev].yml logs --tail=<N> <service>
 ```
 
 If no service is specified, list the available services and ask which one to tail.
