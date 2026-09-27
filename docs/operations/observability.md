@@ -131,7 +131,8 @@ What to do when a workflow alert fires is in [Runbooks](runbooks.md#workflow-ope
 The backend builds its OpenTelemetry SDK by hand in
 [`OpenTelemetryConfig`](../../backend/src/main/java/com/modulo/config/OpenTelemetryConfig.java)
 (no Java agent). Spans go through a batch processor to OTLP gRPC at
-`otel.exporter.otlp.endpoint`, or to Jaeger when `otel.traces.exporter=jaeger`.
+`otel.exporter.otlp.endpoint`. To send traces straight to Jaeger, point that
+endpoint at Jaeger's OTLP port (4317); the separate Jaeger exporter no longer exists.
 Every span is exported (no sampler is configured).
 
 Instrumentation that exists:

@@ -151,7 +151,7 @@ class PluginStateStoreTest {
     }
     private boolean tryQuotaWrite(String key) {
         try { put(key, 0, "{}"); return true; }
-        catch (ResponseStatusException e) { assertEquals(HttpStatus.TOO_MANY_REQUESTS, e.getStatus()); return false; }
+        catch (ResponseStatusException e) { assertEquals(HttpStatus.TOO_MANY_REQUESTS, e.getStatusCode()); return false; }
     }
     @Test void byteQuotaAppliesAcrossNamespacesAndReclaimsReplacedPayloads() {
         store = store(new PluginStateStore.Limits(100, 10, 100, 8));
@@ -249,7 +249,7 @@ class PluginStateStoreTest {
                 .andExpect(status().isForbidden());
     }
     private void assertStatus(HttpStatus expected, Runnable action) {
-        assertEquals(expected, assertThrows(ResponseStatusException.class, action::run).getStatus());
+        assertEquals(expected, assertThrows(ResponseStatusException.class, action::run).getStatusCode());
     }
 
     @Test void listsOnlyTheOwnersLiveNamespacesForBackup() {
@@ -262,6 +262,6 @@ class PluginStateStoreTest {
         owner.set(1L);
         assertEquals(List.of(new PluginStateStore.NamespaceSummary("canvas", 2)), store.namespaces("personal"));
         var refused = assertThrows(ResponseStatusException.class, () -> store.namespaces("team"));
-        assertEquals(HttpStatus.NOT_FOUND, refused.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, refused.getStatusCode());
     }
 }

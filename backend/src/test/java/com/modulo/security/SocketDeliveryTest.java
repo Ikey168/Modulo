@@ -6,7 +6,7 @@ import com.modulo.entity.*;
 import com.modulo.repository.NoteRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.*;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

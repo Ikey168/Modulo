@@ -29,7 +29,7 @@ across devices through the server.
 | Part | Technology | Where |
 |---|---|---|
 | Web frontend | React 18, TypeScript, Vite, Redux Toolkit, React Flow | [`frontend/`](../../frontend/) |
-| Backend | Spring Boot 2.7, Java 17, Maven | [`backend/`](../../backend/) |
+| Backend | Spring Boot 3.5, Java 17, Maven | [`backend/`](../../backend/) |
 | Primary database | PostgreSQL, schema owned by Flyway migrations | [`backend/src/main/resources/db/postgresql/`](../../backend/src/main/resources/db/postgresql/) |
 | Identity | Keycloak (OIDC) | [`keycloak/`](../../keycloak/) |
 | Desktop shell | Electron | [`desktop/`](../../desktop/) |

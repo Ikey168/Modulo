@@ -1,6 +1,6 @@
 package com.modulo.sharing;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 

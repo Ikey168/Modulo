@@ -117,6 +117,6 @@ class AuthenticatedUserServiceTest {
     }
     private User user(long id) { User user = new User(); user.setId(id); return user; }
     private void assertStatus(HttpStatus status) {
-        assertEquals(status, assertThrows(ResponseStatusException.class, service::requireUserId).getStatus());
+        assertEquals(status, assertThrows(ResponseStatusException.class, service::requireUserId).getStatusCode());
     }
 }

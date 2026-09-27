@@ -31,6 +31,13 @@ The old [`database/migrations`](../../database/migrations) directory describes a
 different, UUID-based schema. It is deliberately not on the Flyway path. Do not
 point Flyway at it, and do not rewrite checksums to hide drift.
 
+The backend now runs Hibernate 6, but the schema is still the Hibernate 5
+one. Two mappings keep it that way: `Note` and `Attachment` name the shared
+`hibernate_sequence` (increment 1) explicitly, because Hibernate 6 would
+otherwise expect a per-entity `<table>_seq` sequence with increment 50; and
+`hibernate.type.preferred_instant_jdbc_type=TIMESTAMP` keeps `Instant`
+columns as `timestamp`. `SchemaMigrationTest` fails if either drifts.
+
 ### Rules for new migrations
 
 - Add a new numbered file. Never edit a migration that has been deployed.

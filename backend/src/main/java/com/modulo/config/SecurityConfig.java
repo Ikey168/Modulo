@@ -26,6 +26,8 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthen
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -76,6 +78,14 @@ public class SecurityConfig {
         "/error"
     };
 
+    private static RequestMatcher[] publicRoutes() {
+        RequestMatcher[] matchers = new RequestMatcher[PUBLIC_ROUTES.length];
+        for (int i = 0; i < PUBLIC_ROUTES.length; i++) {
+            matchers[i] = AntPathRequestMatcher.antMatcher(PUBLIC_ROUTES[i]);
+        }
+        return matchers;
+    }
+
     @Value("${modulo.security.keycloak.jwk-set-uri:}")
     private String jwkSetUri;
 
@@ -89,7 +99,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
         http
             .authorizeRequests(authz -> authz
-                .antMatchers(PUBLIC_ROUTES).permitAll()
+                .requestMatchers(publicRoutes()).permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt

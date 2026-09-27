@@ -1,6 +1,6 @@
 package com.modulo.plugin.submission;
 
-import javax.validation.constraints.*;
+import jakarta.validation.constraints.*;
 
 /**
  * Request object for plugin submission

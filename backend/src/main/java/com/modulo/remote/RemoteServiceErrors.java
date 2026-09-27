@@ -13,7 +13,7 @@ public class RemoteServiceErrors {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<Map<String, String>> error(ResponseStatusException error) {
     String reason = error.getReason() == null ? "REMOTE_FAILED" : error.getReason();
-    return ResponseEntity.status(error.getStatus()).cacheControl(CacheControl.noStore())
+    return ResponseEntity.status(error.getStatusCode()).cacheControl(CacheControl.noStore())
         .body(Map.of("code", reason.split(":")[0].strip()));
   }
 }

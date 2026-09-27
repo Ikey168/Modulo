@@ -64,7 +64,7 @@ class BearerProvisioningIntegrationTest {
         login(token("http://evil.example/realms/modulo", "kc-subject-x", "intruder", "x@example.com", true));
         assertThatThrownBy(service::requireUserId)
             .isInstanceOfSatisfying(ResponseStatusException.class,
-                e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
+                e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
         assertThat(users.findByKeycloakSubject("kc-subject-x")).isEmpty();
     }
 

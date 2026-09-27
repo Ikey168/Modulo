@@ -1,6 +1,6 @@
 package com.modulo.state;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

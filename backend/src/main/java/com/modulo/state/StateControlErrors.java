@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class StateControlErrors {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<PluginStateController.StateError> error(ResponseStatusException error) {
-    return ResponseEntity.status(error.getStatus())
+    return ResponseEntity.status(error.getStatusCode())
         .cacheControl(CacheControl.noStore())
         .body(new PluginStateController.StateError(error.getReason(), null, null, null));
   }
