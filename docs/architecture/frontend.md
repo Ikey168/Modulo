@@ -9,7 +9,7 @@ writing frontend code or a workspace plugin. Plugin authoring itself is covered 
 
 ## Stack and layout
 
-React 18 and TypeScript, built with Vite 5 and tested with Vitest and
+React 18 and TypeScript, built with Vite 6 and tested with Vitest and
 Playwright. Styling is Tailwind with a vendored shadcn/ui library in `src/ui`.
 Authentication uses `oidc-client-ts`; the Redux store holds only auth state
 (`store/store.ts`). The same build runs in the browser, inside Electron

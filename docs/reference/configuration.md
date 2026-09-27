@@ -79,6 +79,7 @@ are preserved in commit `86644da` (see
 | `spring.datasource.driver-class-name` | | `org.h2.Driver` | `org.postgresql.Driver` in PostgreSQL profiles. |
 | `spring.datasource.hikari.*` | | Hikari defaults | |
 | `spring.jpa.hibernate.ddl-auto` | | `update` (H2) / `validate` (PostgreSQL profiles) | Never `update` against PostgreSQL. |
+| `spring.jpa.properties.hibernate.type.preferred_instant_jdbc_type` | | `TIMESTAMP` | Keeps the Hibernate 5 mapping of `Instant` to `timestamp` (Hibernate 6 would expect `timestamp with time zone`). Do not change it without a migration. |
 | `spring.flyway.enabled` | `SPRING_FLYWAY_ENABLED` | `false`; `true` in `docker` and `dev` | |
 | `spring.flyway.locations` | | `classpath:db/postgresql` | |
 | `spring.flyway.table` | | `modulo_schema_history` | |
@@ -227,15 +228,14 @@ See [Integrations](../features/integrations.md).
 |-----|---------|---------|-------|
 | `otel.service.name` | `OTEL_SERVICE_NAME` | `modulo-backend` | |
 | `otel.service.version` | `OTEL_SERVICE_VERSION` | `1.0.0` | |
-| `otel.traces.exporter` | `OTEL_TRACES_EXPORTER` | `otlp` | `otlp` or `jaeger`. |
+| `otel.traces.exporter` | `OTEL_TRACES_EXPORTER` | `otlp` | Only `otlp` is supported. Any other value logs a warning and exports over OTLP (the Jaeger exporter was removed from OpenTelemetry Java; Jaeger accepts OTLP on 4317). |
 | `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | gRPC. |
-| `otel.exporter.jaeger.endpoint` | `OTEL_EXPORTER_JAEGER_ENDPOINT` | `http://localhost:14250` | Used when the exporter is `jaeger`. |
 | `management.metrics.tags.application` | | `modulo-backend` | Label used by the SLO queries. |
 | `management.metrics.distribution.percentiles-histogram.http.server.requests` | | `true` | Required for latency SLIs. |
 
 The tracer is built by hand in
 [`OpenTelemetryConfig`](../../backend/src/main/java/com/modulo/config/OpenTelemetryConfig.java),
-not by the OTel Java agent. It reads only the five `otel.*` keys above. Other
+not by the OTel Java agent. It reads only the four `otel.*` keys above. Other
 standard OTel settings (samplers, propagators, `OTEL_RESOURCE_ATTRIBUTES`,
 `OTEL_SDK_DISABLED`) have no effect; every span is exported and
 `deployment.environment` is always `development`. See [Observability](../operations/observability.md).

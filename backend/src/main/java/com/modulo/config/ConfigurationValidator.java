@@ -13,8 +13,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.util.Set;
 
 /**

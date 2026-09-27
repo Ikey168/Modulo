@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -114,7 +114,7 @@ public class GmailMailboxService {
         if (jdbc.queryForObject("SELECT count(*) FROM gmail_newsletter_connections WHERE owner_id=? AND connection_id=? AND enabled=TRUE AND search_query=?", Integer.class, owner, connection, text(row, "search_query")) == 0) return;
         String id = entry.path("id").asText(); if (!id.matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalStateException("Invalid Gmail message ID");
         String key = "issue-" + GmailMessageDecoder.id(text(row, "email"), id);
-        try { scoped.get("personal", "newsletter-inbox", key); continue; } catch (ResponseStatusException missing) { if (missing.getStatus() != HttpStatus.NOT_FOUND) throw missing; }
+        try { scoped.get("personal", "newsletter-inbox", key); continue; } catch (ResponseStatusException missing) { if (missing.getStatusCode().value() != HttpStatus.NOT_FOUND.value()) throw missing; }
         var issue = GmailMessageDecoder.decode(json, text(row, "email"), google.get("/gmail/v1/users/me/messages/" + id + "?format=full", access));
         if (jdbc.queryForObject("SELECT count(*) FROM plugin_state WHERE owner_id=? AND workspace_id='personal' AND namespace='newsletter-inbox' AND deleted=FALSE AND value->>'messageId'=?", Long.class, owner, issue.path("messageId").asText()) > 0) continue;
         try { scoped.put("personal", "newsletter-inbox", key, 0, "newsletter", 1, issue.toString()); imported++; } catch (PluginStateStore.VersionConflict raced) { /* Another sync already imported this issue. Preserve its triage. */ }

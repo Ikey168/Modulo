@@ -67,7 +67,7 @@ in `backend/`.
 | Path | Contents |
 |---|---|
 | `frontend/` | React 18 + TypeScript app (Vite, Vitest, Playwright) |
-| `backend/` | Spring Boot 2.7 / Java 17 API, WebSocket and workflow engine |
+| `backend/` | Spring Boot 3.5 / Java 17 API, WebSocket and workflow engine |
 | `desktop/` | Electron shell (standalone package) |
 | `mobile/` | Android app (Capacitor) and device testing |
 | `shared/` | Pack manifests and approval schemas shared by frontend and backend |

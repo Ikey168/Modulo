@@ -27,7 +27,7 @@ public class PackAuthoringController {
 
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<Map<String, String>> failure(ResponseStatusException failure) {
-    return ResponseEntity.status(failure.getStatus())
+    return ResponseEntity.status(failure.getStatusCode())
         .body(Map.of("code", Objects.toString(failure.getReason(), "AUTHORING_FAILED")));
   }
 

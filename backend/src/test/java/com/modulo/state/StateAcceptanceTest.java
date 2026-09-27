@@ -20,12 +20,13 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.*;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.*;
@@ -105,14 +106,9 @@ class StateAcceptanceTest {
 
     @Bean
     SecurityFilterChain chain(HttpSecurity http) throws Exception {
-      http.csrf()
-          .disable()
-          .authorizeRequests()
-          .anyRequest()
-          .authenticated()
-          .and()
-          .oauth2ResourceServer()
-          .jwt();
+      http.csrf(csrf -> csrf.disable())
+          .authorizeHttpRequests(authz -> authz.anyRequest().authenticated())
+          .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
       return http.build();
     }
   }

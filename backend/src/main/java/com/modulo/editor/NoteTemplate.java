@@ -1,6 +1,6 @@
 package com.modulo.editor;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity

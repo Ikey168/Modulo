@@ -51,7 +51,7 @@ flowchart LR
 | Component | Role | Where |
 | --- | --- | --- |
 | Frontend | One React/TypeScript build served to browsers, loaded by Electron, and packaged into the Android APK | [`frontend/`](../../frontend/), [`desktop/`](../../desktop/), [`mobile/app/`](../../mobile/app/) |
-| Backend | Spring Boot 2.7 on Java 17: REST under `/api`, STOMP at `/ws`, gRPC for plugins, Blueprint interpreter and workflow engine | [`backend/`](../../backend/) |
+| Backend | Spring Boot 3.5 on Java 17: REST under `/api`, STOMP at `/ws`, gRPC for plugins, Blueprint interpreter and workflow engine | [`backend/`](../../backend/) |
 | Keycloak | OIDC identity provider; realm `modulo`, public client `modulo-frontend` | [`keycloak/`](../../keycloak/) |
 | PostgreSQL | All authoritative data; schema owned by Flyway | [`backend/src/main/resources/db/postgresql/`](../../backend/src/main/resources/db/postgresql/) |
 | IPFS (Kubo) | Content-addressed storage for published or encrypted note payloads | `ipfs` service in [`docker-compose.yml`](../../docker-compose.yml) |

@@ -81,12 +81,12 @@ class WorkspaceFileStoreTest {
   @Test
   void rejectsInvalidIdsWorkspacesAndOversizedFiles() {
     var badId = assertThrows(ResponseStatusException.class, () -> store.put("personal", "../x", "x", "text/plain", new byte[0]));
-    assertEquals(HttpStatus.BAD_REQUEST, badId.getStatus());
+    assertEquals(HttpStatus.BAD_REQUEST, badId.getStatusCode());
     var badWorkspace = assertThrows(ResponseStatusException.class, () -> store.list("team"));
-    assertEquals(HttpStatus.NOT_FOUND, badWorkspace.getStatus());
+    assertEquals(HttpStatus.NOT_FOUND, badWorkspace.getStatusCode());
     var tooLarge = assertThrows(ResponseStatusException.class,
         () -> store.put("personal", "big", "big.bin", null, new byte[WorkspaceFileStore.MAX_FILE_BYTES + 1]));
-    assertEquals(HttpStatus.PAYLOAD_TOO_LARGE, tooLarge.getStatus());
+    assertEquals(HttpStatus.PAYLOAD_TOO_LARGE, tooLarge.getStatusCode());
   }
 
   @Test

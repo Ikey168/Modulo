@@ -11,11 +11,11 @@ the [features](../features/) pages; every configuration key is in
 
 | Concern | Choice |
 | --- | --- |
-| Runtime | Java 17, Spring Boot 2.7.18 (Maven, parent POM at repo root) |
-| Persistence | Spring Data JPA/Hibernate and `JdbcTemplate` on PostgreSQL; Flyway migrations |
-| Auth | Spring Security OAuth2 resource server (Keycloak JWT), one stateless chain in `config/SecurityConfig` |
+| Runtime | Java 17, Spring Boot 3.5 (Jakarta EE 10 `jakarta.*` namespace; `spring-boot-starter-parent` 3.5.16 in `backend/pom.xml` and the root reactor POM) |
+| Persistence | Spring Data JPA/Hibernate 6 and `JdbcTemplate` on PostgreSQL; Flyway migrations (`flyway-database-postgresql`) |
+| Auth | Spring Security 6 OAuth2 resource server (Keycloak JWT), one stateless chain in `config/SecurityConfig` (`authorizeHttpRequests`, `@EnableMethodSecurity`) |
 | Realtime | STOMP over WebSocket (`/ws`, SockJS fallback) |
-| Plugin RPC | gRPC server (`net.devh` starter, port 9090) |
+| Plugin RPC | gRPC server (`net.devh` starter 3.1, grpc-java 1.84, port 9090) |
 | Plugin eventing | In-JVM `PluginEventBus`; optional NATS bridge (`jnats`) |
 | Sandboxes | QuickJS on WASM (`quickjs4j`) for `action.code.execute`; Chicory interpreter for `action.wasm.execute` |
 | Blockchain | web3j; IPFS over the Kubo HTTP API |
@@ -32,6 +32,10 @@ which would produce `/api/api/...`; every container deployment therefore sets
 The value must be `/`, not empty: the application's property validator rejects a
 blank context path. nginx (web) and Vite (dev) forward `/api` and `/ws` to the
 backend unchanged.
+
+Spring 6 matches paths exactly: `/api/notes/` no longer reaches a handler
+mapped to `/api/notes`. No controller mapping and no client call uses a
+trailing slash; keep it that way.
 
 ## Package layout
 

@@ -71,7 +71,7 @@ Android. The rationale is recorded in [ADR 0009a](decisions.md#adr-0009a).
 
 ### How the backend authenticates a request
 
-One class configures Spring Security:
+One class configures Spring Security 6:
 [`config/SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java).
 It defines a single, stateless filter chain that behaves the same in every
 profile. Every client signs in with Keycloak in the browser or app (above) and
@@ -86,7 +86,13 @@ server-side OAuth login.
   set, the JWK set is discovered from it on first use. With neither set, every
   bearer token is rejected.
 - **Roles.** Keycloak realm roles become `ROLE_<NAME>` authorities (see
-  [Roles](#roles)); method security (`@PreAuthorize`) is enabled here.
+  [Roles](#roles)); method security (`@PreAuthorize`) is enabled here with
+  `@EnableMethodSecurity`.
+- **Route rules.** `authorizeHttpRequests` with path-pattern matchers
+  (`PathPatternRequestMatcher`) for the public paths below; everything else
+  needs an authenticated token. Security 6 authorizes every servlet dispatch,
+  so forward, async and error dispatches of a request that was already
+  authorized are let through, as Security 5 did.
 - **Responses.** A missing, expired, forged or foreign-issuer token gets 401 with
   `WWW-Authenticate: Bearer`, never a redirect; insufficient roles get 403.
 - **CSRF is disabled on purpose.** CSRF defends against a browser attaching
@@ -107,7 +113,7 @@ Paths that answer without a token:
 
 | Path | Why it is public | Where the check happens instead |
 | --- | --- | --- |
-| `/ws`, `/ws/**` | STOMP handshake | `OwnedSocketInterceptor` authenticates `CONNECT` |
+| `/ws`, `/ws/**` | STOMP handshake | `OwnedSocketInterceptor` authenticates `CONNECT` (see below) |
 | `/api/s/**` | Public share links | The stored share token (expiry, revocation, password) |
 | `/api/plugin-state/callback/**` | External plugin callbacks | Dual-token check (workload token + owner grant) |
 | `/api/public/**` | Webhooks and OAuth callbacks (Blueprint webhooks, Gmail callback) | Endpoint-specific secrets and state |
@@ -115,7 +121,16 @@ Paths that answer without a token:
 | `/api-docs/**`, `/swagger-ui/**`, `/error` | API documentation and error rendering | None |
 
 Everything else, including `/auth/migration/**`, `/chaos/**` and `/api/**`,
-needs a valid bearer token.
+needs a valid bearer token. Patterns match exactly: since Spring 6, a request
+with a trailing slash (`/api/notes/`) does not match `/api/notes`.
+
+STOMP frames are not authorized by Spring Security's message security
+(`@EnableWebSocketSecurity`), which would also demand a CSRF token on `CONNECT`
+that bearer-token clients never send. `OwnedSocketInterceptor`, a plain
+`ChannelInterceptor` on the inbound and outbound channels, validates the
+`Authorization: Bearer` header of `CONNECT` with the same `JwtDecoder` as the
+HTTP chain, and checks every `SUBSCRIBE`, `SEND` and outbound message against
+the owner of the destination.
 
 The profile boot tests in
 [`security/profiles`](../../backend/src/test/java/com/modulo/security/profiles/)

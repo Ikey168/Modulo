@@ -17,7 +17,7 @@ gives you the right versions.
 
 | Tool | Version | Used for |
 |------|---------|----------|
-| Java | Temurin 17 | Backend (Spring Boot 2.7) |
+| Java | Temurin 17 | Backend (Spring Boot 3.5) |
 | Maven | 3.9 | Backend build (there is no `mvnw` wrapper) |
 | Node.js | 22 (exact pin in [`.node-version`](../../.node-version), also used by CI and the frontend Dockerfile) | Frontend, smart contracts, scripts |
 | Python | 3.14 | Operations and infrastructure verifiers under `scripts/` |

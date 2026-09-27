@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;

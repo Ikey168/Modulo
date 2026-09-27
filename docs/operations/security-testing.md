@@ -20,6 +20,7 @@ vulnerability is described in [`SECURITY.md`](../../SECURITY.md).
 | In-app probes | `/api/security/testing/*` | [`scripts/security-assessment.sh`](../../scripts/security-assessment.sh) | Manual, non-production only | |
 | Image signatures | Cosign | | see [Releases](releases-and-supply-chain.md) | |
 | Dependency and image SBOMs | Syft, BuildKit | | release and signed builds | |
+| Dependency advisories | `npm audit`, Maven versions report | see [Dependency vulnerabilities](#dependency-vulnerabilities) | | |
 
 ## Secret scanning
 
@@ -222,6 +223,36 @@ the probes (`API_BASE_URL`, `SECURITY_API_KEY`).
 | Security audit log | [`SecurityAuditLogger`](../../backend/src/main/java/com/modulo/security/SecurityAuditLogger.java) |
 | Error responses without stack traces | Spring Boot defaults (`server.error.include-stacktrace` and `include-message` are `never`) |
 | TLS 1.2/1.3 only | Terminated at the edge (Caddy on OCI, nginx or your proxy elsewhere); the backend serves plain HTTP inside the network |
+
+## Dependency vulnerabilities
+
+Scan every dependency tree after a framework or lockfile change:
+
+```sh
+npm audit --audit-level=high                       # root workspaces (frontend, smart-contracts)
+npm audit --audit-level=high --workspace=frontend  # the shipped web app only
+(cd desktop && npm audit --audit-level=high)
+(cd mobile/app && npm audit --audit-level=high)
+(cd k6-tests && npm audit --audit-level=high)
+mvn -f backend/pom.xml versions:display-dependency-updates
+```
+
+Fix with `npm audit fix` (never `--force`) or a targeted upgrade, then run the
+frontend checks and the backend tests. The root `package.json` carries one
+override, `ws@>=8.0.0 <8.21.0 -> ^8.21.0`: ethers 5 and viem pin vulnerable
+`ws` 8.x releases exactly, and 8.21+ is a compatible patch.
+
+Accepted findings, last reviewed with the Spring Boot 3 upgrade (#537):
+
+| Tree | Findings | Why they remain |
+|------|----------|-----------------|
+| Root, via `smart-contracts` | 15 high, 3 critical: `hardhat` 2 and its `undici`, `tmp` (through `solc`), `adm-zip`; `@nomiclabs/hardhat-waffle`, `ethereum-waffle`, `ganache`, `secp256k1`, `elliptic`; `request` and its `form-data`; `solidity-coverage`/`serialize-javascript`; `hardhat-gas-reporter` | Development-only Hardhat 2 toolchain, not shipped and not run in CI. Every fix needs Hardhat 3 (ESM config, new plugin model) or replacing Waffle and Ganache, a migration of its own. |
+| `frontend` | none high or critical | |
+| `desktop`, `mobile/app`, `k6-tests` | none high or critical | |
+
+The backend has no known critical advisory. Spring Boot 3.5 manages most
+versions; the explicit ones (gRPC, protobuf, web3j, Azure SDK, PDFBox, NATS) are
+on current patch releases.
 
 ## Triage and remediation
 

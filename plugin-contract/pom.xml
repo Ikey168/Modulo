@@ -21,8 +21,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Must match backend/pom.xml exactly — same generated code, same runtime. -->
-        <grpc.version>1.58.0</grpc.version>
-        <protobuf.version>3.24.4</protobuf.version>
+        <grpc.version>1.84.0</grpc.version>
+        <protobuf.version>3.25.9</protobuf.version>
     </properties>
 
     <dependencies>

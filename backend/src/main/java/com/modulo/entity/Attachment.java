@@ -1,6 +1,6 @@
 package com.modulo.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -8,7 +8,11 @@ import java.time.LocalDateTime;
 public class Attachment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    // Hibernate 5 mapped AUTO to the shared "hibernate_sequence" (increment 1) created
+    // by V1. Hibernate 6 would default to a per-entity sequence with increment 50, so
+    // the generator is spelled out to keep the schema unchanged.
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "hibernate_sequence")
+    @SequenceGenerator(name = "hibernate_sequence", sequenceName = "hibernate_sequence", allocationSize = 1)
     @Column(name = "attachment_id")
     private Long id;
 

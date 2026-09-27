@@ -19,7 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.*;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,7 +47,7 @@ class ResourceOwnershipTest {
             com.modulo.migration.SchemaMigrationTool.flyway(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()).migrate();
             var emf = new LocalContainerEntityManagerFactoryBean(); emf.setDataSource(dataSource); emf.setPackagesToScan("com.modulo");
             emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-            emf.setJpaPropertyMap(Map.of("hibernate.dialect", "org.hibernate.dialect.PostgreSQL10Dialect", "hibernate.hbm2ddl.auto", "none",
+            emf.setJpaPropertyMap(Map.of("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect", "hibernate.hbm2ddl.auto", "none",
                 "hibernate.physical_naming_strategy", "org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy"));
             return emf;
         }

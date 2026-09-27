@@ -9,7 +9,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -138,7 +138,7 @@ public class PluginStateController {
 
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<StateError> error(ResponseStatusException error) {
-    return ResponseEntity.status(error.getStatus())
+    return ResponseEntity.status(error.getStatusCode())
         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
         .cacheControl(CacheControl.noStore())
         .body(new StateError(error.getReason(), null, null, null));

@@ -2,7 +2,7 @@ package com.modulo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import javax.persistence.*; // JPA
+import jakarta.persistence.*; // JPA
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,7 +14,11 @@ import java.util.HashMap;
 public class Note {
 
     @Id // JPA
-    @GeneratedValue(strategy = GenerationType.AUTO) // JPA
+    // Hibernate 5 mapped AUTO to the shared "hibernate_sequence" (increment 1) created
+    // by V1. Hibernate 6 would default to a per-entity sequence with increment 50, so
+    // the generator is spelled out to keep the schema unchanged.
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "hibernate_sequence")
+    @SequenceGenerator(name = "hibernate_sequence", sequenceName = "hibernate_sequence", allocationSize = 1)
     @Column(name = "note_id")
     private Long id;
 

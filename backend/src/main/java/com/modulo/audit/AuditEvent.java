@@ -1,6 +1,6 @@
 package com.modulo.audit;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity

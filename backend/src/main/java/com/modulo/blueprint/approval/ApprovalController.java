@@ -20,7 +20,7 @@ public class ApprovalController {
   @ExceptionHandler(ApprovalFailure.class)
   public org.springframework.http.ResponseEntity<Map<String, String>> failure(
       ApprovalFailure failure) {
-    return org.springframework.http.ResponseEntity.status(failure.getStatus())
+    return org.springframework.http.ResponseEntity.status(failure.getStatusCode())
         .body(Map.of("code", failure.getReason()));
   }
 
