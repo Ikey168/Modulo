@@ -371,13 +371,13 @@ class BlockchainControllerTest {
 
     @Test
     void testEndpointsRequireAuthentication() throws Exception {
-        // Test that endpoints require authentication (Spring Security redirects to login)
+        // The API is a stateless bearer-token resource server: 401, never a login redirect.
         mockMvc.perform(get("/api/blockchain/status"))
-                .andExpect(status().isFound()); // 302 redirect to login
+                .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/blockchain/notes/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isFound()); // 302 redirect to login
+                .andExpect(status().isUnauthorized());
     }
 }

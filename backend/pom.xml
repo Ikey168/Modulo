@@ -568,13 +568,6 @@
                         <exclude>**/repository/NoteRepositoryTest.java</exclude>
                         <exclude>**/repository/jpa/UserRepositoryTest.java</exclude>
                         <exclude>**/service/TaskServiceTest.java</exclude>
-                        <!-- Pre-existing broken slice test: @WebMvcTest(MeController) is
-                             @Profile("oidc") and transitively wires servlet filters that
-                             pull in JPA repositories the slice cannot build (no
-                             entityManagerFactory); the full OIDC context also needs OAuth
-                             resource-server config not present in tests. Excluded until the
-                             OIDC test setup is properly wired. -->
-                        <exclude>**/backend/web/MeControllerTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>

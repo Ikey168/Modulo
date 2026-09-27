@@ -212,11 +212,11 @@ the probes (`API_BASE_URL`, `SECURITY_API_KEY`).
 | Control | Where |
 |---------|-------|
 | Per-IP rate limiting (100 requests/min, burst 20, HTTP 429) | [`RateLimitingFilter`](../../backend/src/main/java/com/modulo/security/RateLimitingFilter.java), `modulo.security.rate-limit.*` |
-| Security headers and CORS for the `cloud` profile | [`CloudSecurityConfig`](../../backend/src/main/java/com/modulo/security/CloudSecurityConfig.java) |
+| Stateless bearer-token chain, 401 for anonymous API calls, `ADMIN` method security, `Referrer-Policy` | [`SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java) |
 | Security headers at the edge | [`frontend/nginx.conf`](../../frontend/nginx.conf) (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, CSP, HSTS); [`deploy/oci/Caddyfile`](../../deploy/oci/Caddyfile) (`X-Content-Type-Options`, `Referrer-Policy`, `Server` removed) |
 | Security audit log | [`SecurityAuditLogger`](../../backend/src/main/java/com/modulo/security/SecurityAuditLogger.java) |
-| Error responses without stack traces | `server.error.include-*=never` (`azure` profile) |
-| TLS 1.2/1.3 only | `security` profile (`server.ssl.*`) |
+| Error responses without stack traces | Spring Boot defaults (`server.error.include-stacktrace` and `include-message` are `never`) |
+| TLS 1.2/1.3 only | Terminated at the edge (Caddy on OCI, nginx or your proxy elsewhere); the backend serves plain HTTP inside the network |
 
 ## Triage and remediation
 
@@ -250,8 +250,8 @@ For a Critical finding that may have been exploited, switch to
 |---------|----------|-------|
 | SQL injection | Repositories and `@Query` methods | Use bound parameters or Spring Data derived queries; never concatenate input into JPQL or native SQL. |
 | XSS | Frontend rendering | Do not render untrusted HTML without sanitising; avoid `dangerouslySetInnerHTML`. |
-| Missing security headers | nginx, Caddy, `CloudSecurityConfig` | Add at the edge so static assets are covered too. |
-| Insecure cookies | `server.servlet.session.cookie.*` | `secure=true` and `http-only=true` behind HTTPS (the `azure` profile does this). |
+| Missing security headers | nginx, Caddy, `SecurityConfig` | Add at the edge so static assets are covered too. |
+| Insecure cookies | `server.servlet.session.cookie.*` | `secure=true` and `http-only=true` behind HTTPS. The API sets no session cookie. |
 | Information disclosure | `server.error.*`, actuator exposure | No stack traces or messages in errors; do not publish actuator on a public route. |
 | Missing authorization on an endpoint | Controller and service ownership checks | Every owned resource must be checked against the authenticated account (see [Database operations](database.md#tenant-ownership-migration)). |
 | Path traversal | File and attachment controllers | Resolve against the storage root and reject paths that escape it. |

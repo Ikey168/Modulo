@@ -38,11 +38,12 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 | `docker` | `application-docker.properties` | PostgreSQL from `SPRING_DATASOURCE_*` (required), Flyway on, `ddl-auto=validate`, actuator exposure `health,info,metrics`. Used by every Compose deployment (root `docker-compose.yml`, OCI, Pi) and is the backend image's default. |
 | `dev` | `application-dev.properties` | Native development against the local backing services: context path `/`, PostgreSQL on `localhost:5432/modulodb` (`postgres`/`postgres`, overridable with `SPRING_DATASOURCE_*`), Flyway on, Keycloak bearer tokens from `localhost:8180/realms/modulo`. |
 | `test` | [`src/test/resources`](../../backend/src/test/resources) | Activated by the test `config/application.properties`. H2 with `create-drop`, Flyway off, actuator on the application port; disables schedulers such as workflow retention and the plugin-state outbox. |
-| `oidc` | none | Activates `backend.config.SecurityConfig`; set `spring.security.oauth2.resourceserver.jwt.*` yourself. |
-| `cloud` | none | Activates `CloudSecurityConfig` (security headers, CORS from `modulo.security.allowed-origins`). |
 
 The `staging`, `production`, `kubernetes`, `azure`, `security` and `performance`
 profiles were removed with the cloud deployment stacks; nothing deployed them.
+The `oidc` and `cloud` profiles, which switched on alternative security
+configurations, are gone too: security is the same in every profile (see
+[Security model](../architecture/security-model.md#how-the-backend-authenticates-a-request)).
 
 ## Server and management
 
@@ -98,22 +99,19 @@ See [Database operations](../operations/database.md).
 | `modulo.security.jwt-expiration-seconds` | | `3600` | 300–86400. |
 | `modulo.security.api-key` | `MODULO_SECURITY_API_KEY` | dev placeholder | Required. `mod_` followed by 16+ alphanumerics. |
 | `modulo.security.encryption-key` | `MODULO_SECURITY_ENCRYPTION_KEY` | dev placeholder | Required. Also keys the Gmail refresh-token cipher. |
-| `modulo.security.enable-csrf` / `enable-cors` | | `true` | |
+| `modulo.security.enable-csrf` / `enable-cors` | | `true` | Validated but not read. CSRF is off on the stateless bearer chain by design; CORS comes from `WebConfig`. |
 | `modulo.security.max-login-attempts` | | `3` | 1–10. |
 | `modulo.security.account-lockout-duration-seconds` | | `900` | At least 60. |
-| `modulo.security.keycloak.jwk-set-uri` | `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` | unset | When set, `ResourceServerSecurityConfig` validates Keycloak bearer tokens with this JWKS. Use an address reachable from the backend. |
+| `modulo.security.keycloak.jwk-set-uri` | `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` | unset | Where `SecurityConfig` fetches the keys that verify bearer tokens (lazily). Use an address reachable from the backend. Without it, the keys are discovered from the issuer; with neither, every bearer token is rejected. |
 | `modulo.security.keycloak.issuer-uri` | `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` | unset | Expected `iss`, and the issuer whose tokens `AuthenticatedUserService` resolves to accounts (provisioning them on first use). Must be the browser-facing issuer URL. |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | | unset | Fallback trusted issuer for `AuthenticatedUserService` when `modulo.security.keycloak.issuer-uri` is empty. |
-| `spring.security.oauth2.client.registration.{google,azure}.*` | | `test` | Legacy OAuth2 login clients. |
-| `modulo.security.allowed-origins` | `MODULO_SECURITY_ALLOWED_ORIGINS` | empty (WebSocket); `http://localhost:3000,https://modulo-app.com` (`cloud`) | Allowed origins for `/ws` and, under `cloud`, CORS. |
+| `modulo.security.allowed-origins` | `MODULO_SECURITY_ALLOWED_ORIGINS` | empty | Allowed origins for `/ws`. |
 | `modulo.security.rate-limit.enabled` | | `true` | `RateLimitingFilter`, per client IP. Returns 429. |
 | `modulo.security.rate-limit.requests-per-minute` | | `100` | |
 | `modulo.security.rate-limit.burst-capacity` | | `20` | |
-| `modulo.security.rate-limiting.enabled` | | `true` | Separate flag read by `CloudSecurityConfig` (`cloud` profile). |
-| `modulo.security.jwt.secret` | | unset | Read by `CloudSecurityConfig` only. |
 | `modulo.security.testing.enabled` | | `false` | Enables `/api/security/testing/*` probes. Never in production. |
 | `modulo.security.testing.api-key` | | empty | Key those probes require. |
-| `modulo.auth.dual-auth-enabled` | | `true` in `application.properties` (code default `false`, kept in tests) | Accept legacy and Keycloak sessions during migration. |
+| `modulo.auth.dual-auth-enabled` | | `true` in `application.properties` (code default `false`, kept in tests) | Link a new provider to an existing account alongside the old one (instead of replacing it) during migration. |
 | `modulo.auth.default-provider` | | `KEYCLOAK` | |
 | `modulo.auth.migration-grace-period-days` | | `30` | |
 

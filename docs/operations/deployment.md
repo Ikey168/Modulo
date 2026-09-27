@@ -370,6 +370,5 @@ recoverable only while soft-delete retention lasts.
 | Environment | Where | Profile | Data |
 |-------------|-------|---------|------|
 | Local | Laptop, `docker-compose.yml` | `docker` | Throwaway volumes |
-| CI (ZAP, performance, backups) | GitHub Actions runners | `docker` / `staging` | Ephemeral |
-| Staging | `staging` profile, `modulodb_staging` | `staging` | Created by [`database/init`](../../database/init) |
+| CI (ZAP, performance, backups) | GitHub Actions runners | `docker` | Ephemeral; the ZAP job uses a `modulodb_staging` database |
 | Production | OCI host | `docker` | Backed up nightly, off-host |

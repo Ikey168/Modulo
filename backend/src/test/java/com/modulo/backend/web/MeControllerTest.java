@@ -1,66 +1,40 @@
 package com.modulo.backend.web;
 
-import com.modulo.backend.config.SecurityConfig;
-import com.modulo.service.TracingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.boot.test.mock.mockito.MockBean;
-import com.modulo.service.TracingService;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = MeController.class, excludeAutoConfiguration = {
-    org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
-    org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class
-})
-@Import(SecurityConfig.class)
-@ActiveProfiles("oidc")
-@org.springframework.test.context.TestPropertySource(properties = {
-    "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:8080/auth/realms/modulo",
-    "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:8080/auth/realms/modulo/protocol/openid-connect/certs"})
-public class MeControllerTest {
+/** /api/me echoes the caller's token claims; it is used by the Envoy/OPA overlay. */
+@SpringBootTest
+@AutoConfigureMockMvc
+class MeControllerTest {
 
     @Autowired
     private MockMvc mvc;
 
-    @MockBean
-    private TracingService tracingService;
-
-    // ChaosFilter is registered as a servlet Filter bean in this web slice and
-    // autowires ChaosConfig, which is not part of the @WebMvcTest context.
-    @MockBean
-    private com.modulo.chaos.ChaosConfig chaosConfig;
-
     @Test
-    void getMe() throws Exception {
-        mvc.perform(get("/api/me").with(jwt().jwt(builder -> {
-                    builder.claim("email", "test@example.com");
-                    builder.claim("realm_access", Map.of("roles", List.of("user")));
-                })))
+    void returnsTheCallersClaims() throws Exception {
+        mvc.perform(get("/api/me").with(jwt().jwt(builder -> builder
+                    .subject("subject-1")
+                    .claim("email", "test@example.com")
+                    .claim("realm_access", Map.of("roles", List.of("user"))))))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sub").value("subject-1"))
                 .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void getMeWithAdminRole() throws Exception {
-        mvc.perform(get("/api/me").with(jwt().jwt(builder -> {
-                    builder.claim("email", "admin@example.com");
-                    builder.claim("realm_access", Map.of("roles", List.of("admin")));
-                })))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("admin@example.com"));
+    void anonymousCallerGets401() throws Exception {
+        mvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
     }
 }

@@ -16,20 +16,5 @@ public class WebConfig implements WebMvcConfigurer {
             .allowCredentials(true)
             .exposedHeaders("Authorization", "Content-Type")
             .maxAge(3600);
-        
-        // Explicitly configure CORS for OAuth2 endpoints
-        registry.addMapping("/oauth2/**")
-            .allowedOrigins("http://localhost:3000", "https://localhost")
-            .allowedMethods("GET", "POST", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true)
-            .maxAge(3600);
-        
-        registry.addMapping("/login/**")
-            .allowedOrigins("http://localhost:3000", "https://localhost")
-            .allowedMethods("GET", "POST", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true)
-            .maxAge(3600);
     }
 }

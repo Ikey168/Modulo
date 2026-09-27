@@ -71,21 +71,39 @@ Android. The rationale is recorded in [ADR 0009a](decisions.md#adr-0009a).
 
 ### How the backend authenticates a request
 
-The backend has more than one Spring Security filter chain:
+One class configures Spring Security:
+[`config/SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java).
+It defines a single, stateless filter chain that behaves the same in every
+profile. Every client signs in with Keycloak in the browser or app (above) and
+calls the API with `Authorization: Bearer <access token>`, so the backend is a
+pure OAuth2 resource server: there is no HTTP session, no login page and no
+server-side OAuth login.
 
-| Chain | Active when | Handles | Behavior |
-| --- | --- | --- | --- |
-| [`ResourceServerSecurityConfig`](../../backend/src/main/java/com/modulo/config/ResourceServerSecurityConfig.java) | `modulo.security.keycloak.jwk-set-uri` is set | Requests with an `Authorization: Bearer` header (order 1) | Validates the JWT against the JWK set (fetched lazily, so boot does not need Keycloak), optionally checks `iss` against `modulo.security.keycloak.issuer-uri`, stateless, CSRF off. Realm roles become `ROLE_<role>` authorities. |
-| [`config/SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java) | Always | Everything else | Session-based; `oauth2Login` with the Google and Azure client registrations; public paths listed below; everything else authenticated. CSRF is currently disabled. |
-| [`backend/config/SecurityConfig`](../../backend/src/main/java/com/modulo/backend/config/SecurityConfig.java) | Profile `oidc` | All requests | JWT resource server using `spring.security.oauth2.resourceserver.jwt.*`; enables method security. |
-| [`CloudSecurityConfig`](../../backend/src/main/java/com/modulo/security/CloudSecurityConfig.java) | Profile `cloud` | All requests | Stateless, cookie CSRF, `ADMIN`-only `/api/admin/**` and actuator. |
+- **Token validation.** The JWT signature is checked against the JWK set at
+  `modulo.security.keycloak.jwk-set-uri` (fetched lazily, so boot does not need
+  Keycloak), and `iss` against `modulo.security.keycloak.issuer-uri` (falling back
+  to `spring.security.oauth2.resourceserver.jwt.issuer-uri`). With only an issuer
+  set, the JWK set is discovered from it on first use. With neither set, every
+  bearer token is rejected.
+- **Roles.** Keycloak realm roles become `ROLE_<NAME>` authorities (see
+  [Roles](#roles)); method security (`@PreAuthorize`) is enabled here.
+- **Responses.** A missing, expired, forged or foreign-issuer token gets 401 with
+  `WWW-Authenticate: Bearer`, never a redirect; insufficient roles get 403.
+- **CSRF is disabled on purpose.** CSRF defends against a browser attaching
+  ambient credentials (cookies) to a forged cross-site request. This chain keeps
+  no session and reads credentials only from the `Authorization` header, which a
+  browser never adds by itself. A future cookie-based login would need its own
+  chain with CSRF enabled.
+- **Headers.** Spring Security defaults (no-sniff, frame deny, HSTS on HTTPS,
+  no-cache) plus `Referrer-Policy: strict-origin-when-cross-origin`. CORS follows
+  [`WebConfig`](../../backend/src/main/java/com/modulo/config/WebConfig.java).
 
-Compose and OCI deployments run the `docker` profile with
-`MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` (internal Keycloak URL) and
-`MODULO_SECURITY_KEYCLOAK_ISSUER_URI` (browser-facing issuer) set, so the first
-two chains are active.
+Environment differences are properties, not extra configuration classes. Compose
+and OCI deployments set `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` (internal Keycloak
+URL) and `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` (browser-facing issuer); the `dev`
+profile points both at `localhost:8180`.
 
-Paths that the default chain lets through without authentication:
+Paths that answer without a token:
 
 | Path | Why it is public | Where the check happens instead |
 | --- | --- | --- |
@@ -93,8 +111,11 @@ Paths that the default chain lets through without authentication:
 | `/api/s/**` | Public share links | The stored share token (expiry, revocation, password) |
 | `/api/plugin-state/callback/**` | External plugin callbacks | Dual-token check (workload token + owner grant) |
 | `/api/public/**` | Webhooks and OAuth callbacks (Blueprint webhooks, Gmail callback) | Endpoint-specific secrets and state |
-| `/api/health/**`, `/api/simple-health/**`, `/actuator/**` | Probes | None; keep actuator off public ingress |
-| Static assets, `/login`, `/oauth2/**`, `/error` | Login flow and SPA shell | None |
+| `/api/health/**`, `/api/simple-health/**`, `/actuator/**`, `/api/actuator/**` | Probes | None; actuator runs on the management port, keep it off public ingress |
+| `/api-docs/**`, `/swagger-ui/**`, `/error` | API documentation and error rendering | None |
+
+Everything else, including `/auth/migration/**`, `/chaos/**` and `/api/**`,
+needs a valid bearer token.
 
 ### From token to owner
 
@@ -107,8 +128,6 @@ Display names and emails are never identities.
   against) or, when that is empty, `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
   `sub` is looked up in `users.keycloak_subject`. With no issuer configured, no
   bearer token resolves to an account.
-- **OAuth2 login session**: `sub` is looked up by registration (`google`,
-  `azure` or `keycloak` subject column).
 - **Local `UserDetails`**: looked up by username.
 
 **Just-in-time provisioning.** The first request with a valid token from the
@@ -142,9 +161,8 @@ Settings: `modulo.auth.dual-auth-enabled` (default `true`),
 STOMP over `/ws` (SockJS) is authenticated by
 [`OwnedSocketInterceptor`](../../backend/src/main/java/com/modulo/security/OwnedSocketInterceptor.java):
 
-- `CONNECT` accepts the session principal or an `Authorization: Bearer` native
-  header, resolves the owner, and records the session's expiry (the JWT's `exp`,
-  or 5 minutes for session logins).
+- `CONNECT` requires an `Authorization: Bearer` native header, resolves the
+  owner, and records the session's expiry (the JWT's `exp`).
 - `SUBSCRIBE` is allowed only for the caller's own queues
   (`/user/queue/state`, `/user/queue/notes`, `/user/queue/notifications`), their
   own notification topic, or note topics for notes they own.
@@ -185,7 +203,7 @@ verification and revocation, deployment records). Most other controllers only
 require `isAuthenticated()` and rely on ownership.
 
 Method security is enabled in every profile by
-[`MethodSecurityConfig`](../../backend/src/main/java/com/modulo/config/MethodSecurityConfig.java),
+[`SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java),
 so a signed-in user without the `admin` realm role gets 403 on those endpoints.
 `MethodSecurityDefaultProfileTest` and `MethodSecurityDockerProfileTest` check
 this under the default and `docker` profiles.

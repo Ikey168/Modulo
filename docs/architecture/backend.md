@@ -13,7 +13,7 @@ the [features](../features/) pages; every configuration key is in
 | --- | --- |
 | Runtime | Java 17, Spring Boot 2.7.18 (Maven, parent POM at repo root) |
 | Persistence | Spring Data JPA/Hibernate and `JdbcTemplate` on PostgreSQL; Flyway migrations |
-| Auth | Spring Security OAuth2 resource server (Keycloak JWT) and OAuth2 login |
+| Auth | Spring Security OAuth2 resource server (Keycloak JWT), one stateless chain in `config/SecurityConfig` |
 | Realtime | STOMP over WebSocket (`/ws`, SockJS fallback) |
 | Plugin RPC | gRPC server (`net.devh` starter, port 9090) |
 | Plugin eventing | In-JVM `PluginEventBus`; optional NATS bridge (`jnats`) |
@@ -42,9 +42,9 @@ layered `controller` / `service` / `repository` / `entity` split.
 | Package | Responsibility |
 | --- | --- |
 | `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, conflicts, health, performance |
-| `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, `CloudSecurityConfig`, audit logger, security-testing endpoints |
+| `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, audit logger, security-testing endpoints |
 | `config` | Security chains, WebSocket, gRPC, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
-| `auth`, `backend` | OAuth2 login success handler (provider migration); `oidc`-profile security config and `/api/me` |
+| `backend` | `/api/me` (token claims) |
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
 | `blueprint.interpreter` | `BlueprintInterpreterService`: executes Blueprint IR graphs |
 | `blueprint.execution` | Workflow runs, steps, checkpoints, scheduler, retention, recovery, operations, trace policy |
@@ -142,8 +142,7 @@ The plugin-state contract is documented in
 | --- | --- |
 | `/api/health`, `/api/simple-health` | **Public** health checks (the OCI health check uses `/api/health`) |
 | `/actuator/**` | Actuator (`management.server.port=8081` in the default properties) |
-| `/user/me`, `/logout` | Session identity and logout |
-| `/api/me` | JWT claims (`oidc` profile only) |
+| `/api/me` | The caller's token claims (used by the Envoy/OPA overlay) |
 | `/auth/migration/**` | Provider migration administration |
 | `/api/audit` | Audit event queries |
 | `/api/v2/performance`, `/api/security/testing`, `/chaos` | Diagnostics and test hooks |
@@ -244,13 +243,14 @@ Operating migrations: [database.md](../operations/database.md).
 
 | Profile | Used by | Effect |
 | --- | --- | --- |
-| (none) | `mvn spring-boot:run` | H2 in memory, Flyway off, debug logging |
-| `docker` | Compose, OCI | PostgreSQL, Flyway on, Hibernate validate |
-| `production` | Production configs | Like `docker`, datasource from `SPRING_DATASOURCE_URL` |
-| `staging`, `kubernetes`, `azure`, `performance`, `security`, `dev` | Environment overlays | See the matching `application-*.properties` |
-| `oidc` | Envoy/OPA overlay | Alternative JWT-only security chain and method security |
-| `cloud` | Cloud hardening | Stateless chain with cookie CSRF and admin-only paths |
-| `test` | Tests | Disables delivery workers and Azure initializer |
+| (none) | Quick local runs | H2 in memory, Flyway off, debug logging |
+| `docker` | Compose, OCI, Pi, the backend image | PostgreSQL from `SPRING_DATASOURCE_*`, Flyway on, Hibernate validate |
+| `dev` | `mvn spring-boot:run` against local backing services | PostgreSQL on `localhost:5432`, Keycloak on `localhost:8180`, context path `/` |
+| `test` | Tests | H2, disables delivery workers and Azure initializer |
+
+Security does not depend on the profile; see
+[security-model.md](security-model.md#how-the-backend-authenticates-a-request).
+Details: [configuration reference](../reference/configuration.md#profiles).
 
 ## Testing
 
