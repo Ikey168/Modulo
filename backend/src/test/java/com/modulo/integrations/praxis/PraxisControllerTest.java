@@ -44,7 +44,8 @@ class PraxisControllerTest {
     ObjectProvider<PraxisClient> clients = mock(ObjectProvider.class);
     when(clients.getIfAvailable()).thenReturn(client);
     when(identity.current()).thenReturn(new PraxisIdentity.Principal(42, "user-42"));
-    controller = new PraxisController(clients, identity, submissions, new PraxisProperties(), json);
+    controller = new PraxisController(clients, identity, submissions, new PraxisProperties(), json,
+        new PraxisApprovals(clients, identity, submissions));
     mvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new PraxisErrors())
         .defaultRequest(get("/").accept(MediaType.APPLICATION_JSON)).build();
   }
@@ -177,12 +178,17 @@ class PraxisControllerTest {
     @SuppressWarnings("unchecked")
     ObjectProvider<PraxisClient> none = mock(ObjectProvider.class);
     MockMvc disabled = MockMvcBuilders.standaloneSetup(
-        new PraxisController(none, identity, submissions, new PraxisProperties(), json))
+        new PraxisController(none, identity, submissions, new PraxisProperties(), json,
+            new PraxisApprovals(none, identity, submissions)))
         .setControllerAdvice(new PraxisErrors())
         .defaultRequest(get("/").accept(MediaType.APPLICATION_JSON)).build();
     disabled.perform(get("/api/praxis/status")).andExpect(jsonPath("$.configured").value(false))
         .andExpect(jsonPath("$.executors.claude").isEmpty());
     disabled.perform(get("/api/praxis/processes/p-1"))
         .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("praxis_not_configured"));
+    disabled.perform(get("/api/praxis/approvals"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.configured").value(false))
+        .andExpect(jsonPath("$.approvals").isEmpty());
+    verify(submissions, never()).list(any(Long.class));
   }
 }

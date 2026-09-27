@@ -41,6 +41,7 @@ public class PraxisController {
   private final PraxisSubmissions submissions;
   private final PraxisProperties properties;
   private final ObjectMapper json;
+  private final PraxisApprovals approvals;
   private final ThreadPoolExecutor streams = new ThreadPoolExecutor(0, MAX_STREAMS, 30, TimeUnit.SECONDS,
       new SynchronousQueue<>(), runnable -> {
         Thread thread = new Thread(runnable, "praxis-events");
@@ -49,12 +50,13 @@ public class PraxisController {
       });
 
   public PraxisController(ObjectProvider<PraxisClient> clients, PraxisIdentity identity, PraxisSubmissions submissions,
-      PraxisProperties properties, ObjectMapper json) {
+      PraxisProperties properties, ObjectMapper json, PraxisApprovals approvals) {
     this.clients = clients;
     this.identity = identity;
     this.submissions = submissions;
     this.properties = properties;
     this.json = json;
+    this.approvals = approvals;
   }
 
   @PreDestroy
@@ -221,6 +223,15 @@ public class PraxisController {
       throw new PraxisException(409, "control_unsupported_by_executor", null, null);
     }
     return client.control(id, attemptId, operation, signal, policy, onBehalfOf);
+  }
+
+  /**
+   * Pending approvals across the processes the user submitted, for the Approvals inbox.
+   * Not configured is an empty list, not an error, so the inbox still shows workflow approvals.
+   */
+  @GetMapping("/approvals")
+  public Map<String, Object> pendingApprovals() {
+    return approvals.pending();
   }
 
   @GetMapping("/processes/{id}/approvals")
