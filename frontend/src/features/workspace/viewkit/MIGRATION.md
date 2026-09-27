@@ -1,7 +1,7 @@
 # Migrating a workspace view onto the view kit
 
 Import everything from `./viewkit` (or `../viewkit`). Reference implementation:
-**`src/features/workspace/TtrpgViews.tsx`** — read it before starting.
+**`src/packs/ttrpg/TtrpgViews.tsx`** — read it before starting.
 
 ## Kit API
 

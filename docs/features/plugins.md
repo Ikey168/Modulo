@@ -62,7 +62,8 @@ Workspace plugins are the user-facing layer: what a user installs from
 | [`catalog.ts`](../../frontend/src/features/workspace/plugins/catalog.ts) | Every runnable plugin: id, dependencies, `builtin`, lazy `load()`; retired ids and their replacements |
 | [`runtime.ts`](../../frontend/src/features/workspace/plugins/runtime.ts) | Install, uninstall, enable, and disable; activation; contribution tracking |
 | [`installationState.ts`](../../frontend/src/features/workspace/plugins/installationState.ts) | Installed records, persisted as authenticated workspace state (`modulo.workspace.installations`) |
-| [`builtins/`](../../frontend/src/features/workspace/plugins/builtins/) | The plugin modules |
+| [`builtins/`](../../frontend/src/features/workspace/plugins/builtins/) | The modules of the core plugins (notes, graph, planner, canvas, …) |
+| [`src/packs/<pack>/plugins/`](../../frontend/src/packs/) | The modules of domain pack plugins, next to their views (see [Domain pack folders](../architecture/frontend.md#domain-pack-folders)) |
 
 ### Lifecycle
 

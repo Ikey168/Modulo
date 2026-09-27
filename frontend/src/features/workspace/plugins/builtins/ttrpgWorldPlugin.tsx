@@ -1,1 +1,0 @@
-import { BookOpen } from 'lucide-react'; import { TtrpgWorldView } from '../../TtrpgViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'ttrpg-world',label:'World & Characters',icon:BookOpen,order:30,mode:'ttrpg',component:TtrpgWorldView})}};export default plugin;

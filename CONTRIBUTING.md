@@ -64,7 +64,11 @@ supersedes the governing decision in the
    migration that has shipped. See [Database](docs/operations/database.md).
 5. **Every resource is owner-scoped.** New endpoints and queries must enforce the
    authenticated owner. See [Security model](docs/architecture/security-model.md).
-6. **No secrets in the repository.** Document variable names and where each
+6. **Domain pack code lives in `frontend/src/packs/<pack>/`.** A pack's views,
+   pack-only helpers and plugin entry modules go in its own folder. Code that
+   the shell or several packs use stays in `features/workspace/`. See
+   [Domain pack folders](docs/architecture/frontend.md#domain-pack-folders).
+7. **No secrets in the repository.** Document variable names and where each
    secret is kept, never values.
 
 ## Documentation

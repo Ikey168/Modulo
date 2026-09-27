@@ -19,7 +19,8 @@ Authentication uses `oidc-client-ts`; the Redux store holds only auth state
 | Path | Contents |
 | --- | --- |
 | `src/core/` | `@modulo/core`: the public API for feature code |
-| `src/features/workspace/` | The workspace shell, its views, the workspace plugin runtime (`plugins/`), the view kit (`viewkit/`), the phone layer (`mobile/`), and end-to-end crypto (`crypto/`) |
+| `src/features/workspace/` | The workspace shell, its core views, the shared domain models and stores, the workspace plugin runtime (`plugins/`), the view kit (`viewkit/`), the phone layer (`mobile/`), and end-to-end crypto (`crypto/`) |
+| `src/packs/<pack>/` | Domain pack code: one folder per plugin family (views, view-only helpers, plugin entry modules in `plugins/`, tests). See [Domain pack folders](#domain-pack-folders) |
 | `src/features/blueprint/` | Blueprint editor and node catalog |
 | `src/features/{auth,notes,knowledge,packs,approvals,executions,praxis,settings,...}` | Other feature areas |
 | `src/features/noteWorkbench/`, `src/features/helloWorld/` | Boot-time feature packs |
@@ -149,6 +150,44 @@ edit mode, search, navigation, and all active contributions) inside an unpadded
 [ADR 0005](decisions.md#adr-0005) and [ADR 0006](decisions.md#adr-0006).
 `viewkit/__tests__/houseStyle.test.ts` fails on raw `<select>`, raw palette
 colours, `text-[11px]` and re-rolled scaffolds.
+
+### Domain pack folders
+
+The views of each domain pack live in `src/packs/<pack>/`, not in
+`features/workspace/`. A pack folder holds the pack's views, helpers that only
+that pack uses, its plugin entry modules (`plugins/*Plugin.tsx`, the files the
+catalog lazy-loads) and their tests (`__tests__/`).
+
+| Folder | Plugins |
+| --- | --- |
+| `audit-core` | Audit Core viewer (browser, overview, scope, threats, findings, tests, report, remediation) |
+| `business-admin` | Business directory, contracts, reconciliation, obligations, operations, dashboard |
+| `domain-collections` | Collection and dashboard plugins of the security, wealth, evidence, career, writing and mobility packs |
+| `education` | Education core, curriculum, study planner, assignments, dashboard |
+| `electronics` | Electronics projects, parts, lab, dashboard |
+| `freelancer` | Rechnung, Zeiterfassung, EÜR, GoBD vault |
+| `health-training` | Meal planner, workout planner |
+| `hobbies` | Hobby stack, practice, fun, dashboard |
+| `homelab` | Homelab assets, operations, dashboard |
+| `life-os` | Life OS explorer, relations, review, portability, dashboard |
+| `media` | Media library and the per-media-type plugins |
+| `music` | Music projects, practice, library, dashboard |
+| `paperless` | Paperless records and its write-back queue |
+| `para` | Modified PARA (core, capture, tasks, goals, review, dashboard, migration) |
+| `personal-life` | Finance subscriptions, health tracker, hobby studio, home inventory and maintenance, journal, personal CRM, places, travel, wishlist |
+| `personal-sops` | Personal SOPs |
+| `routines` | Routines & habits |
+| `ttrpg` | TTRPG campaigns, world, sessions, dashboard |
+| `wardrobe` | Wardrobe closet, style studio, dashboard |
+
+What stays in `features/workspace/` is the shell and what several packs or the
+shell share: the core views (notes, graph, planner, calendar, canvas, database,
+dashboard, marketplace, …), the view kit, the plugin runtime and catalog, and
+the domain models and stores (`para.ts`, `hobbies.ts`, `useHobbyStore.ts`, …).
+The models stay shared because the planner, calendar, search index and
+portable backup read every pack's records. A pack imports them from
+`features/workspace/`; the catalog still lazy-loads each pack's entry modules
+by path, so every pack remains its own chunk.
 
 ## Lint rules that hold the architecture
 

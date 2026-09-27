@@ -22,7 +22,9 @@ For anything deeper, start at [docs/README.md](docs/README.md).
 frontend/src/
   core/          @modulo/core — the only API feature code may use
   features/      workspace, notes, blueprint, executions, approvals, packs, knowledge, praxis, …
-  features/workspace/plugins/   plugin catalog (catalog.ts) and built-in plugins
+  features/workspace/           workspace shell, core views, viewkit/, shared domain models and stores
+  features/workspace/plugins/   plugin runtime, catalog (catalog.ts) and core built-in plugins
+  packs/<pack>/  domain pack views, pack-only helpers, plugins/ entry modules, tests
   services/      low-level REST/WS clients, deviceDocuments, legacy migration readers
 backend/src/main/java/com/modulo/
   blueprint/     interpreter, node registry, sandbox, execution (workflow runs), approval
