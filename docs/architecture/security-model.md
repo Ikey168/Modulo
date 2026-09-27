@@ -117,6 +117,11 @@ Paths that answer without a token:
 Everything else, including `/auth/migration/**`, `/chaos/**` and `/api/**`,
 needs a valid bearer token.
 
+The profile boot tests in
+[`security/profiles`](../../backend/src/test/java/com/modulo/security/profiles/)
+start the whole application under each profile and check this chain end to end;
+see [Testing the security configuration](#testing-the-security-configuration).
+
 ### From token to owner
 
 Every data access resolves the caller to a row in `users` through
@@ -369,6 +374,32 @@ must say so. `keyRotation.test.ts` covers this.
 - [ ] Metadata decisions made and implemented.
 - [ ] Database handling decision made and implemented.
 - [ ] Independent review of the cryptography and flows signed off.
+
+## Testing the security configuration
+
+`ProfileSecurityContract` in
+[`security/profiles`](../../backend/src/test/java/com/modulo/security/profiles/)
+boots the whole application once per profile (`DefaultProfileSecurityTest`,
+`DockerProfileSecurityTest`, `DevProfileSecurityTest`, `TestProfileSecurityTest`)
+and sends requests through MockMvc and the real filter chain with RS256-signed
+tokens. For every profile it checks that:
+
+- an anonymous `GET /api/notes` gets 401, and so do a token from another issuer
+  and a token with a broken signature;
+- a bearer user is provisioned on first use, reaches their own note, and gets
+  404 for another user's note;
+- a user without the `admin` realm role gets 403 on an `ADMIN` endpoint, and an
+  admin gets 2xx;
+- `/actuator/health` and `/api/health` answer without a token.
+
+The tests run in `mvn test` (and so in `mvn verify`) without Docker. The test
+generates an RSA key pair and replaces only the `JwtDecoder` with one that
+trusts that key and checks the issuer; everything after signature verification
+is production code. The `docker` and `dev` profiles read PostgreSQL with Flyway,
+so their tests point the datasource at in-memory H2 with Hibernate DDL; the
+PostgreSQL-backed suites (Testcontainers) cover the schema separately. Each
+profile is its own test class because surefire forks a JVM per class and every
+application context binds the gRPC port.
 
 ## Related pages
 

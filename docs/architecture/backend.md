@@ -263,5 +263,8 @@ mvn -q -o test -Dtest=Foo           # offline, after a prior compile
 
 Security-sensitive code has dedicated tests under
 [`backend/src/test/java/com/modulo/security/`](../../backend/src/test/java/com/modulo/security/)
-(ownership, socket authorization, principal resolution). Full test setup is in
+(ownership, socket authorization, principal resolution, and per-profile boot
+tests of the security chain; see
+[security-model.md](security-model.md#testing-the-security-configuration)).
+Full test setup is in
 [local-development.md](../getting-started/local-development.md).
