@@ -1,6 +1,10 @@
 package com.modulo.integrations.praxis;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.modulo.audit.AuditEventService;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,20 +22,62 @@ import org.springframework.stereotype.Service;
  * Every call carries the delegated identity from {@link PraxisIdentity}, so Praxis
  * applies its own ownership check as well. Processes the user did not submit through
  * Modulo are never asked about.
+ *
+ * <p>Decisions made through Modulo are relayed to Praxis and, once Praxis has accepted
+ * them, recorded in Modulo's audit trail ({@code audit_events}, event type
+ * {@value #AUDIT_EVENT}) (#555).
  */
 @Service
 public class PraxisApprovals {
   private static final Logger log = LoggerFactory.getLogger(PraxisApprovals.class);
   static final String SOURCE = "praxis";
+  public static final String AUDIT_EVENT = "PRAXIS_APPROVAL_DECISION";
 
   private final ObjectProvider<PraxisClient> clients;
   private final PraxisIdentity identity;
   private final PraxisSubmissions submissions;
+  private final AuditEventService audit;
+  private final ObjectMapper json;
 
-  public PraxisApprovals(ObjectProvider<PraxisClient> clients, PraxisIdentity identity, PraxisSubmissions submissions) {
+  public PraxisApprovals(ObjectProvider<PraxisClient> clients, PraxisIdentity identity, PraxisSubmissions submissions,
+      AuditEventService audit, ObjectMapper json) {
     this.clients = clients;
     this.identity = identity;
     this.submissions = submissions;
+    this.audit = audit;
+    this.json = json;
+  }
+
+  /**
+   * Relays a decision to Praxis for the signed-in user and audits it once Praxis has
+   * accepted it. A refusal (409 {@code stale_process_attempt}, 409 {@code approval_rejected},
+   * 403, 404, ...) raises {@link PraxisException} before anything is recorded.
+   */
+  public JsonNode decide(String processId, String effectId, long version, String attemptId, boolean approved,
+      String reason) {
+    PraxisClient client = clients.getIfAvailable();
+    if (client == null) throw new PraxisException(503, "praxis_not_configured", null, null);
+    PraxisIdentity.Principal user = identity.current();
+    JsonNode accepted = client.decide(processId, effectId, version, attemptId, approved, reason, user.onBehalfOf());
+    Map<String, Object> entry = new LinkedHashMap<>();
+    entry.put("source", SOURCE);
+    entry.put("ownerId", user.ownerId());
+    entry.put("processId", processId);
+    entry.put("effectId", effectId);
+    entry.put("version", version);
+    entry.put("attemptId", attemptId);
+    entry.put("decision", approved ? "approve" : "reject");
+    entry.put("reason", reason);
+    entry.put("decidedAt", Instant.now().toString());
+    try {
+      audit.record(AUDIT_EVENT, null, null, null, approved ? "APPROVED" : "REJECTED", null, json.writeValueAsString(entry));
+    } catch (JsonProcessingException | RuntimeException error) {
+      // Praxis has already applied the decision, so the request must not report failure;
+      // the log line keeps the record the audit table could not.
+      log.error("Praxis accepted a decision but its audit entry could not be written: {} ({})",
+          entry.entrySet().stream().filter(field -> !"reason".equals(field.getKey())).toList(), error.toString());
+    }
+    return accepted;
   }
 
   /**

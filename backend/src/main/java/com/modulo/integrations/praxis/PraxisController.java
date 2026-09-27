@@ -248,8 +248,8 @@ public class PraxisController {
       throw new IllegalArgumentException("version_required");
     }
     if (!body.path("approved").isBoolean()) throw new IllegalArgumentException("approved_required");
-    return client().decide(id, effectId, body.path("version").asLong(), attemptId, body.path("approved").asBoolean(),
-        reason, identity.current().onBehalfOf());
+    return approvals.decide(id, effectId, body.path("version").asLong(), attemptId, body.path("approved").asBoolean(),
+        reason);
   }
 
   @PostMapping("/processes/{id}/publication")

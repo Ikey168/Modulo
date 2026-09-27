@@ -298,7 +298,10 @@ Praxis ties process ownership to it and accounts can be renamed.
   `effectId`, `version`, `attemptId`, `approved` and a required `reason`. A
   `409 stale_process_attempt` is shown as an alert and the inbox reloads. The
   Approvals panel in Praxis Tasks shows a count and links to the inbox instead
-  of keeping its own list. See
+  of keeping its own list. A decision Praxis accepts through either route is
+  recorded in Modulo's audit trail as `PRAXIS_APPROVAL_DECISION` (owner,
+  source, process, effect, version, attempt, decision, reason, time); a refused
+  or stale one is not. See
   [Praxis approvals in the inbox](workflows-and-approvals.md#praxis-approvals-in-the-inbox).
 - **Errors.** Praxis codes pass through (`404`, `409`, `422`, `429` with
   `Retry-After`, `503`). A Praxis `401` means Modulo's own credentials are
@@ -311,6 +314,10 @@ Praxis ties process ownership to it and accounts can be renamed.
 - `PraxisClientTest`, `PraxisCredentialsTest`, `PraxisControllerTest` cover the
   wire contract, TLS material, token handling, identity forwarding, controls
   and error mapping.
+- `PraxisApprovalsTest` runs against a loopback Praxis stand-in and covers the
+  inbox listing (only submitted processes, delegated identity, not configured)
+  and decision auditing (accepted decisions audited, refused and stale ones
+  not).
 - `PraxisHostIntegrationTest` runs against a real Praxis host with the `fake`
   executor. [`scripts/praxis-host-it.sh`](../../scripts/praxis-host-it.sh)
   `[praxis-checkout]` generates an internal CA, server and client
