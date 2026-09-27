@@ -1,7 +1,7 @@
 package com.modulo.blueprint;
 
 import com.modulo.blueprint.interpreter.BlueprintInterpreterService;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import com.modulo.security.AuthenticatedUserService;
 import java.util.Map;
 import java.util.Objects;

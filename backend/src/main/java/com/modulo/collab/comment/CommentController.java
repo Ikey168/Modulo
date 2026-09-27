@@ -1,7 +1,7 @@
 package com.modulo.collab.comment;
 
 import com.modulo.collab.notification.NotificationService;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

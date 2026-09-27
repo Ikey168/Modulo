@@ -33,7 +33,8 @@ trap 'exit 143' TERM
 # shellcheck disable=SC2016
 "${compose[@]}" exec -T db sh -ec 'pg_dumpall -U "$POSTGRES_USER"' | gzip -9 > "$target/postgres.sql.gz"
 gzip -t "$target/postgres.sql.gz"
-for service in neo4j noesis; do
+volume_services=(noesis)
+for service in "${volume_services[@]}"; do
   container=$("${compose[@]}" ps -aq "$service")
   [[ -n $container ]] || { echo "Missing $service container" >&2; exit 1; }
   volume=$(docker inspect "$container" --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{if eq .Type "volume"}}{{.Name}}{{end}}{{end}}{{end}}')
@@ -48,7 +49,7 @@ for service in neo4j noesis; do
   tar -tzf "$target/$service-data.tar.gz" >/dev/null
  done
 if ((${#restart[@]})); then "${compose[@]}" start "${restart[@]}"; restart=(); fi
-(cd "$target" && sha256sum postgres.sql.gz neo4j-data.tar.gz noesis-data.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS)
+(cd "$target" && sha256sum postgres.sql.gz noesis-data.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS)
 touch "$target/VERIFIED"
 mv "$target" "$backup_root/$stamp"
 target="$backup_root/$stamp"

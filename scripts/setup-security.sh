@@ -65,7 +65,7 @@ install_gitleaks() {
     else
         # Install gitleaks based on OS
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            GITLEAKS_VERSION="8.18.4"
+            GITLEAKS_VERSION="8.28.0"
             curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz -C /tmp
             sudo mv /tmp/gitleaks /usr/local/bin/
             log_success "gitleaks installed for Linux"
@@ -74,7 +74,7 @@ install_gitleaks() {
                 brew install gitleaks
                 log_success "gitleaks installed via homebrew"
             else
-                GITLEAKS_VERSION="8.18.4"
+                GITLEAKS_VERSION="8.28.0"
                 curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_darwin_x64.tar.gz" | tar -xz -C /tmp
                 sudo mv /tmp/gitleaks /usr/local/bin/
                 log_success "gitleaks installed for macOS"

@@ -57,6 +57,35 @@ export interface Approval {
   payload: Record<string, unknown>;
 }
 
+/** A pending Praxis approval as the Approvals inbox lists it (GET /api/praxis/approvals). */
+export interface PendingPraxisApproval {
+  source: 'praxis';
+  /** The submitted process; decisions are posted to it. */
+  processId: string;
+  /** The process in the task tree that proposed the effect. */
+  effectProcessId: string;
+  effectId: string;
+  version: number;
+  attemptId: string;
+  kind: string;
+  target: string;
+  reversible: boolean;
+  title: string;
+  summary: string | null;
+  requestedAt: string | null;
+  submittedAt: string | null;
+}
+
+export interface PendingPraxisApprovals {
+  configured: boolean;
+  /** False when Praxis could not answer for some tasks; the approvals that did load are listed. */
+  complete: boolean;
+  approvals: PendingPraxisApproval[];
+}
+
+/** What a decision binds to: the effect, its version and the attempt it was proposed in. */
+export type ApprovalBinding = Pick<Approval, 'effect_id' | 'version' | 'attempt_id'>;
+
 export interface PraxisStatus {
   configured: boolean;
   executors: Record<string, string[]>;
@@ -125,7 +154,8 @@ export const praxisApi = {
       method: 'POST', body: JSON.stringify({ operation, attemptId, policy: operation === 'cancel' ? 'tree' : 'self' }),
     }),
   approvals: (id: string) => call<{ approvals: Approval[] }>(`/processes/${encodeURIComponent(id)}/approvals`).then(r => r.approvals),
-  decide: (id: string, approval: Approval, approved: boolean, reason: string) =>
+  pendingApprovals: () => call<PendingPraxisApprovals>('/approvals'),
+  decide: (id: string, approval: ApprovalBinding, approved: boolean, reason: string) =>
     call(`/processes/${encodeURIComponent(id)}/approvals`, {
       method: 'POST',
       body: JSON.stringify({ effectId: approval.effect_id, version: approval.version, attemptId: approval.attempt_id, approved, reason }),

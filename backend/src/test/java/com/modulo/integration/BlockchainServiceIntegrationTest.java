@@ -4,7 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.modulo.config.AsyncConfig;
 import com.modulo.config.BlockchainConfig;
-import com.modulo.service.BlockchainService;
+import com.modulo.blockchain.BlockchainService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +57,7 @@ class BlockchainServiceIntegrationTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("blockchain.network.rpc-url", () -> "http://localhost:8089");
-        registry.add("logging.level.com.modulo.service.BlockchainService", () -> "DEBUG");
+        registry.add("logging.level.com.modulo.blockchain.BlockchainService", () -> "DEBUG");
     }
 
     @BeforeEach

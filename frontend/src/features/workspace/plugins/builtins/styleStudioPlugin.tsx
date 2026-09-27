@@ -1,1 +1,0 @@
-import { Sparkles } from 'lucide-react'; import { StyleStudioView } from '../../WardrobeViews'; import type { PluginModule } from '../types'; const plugin:PluginModule={activate(ctx){ctx.addView({id:'style-studio',label:'Style Studio',icon:Sparkles,order:30,mode:'style',component:StyleStudioView})}};export default plugin;

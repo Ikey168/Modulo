@@ -1,8 +1,8 @@
 package com.modulo.sharing;
 
 import com.modulo.audit.AuditEventService;
-import com.modulo.entity.Note;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;

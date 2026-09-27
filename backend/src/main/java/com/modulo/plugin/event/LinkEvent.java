@@ -1,7 +1,7 @@
 package com.modulo.plugin.event;
 
-import com.modulo.entity.NoteLink;
-import com.modulo.entity.Note;
+import com.modulo.link.NoteLink;
+import com.modulo.note.Note;
 
 /**
  * Events related to note-to-note link operations.
@@ -32,8 +32,7 @@ public abstract class LinkEvent extends PluginEvent {
 
     /**
      * Fired when a link between two notes is deleted. Carries the endpoint ids only,
-     * since the {@link NoteLink} row is gone by the time consumers (e.g. the Neo4j
-     * projection) handle the event.
+     * since the {@link NoteLink} row is gone by the time consumers handle the event.
      */
     public static class LinkDeleted extends LinkEvent {
 

@@ -34,7 +34,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - SPRING_PROFILES_ACTIVE=dev,oidc
+      # No profile: in-memory H2. Bearer tokens are checked against this issuer,
+      # whose JWK set is discovered on first use.
+      - MODULO_SECURITY_KEYCLOAK_ISSUER_URI=${MODULO_SECURITY_KEYCLOAK_ISSUER_URI:-http://localhost:8080/auth/realms/modulo}
     ports:
       - "8081:8080"  # Direct backend access (bypassing Envoy)
     networks:

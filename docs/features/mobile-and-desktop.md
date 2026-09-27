@@ -396,7 +396,7 @@ flowchart LR
 
 | Command | What it does |
 | --- | --- |
-| `npm run deploy:desktop` (repo root) | Builds the frontend, starts the backend stack with Docker Compose (backend, db, neo4j, keycloak), waits for health, launches the app. Flags: `--stop`, `--no-build`, `--stack-only`, `--app-only` ([`deploy-desktop.js`](../../scripts/deploy-desktop.js)) |
+| `npm run deploy:desktop` (repo root) | Builds the frontend, starts the backend stack with Docker Compose (backend, db, keycloak), waits for health, launches the app. Flags: `--stop`, `--no-build`, `--stack-only`, `--app-only` ([`deploy-desktop.js`](../../scripts/deploy-desktop.js)) |
 | `npm run dev` in `desktop/` (with `npm run dev` in `frontend/`) | Loads the Vite dev server with hot reload |
 | `npm start` in `desktop/` | Uses a production `frontend/dist` build |
 | `npm run serve` in `desktop/` | Only the embedded server, no Electron |

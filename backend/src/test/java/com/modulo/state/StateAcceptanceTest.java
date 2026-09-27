@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import com.modulo.security.AuthenticatedUserService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -20,12 +20,13 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.*;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.*;
@@ -43,7 +44,7 @@ import org.testcontainers.utility.MountableFile;
       "spring.flyway.enabled=false",
       "server.servlet.context-path=",
       "spring.main.allow-bean-definition-overriding=true",
-      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration,org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration,org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration,org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration"
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration,org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration,org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration,org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration"
     })
 class StateAcceptanceTest {
   @Container
@@ -85,7 +86,8 @@ class StateAcceptanceTest {
         user.setId(id);
         when(repository.findByKeycloakSubject("owner-" + id)).thenReturn(Optional.of(user));
       }
-      return new AuthenticatedUserService(repository, ISSUER);
+      return new AuthenticatedUserService(
+          repository, mock(com.modulo.user.AuthMigrationService.class), ISSUER, "");
     }
 
     @Bean
@@ -104,14 +106,9 @@ class StateAcceptanceTest {
 
     @Bean
     SecurityFilterChain chain(HttpSecurity http) throws Exception {
-      http.csrf()
-          .disable()
-          .authorizeRequests()
-          .anyRequest()
-          .authenticated()
-          .and()
-          .oauth2ResourceServer()
-          .jwt();
+      http.csrf(csrf -> csrf.disable())
+          .authorizeHttpRequests(authz -> authz.anyRequest().authenticated())
+          .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
       return http.build();
     }
   }

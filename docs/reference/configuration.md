@@ -8,24 +8,21 @@ a setting. Deployment-specific variables (Compose `.env`, OCI host files) are in
 
 Everything here was checked against the code: a key is listed only if a
 `@Value`, `@ConfigurationProperties` or `@ConditionalOnProperty` binding reads
-it, or if it is a standard Spring Boot key the shipped profiles rely on. The
-property files also contain keys that nothing binds; those are listed at the end
-so nobody spends time tuning them.
+it, or if it is a standard Spring Boot key the shipped profiles rely on.
 
 ## How configuration is resolved
 
-- Sources, lowest to highest precedence: `application.yml`, then
-  `application.properties` (both in
-  [`backend/src/main/resources`](../../backend/src/main/resources)), then the
-  active profile files, then environment variables and JVM system properties.
-  When the same key is in both base files, the `.properties` value wins.
+- Sources, lowest to highest precedence: the base file
+  [`application.properties`](../../backend/src/main/resources/application.properties),
+  then the active profile file (`application-<profile>.properties` in the same
+  directory), then environment variables and JVM system properties.
 - Any key can be set from the environment with Spring's relaxed binding:
   upper-case it and replace `.` and `-` with `_`. `modulo.security.jwt-secret`
   becomes `MODULO_SECURITY_JWT_SECRET`. This is how every deployment in the repo
   configures the backend.
-- Some profile files also expose shorter placeholders such as
-  `${MODULO_JWT_SECRET}` or `${DATABASE_URL}`. Those only work under that profile;
-  the relaxed-binding name always works.
+- The `docker` profile also accepts older short names (`MODULO_JWT_SECRET`,
+  `MODULO_API_KEY`, `MODULO_ENCRYPTION_KEY`, `IPFS_*`, `BLOCKCHAIN_*`). Those only
+  work under that profile; the relaxed-binding name always works.
 - `ModuloProperties`, `DatabaseProperties`, `ServerProperties`, `GrpcProperties`
   and `ManagementProperties` (in
   [`config/properties`](../../backend/src/main/java/com/modulo/config/properties))
@@ -35,37 +32,39 @@ so nobody spends time tuning them.
 
 Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 
-| Profile | File(s) | Purpose |
-|---------|---------|---------|
-| (none) | `application.yml`, `application.properties` | In-memory H2, Hibernate `ddl-auto=update`, Flyway off. Local and test use. |
-| `docker` | `application.yml` (`docker` document), `application-docker.properties` | PostgreSQL from `SPRING_DATASOURCE_*`, Flyway on, `ddl-auto=validate`. Used by every Compose deployment. |
-| `staging` | `application.yml` (`staging` document), `application-staging.properties` | PostgreSQL defaulting to `modulodb_staging`, Flyway on. |
-| `production` | `application-production.properties` | PostgreSQL from required `SPRING_DATASOURCE_*`, Flyway on. |
-| `kubernetes` | `application-kubernetes.properties` | PostgreSQL, Flyway on, OTel endpoint and Kubernetes resource attributes from env. |
-| `azure` | `application-azure.properties` | Azure App Service/AKS: `DATABASE_URL`, OAuth client secrets from env, secure cookies, management on 8080. Flyway is not enabled by this profile. |
-| `dev` | `application-dev.properties` | Port 8081, debug logging, graph projection off. Its `modulo.security.*` placeholders fail validation; override them. |
-| `oidc` | `application.yml` (`oidc` document) | Resource-server issuer for the Envoy/OPA overlay. |
-| `security` | `application-security.properties` | Hardened preset: TLS on, actuator reduced to `health,info`, rate limiting, audit logging flags. Combine with a data profile. |
-| `performance` | `application-performance.properties` | Hikari, Hibernate batching, response compression, async pool tuning. |
-| `cloud` | none | Activates `CloudSecurityConfig` (security headers, CORS from `modulo.security.allowed-origins`). |
-| `test` | test resources | Disables schedulers such as workflow retention and the plugin-state outbox. |
+| Profile | File | Purpose |
+|---------|------|---------|
+| (none) | `application.properties` | In-memory H2, Hibernate `ddl-auto=update`, Flyway off, context path `/api`. Quick local runs only. |
+| `docker` | `application-docker.properties` | PostgreSQL from `SPRING_DATASOURCE_*` (required), Flyway on, `ddl-auto=validate`, actuator exposure `health,info,metrics`. Used by every Compose deployment (root `docker-compose.yml`, OCI, Pi) and is the backend image's default. |
+| `dev` | `application-dev.properties` | Native development against the local backing services: context path `/`, PostgreSQL on `localhost:5432/modulodb` (`postgres`/`postgres`, overridable with `SPRING_DATASOURCE_*`), Flyway on, Keycloak bearer tokens from `localhost:8180/realms/modulo`. |
+| `test` | [`src/test/resources`](../../backend/src/test/resources) | Activated by the test `config/application.properties`. H2 with `create-drop`, Flyway off, actuator on the application port; disables schedulers such as workflow retention and the plugin-state outbox. |
+
+The `staging`, `production`, `kubernetes`, `azure`, `security` and `performance`
+profiles were removed with the cloud deployment stacks; nothing deployed them.
+The `oidc` and `cloud` profiles, which switched on alternative security
+configurations, are gone too: security is the same in every profile (see
+[Security model](../architecture/security-model.md#how-the-backend-authenticates-a-request)).
+
+The manifests and scripts that activated the removed cluster and Azure profiles
+are preserved in commit `86644da` (see
+[Deployment](../operations/deployment.md#archived-cloud-deployments)).
 
 ## Server and management
 
 | Key | Env var | Default | Notes |
 |-----|---------|---------|-------|
-| `server.port` | `SERVER_PORT` | `8080` (`8081` under `dev`) | Validated 1024–65535. |
-| `server.servlet.context-path` | `SERVER_SERVLET_CONTEXT_PATH` | `/api` | Controllers already map `/api/...`, so every Compose deployment sets `/`. Must not be blank. |
+| `server.port` | `SERVER_PORT` | `8080` | Validated 1024–65535. |
+| `server.servlet.context-path` | `SERVER_SERVLET_CONTEXT_PATH` | `/api` | Controllers already map `/api/...`, so every Compose deployment and the `dev` profile set `/`. Must not be blank. |
 | `server.forward-headers-strategy` | | `framework` | Honour `X-Forwarded-*` behind a proxy. |
-| `server.servlet.session.cookie.secure` | | `false` (`true` under `azure`) | |
+| `server.servlet.session.cookie.secure` | | `false` | |
 | `server.servlet.session.timeout` | | `30m` | |
 | `spring.servlet.multipart.max-file-size` | | `25MB` | Per file. PDF tools accept 25 MB; attachments are further capped at 10 MB. |
 | `spring.servlet.multipart.max-request-size` | | `100MB` | |
 | `spring.task.scheduling.pool.size` | | `4` | Keeps metrics and retention responsive while the workflow dispatcher is busy. |
-| `management.server.port` | `MANAGEMENT_SERVER_PORT` | `8081` (`8080` under `azure`) | Actuator runs on its own port unless you set it to the server port. |
+| `management.server.port` | `MANAGEMENT_SERVER_PORT` | `8081` | Actuator runs on its own port unless you set it to the server port. |
 | `management.endpoints.web.base-path` | | `/actuator` | |
-| `management.endpoints.web.exposure.include` | `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | `*` | `health,info` under `security`. |
-| `management.endpoint.health.show-details` | | `always` | `when-authorized` under `azure` and `security`. |
+| `management.endpoints.web.exposure.include` | `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | `*` | `health,info,metrics` under `docker`. |
+| `management.endpoint.health.show-details` | | `always` | |
 | `management.endpoint.health.probes.enabled` | | `true` | Enables `/actuator/health/liveness` and `/readiness`. |
 | `grpc.server.port` | `GRPC_SERVER_PORT` | `9090` | gRPC services load only when `modulo.features.enable-grpc=true`. |
 | `grpc.server.enable-reflection` | | `true` | |
@@ -78,9 +77,10 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 | `spring.datasource.username` | `SPRING_DATASOURCE_USERNAME` | `sa` | |
 | `spring.datasource.password` | `SPRING_DATASOURCE_PASSWORD` | `password` | |
 | `spring.datasource.driver-class-name` | | `org.h2.Driver` | `org.postgresql.Driver` in PostgreSQL profiles. |
-| `spring.datasource.hikari.*` | | Hikari defaults | Tuned in `azure`, `security`, `performance`. |
+| `spring.datasource.hikari.*` | | Hikari defaults | |
 | `spring.jpa.hibernate.ddl-auto` | | `update` (H2) / `validate` (PostgreSQL profiles) | Never `update` against PostgreSQL. |
-| `spring.flyway.enabled` | `SPRING_FLYWAY_ENABLED` | `false`; `true` in `docker`, `staging`, `production`, `kubernetes` | |
+| `spring.jpa.properties.hibernate.type.preferred_instant_jdbc_type` | | `TIMESTAMP` | Keeps the Hibernate 5 mapping of `Instant` to `timestamp` (Hibernate 6 would expect `timestamp with time zone`). Do not change it without a migration. |
+| `spring.flyway.enabled` | `SPRING_FLYWAY_ENABLED` | `false`; `true` in `docker` and `dev` | |
 | `spring.flyway.locations` | | `classpath:db/postgresql` | |
 | `spring.flyway.table` | | `modulo_schema_history` | |
 | `spring.flyway.schemas` | | `public,application` | |
@@ -89,15 +89,10 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 
 See [Database operations](../operations/database.md).
 
-## Knowledge graph (Neo4j)
+## Knowledge indexing
 
 | Key | Env var | Default | Notes |
 |-----|---------|---------|-------|
-| `spring.neo4j.uri` | `SPRING_NEO4J_URI` | `bolt://localhost:7687` | |
-| `spring.neo4j.authentication.username` | `SPRING_NEO4J_AUTHENTICATION_USERNAME` | `neo4j` | |
-| `spring.neo4j.authentication.password` | `SPRING_NEO4J_AUTHENTICATION_PASSWORD` | `test` | |
-| `modulo.graph.enabled` | `MODULO_GRAPH_ENABLED` | `true` | `false` under `dev`. When off or Neo4j is unreachable, graph panels show empty states. |
-| `modulo.graph.backfill-on-startup` | `MODULO_GRAPH_BACKFILL_ON_STARTUP` | `false` | Projects all notes and links from PostgreSQL at startup. On demand: `POST /api/graph/backfill`. |
 | `modulo.knowledge.index-interval-ms` | | `2000` | Embedding indexer poll interval. |
 | `modulo.knowledge.index-initial-delay-ms` | | `10000` | |
 
@@ -109,22 +104,19 @@ See [Database operations](../operations/database.md).
 | `modulo.security.jwt-expiration-seconds` | | `3600` | 300–86400. |
 | `modulo.security.api-key` | `MODULO_SECURITY_API_KEY` | dev placeholder | Required. `mod_` followed by 16+ alphanumerics. |
 | `modulo.security.encryption-key` | `MODULO_SECURITY_ENCRYPTION_KEY` | dev placeholder | Required. Also keys the Gmail refresh-token cipher. |
-| `modulo.security.enable-csrf` / `enable-cors` | | `true` | |
+| `modulo.security.enable-csrf` / `enable-cors` | | `true` | Validated but not read. CSRF is off on the stateless bearer chain by design; CORS comes from `WebConfig`. |
 | `modulo.security.max-login-attempts` | | `3` | 1–10. |
 | `modulo.security.account-lockout-duration-seconds` | | `900` | At least 60. |
-| `modulo.security.keycloak.jwk-set-uri` | `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` | unset | When set, `ResourceServerSecurityConfig` validates Keycloak bearer tokens with this JWKS. Use an address reachable from the backend. |
-| `modulo.security.keycloak.issuer-uri` | `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` | unset | Expected `iss`. Must be the browser-facing issuer URL. |
-| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | | unset (`oidc` profile sets it) | Read by `AuthenticatedUserService`. |
-| `spring.security.oauth2.client.registration.{google,azure}.*` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` (under `azure`) | `test` | Legacy OAuth2 login clients. |
-| `modulo.security.allowed-origins` | `MODULO_SECURITY_ALLOWED_ORIGINS` | empty (WebSocket); `http://localhost:3000,https://modulo-app.com` (`cloud`) | Allowed origins for `/ws` and, under `cloud`, CORS. |
+| `modulo.security.keycloak.jwk-set-uri` | `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` | unset | Where `SecurityConfig` fetches the keys that verify bearer tokens (lazily). Use an address reachable from the backend. Without it, the keys are discovered from the issuer; with neither, every bearer token is rejected. |
+| `modulo.security.keycloak.issuer-uri` | `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` | unset | Expected `iss`, and the issuer whose tokens `AuthenticatedUserService` resolves to accounts (provisioning them on first use). Must be the browser-facing issuer URL. |
+| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | | unset | Fallback trusted issuer for `AuthenticatedUserService` when `modulo.security.keycloak.issuer-uri` is empty. |
+| `modulo.security.allowed-origins` | `MODULO_SECURITY_ALLOWED_ORIGINS` | empty | Allowed origins for `/ws`. |
 | `modulo.security.rate-limit.enabled` | | `true` | `RateLimitingFilter`, per client IP. Returns 429. |
 | `modulo.security.rate-limit.requests-per-minute` | | `100` | |
 | `modulo.security.rate-limit.burst-capacity` | | `20` | |
-| `modulo.security.rate-limiting.enabled` | | `true` | Separate flag read by `CloudSecurityConfig` (`cloud` profile). |
-| `modulo.security.jwt.secret` | | unset | Read by `CloudSecurityConfig` only. |
 | `modulo.security.testing.enabled` | | `false` | Enables `/api/security/testing/*` probes. Never in production. |
 | `modulo.security.testing.api-key` | | empty | Key those probes require. |
-| `modulo.auth.dual-auth-enabled` | | `true` in `application.properties` (code default `false`) | Accept legacy and Keycloak sessions during migration. |
+| `modulo.auth.dual-auth-enabled` | | `true` in `application.properties` (code default `false`, kept in tests) | Link a new provider to an existing account alongside the old one (instead of replacing it) during migration. |
 | `modulo.auth.default-provider` | | `KEYCLOAK` | |
 | `modulo.auth.migration-grace-period-days` | | `30` | |
 
@@ -193,10 +185,9 @@ See [Plugins](../features/plugins.md).
 | `azure.storage.use-managed-identity` | `AZURE_STORAGE_USE_MANAGED_IDENTITY` | `true` | |
 | `azure.storage.container-name` | `AZURE_STORAGE_CONTAINER_NAME` | `attachments` | |
 | `azure.storage.cdn-endpoint` | `AZURE_CDN_ENDPOINT` | empty | |
+| `azure.storage.initialize-container` | `AZURE_STORAGE_INITIALIZE_CONTAINER` | `true` | Creates the container at startup (not in the `test` profile). Tests set it to `false` so profile boot tests don't wait on a storage emulator. |
 | `azure.storage.max-file-size` | `AZURE_STORAGE_MAX_FILE_SIZE` | `10485760` | |
 | `azure.storage.allowed-content-types` | `AZURE_STORAGE_ALLOWED_CONTENT_TYPES` | images, PDF, text, Word | The code default also allows WebP, Markdown, `message/rfc822` and audio types; `application.properties` narrows it. |
-| `app.offline.database.enabled` | | `false` | SQLite offline store. |
-| `app.offline.database.path` | | `./data/offline.db` | |
 
 ## Integrations
 
@@ -205,8 +196,8 @@ See [Plugins](../features/plugins.md).
 | `modulo.integrations.ipfs.enabled` | `MODULO_INTEGRATIONS_IPFS_ENABLED` | `true` | |
 | `modulo.integrations.ipfs.node-url` | `MODULO_INTEGRATIONS_IPFS_NODE_URL` | `http://localhost:5001` | |
 | `modulo.integrations.ipfs.gateway-url` | `MODULO_INTEGRATIONS_IPFS_GATEWAY_URL` | `http://localhost:8080` | |
-| `modulo.integrations.blockchain.network` | `BLOCKCHAIN_NETWORK` (docker/staging) | `localhost` | One of `mainnet`, `sepolia`, `mumbai`, `polygon`, `localhost`. |
-| `modulo.integrations.blockchain.rpc-url` | `BLOCKCHAIN_RPC_URL` (docker/staging) | `http://localhost:8545` | |
+| `modulo.integrations.blockchain.network` | `BLOCKCHAIN_NETWORK` (docker) | `localhost` (`mainnet` under `docker`) | One of `mainnet`, `sepolia`, `mumbai`, `polygon`, `localhost`. |
+| `modulo.integrations.blockchain.rpc-url` | `BLOCKCHAIN_RPC_URL` (docker) | `http://localhost:8545` | |
 | `modulo.integrations.blockchain.gas-limit` / `gas-price-wei` | | `8000000` / `20000000000` | |
 | `blockchain.network.rpc-url` | `BLOCKCHAIN_NETWORK_RPC_URL` | `http://localhost:8545` | Used by `BlockchainConfig`. |
 | `blockchain.network.chain-id` | | `31337` | |
@@ -238,19 +229,17 @@ See [Integrations](../features/integrations.md).
 |-----|---------|---------|-------|
 | `otel.service.name` | `OTEL_SERVICE_NAME` | `modulo-backend` | |
 | `otel.service.version` | `OTEL_SERVICE_VERSION` | `1.0.0` | |
-| `otel.traces.exporter` | `OTEL_TRACES_EXPORTER` | `otlp` | `otlp` or `jaeger`. |
+| `otel.traces.exporter` | `OTEL_TRACES_EXPORTER` | `otlp` | Only `otlp` is supported. Any other value logs a warning and exports over OTLP (the Jaeger exporter was removed from OpenTelemetry Java; Jaeger accepts OTLP on 4317). |
 | `otel.exporter.otlp.endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | gRPC. |
-| `otel.exporter.jaeger.endpoint` | `OTEL_EXPORTER_JAEGER_ENDPOINT` | `http://localhost:14250` | Used when the exporter is `jaeger`. |
 | `management.metrics.tags.application` | | `modulo-backend` | Label used by the SLO queries. |
 | `management.metrics.distribution.percentiles-histogram.http.server.requests` | | `true` | Required for latency SLIs. |
 
 The tracer is built by hand in
 [`OpenTelemetryConfig`](../../backend/src/main/java/com/modulo/config/OpenTelemetryConfig.java),
-not by the OTel Java agent. It reads only the five `otel.*` keys above. The
-`otel.traces.sampler*`, `otel.instrumentation.*`, `otel.propagators` and
-`otel.resource.attributes*` keys in the property files, and `OTEL_SDK_DISABLED`,
-have no effect; every span is exported and `deployment.environment` is always
-`development`. See [Observability](../operations/observability.md).
+not by the OTel Java agent. It reads only the four `otel.*` keys above. Other
+standard OTel settings (samplers, propagators, `OTEL_RESOURCE_ATTRIBUTES`,
+`OTEL_SDK_DISABLED`) have no effect; every span is exported and
+`deployment.environment` is always `development`. See [Observability](../operations/observability.md).
 
 ## Chaos testing
 
@@ -296,20 +285,3 @@ cache that file.
 
 The Android build sets `window.__MODULO_CONFIG__.serverOrigin` at runtime to the
 server the user picks; see [Mobile and desktop](../features/mobile-and-desktop.md).
-
-## Keys that nothing reads
-
-These appear in the property files but no code binds them. Changing them has no
-effect.
-
-| Keys | Where |
-|------|-------|
-| `modulo.features.*.enabled` (for example `modulo.features.blockchain.enabled`) | `application.properties`, `dev`, `azure`, `kubernetes`. The bound names are `modulo.features.enable-*`. |
-| `modulo.performance.file.max-size`, `modulo.performance.timeout.*`, `modulo.performance.cache.ttl` | same. Bound names are `modulo.performance.max-file-size-mb` etc. |
-| `modulo.integrations.blockchain.polygon.rpc-url`, `modulo.integrations.external-api.timeout` | same |
-| `modulo.auth.conflict-resolution-strategy`, `auto-migrate-legacy-users`, `require-manual-review-threshold` | `application.properties` |
-| `modulo.security.headers.*`, `csp.*`, `cors.*`, `session.*`, `oauth2.*`, `audit.*` | `application-security.properties` |
-| `modulo.performance.monitoring.*`, `modulo.cache.*` | `application-performance.properties` |
-| `app.upload.dir`, `app.upload.max-file-size`, `app.offline.sync.*` | `application.properties` |
-| `azure.application-insights.*` | `application.properties`, `azure` |
-| `otel.traces.sampler*`, `otel.instrumentation.*`, `otel.propagators`, `otel.resource.attributes*` | see [Observability](#observability) |

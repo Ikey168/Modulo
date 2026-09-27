@@ -36,10 +36,10 @@ class SemanticKnowledgeServiceTest {
   }
 
   @Test void lexicalSearchSurvivesProviderFailureAndFiltersForeignNotes(){
-    var notes=mock(com.modulo.repository.NoteRepository.class);var users=mock(com.modulo.security.AuthenticatedUserService.class);var jdbc=mock(org.springframework.jdbc.core.JdbcTemplate.class);var links=mock(com.modulo.service.NoteLinkService.class);
+    var notes=mock(com.modulo.note.NoteRepository.class);var users=mock(com.modulo.security.AuthenticatedUserService.class);var jdbc=mock(org.springframework.jdbc.core.JdbcTemplate.class);var links=mock(com.modulo.link.NoteLinkService.class);
     when(users.requireUserId()).thenReturn(7L);
-    var mine=new com.modulo.entity.Note("Berlin notes","Berlin is in Germany.");mine.setId(1L);mine.setUserId(7L);
-    var foreign=new com.modulo.entity.Note("Berlin secret","Berlin foreign tenant material.");foreign.setId(2L);foreign.setUserId(8L);
+    var mine=new com.modulo.note.Note("Berlin notes","Berlin is in Germany.");mine.setId(1L);mine.setUserId(7L);
+    var foreign=new com.modulo.note.Note("Berlin secret","Berlin foreign tenant material.");foreign.setId(2L);foreign.setUserId(8L);
     when(notes.findAll()).thenReturn(List.of(mine,foreign));
     EmbeddingProvider failing=new EmbeddingProvider(){public String id(){return "disabled";}public String model(){return "none";}public int dimensions(){return 0;}public boolean remote(){return false;}public float[] embed(String text){throw new IllegalStateException("disabled");}};
     var service=new SemanticKnowledgeService(notes,users,jdbc,links,failing);

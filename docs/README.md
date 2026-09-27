@@ -20,7 +20,7 @@ the page is the bug: fix it in the same change.
 | [System overview](architecture/README.md) | Components, how they talk, where each concern lives |
 | [Backend](architecture/backend.md) | Spring Boot application, package layout, API surface, events |
 | [Frontend](architecture/frontend.md) | React app, `@modulo/core`, feature packs, boundary lint, plugin runtime |
-| [Data and state](architecture/data-and-state.md) | PostgreSQL/Flyway, Neo4j, plugin state API, sync and offline, tenancy |
+| [Data and state](architecture/data-and-state.md) | PostgreSQL/Flyway, plugin state API, sync and offline, tenancy |
 | [Security model](architecture/security-model.md) | Authentication, authorization, encryption, sharing |
 | [Decision log](architecture/decisions.md) | Every architecture decision record (ADR), binding until superseded |
 
@@ -52,7 +52,7 @@ the page is the bug: fix it in the same change.
 
 | Page | Covers |
 |---|---|
-| [Deployment](operations/deployment.md) | Docker Compose, Kubernetes/Helm/Argo CD, the Oracle production host |
+| [Deployment](operations/deployment.md) | The Oracle production host, the Raspberry Pi, Kubernetes for external plugins, and the archived cloud stacks (commit `86644da`) |
 | [Releases and supply chain](operations/releases-and-supply-chain.md) | Release pipeline, image signing, SBOMs, promotion |
 | [Database](operations/database.md) | Flyway migrations, backup and restore |
 | [Observability](operations/observability.md) | Health endpoints, OpenTelemetry, audit logging, SLOs, load testing |

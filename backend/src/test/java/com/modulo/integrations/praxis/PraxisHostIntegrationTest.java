@@ -43,7 +43,7 @@ class PraxisHostIntegrationTest {
   @BeforeAll
   static void connect() {
     client = new PraxisClient(properties(System.getenv("PRAXIS_IT_CERT"), System.getenv("PRAXIS_IT_KEY")), JSON);
-    describer = new PraxisController(null, null, null, new PraxisProperties(), JSON);
+    describer = new PraxisController(null, null, null, new PraxisProperties(), JSON, null);
   }
 
   private static ObjectNode spec(String objective) {

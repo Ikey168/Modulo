@@ -1,8 +1,8 @@
 package com.modulo.plugin.impl;
 
-import com.modulo.entity.Note;
-import com.modulo.repository.NoteRepository;
-import com.modulo.service.OpenAIService;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
+import com.modulo.integrations.openai.OpenAIService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

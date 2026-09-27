@@ -1,6 +1,6 @@
 package com.modulo.plugin.service;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.plugin.api.renderer.NoteRenderer;
 import com.modulo.plugin.api.renderer.RendererOutput;
 import com.modulo.plugin.impl.MindMapRenderer;

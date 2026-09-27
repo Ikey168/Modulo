@@ -7,7 +7,7 @@ For the data model itself see [Data and state](../architecture/data-and-state.md
 
 ## Schema ownership: Flyway owns PostgreSQL DDL
 
-Every PostgreSQL profile (`docker`, `staging`, `production`, `kubernetes`) runs
+Both PostgreSQL profiles (`docker` and `dev`) run
 Flyway at startup and then Hibernate with `ddl-auto=validate`. Hibernate never
 creates or alters PostgreSQL tables. H2 (the no-profile default for local runs and
 most tests) keeps Hibernate schema generation.
@@ -30,6 +30,13 @@ files, remote credentials and Praxis submissions. List them with
 The old [`database/migrations`](../../database/migrations) directory describes a
 different, UUID-based schema. It is deliberately not on the Flyway path. Do not
 point Flyway at it, and do not rewrite checksums to hide drift.
+
+The backend now runs Hibernate 6, but the schema is still the Hibernate 5
+one. Two mappings keep it that way: `Note` and `Attachment` name the shared
+`hibernate_sequence` (increment 1) explicitly, because Hibernate 6 would
+otherwise expect a per-entity `<table>_seq` sequence with increment 50; and
+`hibernate.type.preferred_instant_jdbc_type=TIMESTAMP` keeps `Instant`
+columns as `timestamp`. `SchemaMigrationTest` fails if either drifts.
 
 ### Rules for new migrations
 
@@ -103,8 +110,8 @@ point-in-time recovery; nightly dumps mean roughly one day of recovery point.
 ### OCI host (production)
 
 What is backed up: PostgreSQL with `pg_dumpall` (this includes Keycloak's
-database), the Neo4j data directory and the Noesis data directory. Neo4j and
-Noesis are stopped briefly while their data is archived. Not included, so back
+database) and the Noesis data directory. Noesis is stopped briefly while its
+data is archived. Not included, so back
 them up separately: deployment secrets, realm configuration, external attachment
 stores and device-local workspace exports.
 
@@ -143,8 +150,8 @@ Behaviour you can rely on:
 - `./offsite-drill.sh` checks the repository, restores the latest snapshot, and
   runs `restore-drill.sh` against an isolated PostgreSQL container. No production
   database or volume is touched. The SQL import and application-table queries
-  must succeed. Neo4j and Noesis archives get checksum and archive-integrity
-  checks only; that does not prove those applications boot from the restore.
+  must succeed. The Noesis archive gets checksum and archive-integrity checks
+  only; that does not prove Noesis boots from the restore.
 - Failures surface as a non-zero systemd result. Inspect with
   `journalctl -u modulo-backup -u modulo-restore-drill`.
 - Every `release.sh deploy` also takes and uploads a verified backup and runs the
@@ -159,15 +166,12 @@ sudo mkdir -p /mnt/backup/modulo       # ideally an external disk
 # crontab: 15 3 * * * /home/pi/Modulo/deploy/pi/backup.sh >> /var/log/modulo-backup.log 2>&1
 ```
 
-It takes a live `pg_dump` and a Neo4j snapshot (Neo4j Community has no online
-dump, so it is stopped for the few seconds the tar takes), then deletes files
-older than `KEEP_DAYS` (default 30). Copy the target directory off the device
+It takes a live `pg_dump`, then deletes files older than `KEEP_DAYS` (default 30). Copy the target directory off the device
 regularly. Test a restore once, before you need it:
 
 ```sh
 gunzip -c /mnt/backup/modulo/postgres-<stamp>.sql.gz \
   | docker compose -f docker-compose.pi.yml exec -T db psql -U modulo modulodb
-# Neo4j: stop neo4j, untar the snapshot into the neo4j_data volume, start neo4j
 ```
 
 ### Generic Compose stack
@@ -199,11 +203,8 @@ exercises them in CI (daily at 06:00 UTC, and a monthly drill on the first Sunda
 2. Restore PostgreSQL from the chosen dump into a fresh database, not over the
    live one. Validate with the backend's schema tool
    (`./schema.sh validate` on OCI) before pointing the application at it.
-3. Restore Neo4j from its archive, or skip it and rebuild the projection from
-   PostgreSQL with `MODULO_GRAPH_BACKFILL_ON_STARTUP=true` or
-   `POST /api/graph/backfill`. PostgreSQL is the source of truth for the graph.
-4. Start the release and run the smoke checks in [Runbooks](runbooks.md#post-deploy-smoke-test).
-5. Record which snapshot you restored and the window of writes that was lost.
+3. Start the release and run the smoke checks in [Runbooks](runbooks.md#post-deploy-smoke-test).
+4. Record which snapshot you restored and the window of writes that was lost.
 
 ## Tenant-ownership migration
 

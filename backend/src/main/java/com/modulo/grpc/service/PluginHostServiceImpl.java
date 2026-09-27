@@ -1,6 +1,6 @@
 package com.modulo.grpc.service;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.grpc.PluginAuthInterceptor;
 import com.modulo.plugin.api.NotePluginAPI;
 import com.modulo.plugin.api.SearchCriteria;

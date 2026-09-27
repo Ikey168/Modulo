@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -11,10 +11,19 @@ import { describe, expect, it } from 'vitest';
  */
 
 const VIEW_DIR = join(__dirname, '../..');
+// Domain pack views live in src/packs/<pack>/ and follow the same house style.
+const PACKS_DIR = join(__dirname, '../../../../packs');
+const SRC_DIR = join(__dirname, '../../../..');
 
-const views = readdirSync(VIEW_DIR).filter((name) => /View\.tsx$|Views\.tsx$/.test(name));
+const isView = (name: string) => /View\.tsx$|Views\.tsx$/.test(name);
+const views = [
+  ...readdirSync(VIEW_DIR).filter(isView).map((name) => join(VIEW_DIR, name)),
+  ...readdirSync(PACKS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => readdirSync(join(PACKS_DIR, entry.name)).filter(isView).map((name) => join(PACKS_DIR, entry.name, name))),
+].map((path) => relative(SRC_DIR, path));
 
-const read = (name: string) => readFileSync(join(VIEW_DIR, name), 'utf8');
+const read = (name: string) => readFileSync(join(SRC_DIR, name), 'utf8');
 
 /** Comments discuss these patterns legitimately; only real code should fail. */
 const code = (name: string) =>
@@ -49,7 +58,7 @@ describe('workspace view house style', () => {
     expect(read(name)).not.toMatch(/const SELECT\s*=/);
   });
 
-  it.each(candidates.filter((name) => !CATEGORICAL_PALETTE.has(name)))(
+  it.each(candidates.filter((name) => !CATEGORICAL_PALETTE.has(basename(name))))(
     '%s uses semantic colour tokens, not the raw palette',
     (name) => {
       const hits = read(name).match(

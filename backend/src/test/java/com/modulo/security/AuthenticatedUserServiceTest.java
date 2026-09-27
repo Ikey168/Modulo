@@ -1,7 +1,8 @@
 package com.modulo.security;
 
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
+import com.modulo.user.AuthMigrationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,11 +26,14 @@ import static org.mockito.Mockito.*;
 class AuthenticatedUserServiceTest {
     private static final String ISSUER = "https://identity.example/realms/modulo";
     private UserRepository users;
+    private AuthMigrationService provisioning;
     private AuthenticatedUserService service;
 
     @BeforeEach void setup() {
         users = mock(UserRepository.class);
-        service = new AuthenticatedUserService(users, ISSUER);
+        provisioning = mock(AuthMigrationService.class);
+        // Docker-style configuration: only the Keycloak issuer property is set.
+        service = new AuthenticatedUserService(users, provisioning, ISSUER, "");
     }
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
@@ -58,19 +62,28 @@ class AuthenticatedUserServiceTest {
     @Test void sameSubjectFromAnotherIssuerCannotClaimAccount() {
         loginJwt("https://other.example/realms/modulo", "subject-a");
         assertStatus(HttpStatus.FORBIDDEN);
-        verifyNoInteractions(users);
+        verifyNoInteractions(users, provisioning);
+    }
+    @Test void springIssuerIsTheFallback() {
+        service = new AuthenticatedUserService(users, provisioning, "", ISSUER);
+        assertEquals(ISSUER, service.trustedIssuer());
+        service = new AuthenticatedUserService(users, provisioning, "https://kc.example/realms/modulo", ISSUER);
+        assertEquals("https://kc.example/realms/modulo", service.trustedIssuer());
     }
     @Test void absentIssuerConfigurationDoesNotTrustAnyJwt() {
-        service = new AuthenticatedUserService(users, "");
+        service = new AuthenticatedUserService(users, provisioning, "", "");
         loginJwt(ISSUER, "subject-a");
         assertStatus(HttpStatus.FORBIDDEN);
-        verifyNoInteractions(users);
+        verifyNoInteractions(users, provisioning);
     }
-    @Test void unprovisionedAccountDoesNotFallBackToMatchingEmail() {
+    @Test void firstRequestFromTrustedIssuerProvisionsBySubjectNotEmail() {
         loginJwt(ISSUER, "new-subject");
-        assertStatus(HttpStatus.FORBIDDEN);
-        verify(users).findByKeycloakSubject("new-subject");
-        verifyNoMoreInteractions(users);
+        when(users.findByKeycloakSubject("new-subject")).thenReturn(Optional.empty());
+        when(provisioning.provisionFromBearerToken(any())).thenReturn(user(31));
+        assertEquals(31, service.requireUserId());
+        verify(provisioning).provisionFromBearerToken(argThat(jwt -> "new-subject".equals(jwt.getSubject())));
+        verify(users, never()).findByEmail(any());
+        verify(users, never()).findByUsername(any());
     }
     @Test void oauthProvidersHaveSeparateSubjectNamespaces() {
         var principal = new DefaultOAuth2User(AuthorityUtils.createAuthorityList("ROLE_USER"),
@@ -104,6 +117,6 @@ class AuthenticatedUserServiceTest {
     }
     private User user(long id) { User user = new User(); user.setId(id); return user; }
     private void assertStatus(HttpStatus status) {
-        assertEquals(status, assertThrows(ResponseStatusException.class, service::requireUserId).getStatus());
+        assertEquals(status, assertThrows(ResponseStatusException.class, service::requireUserId).getStatusCode());
     }
 }

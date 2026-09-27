@@ -350,7 +350,7 @@ Enable debug logging:
 ```yaml
 logging:
   level:
-    com.modulo.service.IpfsService: DEBUG
+    com.modulo.blockchain.IpfsService: DEBUG
 ```
 
 ## References

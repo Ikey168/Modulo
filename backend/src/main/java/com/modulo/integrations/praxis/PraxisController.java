@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +41,7 @@ public class PraxisController {
   private final PraxisSubmissions submissions;
   private final PraxisProperties properties;
   private final ObjectMapper json;
+  private final PraxisApprovals approvals;
   private final ThreadPoolExecutor streams = new ThreadPoolExecutor(0, MAX_STREAMS, 30, TimeUnit.SECONDS,
       new SynchronousQueue<>(), runnable -> {
         Thread thread = new Thread(runnable, "praxis-events");
@@ -49,12 +50,13 @@ public class PraxisController {
       });
 
   public PraxisController(ObjectProvider<PraxisClient> clients, PraxisIdentity identity, PraxisSubmissions submissions,
-      PraxisProperties properties, ObjectMapper json) {
+      PraxisProperties properties, ObjectMapper json, PraxisApprovals approvals) {
     this.clients = clients;
     this.identity = identity;
     this.submissions = submissions;
     this.properties = properties;
     this.json = json;
+    this.approvals = approvals;
   }
 
   @PreDestroy
@@ -223,6 +225,15 @@ public class PraxisController {
     return client.control(id, attemptId, operation, signal, policy, onBehalfOf);
   }
 
+  /**
+   * Pending approvals across the processes the user submitted, for the Approvals inbox.
+   * Not configured is an empty list, not an error, so the inbox still shows workflow approvals.
+   */
+  @GetMapping("/approvals")
+  public Map<String, Object> pendingApprovals() {
+    return approvals.pending();
+  }
+
   @GetMapping("/processes/{id}/approvals")
   public JsonNode approvals(@PathVariable String id) {
     return client().approvals(id, identity.current().onBehalfOf());
@@ -237,8 +248,8 @@ public class PraxisController {
       throw new IllegalArgumentException("version_required");
     }
     if (!body.path("approved").isBoolean()) throw new IllegalArgumentException("approved_required");
-    return client().decide(id, effectId, body.path("version").asLong(), attemptId, body.path("approved").asBoolean(),
-        reason, identity.current().onBehalfOf());
+    return approvals.decide(id, effectId, body.path("version").asLong(), attemptId, body.path("approved").asBoolean(),
+        reason);
   }
 
   @PostMapping("/processes/{id}/publication")

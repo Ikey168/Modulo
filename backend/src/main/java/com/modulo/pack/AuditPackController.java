@@ -75,7 +75,7 @@ public class AuditPackController {
   @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
   public org.springframework.http.ResponseEntity<Map<String, String>> failure(
       org.springframework.web.server.ResponseStatusException failure) {
-    return org.springframework.http.ResponseEntity.status(failure.getStatus())
+    return org.springframework.http.ResponseEntity.status(failure.getStatusCode())
         .body(Map.of("code", Objects.toString(failure.getReason(), "AUDIT_REQUEST_FAILED")));
   }
 }

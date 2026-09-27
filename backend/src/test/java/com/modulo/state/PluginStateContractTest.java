@@ -371,7 +371,7 @@ class PluginStateContractTest {
             + " lpad(i::text,64,'0'),1,'personal','external','external',true,false,CURRENT_TIMESTAMP+interval"
             + " '1 hour' FROM generate_series(1,100) i");
     var quota = assertThrows(ResponseStatusException.class, () -> grant("state.read"));
-    assertEquals(429, quota.getRawStatusCode());
+    assertEquals(429, quota.getStatusCode().value());
     when(users.requireUserId()).thenReturn(2L);
     assertNotNull(grant("state.read"));
     when(users.requireUserId()).thenReturn(1L);

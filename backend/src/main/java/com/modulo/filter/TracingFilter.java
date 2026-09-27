@@ -1,6 +1,6 @@
 package com.modulo.filter;
 
-import com.modulo.service.TracingService;
+import com.modulo.observability.TracingService;
 import com.modulo.util.LogSanitizer;
 import io.opentelemetry.api.trace.Span;
 import lombok.RequiredArgsConstructor;
@@ -9,9 +9,9 @@ import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;

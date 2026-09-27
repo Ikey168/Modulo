@@ -120,23 +120,25 @@ GitHub identity providers, see
 ## Identity provider migration (legacy OAuth to Keycloak)
 
 Use when users who signed in with the older Google or Azure OAuth login move to
-Keycloak. [`AuthMigrationService`](../../backend/src/main/java/com/modulo/service/AuthMigrationService.java)
+Keycloak. [`AuthMigrationService`](../../backend/src/main/java/com/modulo/user/AuthMigrationService.java)
 links provider subjects to existing users on login.
 
 Settings: `modulo.auth.dual-auth-enabled` (true in `application.properties`),
 `modulo.auth.default-provider` (`KEYCLOAK`), `modulo.auth.migration-grace-period-days` (30).
 
-What happens at login:
+What happens on a user's first authenticated request (the backend provisions
+accounts just in time from the Keycloak bearer token; a known user is found by
+Keycloak subject):
 
 | Case | Result | Status |
 |------|--------|--------|
 | New user | Created with this provider as primary | `MIGRATED` |
 | Known user, same provider | Last-login updated | unchanged |
-| Known user, new provider, dual-auth on | Provider added; if it is Keycloak it becomes primary | `DUAL_AUTH` |
-| Known user, new provider, dual-auth off | Providers replaced by the new one | `MIGRATED` |
+| Known user matched by a verified email, new provider, dual-auth on | Provider added; if it is Keycloak it becomes primary | `DUAL_AUTH` |
+| Known user matched by a verified email, new provider, dual-auth off | Providers replaced by the new one | `MIGRATED` |
 | Several users share the email | Canonical user chosen, data merged, duplicates removed | `CONFLICT_RESOLVED` or `MANUAL_REVIEW` |
 
-Admin endpoints ([`AuthMigrationController`](../../backend/src/main/java/com/modulo/controller/AuthMigrationController.java),
+Admin endpoints ([`AuthMigrationController`](../../backend/src/main/java/com/modulo/user/AuthMigrationController.java),
 `ADMIN` role). The controller maps `/auth/migration`, so the full path is
 `/api/auth/migration/...` under the default `/api` context path and
 `/auth/migration/...` where the context path is `/` (the Compose deployments,
@@ -158,9 +160,12 @@ Procedure:
 1. Deploy with dual-auth on and Keycloak configured. Test every case above in
    staging.
 2. Tell users the timeline. Watch `statistics` and work through `manual-review`.
-3. After the grace period, keep Keycloak as default and remove the legacy
-   `spring.security.oauth2.client.registration.*` clients.
+3. After the grace period, keep Keycloak as default. The backend no longer
+   offers server-side Google or Azure login, so legacy subjects only matter for
+   accounts that have not yet signed in through Keycloak.
 
+A token's email links to an existing account only when Keycloak marks it
+verified (`email_verified`); an unverified email creates a separate account.
 An email match links a login identity; it is not evidence of ownership of legacy
 notes. Assign legacy notes with the reviewed backfill in
 [Database operations](database.md#assigning-legacy-notes-to-owners).

@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.modulo.audit.AuditEventService;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,7 @@ class PraxisControllerTest {
   private final PraxisClient client = mock(PraxisClient.class);
   private final PraxisIdentity identity = mock(PraxisIdentity.class);
   private final PraxisSubmissions submissions = mock(PraxisSubmissions.class);
+  private final AuditEventService audit = mock(AuditEventService.class);
   private PraxisController controller;
   private MockMvc mvc;
 
@@ -44,7 +46,8 @@ class PraxisControllerTest {
     ObjectProvider<PraxisClient> clients = mock(ObjectProvider.class);
     when(clients.getIfAvailable()).thenReturn(client);
     when(identity.current()).thenReturn(new PraxisIdentity.Principal(42, "user-42"));
-    controller = new PraxisController(clients, identity, submissions, new PraxisProperties(), json);
+    controller = new PraxisController(clients, identity, submissions, new PraxisProperties(), json,
+        new PraxisApprovals(clients, identity, submissions, audit, json));
     mvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new PraxisErrors())
         .defaultRequest(get("/").accept(MediaType.APPLICATION_JSON)).build();
   }
@@ -142,6 +145,14 @@ class PraxisControllerTest {
             .content("{\"effectId\":\"e-1\",\"version\":2,\"attemptId\":\"a-1\",\"approved\":false,\"reason\":\"Wrong target\"}"))
         .andExpect(status().isOk());
     verify(client).decide("p-1", "e-1", 2, "a-1", false, "Wrong target", "user-42");
+    verify(audit).record(eq(PraxisApprovals.AUDIT_EVENT), any(), any(), any(), eq("REJECTED"), any(), anyString());
+
+    when(client.decide(eq("p-1"), eq("e-1"), eq(2L), eq("stale"), anyBoolean(), anyString(), eq("user-42")))
+        .thenThrow(new PraxisException(409, "stale_process_attempt", null, null));
+    mvc.perform(post("/api/praxis/processes/p-1/approvals").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"effectId\":\"e-1\",\"version\":2,\"attemptId\":\"stale\",\"approved\":true,\"reason\":\"ok\"}"))
+        .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("stale_process_attempt"));
+    verify(audit, never()).record(any(), any(), any(), any(), eq("APPROVED"), any(), any());
 
     mvc.perform(post("/api/praxis/processes/p-1/approvals").contentType(MediaType.APPLICATION_JSON)
             .content("{\"effectId\":\"e-1\",\"version\":2,\"attemptId\":\"a-1\",\"approved\":true}"))
@@ -177,12 +188,17 @@ class PraxisControllerTest {
     @SuppressWarnings("unchecked")
     ObjectProvider<PraxisClient> none = mock(ObjectProvider.class);
     MockMvc disabled = MockMvcBuilders.standaloneSetup(
-        new PraxisController(none, identity, submissions, new PraxisProperties(), json))
+        new PraxisController(none, identity, submissions, new PraxisProperties(), json,
+            new PraxisApprovals(none, identity, submissions, audit, json)))
         .setControllerAdvice(new PraxisErrors())
         .defaultRequest(get("/").accept(MediaType.APPLICATION_JSON)).build();
     disabled.perform(get("/api/praxis/status")).andExpect(jsonPath("$.configured").value(false))
         .andExpect(jsonPath("$.executors.claude").isEmpty());
     disabled.perform(get("/api/praxis/processes/p-1"))
         .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("praxis_not_configured"));
+    disabled.perform(get("/api/praxis/approvals"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.configured").value(false))
+        .andExpect(jsonPath("$.approvals").isEmpty());
+    verify(submissions, never()).list(any(Long.class));
   }
 }

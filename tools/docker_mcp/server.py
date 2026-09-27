@@ -34,30 +34,31 @@ def list_containers(all: bool = False) -> str:
 def compose_status(dev: bool = True) -> str:
     """
     Show status of all docker-compose services.
-    dev=True uses docker-compose.dev.yml (frontend, backend, db).
-    dev=False uses docker-compose.yml (full stack including keycloak, neo4j, monitoring).
+    dev=True uses docker-compose.dev.yml (backing services for native development:
+    db, keycloak, and jaeger under the "observability" profile).
+    dev=False uses docker-compose.yml (full stack including backend, frontend, monitoring).
     """
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    return _run(["docker-compose", "-f", compose_file, "ps"])
+    return _run(["docker", "compose", "-f", compose_file, "ps"])
 
 
 @mcp.tool()
 def get_logs(service: str, dev: bool = True, lines: int = 100) -> str:
     """
     Get recent logs from a docker-compose service.
-    Dev services: frontend, backend, db.
-    Full stack adds: keycloak, neo4j, audit-collector, otel-collector,
-                     jaeger, prometheus, grafana, loki, elasticsearch, opa.
+    Dev services: db, keycloak, jaeger (the backend and frontend run natively).
+    Full stack: frontend, backend, db, keycloak, ipfs, audit-collector,
+                otel-collector, jaeger, prometheus, grafana, loki, elasticsearch, opa.
     """
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    return _run(["docker-compose", "-f", compose_file, "logs", "--tail", str(lines), service])
+    return _run(["docker", "compose", "-f", compose_file, "logs", "--tail", str(lines), service])
 
 
 @mcp.tool()
 def service_health(dev: bool = True) -> str:
     """Check health status of all compose services, showing state and health check results."""
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    ps_out = _run(["docker-compose", "-f", compose_file, "ps", "--format", "json"])
+    ps_out = _run(["docker", "compose", "-f", compose_file, "ps", "--format", "json"])
     try:
         services = json.loads(ps_out)
         if isinstance(services, list):
@@ -78,21 +79,21 @@ def service_health(dev: bool = True) -> str:
 def restart_service(service: str, dev: bool = True) -> str:
     """Restart a specific docker-compose service."""
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    return _run(["docker-compose", "-f", compose_file, "restart", service])
+    return _run(["docker", "compose", "-f", compose_file, "restart", service])
 
 
 @mcp.tool()
 def start_services(dev: bool = True) -> str:
     """Start all docker-compose services in detached mode."""
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    return _run(["docker-compose", "-f", compose_file, "up", "-d"])
+    return _run(["docker", "compose", "-f", compose_file, "up", "-d"])
 
 
 @mcp.tool()
 def stop_services(dev: bool = True) -> str:
     """Stop all docker-compose services."""
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
-    return _run(["docker-compose", "-f", compose_file, "down"])
+    return _run(["docker", "compose", "-f", compose_file, "down"])
 
 
 if __name__ == "__main__":

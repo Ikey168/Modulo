@@ -95,7 +95,7 @@ const About: React.FC = () => {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
-                  Backend: Spring Boot with PostgreSQL and a Neo4j knowledge graph
+                  Backend: Spring Boot with PostgreSQL
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />

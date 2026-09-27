@@ -287,7 +287,7 @@ public class WorkspacePackService {
             return operation(id, owner);
           });
     } catch (ResponseStatusException failure) {
-      if (failure.getStatus() != HttpStatus.NOT_FOUND
+      if (failure.getStatusCode().value() != HttpStatus.NOT_FOUND.value()
           && !Set.of("CAPABILITY_CONSENT_REQUIRED", "PLAN_DIGEST_CHANGED", "PLAN_NOT_APPLICABLE")
               .contains(Objects.toString(failure.getReason(), "")))
         markFailed(id, owner, failure.getReason());

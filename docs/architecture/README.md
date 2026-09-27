@@ -13,7 +13,7 @@ component boundaries. For what Modulo does and its vocabulary, see
 | --- | --- |
 | [backend.md](backend.md) | Spring Boot packages, HTTP/STOMP/gRPC surfaces, events, workers, persistence conventions |
 | [frontend.md](frontend.md) | React app, `@modulo/core`, feature packs, workspace plugin runtime, boundary lint, platform layer |
-| [data-and-state.md](data-and-state.md) | PostgreSQL and Flyway, Neo4j projection, plugin state API, offline queues and sync, ownership |
+| [data-and-state.md](data-and-state.md) | PostgreSQL and Flyway, note link graph, plugin state API, offline queues and sync, ownership |
 | [security-model.md](security-model.md) | Keycloak/OIDC and PKCE, backend auth chains, ownership and roles, OPA, secrets, sharing and encryption |
 | [decisions.md](decisions.md) | Every architecture decision record, condensed, with stable anchors |
 
@@ -30,7 +30,6 @@ flowchart LR
   kc[Keycloak<br/>realm modulo]
   api[Backend<br/>Spring Boot]
   pg[(PostgreSQL<br/>source of truth)]
-  neo[(Neo4j<br/>graph read model)]
   ipfs[(IPFS)]
   eth[(Ethereum<br/>Hardhat locally)]
   nats[(NATS<br/>optional)]
@@ -42,7 +41,6 @@ flowchart LR
   web & desk & droid -->|OIDC + PKCE| kc
   api -->|JWKS| kc
   api --> pg
-  api -.->|projection| neo
   api --> ipfs
   api --> eth
   web -->|wallet| eth
@@ -53,10 +51,9 @@ flowchart LR
 | Component | Role | Where |
 | --- | --- | --- |
 | Frontend | One React/TypeScript build served to browsers, loaded by Electron, and packaged into the Android APK | [`frontend/`](../../frontend/), [`desktop/`](../../desktop/), [`mobile/app/`](../../mobile/app/) |
-| Backend | Spring Boot 2.7 on Java 17: REST under `/api`, STOMP at `/ws`, gRPC for plugins, Blueprint interpreter and workflow engine | [`backend/`](../../backend/) |
+| Backend | Spring Boot 3.5 on Java 17: REST under `/api`, STOMP at `/ws`, gRPC for plugins, Blueprint interpreter and workflow engine | [`backend/`](../../backend/) |
 | Keycloak | OIDC identity provider; realm `modulo`, public client `modulo-frontend` | [`keycloak/`](../../keycloak/) |
 | PostgreSQL | All authoritative data; schema owned by Flyway | [`backend/src/main/resources/db/postgresql/`](../../backend/src/main/resources/db/postgresql/) |
-| Neo4j | Derived note-link graph for backlinks and related notes; the app runs without it | [`backend/.../graph/`](../../backend/src/main/java/com/modulo/graph/) |
 | IPFS (Kubo) | Content-addressed storage for published or encrypted note payloads | `ipfs` service in [`docker-compose.yml`](../../docker-compose.yml) |
 | Ethereum contracts | Note registry, anchoring, encrypted-sharing access grants; Hardhat node for local development | [`smart-contracts/`](../../smart-contracts/) |
 | Script sandbox plugin | First EXTERNAL workload: runs `action.code.execute` out of process; the core falls back in-process when it is absent | [`services/script-sandbox-plugin/`](../../services/script-sandbox-plugin/) |
@@ -65,7 +62,7 @@ flowchart LR
 | Observability stack | OpenTelemetry collector, Jaeger, Prometheus, Grafana, Loki, Elasticsearch, audit collector | [observability.md](../operations/observability.md) |
 
 The minimal deployment is the backend, PostgreSQL and Keycloak with the web
-frontend. Neo4j, IPFS, the blockchain, NATS and EXTERNAL plugins each degrade
+frontend. IPFS, the blockchain, NATS and EXTERNAL plugins each degrade
 cleanly when absent: the backend logs, skips, and keeps serving notes.
 Deployment topologies are in [deployment.md](../operations/deployment.md).
 
@@ -82,7 +79,7 @@ Deployment topologies are in [deployment.md](../operations/deployment.md).
 4. The controller's service or store reads and writes PostgreSQL with the owner
    in every predicate. Foreign records answer 404.
 5. Side effects fan out asynchronously: note and link events go on the in-JVM
-   plugin event bus (Neo4j projection, Blueprint triggers, plugins, and optionally
+   plugin event bus (Blueprint triggers, plugins, and optionally
    NATS); plugin-state changes go through a transactional outbox to the owner's
    STOMP queue; knowledge indexing drains a PostgreSQL queue.
 6. Clients receive live updates over STOMP (`/user/queue/...`) and reconcile
@@ -112,7 +109,7 @@ These rules show up across the codebase. Each links to where it is defined.
 - **Untrusted code runs in bounded sandboxes**: QuickJS on WASM for scripts and
   import-free core WASM for compiled modules, both with a 2 s budget and a
   64 KiB output cap. [ADR 0003](decisions.md#adr-0003)
-- **Derived stores are optional.** Neo4j, IPFS and the broker can be down without
+- **Derived stores are optional.** IPFS and the broker can be down without
   failing a note write.
 - **Accountable actions are bound and auditable.** Workflow runs, approvals and
   plugin-state mutations are append-only or versioned, with bounded, redacted

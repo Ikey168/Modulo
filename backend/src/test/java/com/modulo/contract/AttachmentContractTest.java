@@ -3,7 +3,7 @@ package com.modulo.contract;
 import com.atlassian.oai.validator.OpenApiInteractionValidator;
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.dto.AttachmentDto;
+import com.modulo.attachment.AttachmentDto;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;

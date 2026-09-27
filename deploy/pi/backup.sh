@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Nightly backup for the Pi deployment (#386): live pg_dump + consistent Neo4j
-# volume snapshot (Community edition has no online dump, so Neo4j is stopped
-# for the few seconds the tar takes), then retention pruning.
+# Nightly backup for the Pi deployment (#386): live pg_dump, then retention
+# pruning.
 #
 # Usage:  ./backup.sh [target-dir]      (default: /mnt/backup/modulo)
 # Cron:   15 3 * * *  /home/pi/Modulo/deploy/pi/backup.sh >> /var/log/modulo-backup.log 2>&1
@@ -31,19 +30,8 @@ echo "[$STAMP] postgres: live dump"
 "${COMPOSE[@]}" exec -T db pg_dump -U "${POSTGRES_USER:-modulo}" "${POSTGRES_DB:-modulodb}" \
   | gzip > "$BACKUP_DIR/postgres-$STAMP.sql.gz"
 
-echo "[$STAMP] neo4j: stopping for a consistent snapshot"
-"${COMPOSE[@]}" stop neo4j
-NEO4J_CONTAINER="$("${COMPOSE[@]}" ps -a -q neo4j)"
-docker run --rm \
-  --volumes-from "$NEO4J_CONTAINER" \
-  -v "$BACKUP_DIR":/backup \
-  alpine tar czf "/backup/neo4j-$STAMP.tar.gz" /data
-"${COMPOSE[@]}" start neo4j
-echo "[$STAMP] neo4j: restarted"
-
 echo "[$STAMP] pruning backups older than $KEEP_DAYS days"
 find "$BACKUP_DIR" -name 'postgres-*.sql.gz' -mtime "+$KEEP_DAYS" -delete
-find "$BACKUP_DIR" -name 'neo4j-*.tar.gz' -mtime "+$KEEP_DAYS" -delete
 
 echo "[$STAMP] done:"
 ls -lh "$BACKUP_DIR" | tail -5

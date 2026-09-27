@@ -11,10 +11,9 @@ restores. Migration procedures, backups and restore drills are in
 
 | Store | Role | Source of truth? | Code |
 | --- | --- | --- | --- |
-| PostgreSQL | Notes, links, tags, users, plugin state, workflows, approvals, packs, knowledge index, files | Yes | JPA entities in [`entity/`](../../backend/src/main/java/com/modulo/entity/), JDBC stores in [`state/`](../../backend/src/main/java/com/modulo/state/), [`blueprint/`](../../backend/src/main/java/com/modulo/blueprint/) |
-| Neo4j | `(:Note)-[:LINKS_TO]->(:Note)` read model for backlinks, related notes, neighbourhoods | No, derived and rebuildable | [`graph/`](../../backend/src/main/java/com/modulo/graph/) |
-| Azure Blob Storage | Note attachment binaries (metadata in `application.attachments`) | Yes, for blobs | [`AttachmentService`](../../backend/src/main/java/com/modulo/service/AttachmentService.java) |
-| IPFS | Published or encrypted note payloads | No (public; see [security-model.md](security-model.md#encrypted-note-sharing)) | [`IpfsService`](../../backend/src/main/java/com/modulo/service/IpfsService.java) |
+| PostgreSQL | Notes, links, tags, users, plugin state, workflows, approvals, packs, knowledge index, files | Yes | JPA entities in the feature packages ([`note/`](../../backend/src/main/java/com/modulo/note/), [`tag/`](../../backend/src/main/java/com/modulo/tag/), [`link/`](../../backend/src/main/java/com/modulo/link/), [`attachment/`](../../backend/src/main/java/com/modulo/attachment/), [`task/`](../../backend/src/main/java/com/modulo/task/), [`user/`](../../backend/src/main/java/com/modulo/user/), …), JDBC stores in [`state/`](../../backend/src/main/java/com/modulo/state/), [`blueprint/`](../../backend/src/main/java/com/modulo/blueprint/) |
+| Azure Blob Storage | Note attachment binaries (metadata in `application.attachments`) | Yes, for blobs | [`AttachmentService`](../../backend/src/main/java/com/modulo/attachment/AttachmentService.java) |
+| IPFS | Published or encrypted note payloads | No (public; see [security-model.md](security-model.md#encrypted-note-sharing)) | [`IpfsService`](../../backend/src/main/java/com/modulo/blockchain/IpfsService.java) |
 | Client IndexedDB / Android SQLite | Offline queues and caches, device documents | No; the server is authoritative for acknowledged state | [`frontend/src/services/`](../../frontend/src/services/) |
 
 ## Ownership and tenancy
@@ -48,8 +47,8 @@ shared-workspace tenancy yet.
 
 | Profile | Database | Schema management |
 | --- | --- | --- |
-| default (no profile) | H2 in memory (`application.yml`) | Hibernate `ddl-auto: update`; Flyway off |
-| `docker`, `production` | PostgreSQL from `SPRING_DATASOURCE_URL` | Flyway on; Hibernate `validate` |
+| default (no profile) | H2 in memory (`application.properties`) | Hibernate `ddl-auto: update`; Flyway off |
+| `docker`, `dev` | PostgreSQL from `SPRING_DATASOURCE_URL` (`dev` defaults to `localhost:5432/modulodb`) | Flyway on; Hibernate `validate` |
 
 Flyway settings (`application.properties`): locations
 `classpath:db/postgresql`, history table `modulo_schema_history`, schemas
@@ -121,27 +120,13 @@ protection as notes. Behavior and APIs are in
 | Note attachments (`/api/attachments`) | Azure Blob Storage (`azure.storage.*`), metadata in `application.attachments` | `azure.storage.max-file-size` (default 10 MiB) and an allowed content-type list |
 | Note-local files (`/api/notes/{noteId}/files`) | Local directory `modulo.upload.dir` (default `${java.io.tmpdir}/modulo-uploads`) | Owner-checked through the note |
 
-## Neo4j knowledge-graph projection
+## Note link graph
 
-Neo4j holds a derived, eventually consistent copy of the note link graph.
-PostgreSQL remains the source of truth.
+Links between notes are rows in `application.note_links`. Backlinks, the
+workspace Graph view and unlinked mentions all read them from PostgreSQL; the
+graph layout is computed in the client. There is no separate graph store.
 
-- [`GraphProjectionEventListener`](../../backend/src/main/java/com/modulo/graph/GraphProjectionEventListener.java)
-  subscribes to note and link events on `PluginEventBus` and upserts or removes
-  `(:Note)` nodes and `[:LINKS_TO]` edges.
-- Every projection call tolerates Neo4j being unavailable: writes log and
-  continue, reads return empty results. A note save never fails because of Neo4j.
-- The driver bean exists only when `modulo.graph.enabled=true` (default). It
-  connects lazily, so the app boots without Neo4j.
-- Rebuild the projection with `POST /api/graph/backfill`, or on startup with
-  `modulo.graph.backfill-on-startup=true` (default `false`; Compose and OCI set it
-  to `true`). `GET /api/graph/status` reports availability.
-- Graph queries: `GET /api/graph/notes/{id}/backlinks`, `/unlinked-mentions`,
-  `/related`, `/neighborhood`, and `POST /api/graph/notes/{id}/link-from/{sourceId}`.
-- Connection: `spring.neo4j.uri`, `spring.neo4j.authentication.username` and
-  `.password`.
-
-Semantic search uses PostgreSQL, not Neo4j: note changes enqueue work in
+Semantic search also uses PostgreSQL: note changes enqueue work in
 `application.knowledge_index_queue` in the same transaction, and a scheduled
 drainer (`modulo.knowledge.index-interval-ms`, default 2000) processes up to 25
 notes per tick. See [knowledge.md](../features/knowledge.md).
@@ -399,12 +384,9 @@ safe to retry:
 The mapping from legacy keys to namespaces is
 [`legacyKeyRegistry.ts`](../../frontend/src/services/legacy/legacyKeyRegistry.ts).
 
-### Backend SQLite offline store
-
-The backend also contains an older SQLite offline note store
-(`OfflineDataSourceConfig`, `OfflineSyncService`, `/api/offline/notes`), gated by
-`app.offline.database.enabled`, which `application.properties` sets to `false`.
-The client-side queue above is the supported offline path.
+The client-side queue above is the only offline path. The backend has no
+offline store of its own; the `offline_notes` table left by early migrations is
+unused.
 
 ## Backups, exports and encryption
 

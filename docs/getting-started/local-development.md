@@ -17,7 +17,7 @@ gives you the right versions.
 
 | Tool | Version | Used for |
 |------|---------|----------|
-| Java | Temurin 17 | Backend (Spring Boot 2.7) |
+| Java | Temurin 17 | Backend (Spring Boot 3.5) |
 | Maven | 3.9 | Backend build (there is no `mvnw` wrapper) |
 | Node.js | 22 (exact pin in [`.node-version`](../../.node-version), also used by CI and the frontend Dockerfile) | Frontend, smart contracts, scripts |
 | Python | 3.14 | Operations and infrastructure verifiers under `scripts/` |
@@ -55,7 +55,6 @@ docker compose up --build          # or: npm start
 | backend (Spring Boot) | 8080 | `SPRING_PROFILES_ACTIVE=docker`, context path `/` |
 | keycloak | 8180 | `start-dev --import-realm` with [`keycloak/realm-modulo.json`](../../keycloak/realm-modulo.json); admin `admin`/`admin` |
 | db (PostgreSQL 16) | 5432 | `modulodb`, user/password `postgres`/`postgres` |
-| neo4j 5.15 | 7474, 7687 | Knowledge-graph projection; `neo4j`/`stagingpassword123` |
 | ipfs (kubo) | 4001, 5001, 8082 | Encrypted note sharing |
 | otel-collector | 4317, 4318, 8889, 13133 | Receives backend traces |
 | jaeger | 16686 | Trace UI |
@@ -71,7 +70,7 @@ imported realm and holds the `admin` realm role.
 
 Things to know about the compose stack:
 
-- The backend runs with `SERVER_SERVLET_CONTEXT_PATH=/`. `application.yml` sets a
+- The backend runs with `SERVER_SERVLET_CONTEXT_PATH=/`. `application.properties` sets a
   `/api` context path, and the controllers already map `/api/...`, so without the
   override every endpoint would live under `/api/api/...`. The override must be
   `/`, not empty: the app's own `ServerProperties` validation rejects a blank
@@ -93,44 +92,59 @@ Things to know about the compose stack:
 |------|---------|------------|
 | [`docker-compose.backup.yml`](../../docker-compose.backup.yml) | `db-backup` cron container and a `restore-drill` container (profile `backup`) | `docker compose -f docker-compose.yml -f docker-compose.backup.yml --profile backup up -d` |
 | [`docker-compose.envoy-opa.yml`](../../docker-compose.envoy-opa.yml) | Envoy in front of the backend with OPA ext-authz ([`infra/opa`](../../infra/opa)) | `make envoy-opa-up` |
-| [`docker-compose.dev.yml`](../../docker-compose.dev.yml) | Intended hot-reload overlay | Not usable as is: it targets a `builder` frontend stage and a `./mvnw` wrapper, neither of which exists. Run natively instead. |
 
 ## Run the backend and frontend natively
 
 This is the fastest edit loop. Start only the backing services you need in
 Docker, then run the two apps on the host.
 
+### Backing services
+
+[`docker-compose.dev.yml`](../../docker-compose.dev.yml) is a standalone Compose
+project (`modulo-dev`) with just the services a native backend and frontend need.
+Its definitions mirror `docker-compose.yml`, but it has its own data volume, so it
+never touches the full stack's database. It uses the same host ports, so stop one
+stack before starting the other.
+
+```sh
+docker compose -f docker-compose.dev.yml up -d                           # or: npm run start:dev
+docker compose -f docker-compose.dev.yml --profile observability up -d   # also start Jaeger
+docker compose -f docker-compose.dev.yml down                            # stop (add -v to drop the database)
+```
+
+| Service | Host port | Notes |
+|---------|-----------|-------|
+| db (PostgreSQL 16) | 5432 | `modulodb`, user/password `postgres`/`postgres`; volume `postgres_dev_data` |
+| keycloak | 8180 | Same realm import and theme as the full stack; admin `admin`/`admin`, app login `demo`/`demo` |
+| jaeger (profile `observability`) | 16686, 4317, 4318 | Receives OTLP traces directly from a native backend (its default exporter endpoint is `localhost:4317`) |
+
+Metrics, logs and dashboards (Prometheus, Loki, Grafana) are only in the full
+stack; see [Observability](../operations/observability.md).
+
 ### Backend
 
 ```sh
-docker compose up -d db neo4j keycloak     # optional; see below
-cd backend
-SERVER_SERVLET_CONTEXT_PATH=/ mvn spring-boot:run
+docker compose -f docker-compose.dev.yml up -d   # backing services (see above)
 ```
 
-With no profile the backend uses an in-memory H2 database (Hibernate creates the
-schema, Flyway is off), serves on port 8080, and exposes actuator on the
-management port 8081. To run against the compose PostgreSQL instead, activate
-the `docker` profile and pass the datasource:
+With the `dev` profile
+([`application-dev.properties`](../../backend/src/main/resources/application-dev.properties))
+the backend serves on port 8080 with context path `/`, uses PostgreSQL on
+`localhost:5432/modulodb` (`postgres`/`postgres`, Flyway on), and trusts bearer
+tokens from the Keycloak realm on `localhost:8180`, which is what the compose `db`
+and `keycloak` services provide. Override any of these with the usual
+environment variables (`SPRING_DATASOURCE_*`, `MODULO_SECURITY_KEYCLOAK_*`).
+Actuator is on the management port 8081.
 
 ```sh
-SPRING_PROFILES_ACTIVE=docker \
-SERVER_SERVLET_CONTEXT_PATH=/ \
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/modulodb \
-SPRING_DATASOURCE_USERNAME=postgres SPRING_DATASOURCE_PASSWORD=postgres \
-SPRING_NEO4J_URI=bolt://localhost:7687 \
-SPRING_NEO4J_AUTHENTICATION_PASSWORD=stagingpassword123 \
-MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=http://localhost:8180/realms/modulo/protocol/openid-connect/certs \
-MODULO_SECURITY_KEYCLOAK_ISSUER_URI=http://localhost:8180/realms/modulo \
-mvn spring-boot:run
+cd backend
+SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
 ```
 
-The `dev` profile ([`application-dev.properties`](../../backend/src/main/resources/application-dev.properties))
-moves the server to port 8081, turns on debug logging and disables the graph
-projection. Its `modulo.security.*` placeholders do not satisfy the
-`ModuloProperties` validation patterns (JWT secret must be base64 of at least 32
-characters; API key must match `mod_` plus 16 or more alphanumerics), so set
-`MODULO_SECURITY_JWT_SECRET` and `MODULO_SECURITY_API_KEY` when you use it.
+With no profile the backend uses an in-memory H2 database instead (Hibernate
+creates the schema, Flyway is off); pass `SERVER_SERVLET_CONTEXT_PATH=/` so the
+`/api` routes are not prefixed twice. The `docker` profile is what the Compose
+deployments use; it needs `SPRING_DATASOURCE_*` from the environment.
 
 Remote debugging: add
 `-Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"`.
@@ -158,7 +172,7 @@ calls that need a real token will still fail against a secured backend.
 
 ### Keycloak only
 
-`docker compose up -d keycloak` is enough for login. The realm's
+`docker compose -f docker-compose.dev.yml up -d keycloak` is enough for login. The realm's
 `modulo-frontend` client allows redirects to `localhost:3000`, `:3001`, `:5173`
 and `:80`. [`scripts/bootstrap-dev.sh`](../../scripts/bootstrap-dev.sh) can add
 extra demo users, roles, a confidential backend client and optional Google/GitHub
@@ -330,11 +344,9 @@ Key Vault); see [Deployment](../operations/deployment.md#secrets).
 | Every API call returns 404 when the backend runs natively | The `/api` context path doubles the prefix. Start with `SERVER_SERVLET_CONTEXT_PATH=/`. |
 | Backend fails at startup with `JWT secret must be a valid base64 string` or `API key must start with 'mod_'` | `ModuloProperties` validation. Set `MODULO_SECURITY_JWT_SECRET` (base64, 32+ chars) and `MODULO_SECURITY_API_KEY` (`mod_` + 16+ alphanumerics). |
 | Backend fails with `Context path is required` | `SERVER_SERVLET_CONTEXT_PATH` was set to an empty string. Use `/`. |
-| Log floods with `Failed to export spans` | No collector at `OTEL_EXPORTER_OTLP_ENDPOINT` (default `localhost:4317`). Start `otel-collector` or point the variable at a reachable collector. |
+| Log floods with `Failed to export spans` | No collector at `OTEL_EXPORTER_OTLP_ENDPOINT` (default `localhost:4317`). Start Jaeger with `docker compose -f docker-compose.dev.yml --profile observability up -d`, start the full stack's `otel-collector`, or point the variable at a reachable collector. |
 | Login redirects fail or tokens are rejected | Issuer mismatch. The frontend and `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` must both use the browser-facing URL (`http://localhost:8180/realms/modulo`). |
 | Keycloak will not start on 8080 | It is mapped to host 8180 on purpose; 8080 and 8081 belong to the backend and audit-collector. |
-| Neo4j crash-loops with "Neo4j is already running" | A stale pid after an unclean shutdown. The compose command removes it on start; if it persists, `docker compose rm -f neo4j` and start again (data is in the `neo4j_data` volume). |
-| Graph panels (backlinks, related, local graph) are empty | `modulo.graph.enabled=false` (the `dev` profile) or Neo4j unreachable. The projection degrades to empty states rather than failing. |
 | Backend refuses to start against an existing PostgreSQL | Flyway validation against a schema that Hibernate created earlier. Follow the adoption procedure in [Database operations](../operations/database.md#adopting-an-existing-database). |
-| `docker compose -f docker-compose.dev.yml` fails | The overlay is stale (see above). |
+| `docker compose -f docker-compose.dev.yml up` fails with "port is already allocated" | The full stack (or another local service) holds 5432 or 8180. `docker compose down` the other stack first. |
 | Upload of a large file fails with 413 or multipart errors | Multipart limit is 25 MB per file and 100 MB per request (`spring.servlet.multipart.*`); attachments are further limited to 10 MB by the app. |

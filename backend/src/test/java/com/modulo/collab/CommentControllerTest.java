@@ -3,7 +3,7 @@ package com.modulo.collab;
 import com.modulo.collab.comment.NoteComment;
 import com.modulo.collab.comment.NoteCommentRepository;
 import com.modulo.collab.notification.NotificationService;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -29,15 +29,14 @@ across devices through the server.
 | Part | Technology | Where |
 |---|---|---|
 | Web frontend | React 18, TypeScript, Vite, Redux Toolkit, React Flow | [`frontend/`](../../frontend/) |
-| Backend | Spring Boot 2.7, Java 17, Maven | [`backend/`](../../backend/) |
+| Backend | Spring Boot 3.5, Java 17, Maven | [`backend/`](../../backend/) |
 | Primary database | PostgreSQL, schema owned by Flyway migrations | [`backend/src/main/resources/db/postgresql/`](../../backend/src/main/resources/db/postgresql/) |
-| Knowledge graph store | Neo4j | configured in [`docker-compose.yml`](../../docker-compose.yml) |
 | Identity | Keycloak (OIDC) | [`keycloak/`](../../keycloak/) |
 | Desktop shell | Electron | [`desktop/`](../../desktop/) |
 | Android app | Capacitor wrapper around the shared frontend | [`mobile/`](../../mobile/) |
 | Shared pack manifests | JSON, consumed by backend and frontend | [`shared/packs/`](../../shared/packs/) |
 | Smart contracts | Solidity, Hardhat | [`smart-contracts/`](../../smart-contracts/) |
-| Deployment | Compose, Helm, Kubernetes, Argo CD, Oracle A1 host | [`deploy/`](../../deploy/), [`helm/`](../../helm/), [`k8s/`](../../k8s/) |
+| Deployment | Compose on an Oracle A1 host or a Raspberry Pi; Helm and Argo CD for external plugins | [`deploy/`](../../deploy/), [`helm/plugin/`](../../helm/plugin/), [`argocd/`](../../argocd/) |
 | Personal infrastructure | Ansible | [`infra/personal/`](../../infra/personal/) |
 
 For how requests and data flow between these parts, see the

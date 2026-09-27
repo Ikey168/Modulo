@@ -1,7 +1,7 @@
 # Modulo on a Raspberry Pi 5 (#386)
 
 The minimal self-hosted deployment: the core stack (backend, frontend,
-Postgres, Neo4j, Keycloak) behind a single Caddy reverse proxy, tuned for an
+Postgres, Keycloak) behind a single Caddy reverse proxy, tuned for an
 8 GB Pi 5. No observability sidecars, no IPFS node — everything the workspace,
 audit, and business plugins need, nothing else. All data stays on hardware you
 own.
@@ -9,7 +9,7 @@ own.
 ## Hardware & OS
 
 - **Raspberry Pi 5, 8 GB** (16 GB is extra headroom, not a requirement).
-- **Boot from an NVMe or USB SSD, not an SD card.** Postgres and Neo4j write
+- **Boot from an NVMe or USB SSD, not an SD card.** Postgres writes
   constantly; SD cards are slow and wear out. This is the single most
   important reliability decision.
 - 64-bit Raspberry Pi OS (Bookworm) or Debian/Ubuntu arm64.
@@ -67,10 +67,9 @@ first start; create your user in the Keycloak admin console at
 | backend | Spring Boot (Temurin 17) | 1.5 GB |
 | keycloak | `quay.io/keycloak/keycloak:24.0` | 768 MB |
 | db | `postgres:16-alpine` | 512 MB |
-| neo4j | `neo4j:5.15-community` (512 MB heap / 128 MB pagecache) | 1 GB |
 
-Committed total ≈ 4 GB; an 8 GB Pi keeps ~half free for page cache and builds.
-Only Caddy publishes ports (80/443) — Postgres, Neo4j, and Keycloak are not
+Committed total ≈ 3 GB; an 8 GB Pi keeps more than half free for page cache and builds.
+Only Caddy publishes ports (80/443) — Postgres and Keycloak are not
 reachable from the network directly; Keycloak is served through Caddy at
 `/auth`.
 
@@ -83,9 +82,7 @@ crontab -e                           # add:
 # 15 3 * * * /home/pi/Modulo/deploy/pi/backup.sh >> /var/log/modulo-backup.log 2>&1
 ```
 
-`backup.sh` takes a live `pg_dump` and a consistent Neo4j snapshot (Neo4j is
-stopped for the seconds the tar takes — Community edition has no online dump),
-then prunes files older than `KEEP_DAYS` (default 30). Copy the target dir
+`backup.sh` takes a live `pg_dump`, then prunes files older than `KEEP_DAYS` (default 30). Copy the target dir
 off-site periodically (e.g. `rsync` to a Storage Box or an encrypted USB disk
 you rotate).
 
@@ -95,7 +92,6 @@ you rotate).
 # Postgres
 gunzip -c /mnt/backup/modulo/postgres-<stamp>.sql.gz \
   | docker compose -f docker-compose.pi.yml exec -T db psql -U modulo modulodb
-# Neo4j: stop neo4j, untar the snapshot into the neo4j_data volume, start neo4j
 ```
 
 ## Updating

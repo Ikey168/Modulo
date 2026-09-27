@@ -1,11 +1,10 @@
 package com.modulo.migration;
 
 import java.sql.DriverManager;
-import javax.persistence.Entity;
+import jakarta.persistence.Entity;
 import org.flywaydb.core.Flyway;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.tool.hbm2ddl.SchemaValidator;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 
@@ -25,9 +24,15 @@ public final class SchemaMigrationTool {
             .applySetting("hibernate.connection.url", url)
             .applySetting("hibernate.connection.username", user)
             .applySetting("hibernate.connection.password", password)
-            .applySetting("hibernate.dialect", "org.hibernate.dialect.PostgreSQL10Dialect")
-            .applySetting("hibernate.physical_naming_strategy", "org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy")
+            .applySetting("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
+            .applySetting("hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy")
             .applySetting("hibernate.implicit_naming_strategy", "org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy")
+            // Same as spring.jpa.properties in application.properties: keep Hibernate 5's
+            // "timestamp" (without time zone) mapping for Instant.
+            .applySetting("hibernate.type.preferred_instant_jdbc_type", "TIMESTAMP")
+            // Hibernate 6 has no standalone SchemaValidator: building the session factory
+            // with hbm2ddl=validate runs the same validation and fails on any mismatch.
+            .applySetting("hibernate.hbm2ddl.auto", "validate")
             .build();
         try {
             var sources = new MetadataSources(registry);
@@ -36,7 +41,7 @@ public final class SchemaMigrationTool {
             for (var bean : scanner.findCandidateComponents("com.modulo")) {
                 sources.addAnnotatedClass(Class.forName(bean.getBeanClassName()));
             }
-            new SchemaValidator().validate(sources.buildMetadata());
+            sources.buildMetadata().buildSessionFactory().close();
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);
         }

@@ -1,9 +1,11 @@
 package com.modulo.security;
 
+import com.modulo.attachment.Attachment;
+import com.modulo.attachment.AttachmentRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
 import com.azure.storage.blob.BlobServiceClient;
-import com.modulo.entity.*;
-import com.modulo.repository.*;
-import com.modulo.service.AttachmentService;
+import com.modulo.attachment.AttachmentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;

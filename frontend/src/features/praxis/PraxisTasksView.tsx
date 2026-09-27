@@ -4,7 +4,7 @@ import { Alert, AlertDescription, Badge, Button, Checkbox, EmptyState, Label, Se
   SelectValue, Textarea } from '@/ui';
 import { randomId } from '../../lib/randomId';
 import {
-  followEvents, praxisApi, PraxisError, type Approval, type ControlOperation, type PraxisEvent, type PraxisStatus,
+  followEvents, praxisApi, PraxisError, type ControlOperation, type PraxisEvent, type PraxisStatus,
   type ProcessView, type Submission,
 } from './praxisApi';
 import { controlHint } from './controlHint';
@@ -54,30 +54,9 @@ export function OutcomePanels({ view }: { view: ProcessView }) {
   );
 }
 
-function ApprovalCard({ approval, onDecide }: { approval: Approval; onDecide: (approved: boolean, reason: string) => Promise<void> }) {
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const decide = async (approved: boolean) => {
-    setBusy(true);
-    try { await onDecide(approved, reason.trim()); } finally { setBusy(false); }
-  };
-  return (
-    <li className="rounded-lg border border-border p-3">
-      <p className="font-medium">{approval.kind.replace(/_/g, ' ')} → {approval.target}</p>
-      <p className="text-sm text-muted-foreground">{approval.reversible ? 'Reversible' : 'Not reversible'} · version {approval.version}</p>
-      <Label htmlFor={`reason-${approval.effect_id}`} className="mt-2 block">Reason for your decision</Label>
-      <Textarea id={`reason-${approval.effect_id}`} value={reason} onChange={event => setReason(event.target.value)} rows={2} />
-      <div className="mt-2 flex gap-2">
-        <Button size="sm" disabled={busy || !reason.trim()} onClick={() => void decide(true)}>Approve</Button>
-        <Button size="sm" variant="outline" disabled={busy || !reason.trim()} onClick={() => void decide(false)}>Reject</Button>
-      </div>
-    </li>
-  );
-}
-
 function TaskDetail({ processId, publishRequested, onChanged }: { processId: string; publishRequested: boolean; onChanged: () => void }) {
   const [view, setView] = useState<ProcessView | null>(null);
-  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
   const [events, setEvents] = useState<PraxisEvent[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +67,7 @@ function TaskDetail({ processId, publishRequested, onChanged }: { processId: str
     try {
       const [next, pending] = await Promise.all([praxisApi.inspect(processId), praxisApi.approvals(processId).catch(() => [])]);
       setView(next);
-      setApprovals(pending);
+      setPendingApprovals(pending.length);
       setError(null);
     } catch (reason) {
       setError(message(reason));
@@ -175,15 +154,12 @@ function TaskDetail({ processId, publishRequested, onChanged }: { processId: str
 
       <section aria-labelledby="praxis-approvals">
         <h3 id="praxis-approvals" className="font-medium">Approvals</h3>
-        {approvals.length === 0 ? <p className="text-sm text-muted-foreground">Nothing is waiting for your approval.</p> : (
-          <ul className="mt-2 space-y-2">
-            {approvals.map(approval => (
-              <ApprovalCard key={`${approval.effect_id}-${approval.version}`} approval={approval}
-                onDecide={(approved, reason) => act(() => praxisApi.decide(view.process_id, approval, approved, reason),
-                  approved ? 'Approved.' : 'Rejected.')} />
-            ))}
-          </ul>
-        )}
+        <p className="text-sm text-muted-foreground">
+          {pendingApprovals === 0 ? 'Nothing is waiting for your approval.'
+            : `${pendingApprovals} ${pendingApprovals === 1 ? 'approval is' : 'approvals are'} waiting for your decision.`}
+          {' '}Praxis approvals are decided in the <a className="underline" href="/app/approvals">Approvals inbox</a>,
+          next to workflow approvals.
+        </p>
       </section>
 
       <section aria-labelledby="praxis-events">

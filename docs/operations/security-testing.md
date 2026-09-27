@@ -12,21 +12,15 @@ vulnerability is described in [`SECURITY.md`](../../SECURITY.md).
 
 | Check | Tool | Local | CI | Gate |
 |-------|------|-------|----|------|
-| Secrets in commits | Gitleaks | `pre-commit` hook, `gitleaks detect` | [`secret-scanning.yml`](../../.github/workflows/secret-scanning.yml) (see note) | Blocks PR |
-| Authorization policy tests | OPA, Conftest | `make policy-ci` | [`policy-ci.yml`](../../.github/workflows/policy-ci.yml) (see note) | Blocks PR |
+| Secrets in commits | Gitleaks | `pre-commit` hook, `gitleaks detect` | [`secret-scanning.yml`](../../.github/workflows/secret-scanning.yml) | Blocks PR |
+| Authorization policy tests | OPA | `make policy-ci` | [`policy-ci.yml`](../../.github/workflows/policy-ci.yml) | Blocks PR |
 | Dynamic scan (DAST) | OWASP ZAP | Docker | [`owasp-zap.yml`](../../.github/workflows/owasp-zap.yml) | Fails on any High |
 | Static analysis (SAST) | CodeQL | CodeQL CLI | GitHub default code scanning (see below) | |
 | Penetration tests | [`security-penetration-testing/`](../../security-penetration-testing) | `npm run test:security:all` | Manual | |
 | In-app probes | `/api/security/testing/*` | [`scripts/security-assessment.sh`](../../scripts/security-assessment.sh) | Manual, non-production only | |
-| Image signatures | Cosign, Kyverno | | see [Releases](releases-and-supply-chain.md) | |
+| Image signatures | Cosign | | see [Releases](releases-and-supply-chain.md) | |
 | Dependency and image SBOMs | Syft, BuildKit | | release and signed builds | |
-
-**Workflows that do not currently run.** `secret-scanning.yml`,
-`policy-ci.yml` and `test-image-signing.yml` are not valid YAML: each has an
-unindented heredoc or step inside a `run: |` block (around lines 65, 251 and 184
-respectively), so GitHub rejects the file and never runs the job. Until they are
-fixed, run the local equivalents below before merging changes to secrets,
-policies or signing.
+| Dependency advisories | `npm audit`, Maven versions report | see [Dependency vulnerabilities](#dependency-vulnerabilities) | | |
 
 ## Secret scanning
 
@@ -40,8 +34,10 @@ Gitleaks rules with:
 | `blockchain-private-key` | `private_key = 0x<64 hex>` |
 | `jwt-secret` | `jwt_secret = <32+ base64>` |
 
-It also has allowlists for documentation placeholders, test fixtures and build
-output, and skips entropy checks for some file types.
+It also has allowlists for documentation placeholders, test fixtures, build
+output, plugin-state store keys (`modulo-<name>-v<n>`), public key fingerprints and
+the generated files under `docs/reference/generated/`, and skips some binary file
+types.
 
 Local setup, once:
 
@@ -60,9 +56,18 @@ gitleaks detect --config .gitleaks.toml  # full history scan
 gitleaks protect --staged                # staged changes only
 ```
 
-In CI the workflow runs `gitleaks/gitleaks-action` with full history on pushes,
-PRs to `main`/`develop` and daily at 02:00 UTC, uploads SARIF to the Security tab,
-and comments on the PR when it finds something.
+In CI the workflow runs the Gitleaks CLI (pinned to 8.28.0, the same version as
+the pre-commit hook) with `.gitleaks.toml` on pull requests to `main`/`develop`,
+pushes to `main` and manual runs. It scans only the commits being introduced (the
+PR's base..head, or the pushed range) and prints findings, redacted, in the job
+log. It does not scan the whole tree or history: the tree still contains known
+development defaults (the dev JWT and encryption keys in
+`backend/src/main/resources/application.*`, the Hardhat default account key and
+the placeholders in `smart-contracts/.env.encrypted.example`), so a full scan
+reports them. Run `gitleaks dir --config .gitleaks.toml .` to see them locally.
+
+`.gitleaks.toml` uses the `[[allowlists]]` table form, which needs Gitleaks 8.25
+or later.
 
 When a secret is detected:
 
@@ -96,13 +101,14 @@ code. The rules themselves are described in
 | `make policy-build` | Bundle to `dist/policy-bundle.tar.gz` |
 | `make policy-security-scan` | Greps for `password`, `secret`, `token`, `key` literals |
 | `make policy-ci` | fmt, lint, test, build |
-| `make install-policy-ci` | Installs OPA 0.58.0 and Conftest 0.46.0 |
+| `make install-policy-ci` | Installs OPA 0.59.0 |
 
-The CI workflow (triggered by changes under `policy/` or `infra/opa/`) adds
-bundle validation, a Conftest run against a generated sample Compose file,
-JUnit results, a coverage report (target 80 %), a PR comment, and a
-"Policy Change Analysis" job that lists the `.rego` files and diffs changed
-against the base branch.
+The CI workflow (triggered by changes under `policy/` or `infra/opa/`) pins OPA
+0.59.0, the version the `opa` Compose service runs, and runs `opa fmt --list
+--fail`, `opa check`, `opa test` on both directories, reports `policy/` test
+coverage (currently about 60 %; there is no threshold) and uploads the built
+bundles as an artifact. `infra/opa/` is loaded with `--ignore '*.yaml'` because
+it also holds the OPA server configuration files.
 
 Before merging a policy change: tests pass, coverage has not dropped, and every
 new rule has a deny test as well as an allow test.
@@ -110,7 +116,7 @@ new rule has a deny test as well as an allow test.
 ## Dynamic scanning with OWASP ZAP
 
 [`owasp-zap.yml`](../../.github/workflows/owasp-zap.yml) stands up the full stack
-(PostgreSQL, Neo4j, backend, frontend) with a staging `.env` and scans it. Because
+(PostgreSQL, backend, frontend) with a staging `.env` and scans it. Because
 that takes tens of minutes it is not a per-PR gate.
 
 - Triggers: pushes to `main`, `develop`, `feature/*`, `release/*`; Sundays 03:00
@@ -150,7 +156,7 @@ Only scan systems you own. Active scans send attack payloads.
 
 [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml)
 configures the `security-and-quality` suite for `backend/src` and `frontend/src`
-and ignores build output, `node_modules`, `.github`, `k8s` and `azure`. No
+and ignores build output, `node_modules`, `.github`, `k8s` and `scripts`. No
 workflow in `.github/workflows` runs CodeQL. Analysis comes from GitHub's
 default code-scanning setup in the repository settings, which runs `Analyze`
 jobs on pull requests for `actions`, `go`, `javascript-typescript` and `python`.
@@ -212,11 +218,41 @@ the probes (`API_BASE_URL`, `SECURITY_API_KEY`).
 | Control | Where |
 |---------|-------|
 | Per-IP rate limiting (100 requests/min, burst 20, HTTP 429) | [`RateLimitingFilter`](../../backend/src/main/java/com/modulo/security/RateLimitingFilter.java), `modulo.security.rate-limit.*` |
-| Security headers and CORS for the `cloud` profile | [`CloudSecurityConfig`](../../backend/src/main/java/com/modulo/security/CloudSecurityConfig.java) |
+| Stateless bearer-token chain, 401 for anonymous API calls, `ADMIN` method security, `Referrer-Policy` | [`SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java) |
 | Security headers at the edge | [`frontend/nginx.conf`](../../frontend/nginx.conf) (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, CSP, HSTS); [`deploy/oci/Caddyfile`](../../deploy/oci/Caddyfile) (`X-Content-Type-Options`, `Referrer-Policy`, `Server` removed) |
 | Security audit log | [`SecurityAuditLogger`](../../backend/src/main/java/com/modulo/security/SecurityAuditLogger.java) |
-| Error responses without stack traces | `server.error.include-*=never` (`azure` profile) |
-| TLS 1.2/1.3 only | `security` profile (`server.ssl.*`) |
+| Error responses without stack traces | Spring Boot defaults (`server.error.include-stacktrace` and `include-message` are `never`) |
+| TLS 1.2/1.3 only | Terminated at the edge (Caddy on OCI, nginx or your proxy elsewhere); the backend serves plain HTTP inside the network |
+
+## Dependency vulnerabilities
+
+Scan every dependency tree after a framework or lockfile change:
+
+```sh
+npm audit --audit-level=high                       # root workspaces (frontend, smart-contracts)
+npm audit --audit-level=high --workspace=frontend  # the shipped web app only
+(cd desktop && npm audit --audit-level=high)
+(cd mobile/app && npm audit --audit-level=high)
+(cd k6-tests && npm audit --audit-level=high)
+mvn -f backend/pom.xml versions:display-dependency-updates
+```
+
+Fix with `npm audit fix` (never `--force`) or a targeted upgrade, then run the
+frontend checks and the backend tests. The root `package.json` carries one
+override, `ws@>=8.0.0 <8.21.0 -> ^8.21.0`: ethers 5 and viem pin vulnerable
+`ws` 8.x releases exactly, and 8.21+ is a compatible patch.
+
+Accepted findings, last reviewed with the Spring Boot 3 upgrade (#537):
+
+| Tree | Findings | Why they remain |
+|------|----------|-----------------|
+| Root, via `smart-contracts` | 15 high, 3 critical: `hardhat` 2 and its `undici`, `tmp` (through `solc`), `adm-zip`; `@nomiclabs/hardhat-waffle`, `ethereum-waffle`, `ganache`, `secp256k1`, `elliptic`; `request` and its `form-data`; `solidity-coverage`/`serialize-javascript`; `hardhat-gas-reporter` | Development-only Hardhat 2 toolchain, not shipped and not run in CI. Every fix needs Hardhat 3 (ESM config, new plugin model) or replacing Waffle and Ganache, a migration of its own. |
+| `frontend` | none high or critical | |
+| `desktop`, `mobile/app`, `k6-tests` | none high or critical | |
+
+The backend has no known critical advisory. Spring Boot 3.5 manages most
+versions; the explicit ones (gRPC, protobuf, web3j, Azure SDK, PDFBox, NATS) are
+on current patch releases.
 
 ## Triage and remediation
 
@@ -250,8 +286,8 @@ For a Critical finding that may have been exploited, switch to
 |---------|----------|-------|
 | SQL injection | Repositories and `@Query` methods | Use bound parameters or Spring Data derived queries; never concatenate input into JPQL or native SQL. |
 | XSS | Frontend rendering | Do not render untrusted HTML without sanitising; avoid `dangerouslySetInnerHTML`. |
-| Missing security headers | nginx, Caddy, `CloudSecurityConfig` | Add at the edge so static assets are covered too. |
-| Insecure cookies | `server.servlet.session.cookie.*` | `secure=true` and `http-only=true` behind HTTPS (the `azure` profile does this). |
+| Missing security headers | nginx, Caddy, `SecurityConfig` | Add at the edge so static assets are covered too. |
+| Insecure cookies | `server.servlet.session.cookie.*` | `secure=true` and `http-only=true` behind HTTPS. The API sets no session cookie. |
 | Information disclosure | `server.error.*`, actuator exposure | No stack traces or messages in errors; do not publish actuator on a public route. |
 | Missing authorization on an endpoint | Controller and service ownership checks | Every owned resource must be checked against the authenticated account (see [Database operations](database.md#tenant-ownership-migration)). |
 | Path traversal | File and attachment controllers | Resolve against the storage root and reject paths that escape it. |

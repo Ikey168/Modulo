@@ -92,6 +92,21 @@ describe('PraxisTasksView', () => {
     expect(second[0]).toEqual({ objective: 'Draft the changelog', executor: 'fake', publish: false });
   });
 
+  it('sends approvals to the Approvals inbox instead of listing them a second time', async () => {
+    api.inspect.mockResolvedValue(view({ state: 'running', finished: false }));
+    api.approvals.mockResolvedValue([
+      { effect_id: 'e-1', process_id: 'p-1', attempt_id: 'a-1', kind: 'file_write', target: 'x', version: 1, reversible: true, payload: {} },
+    ]);
+    render(<PraxisTasksView />);
+    await userEvent.click(await screen.findByRole('button', { name: /Summarize the release/ }));
+
+    const panel = await screen.findByRole('region', { name: 'Approvals' });
+    expect(await within(panel).findByText(/1 approval is waiting for your decision/)).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'Approvals inbox' })).toHaveAttribute('href', '/app/approvals');
+    expect(within(panel).queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(api.decide).not.toHaveBeenCalled();
+  });
+
   it('explains when the server has no Praxis connection', async () => {
     api.status.mockResolvedValue({ configured: false, executors: {} });
     render(<PraxisTasksView />);

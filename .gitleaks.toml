@@ -33,7 +33,7 @@ regex = '''(?i)(jwt[_-]?secret)[[:space:]]*[:=][[:space:]]*['"]?([A-Za-z0-9+/]{3
 tags = ["jwt", "secret"]
 
 # Allowlist patterns to reduce false positives
-[[allowlist]]
+[[allowlists]]
 description = "Test keys and example values"
 regexes = [
     '''test[_-]?key''',
@@ -48,7 +48,7 @@ regexes = [
     '''abcdef''',
 ]
 
-[[allowlist]]
+[[allowlists]]
 description = "Documentation and comment examples"
 paths = [
     '''.*\.md$''',
@@ -57,7 +57,7 @@ paths = [
     '''.*\.adoc$''',
 ]
 
-[[allowlist]]
+[[allowlists]]
 description = "Build and dependency files"
 paths = [
     '''.*package-lock\.json$''',
@@ -72,7 +72,7 @@ paths = [
     '''dist/.*''',
 ]
 
-[[allowlist]]
+[[allowlists]]
 description = "Test files with mock secrets"
 paths = [
     '''.*test.*''',
@@ -82,10 +82,45 @@ paths = [
 ]
 
 # Skip entropy detection for certain file types
-[[allowlist]]
+[[allowlists]]
 description = "Binary and generated files"
 paths = [
     '''.*\.(jpg|jpeg|png|gif|bmp|svg|ico|pdf|zip|tar|gz|rar|7z|exe|dll|so|dylib)$''',
     '''.*\.(woff|woff2|eot|ttf|otf)$''',
     '''.*\.map$''',
+]
+
+[[allowlists]]
+description = "Known non-secret identifiers that match generic-api-key"
+regexes = [
+    # plugin-state store keys such as 'modulo-meal-planner-v2'
+    '''^modulo-[a-z-]+-v[0-9]+$''',
+    # requirement ids derived from Notion page ids
+    '''^area-notion-[0-9a-f]{32}$''',
+]
+
+[[allowlists]]
+description = "Public GPG key fingerprints in Ansible defaults"
+regexTarget = "match"
+regexes = [
+    '''_key_fingerprint:''',
+]
+
+[[allowlists]]
+description = "Machine-written reference files (regenerated from source)"
+paths = [
+    '''^docs/reference/generated/''',
+]
+
+[[allowlists]]
+description = "Public local-development defaults (never valid outside a local stack)"
+regexTarget = "match"
+regexes = [
+    # Hardhat's well-known account #0 key and its first deployed contract address
+    '''ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80''',
+    '''0x5FbDB2315678afecb367f032d93F642f64180aa3''',
+    # base64 of "dev-only-JWT-secret-change-me-in-production" and "test-jwt-secret-for-validation-testing-1234567890"
+    '''ZGV2LW9ubHktSldULXNlY3JldC1jaGFuZ2UtbWUtaW4tcHJvZHVjdGlvbg==''',
+    '''dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==''',
+    '''default-encryption-key-32-chars-long''',
 ]

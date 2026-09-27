@@ -11,12 +11,11 @@ the [features](../features/) pages; every configuration key is in
 
 | Concern | Choice |
 | --- | --- |
-| Runtime | Java 17, Spring Boot 2.7.18 (Maven, parent POM at repo root) |
-| Persistence | Spring Data JPA/Hibernate and `JdbcTemplate` on PostgreSQL; Flyway migrations |
-| Graph read model | Neo4j Java driver (Bolt) |
-| Auth | Spring Security OAuth2 resource server (Keycloak JWT) and OAuth2 login |
+| Runtime | Java 17, Spring Boot 3.5 (Jakarta EE 10 `jakarta.*` namespace; `spring-boot-starter-parent` 3.5.16 in `backend/pom.xml` and the root reactor POM) |
+| Persistence | Spring Data JPA/Hibernate 6 and `JdbcTemplate` on PostgreSQL; Flyway migrations (`flyway-database-postgresql`) |
+| Auth | Spring Security 6 OAuth2 resource server (Keycloak JWT), one stateless chain in `config/SecurityConfig` (`authorizeHttpRequests`, `@EnableMethodSecurity`) |
 | Realtime | STOMP over WebSocket (`/ws`, SockJS fallback) |
-| Plugin RPC | gRPC server (`net.devh` starter, port 9090) |
+| Plugin RPC | gRPC server (`net.devh` starter 3.1, grpc-java 1.84, port 9090) |
 | Plugin eventing | In-JVM `PluginEventBus`; optional NATS bridge (`jnats`) |
 | Sandboxes | QuickJS on WASM (`quickjs4j`) for `action.code.execute`; Chicory interpreter for `action.wasm.execute` |
 | Blockchain | web3j; IPFS over the Kubo HTTP API |
@@ -34,39 +33,46 @@ The value must be `/`, not empty: the application's property validator rejects a
 blank context path. nginx (web) and Vite (dev) forward `/api` and `/ws` to the
 backend unchanged.
 
+Spring 6 matches paths exactly: `/api/notes/` no longer reaches a handler
+mapped to `/api/notes`. No controller mapping and no client call uses a
+trailing slash; keep it that way.
+
 ## Package layout
 
 All code lives under [`com.modulo`](../../backend/src/main/java/com/modulo/).
-Newer features are organized by domain package; older code still follows the
-layered `controller` / `service` / `repository` / `entity` split.
+Code is organized by feature package: each package holds its controllers,
+services, repositories, entities and DTOs. Cross-cutting code lives in
+`config`, `security`, `aspect`, `filter` and `util`.
 
 | Package | Responsibility |
 | --- | --- |
-| `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, offline notes, conflicts, health, performance |
-| `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, `CloudSecurityConfig`, audit logger, security-testing endpoints |
-| `config` | Security chains, WebSocket, gRPC, Neo4j driver, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
-| `auth`, `backend` | OAuth2 login success handler (provider migration); `oidc`-profile security config and `/api/me` |
+| `note` | Notes (`/api/notes`, `/api/v2/notes`), conflict resolution, export/import, note update broadcasts |
+| `tag`, `link`, `attachment`, `task` | Tags, note links, attachments (Azure Blob), tasks |
+| `user` | Users, `/api/me` (token claims), logout, auth migration |
+| `blockchain` | Blockchain note registry, access control, IPFS |
+| `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, audit logger, security-testing endpoints |
+| `config` | Security chains, WebSocket, gRPC, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
-| `blueprint.interpreter` | `BlueprintInterpreterService`: executes Blueprint IR graphs |
+| `blueprint.interpreter` | `BlueprintInterpreterService` (public API) executes Blueprint IR graphs: `BlueprintTriggerRegistrar` wires triggers, `BlueprintGraphRunner` walks the graph, `BuiltInNodeExecutor` dispatches built-in nodes to one class per node family |
 | `blueprint.execution` | Workflow runs, steps, checkpoints, scheduler, retention, recovery, operations, trace policy |
-| `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles |
+| `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles. `ApprovalService` is the API and request state machine; reviewer grants, evidence, decisions, expiry and the inbox read model are package-private collaborators |
 | `blueprint.sandbox`, `blueprint.wasm` | `ScriptSandbox` seam (local WASM engine or remote workload); WASM module validation and execution |
-| `plugin.*` | Plugin API, manager/loader, registry, event bus and NATS bridge, submissions, marketplace trust |
+| `plugin`, `plugin.*` | Plugin and renderer endpoints, plugin API, manager/loader, registry, event bus and NATS bridge, submissions, marketplace trust; built-in plugins and their endpoints in `plugin.impl` |
 | `grpc.service` | gRPC `PluginService` and `PluginHostService` implementations |
 | `state` | Plugin state store, schemas, grants, workloads, outbox; Gmail newsletter connection |
 | `pack` | Pack manifests (v1/v2), validation, workspace pack plan/apply, Pack Studio, audit pack |
 | `knowledge` | Typed note properties, saved property queries, semantic search and embeddings, document text extraction |
-| `graph` | Neo4j projection, backfill and graph queries |
+| `graph` | Graph and unlinked-mentions endpoints |
 | `collab` | Comments, notifications, presence and Yjs document relay over STOMP |
 | `sharing` | Public share links |
 | `editor` | Note templates, Markdown/HTML/ZIP export, note-local files |
 | `files` | Owner-scoped workspace files |
 | `remote` | Remote service calls with encrypted credentials, safe HTTP fetcher, PDF tools |
-| `integrations.noesis`, `integrations.praxis` | Noesis intake bridge; Praxis client |
+| `integrations.*` | Noesis intake bridge and brief client; Praxis client; OpenAI, VIES and Google Calendar clients |
 | `audit` | Audit events and note audit interceptor |
-| `observability`, `aspect`, `filter`, `health` | Execution trace context, tracing/performance aspects, tracing filter, health indicators |
+| `observability`, `aspect`, `filter`, `health` | Execution trace context, tracing services, performance and observability endpoints, tracing/performance aspects, tracing filter, health endpoints and indicators |
 | `migration` | Operator tools for schema migration and ownership backfill |
-| `chaos` | Chaos-engineering filter (off by default, `modulo.chaos.enabled`) |
+| `chaos` | Chaos-engineering filter and endpoints (off by default, `modulo.chaos.enabled`) |
 
 ## API surface
 
@@ -82,7 +88,7 @@ the generated OpenAPI document (springdoc: `/api-docs`, `/swagger-ui`).
 | `/api/v2/notes` | `OptimizedNoteController` | Paged/optimized note reads |
 | `/api/note-links` | `NoteLinkController` | Explicit links between notes |
 | `/api/tags` | `TagController` | Owner-scoped tags |
-| `/api/graph` | `GraphController` | Backlinks, unlinked mentions, related, neighbourhood, backfill, status |
+| `/api/graph` | `GraphController` | Unlinked mentions, and turning a mention into a link |
 | `/api/note-properties`, `/api/property-queries` | `NotePropertyController`, `SavedPropertyQueryController` | Typed properties and saved queries |
 | `/api/knowledge`, `/api/knowledge/workspace-search`, `/api/knowledge/extract` | `SemanticKnowledgeController`, `WorkspaceSearchController`, `DocumentTextController` | Semantic search, suggested links, document text |
 | `/api/templates` | `NoteTemplateController` | Note templates |
@@ -143,11 +149,10 @@ The plugin-state contract is documented in
 | --- | --- |
 | `/api/health`, `/api/simple-health` | **Public** health checks (the OCI health check uses `/api/health`) |
 | `/actuator/**` | Actuator (`management.server.port=8081` in the default properties) |
-| `/user/me`, `/logout` | Session identity and logout |
-| `/api/me` | JWT claims (`oidc` profile only) |
+| `/api/me` | The caller's token claims (used by the Envoy/OPA overlay) |
 | `/auth/migration/**` | Provider migration administration |
 | `/api/audit` | Audit event queries |
-| `/api/v2/performance`, `/api/network`, `/api/security/testing`, `/chaos` | Diagnostics and test hooks |
+| `/api/v2/performance`, `/api/security/testing`, `/chaos` | Diagnostics and test hooks |
 
 ## Realtime: STOMP over WebSocket
 
@@ -186,7 +191,6 @@ polls their health every `modulo.plugins.external.health-interval-ms` (30 s). Se
 ```mermaid
 flowchart LR
   svc[Note / link / tag services] -->|publishAsync| bus[PluginEventBus]
-  bus --> graph[GraphProjectionEventListener → Neo4j]
   bus --> triggers[Blueprint triggers → interpreter]
   bus --> plugins[INTERNAL plugins]
   bus <-->|modulo.plugins.broker.enabled| nats[(NATS: modulo.events.*)]
@@ -226,7 +230,7 @@ All workers use Spring `@Scheduled` (task scheduler pool size 4).
 
 ## Persistence conventions
 
-- **Flyway owns DDL** in the `docker` and `production` profiles; Hibernate runs in
+- **Flyway owns DDL** in the `docker` and `dev` profiles; Hibernate runs in
   `validate` mode. Add a new `V<n>__<Description>.sql` under
   `src/main/resources/db/postgresql/`; never edit a deployed migration. The
   default (no profile) run uses in-memory H2 with `ddl-auto: update` for quick
@@ -238,7 +242,6 @@ All workers use Spring `@Scheduled` (task scheduler pool size 4).
   idempotency (`(run, sequence, attempt)`, request idempotency keys).
 - **Bounded payloads.** Metadata columns have explicit byte caps; raw note
   content, credentials and exception messages are not written to traces.
-- Neo4j is a derived projection and must never be the only copy of anything.
 
 Schema reference and migration list: [data-and-state.md](data-and-state.md).
 Operating migrations: [database.md](../operations/database.md).
@@ -247,13 +250,14 @@ Operating migrations: [database.md](../operations/database.md).
 
 | Profile | Used by | Effect |
 | --- | --- | --- |
-| (none) | `mvn spring-boot:run` | H2 in memory, Flyway off, debug logging |
-| `docker` | Compose, OCI | PostgreSQL, Flyway on, Hibernate validate |
-| `production` | Production configs | Like `docker`, datasource from `SPRING_DATASOURCE_URL` |
-| `staging`, `kubernetes`, `azure`, `performance`, `security`, `dev` | Environment overlays | See the matching `application-*.properties` |
-| `oidc` | Envoy/OPA overlay | Alternative JWT-only security chain and method security |
-| `cloud` | Cloud hardening | Stateless chain with cookie CSRF and admin-only paths |
-| `test` | Tests | Disables delivery workers and Azure initializer |
+| (none) | Quick local runs | H2 in memory, Flyway off, debug logging |
+| `docker` | Compose, OCI, Pi, the backend image | PostgreSQL from `SPRING_DATASOURCE_*`, Flyway on, Hibernate validate |
+| `dev` | `mvn spring-boot:run` against local backing services | PostgreSQL on `localhost:5432`, Keycloak on `localhost:8180`, context path `/` |
+| `test` | Tests | H2, disables delivery workers and Azure initializer |
+
+Security does not depend on the profile; see
+[security-model.md](security-model.md#how-the-backend-authenticates-a-request).
+Details: [configuration reference](../reference/configuration.md#profiles).
 
 ## Testing
 
@@ -266,5 +270,8 @@ mvn -q -o test -Dtest=Foo           # offline, after a prior compile
 
 Security-sensitive code has dedicated tests under
 [`backend/src/test/java/com/modulo/security/`](../../backend/src/test/java/com/modulo/security/)
-(ownership, socket authorization, principal resolution). Full test setup is in
+(ownership, socket authorization, principal resolution, and per-profile boot
+tests of the security chain; see
+[security-model.md](security-model.md#testing-the-security-configuration)).
+Full test setup is in
 [local-development.md](../getting-started/local-development.md).

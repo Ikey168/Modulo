@@ -17,19 +17,19 @@ envoy-opa-logs:
 
 # Test OPA policies
 opa-test:
-	docker run --rm -v $(PWD)/infra/opa:/workspace openpolicyagent/opa:latest test /workspace
+	docker run --rm -v $(PWD)/infra/opa:/workspace openpolicyagent/opa:0.59.0 test --ignore '*.yaml' /workspace
 
 # Test Authorization Policies for Notes RBAC/ABAC
 policy-test:
-	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest test /workspace
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:0.59.0 test /workspace
 
 # Build policy bundle
 policy-build:
-	docker run --rm -v $(PWD)/policy:/workspace -v $(PWD)/dist:/dist openpolicyagent/opa:latest build /workspace -o /dist/policy-bundle.tar.gz
+	docker run --rm -v $(PWD)/policy:/workspace -v $(PWD)/dist:/dist openpolicyagent/opa:0.59.0 build /workspace -o /dist/policy-bundle.tar.gz
 
 # Format policy files
 policy-fmt:
-	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest fmt --write /workspace
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:0.59.0 fmt --write /workspace
 
 # Run authorization benchmark
 authz-benchmark:
@@ -45,11 +45,11 @@ policy-ci:
 
 policy-lint:
 	@echo "🔍 Linting policy files..."
-	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest fmt --list /workspace | grep -q . && echo "❌ Policy files need formatting" && exit 1 || echo "✅ Policy files are properly formatted"
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:0.59.0 fmt --list /workspace | grep -q . && echo "❌ Policy files need formatting" && exit 1 || echo "✅ Policy files are properly formatted"
 
 policy-coverage:
 	@echo "📊 Running policy test coverage..."
-	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest test --coverage /workspace
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:0.59.0 test --coverage /workspace
 
 policy-security-scan:
 	@echo "🔒 Scanning policies for security issues..."
@@ -57,10 +57,9 @@ policy-security-scan:
 
 policy-validate:
 	@echo "🔍 Validating policy syntax..."
-	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:latest parse /workspace
+	docker run --rm -v $(PWD)/policy:/workspace openpolicyagent/opa:0.59.0 parse /workspace
 
 # Install policy CI dependencies
 install-policy-ci:
 	@echo "📦 Installing policy CI dependencies..."
-	@which opa > /dev/null || (echo "Installing OPA..." && curl -L -o /usr/local/bin/opa https://openpolicyagent.org/downloads/v0.58.0/opa_linux_amd64_static && chmod +x /usr/local/bin/opa)
-	@which conftest > /dev/null || (echo "Installing Conftest..." && wget -O- https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz | tar xz -C /usr/local/bin)
+	@which opa > /dev/null || (echo "Installing OPA..." && curl -fL -o /usr/local/bin/opa https://github.com/open-policy-agent/opa/releases/download/v0.59.0/opa_linux_amd64_static && chmod +x /usr/local/bin/opa)

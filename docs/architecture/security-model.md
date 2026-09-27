@@ -71,30 +71,71 @@ Android. The rationale is recorded in [ADR 0009a](decisions.md#adr-0009a).
 
 ### How the backend authenticates a request
 
-The backend has more than one Spring Security filter chain:
+One class configures Spring Security 6:
+[`config/SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java).
+It defines a single, stateless filter chain that behaves the same in every
+profile. Every client signs in with Keycloak in the browser or app (above) and
+calls the API with `Authorization: Bearer <access token>`, so the backend is a
+pure OAuth2 resource server: there is no HTTP session, no login page and no
+server-side OAuth login.
 
-| Chain | Active when | Handles | Behavior |
-| --- | --- | --- | --- |
-| [`ResourceServerSecurityConfig`](../../backend/src/main/java/com/modulo/config/ResourceServerSecurityConfig.java) | `modulo.security.keycloak.jwk-set-uri` is set | Requests with an `Authorization: Bearer` header (order 1) | Validates the JWT against the JWK set (fetched lazily, so boot does not need Keycloak), optionally checks `iss` against `modulo.security.keycloak.issuer-uri`, stateless, CSRF off. Realm roles become `ROLE_<role>` authorities. |
-| [`config/SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java) | Always | Everything else | Session-based; `oauth2Login` with the Google and Azure client registrations; public paths listed below; everything else authenticated. CSRF is currently disabled. |
-| [`backend/config/SecurityConfig`](../../backend/src/main/java/com/modulo/backend/config/SecurityConfig.java) | Profile `oidc` | All requests | JWT resource server using `spring.security.oauth2.resourceserver.jwt.*`; enables method security. |
-| [`CloudSecurityConfig`](../../backend/src/main/java/com/modulo/security/CloudSecurityConfig.java) | Profile `cloud` | All requests | Stateless, cookie CSRF, `ADMIN`-only `/api/admin/**` and actuator. |
+- **Token validation.** The JWT signature is checked against the JWK set at
+  `modulo.security.keycloak.jwk-set-uri` (fetched lazily, so boot does not need
+  Keycloak), and `iss` against `modulo.security.keycloak.issuer-uri` (falling back
+  to `spring.security.oauth2.resourceserver.jwt.issuer-uri`). With only an issuer
+  set, the JWK set is discovered from it on first use. With neither set, every
+  bearer token is rejected.
+- **Roles.** Keycloak realm roles become `ROLE_<NAME>` authorities (see
+  [Roles](#roles)); method security (`@PreAuthorize`) is enabled here with
+  `@EnableMethodSecurity`.
+- **Route rules.** `authorizeHttpRequests` with path-pattern matchers
+  (`PathPatternRequestMatcher`) for the public paths below; everything else
+  needs an authenticated token. Security 6 authorizes every servlet dispatch,
+  so forward, async and error dispatches of a request that was already
+  authorized are let through, as Security 5 did.
+- **Responses.** A missing, expired, forged or foreign-issuer token gets 401 with
+  `WWW-Authenticate: Bearer`, never a redirect; insufficient roles get 403.
+- **CSRF is disabled on purpose.** CSRF defends against a browser attaching
+  ambient credentials (cookies) to a forged cross-site request. This chain keeps
+  no session and reads credentials only from the `Authorization` header, which a
+  browser never adds by itself. A future cookie-based login would need its own
+  chain with CSRF enabled.
+- **Headers.** Spring Security defaults (no-sniff, frame deny, HSTS on HTTPS,
+  no-cache) plus `Referrer-Policy: strict-origin-when-cross-origin`. CORS follows
+  [`WebConfig`](../../backend/src/main/java/com/modulo/config/WebConfig.java).
 
-Compose and OCI deployments run the `docker` profile with
-`MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` (internal Keycloak URL) and
-`MODULO_SECURITY_KEYCLOAK_ISSUER_URI` (browser-facing issuer) set, so the first
-two chains are active.
+Environment differences are properties, not extra configuration classes. Compose
+and OCI deployments set `MODULO_SECURITY_KEYCLOAK_JWK_SET_URI` (internal Keycloak
+URL) and `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` (browser-facing issuer); the `dev`
+profile points both at `localhost:8180`.
 
-Paths that the default chain lets through without authentication:
+Paths that answer without a token:
 
 | Path | Why it is public | Where the check happens instead |
 | --- | --- | --- |
-| `/ws`, `/ws/**` | STOMP handshake | `OwnedSocketInterceptor` authenticates `CONNECT` |
+| `/ws`, `/ws/**` | STOMP handshake | `OwnedSocketInterceptor` authenticates `CONNECT` (see below) |
 | `/api/s/**` | Public share links | The stored share token (expiry, revocation, password) |
 | `/api/plugin-state/callback/**` | External plugin callbacks | Dual-token check (workload token + owner grant) |
 | `/api/public/**` | Webhooks and OAuth callbacks (Blueprint webhooks, Gmail callback) | Endpoint-specific secrets and state |
-| `/api/health/**`, `/api/simple-health/**`, `/actuator/**` | Probes | None; keep actuator off public ingress |
-| Static assets, `/login`, `/oauth2/**`, `/error` | Login flow and SPA shell | None |
+| `/api/health/**`, `/api/simple-health/**`, `/actuator/**`, `/api/actuator/**` | Probes | None; actuator runs on the management port, keep it off public ingress |
+| `/api-docs/**`, `/swagger-ui/**`, `/error` | API documentation and error rendering | None |
+
+Everything else, including `/auth/migration/**`, `/chaos/**` and `/api/**`,
+needs a valid bearer token. Patterns match exactly: since Spring 6, a request
+with a trailing slash (`/api/notes/`) does not match `/api/notes`.
+
+STOMP frames are not authorized by Spring Security's message security
+(`@EnableWebSocketSecurity`), which would also demand a CSRF token on `CONNECT`
+that bearer-token clients never send. `OwnedSocketInterceptor`, a plain
+`ChannelInterceptor` on the inbound and outbound channels, validates the
+`Authorization: Bearer` header of `CONNECT` with the same `JwtDecoder` as the
+HTTP chain, and checks every `SUBSCRIBE`, `SEND` and outbound message against
+the owner of the destination.
+
+The profile boot tests in
+[`security/profiles`](../../backend/src/test/java/com/modulo/security/profiles/)
+start the whole application under each profile and check this chain end to end;
+see [Testing the security configuration](#testing-the-security-configuration).
 
 ### From token to owner
 
@@ -102,28 +143,36 @@ Every data access resolves the caller to a row in `users` through
 [`AuthenticatedUserService`](../../backend/src/main/java/com/modulo/security/AuthenticatedUserService.java).
 Display names and emails are never identities.
 
-- **Bearer JWT**: the token's `iss` must equal
-  `spring.security.oauth2.resourceserver.jwt.issuer-uri` (a different property
-  from `modulo.security.keycloak.issuer-uri`), and `sub` is looked up in
-  `users.keycloak_subject`.
-- **OAuth2 login session**: `sub` is looked up by registration (`google`,
-  `azure` or `keycloak` subject column).
+- **Bearer JWT**: the token's `iss` must equal the trusted issuer, which is
+  `modulo.security.keycloak.issuer-uri` (the property the bearer chain validates
+  against) or, when that is empty, `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+  `sub` is looked up in `users.keycloak_subject`. With no issuer configured, no
+  bearer token resolves to an account.
 - **Local `UserDetails`**: looked up by username.
 
-An anonymous request gets 401. An authenticated identity with no matching
-provisioned user gets 403 `Authenticated account is not provisioned`.
+**Just-in-time provisioning.** The first request with a valid token from the
+trusted issuer and an unknown `sub` creates the account through
+`AuthMigrationService.provisionFromBearerToken`, the same rules the OAuth login
+path uses: username from `preferred_username` (or `keycloak:<sub>` when taken),
+email and names from the token. An existing account is linked by email only when
+the token carries `email_verified: true`, and then only through the migration
+rules below; an unverified email is never used to adopt an account (the new
+account is created without it). Provisioning runs in its own transaction and is
+serialized per JVM so concurrent first requests create one row.
+
+An anonymous request gets 401. A token from any other issuer, or any other
+authenticated identity with no matching user, gets 403 `Authenticated account is
+not provisioned`.
 
 ### Provider migration (dual auth)
 
 Accounts that predate Keycloak can hold Google or Azure subjects.
 `AuthMigrationService` links a new provider to an existing user on login
-(matched by provider subject, then by email) and tracks a migration status.
+(matched by provider subject, then by email; for bearer tokens only a verified
+email) and tracks a migration status.
 Settings: `modulo.auth.dual-auth-enabled` (default `true`),
 `modulo.auth.default-provider` (`KEYCLOAK`),
-`modulo.auth.migration-grace-period-days` (30),
-`modulo.auth.conflict-resolution-strategy` (`EMAIL_MAPPING`),
-`modulo.auth.auto-migrate-legacy-users` (`false`),
-`modulo.auth.require-manual-review-threshold` (2). Admin endpoints live under
+`modulo.auth.migration-grace-period-days` (30). Admin endpoints live under
 `/auth/migration` (`status`, `statistics`, `manual-review`, `dual-auth`,
 `resolve-conflict`, `force-migrate`, `users-by-provider`, `settings`).
 
@@ -132,9 +181,8 @@ Settings: `modulo.auth.dual-auth-enabled` (default `true`),
 STOMP over `/ws` (SockJS) is authenticated by
 [`OwnedSocketInterceptor`](../../backend/src/main/java/com/modulo/security/OwnedSocketInterceptor.java):
 
-- `CONNECT` accepts the session principal or an `Authorization: Bearer` native
-  header, resolves the owner, and records the session's expiry (the JWT's `exp`,
-  or 5 minutes for session logins).
+- `CONNECT` requires an `Authorization: Bearer` native header, resolves the
+  owner, and records the session's expiry (the JWT's `exp`).
 - `SUBSCRIBE` is allowed only for the caller's own queues
   (`/user/queue/state`, `/user/queue/notes`, `/user/queue/notifications`), their
   own notification topic, or note topics for notes they own.
@@ -153,7 +201,7 @@ query filters on the authenticated owner.
 - JPA repositories filter with the SpEL extension `tenant.ownerId`
   ([`TenantQueryExtension`](../../backend/src/main/java/com/modulo/security/TenantQueryExtension.java)),
   including overridden `findById`, `findAll`, `count` and `existsById` on
-  [`NoteRepository`](../../backend/src/main/java/com/modulo/repository/NoteRepository.java).
+  [`NoteRepository`](../../backend/src/main/java/com/modulo/note/NoteRepository.java).
   Background and cached callers resolve the owner at execution time.
 - Services that take a client-supplied owner call `requireOwner()`, which answers
   404 on mismatch.
@@ -166,19 +214,19 @@ query filters on the authenticated owner.
 
 ### Roles
 
-Realm roles arrive as `ROLE_<name>` authorities. The backend checks `ADMIN` with
+Keycloak realm roles arrive as upper-cased `ROLE_<NAME>` authorities (realm role
+`admin` becomes `ROLE_ADMIN`). The backend checks `ADMIN` with
 `@PreAuthorize("hasRole('ADMIN')")` on plugin administration
-([`PluginController`](../../backend/src/main/java/com/modulo/controller/PluginController.java)),
-auth migration, and marketplace trust operations (publisher verification and
-revocation, deployment records). Most other controllers only require
-`isAuthenticated()` and rely on ownership.
+([`PluginController`](../../backend/src/main/java/com/modulo/plugin/PluginController.java)),
+auth migration, chaos testing, and marketplace trust operations (publisher
+verification and revocation, deployment records). Most other controllers only
+require `isAuthenticated()` and rely on ownership.
 
-> **Method security caveat.** `@PreAuthorize` is enforced only where method
-> security is enabled. The only `@EnableGlobalMethodSecurity` in the codebase is
-> on the `oidc`-profile `SecurityConfig`. Under the `docker` profile used by
-> Compose and OCI, those annotations are not active, and the URL rules
-> (authenticated for everything non-public) are the effective check. Treat
-> role-restricted endpoints as authenticated-only until this is fixed.
+Method security is enabled in every profile by
+[`SecurityConfig`](../../backend/src/main/java/com/modulo/config/SecurityConfig.java),
+so a signed-in user without the `admin` realm role gets 403 on those endpoints.
+`MethodSecurityDefaultProfileTest` and `MethodSecurityDockerProfileTest` check
+this under the default and `docker` profiles.
 
 The frontend reads realm and client roles from the ID token for UI gating
 (`hasRole` / `hasAnyRole` in `useAuth`). That is presentation only; the server is
@@ -341,6 +389,32 @@ must say so. `keyRotation.test.ts` covers this.
 - [ ] Metadata decisions made and implemented.
 - [ ] Database handling decision made and implemented.
 - [ ] Independent review of the cryptography and flows signed off.
+
+## Testing the security configuration
+
+`ProfileSecurityContract` in
+[`security/profiles`](../../backend/src/test/java/com/modulo/security/profiles/)
+boots the whole application once per profile (`DefaultProfileSecurityTest`,
+`DockerProfileSecurityTest`, `DevProfileSecurityTest`, `TestProfileSecurityTest`)
+and sends requests through MockMvc and the real filter chain with RS256-signed
+tokens. For every profile it checks that:
+
+- an anonymous `GET /api/notes` gets 401, and so do a token from another issuer
+  and a token with a broken signature;
+- a bearer user is provisioned on first use, reaches their own note, and gets
+  404 for another user's note;
+- a user without the `admin` realm role gets 403 on an `ADMIN` endpoint, and an
+  admin gets 2xx;
+- `/actuator/health` and `/api/health` answer without a token.
+
+The tests run in `mvn test` (and so in `mvn verify`) without Docker. The test
+generates an RSA key pair and replaces only the `JwtDecoder` with one that
+trusts that key and checks the issuer; everything after signature verification
+is production code. The `docker` and `dev` profiles read PostgreSQL with Flyway,
+so their tests point the datasource at in-memory H2 with Hibernate DDL; the
+PostgreSQL-backed suites (Testcontainers) cover the schema separately. Each
+profile is its own test class because surefire forks a JVM per class and every
+application context binds the gRPC port.
 
 ## Related pages
 

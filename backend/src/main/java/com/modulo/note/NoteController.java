@@ -1,0 +1,400 @@
+package com.modulo.note;
+
+import com.modulo.security.AuthenticatedUserService;
+import org.springframework.web.server.ResponseStatusException;
+import com.modulo.tag.Tag;
+import com.modulo.blockchain.IpfsService;
+import com.modulo.tag.TagService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/notes")
+@CrossOrigin(originPatterns = "*")
+public class NoteController {
+    @Autowired private AuthenticatedUserService users;
+
+    @ModelAttribute
+    public void requireAuthenticatedOwner() { users.requireUserId(); }
+
+
+    private final NoteRepository noteRepository;
+    private final TagService tagService;
+    private final WebSocketNotificationService webSocketNotificationService;
+    private final ConflictResolutionService conflictResolutionService;
+    private final IpfsService ipfsService;
+
+    @Autowired
+    public NoteController(NoteRepository noteRepository, TagService tagService, 
+                         WebSocketNotificationService webSocketNotificationService,
+                         ConflictResolutionService conflictResolutionService,
+                         @Autowired(required = false) IpfsService ipfsService) {
+        this.noteRepository = noteRepository;
+        this.tagService = tagService;
+        this.webSocketNotificationService = webSocketNotificationService;
+        this.conflictResolutionService = conflictResolutionService;
+        this.ipfsService = ipfsService;
+    }
+
+    @PostMapping
+    public ResponseEntity<Note> createNote(@RequestBody NoteCreateRequest request) {
+        try {
+            Note note = new Note(request.getTitle(), request.getContent(), request.getMarkdownContent());
+            note.setUserId(users.requireUserId());
+            note.setLastEditor(users.actor());
+            
+            // Handle tags
+            if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
+                Set<Tag> tags = request.getTagNames().stream()
+                    .map(tagService::createOrGetTag)
+                    .collect(Collectors.toSet());
+                note.setTags(tags);
+            }
+            
+            Note savedNote = noteRepository.save(note);
+            
+            // Broadcast the note creation via WebSocket
+            List<String> tagNames = savedNote.getTags() != null ? 
+                savedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                new ArrayList<>();
+            webSocketNotificationService.broadcastNoteCreated(
+                savedNote.getId(), 
+                savedNote.getTitle(), 
+                savedNote.getContent(), 
+                tagNames, 
+                users.actor()
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Note>> getAllNotes() {
+        try {
+            List<Note> notes = noteRepository.findAllWithTags();
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Note> getNoteById(@PathVariable Long id) {
+        try {
+            Optional<Note> note = noteRepository.findByIdWithTags(id);
+            return note.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateNote(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
+        try {
+            // If version is provided, use conflict detection
+            if (request.getVersion() != null) {
+                List<String> tagNames = request.getTagNames() != null ? 
+                    new ArrayList<>(request.getTagNames()) : new ArrayList<>();
+                
+                Note updatedNote = conflictResolutionService.updateNoteWithConflictCheck(
+                    id,
+                    request.getVersion(),
+                    request.getTitle(),
+                    request.getContent(),
+                    request.getMarkdownContent(),
+                    tagNames,
+                    users.actor()
+                );
+                
+                // Broadcast the note update via WebSocket
+                List<String> finalTagNames = updatedNote.getTags() != null ? 
+                    updatedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                    new ArrayList<>();
+                webSocketNotificationService.broadcastNoteUpdated(
+                    updatedNote.getId(), 
+                    updatedNote.getTitle(), 
+                    updatedNote.getContent(), 
+                    finalTagNames, 
+                    users.actor()
+                );
+                
+                return ResponseEntity.ok(updatedNote);
+            } else {
+                // Fallback to original logic for backward compatibility
+                return updateNoteLegacy(id, request);
+            }
+            
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // Return conflict information
+            List<String> tagNames = request.getTagNames() != null ? 
+                new ArrayList<>(request.getTagNames()) : new ArrayList<>();
+            
+            var conflict = conflictResolutionService.checkForConflicts(
+                id,
+                request.getVersion(),
+                request.getTitle(),
+                request.getContent(),
+                tagNames,
+                users.actor()
+            );
+            
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(conflict);
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    private ResponseEntity<Note> updateNoteLegacy(@PathVariable Long id, @RequestBody NoteUpdateRequest request) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            if (request.getTitle() != null) {
+                note.setTitle(request.getTitle());
+            }
+            if (request.getContent() != null) {
+                note.setContent(request.getContent());
+            }
+            if (request.getMarkdownContent() != null) {
+                note.setMarkdownContent(request.getMarkdownContent());
+            }
+            {
+                note.setLastEditor(users.actor());
+            }
+
+            // Handle tags update
+            if (request.getTagNames() != null) {
+                Set<Tag> newTags = request.getTagNames().stream()
+                    .map(tagService::createOrGetTag)
+                    .collect(Collectors.toSet());
+                note.getTags().clear();
+                note.setTags(newTags);
+            }
+
+            Note savedNote = noteRepository.save(note);
+            
+            // Broadcast the note update via WebSocket
+            List<String> tagNames = savedNote.getTags() != null ? 
+                savedNote.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : 
+                new ArrayList<>();
+            webSocketNotificationService.broadcastNoteUpdated(
+                savedNote.getId(), 
+                savedNote.getTitle(), 
+                savedNote.getContent(), 
+                tagNames, 
+                users.actor()
+            );
+            
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
+        try {
+            if (!noteRepository.existsById(id)) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            noteRepository.deleteById(id);
+            
+            // Broadcast the note deletion via WebSocket
+            webSocketNotificationService.broadcastNoteDeleted(
+                id, 
+                users.actor()
+            );
+            
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{id}/tags")
+    public ResponseEntity<Note> addTagToNote(@PathVariable Long id, @RequestBody TagAddRequest request) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            Tag tag = tagService.createOrGetTag(request.getTagName());
+            note.addTag(tag);
+            
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{id}/tags/{tagId}")
+    public ResponseEntity<Note> removeTagFromNote(@PathVariable Long id, @PathVariable UUID tagId) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            Optional<Tag> tagOpt = tagService.findById(tagId);
+            
+            if (!noteOpt.isPresent() || !tagOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            Tag tag = tagOpt.get();
+            note.removeTag(tag);
+            
+            Note savedNote = noteRepository.save(note);
+            return ResponseEntity.ok(savedNote);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/tag/{tagName}")
+    public ResponseEntity<List<Note>> getNotesByTag(@PathVariable String tagName) {
+        try {
+            List<Note> notes = noteRepository.findByTagName(tagName);
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Note>> searchNotes(@RequestParam String query) {
+        try {
+            List<Note> notes = noteRepository.findByTitleOrContentContainingIgnoreCase(query);
+            return ResponseEntity.ok(notes);
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{id}/upload-to-ipfs")
+    public ResponseEntity<Map<String, Object>> uploadNoteToIpfs(@PathVariable Long id) {
+        try {
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Note note = noteOpt.get();
+            
+            if (ipfsService == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "IPFS service is not available");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+            }
+
+            String ipfsCid = ipfsService.uploadNoteToIpfs(note);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("noteId", id);
+            response.put("ipfsCid", ipfsCid);
+            response.put("gatewayUrl", ipfsService.getGatewayUrl(ipfsCid));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            if (e instanceof ResponseStatusException) throw (ResponseStatusException) e;
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    // Request DTOs
+    public static class NoteCreateRequest {
+        private String title;
+        private String content;
+        private String markdownContent;
+        private Set<String> tagNames;
+
+        // Constructors, getters, and setters
+        public NoteCreateRequest() {}
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+
+        public String getMarkdownContent() { return markdownContent; }
+        public void setMarkdownContent(String markdownContent) { this.markdownContent = markdownContent; }
+
+        public Set<String> getTagNames() { return tagNames; }
+        public void setTagNames(Set<String> tagNames) { this.tagNames = tagNames; }
+    }
+
+    public static class NoteUpdateRequest {
+        private String title;
+        private String content;
+        private String markdownContent;
+        private Set<String> tagNames;
+        private Long version;
+        private String editor;
+
+        // Constructors, getters, and setters
+        public NoteUpdateRequest() {}
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+
+        public String getMarkdownContent() { return markdownContent; }
+        public void setMarkdownContent(String markdownContent) { this.markdownContent = markdownContent; }
+
+        public Set<String> getTagNames() { return tagNames; }
+        public void setTagNames(Set<String> tagNames) { this.tagNames = tagNames; }
+        
+        public Long getVersion() { return version; }
+        public void setVersion(Long version) { this.version = version; }
+        
+        public String getEditor() { return editor; }
+        public void setEditor(String editor) { this.editor = editor; }
+    }
+
+    public static class TagAddRequest {
+        private String tagName;
+
+        public TagAddRequest() {}
+
+        public String getTagName() { return tagName; }
+        public void setTagName(String tagName) { this.tagName = tagName; }
+    }
+}

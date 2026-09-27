@@ -2,7 +2,7 @@ package com.modulo.state;
 
 import java.nio.*;
 import java.nio.charset.*;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;

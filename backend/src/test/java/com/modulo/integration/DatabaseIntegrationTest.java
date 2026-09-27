@@ -1,8 +1,15 @@
 package com.modulo.integration;
 
-import com.modulo.entity.*;
-import com.modulo.repository.*;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.attachment.Attachment;
+import com.modulo.attachment.AttachmentRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
+import com.modulo.tag.Tag;
+import com.modulo.tag.TagRepository;
+import com.modulo.task.Task;
+import com.modulo.task.TaskRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,7 +24,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
