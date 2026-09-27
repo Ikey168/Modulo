@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-@WithMockUser
+@WithMockUser(roles = "ADMIN") // these endpoints are @PreAuthorize("hasRole('ADMIN')")
 class PluginControllerTest {
 
     @Autowired

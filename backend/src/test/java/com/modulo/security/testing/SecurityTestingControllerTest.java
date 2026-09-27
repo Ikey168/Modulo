@@ -40,6 +40,14 @@ class SecurityTestingControllerTest {
     }
 
     @Test
+    void vulnerabilityScanNeedsAdminEvenWithKey() throws Exception {
+        mockMvc.perform(post("/api/security/testing/vulnerability-scan").with(csrf())
+                        .header(KEY_HEADER, KEY))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN") // the scan endpoint is @PreAuthorize("hasRole('ADMIN')")
     void vulnerabilityScanAuthorized() throws Exception {
         mockMvc.perform(post("/api/security/testing/vulnerability-scan").with(csrf())
                         .header(KEY_HEADER, KEY))

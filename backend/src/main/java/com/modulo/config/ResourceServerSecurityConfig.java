@@ -93,7 +93,9 @@ public class ResourceServerSecurityConfig {
             }
             Collection<GrantedAuthority> authorities = ((List<?>) roles).stream()
                 .map(Object::toString)
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                // Keycloak realm roles are lower case ("admin"); @PreAuthorize checks use
+                // upper case (hasRole('ADMIN')), so normalise to ROLE_<UPPER>.
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(java.util.Locale.ROOT)))
                 .collect(Collectors.toList());
             return authorities;
         });

@@ -166,19 +166,19 @@ query filters on the authenticated owner.
 
 ### Roles
 
-Realm roles arrive as `ROLE_<name>` authorities. The backend checks `ADMIN` with
+Keycloak realm roles arrive as upper-cased `ROLE_<NAME>` authorities (realm role
+`admin` becomes `ROLE_ADMIN`). The backend checks `ADMIN` with
 `@PreAuthorize("hasRole('ADMIN')")` on plugin administration
 ([`PluginController`](../../backend/src/main/java/com/modulo/controller/PluginController.java)),
-auth migration, and marketplace trust operations (publisher verification and
-revocation, deployment records). Most other controllers only require
-`isAuthenticated()` and rely on ownership.
+auth migration, chaos testing, and marketplace trust operations (publisher
+verification and revocation, deployment records). Most other controllers only
+require `isAuthenticated()` and rely on ownership.
 
-> **Method security caveat.** `@PreAuthorize` is enforced only where method
-> security is enabled. The only `@EnableGlobalMethodSecurity` in the codebase is
-> on the `oidc`-profile `SecurityConfig`. Under the `docker` profile used by
-> Compose and OCI, those annotations are not active, and the URL rules
-> (authenticated for everything non-public) are the effective check. Treat
-> role-restricted endpoints as authenticated-only until this is fixed.
+Method security is enabled in every profile by
+[`MethodSecurityConfig`](../../backend/src/main/java/com/modulo/config/MethodSecurityConfig.java),
+so a signed-in user without the `admin` realm role gets 403 on those endpoints.
+`MethodSecurityDefaultProfileTest` and `MethodSecurityDockerProfileTest` check
+this under the default and `docker` profiles.
 
 The frontend reads realm and client roles from the ID token for UI gating
 (`hasRole` / `hasAnyRole` in `useAuth`). That is presentation only; the server is
