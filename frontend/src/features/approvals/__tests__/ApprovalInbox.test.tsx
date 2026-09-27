@@ -4,9 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { ApprovalInbox } from '../ApprovalInbox';
 import { signatureLabel } from '../signatureLabel';
 import * as api from '../approvalService';
+const { praxis } = vi.hoisted(() => ({ praxis: { pendingApprovals: vi.fn(), decide: vi.fn() } }));
+vi.mock('../../praxis/praxisApi', async () => ({...await vi.importActual('../../praxis/praxisApi'), praxisApi: praxis}));
+import { PraxisError, type PendingPraxisApproval } from '../../praxis/praxisApi';
 vi.mock('../approvalService', async () => ({...await vi.importActual('../approvalService'), listApprovals:vi.fn(),getApproval:vi.fn(),decideApproval:vi.fn()}));
 const request: api.Approval = {id:'request-1',revision:1,state:'PENDING',requester:'1',reviewer:'2',blueprintName:'Invoice review',expiresAt:'2099-01-01T12:00:00Z',createdAt:'2026-09-05T12:00:00Z',evidenceDigest:'abc',summary:{message:'Review invoice',omissions:['Note contents']},canDecide:true,decisions:[],events:[{state:'PENDING',created_at:'2026-09-05T12:00:00Z'}]};
-beforeEach(() => {vi.mocked(api.listApprovals).mockResolvedValue([request]);vi.mocked(api.getApproval).mockResolvedValue(request);});
+const effect: PendingPraxisApproval = {source:'praxis',processId:'p-1',effectProcessId:'p-1',effectId:'e-1',version:3,attemptId:'a-2',kind:'file_write',target:'docs/x.md',reversible:true,title:'file write → docs/x.md',summary:'Update the docs',requestedAt:'2026-09-06T12:00:00Z',submittedAt:'2026-09-06T11:00:00Z'};
+beforeEach(() => {vi.mocked(api.listApprovals).mockResolvedValue([request]);vi.mocked(api.getApproval).mockResolvedValue(request);praxis.pendingApprovals.mockReset().mockResolvedValue({configured:false,complete:true,approvals:[]});praxis.decide.mockReset();});
 afterEach(() => {cleanup();vi.clearAllMocks();});
 const detail = () => render(<MemoryRouter initialEntries={['/app/approvals?request=request-1']}><ApprovalInbox /></MemoryRouter>);
 test('pending inbox exposes due dates and server history filters', async () => {
@@ -40,4 +44,62 @@ test('signature labels separate identity claims from verification and anchoring'
   expect(signatureLabel('WALLET_SIGNED')).toContain('Wallet signed');
   expect(signatureLabel('UNSIGNED')).toContain('unverifiable');
   expect(signatureLabel('ANCHORED')).toContain('Unverifiable');
+});
+
+const inbox = () => render(<MemoryRouter><ApprovalInbox /></MemoryRouter>);
+test('merges Praxis approvals with workflow approvals, each labeled with its source', async () => {
+  praxis.pendingApprovals.mockResolvedValue({configured:true,complete:true,approvals:[effect]});
+  inbox();
+  await screen.findByText('Praxis task approval');
+  const items = screen.getAllByRole('listitem');
+  expect(items).toHaveLength(2);
+  // Newest first: the Praxis effect was requested after the workflow approval.
+  expect(items[0]).toHaveTextContent('Praxis task approval');expect(items[0]).toHaveTextContent('file write → docs/x.md');expect(items[0]).toHaveTextContent('Task: Update the docs');
+  expect(items[1]).toHaveTextContent('Workflow approval');expect(items[1]).toHaveTextContent('Invoice review');
+});
+test('with Praxis not configured the inbox shows only workflow approvals', async () => {
+  inbox();
+  expect(await screen.findByRole('link',{name:'Invoice review'})).toBeTruthy();
+  expect(screen.getAllByRole('listitem')).toHaveLength(1);expect(screen.queryByText('Praxis task approval')).toBeNull();expect(screen.queryByRole('status')).toBeNull();
+});
+test('Praxis approvals are only asked for with the pending filter', async () => {
+  inbox();await screen.findByRole('link',{name:'Invoice review'});
+  fireEvent.change(screen.getByLabelText('Status'),{target:{value:'APPROVED'}});
+  await waitFor(() => expect(api.listApprovals).toHaveBeenLastCalledWith('APPROVED',0,expect.any(AbortSignal)));
+  expect(praxis.pendingApprovals).toHaveBeenCalledTimes(1);
+});
+test('a Praxis outage leaves workflow approvals usable and says so', async () => {
+  praxis.pendingApprovals.mockRejectedValue(new PraxisError('praxis_unavailable',503));
+  inbox();
+  expect(await screen.findByRole('link',{name:'Invoice review'})).toBeTruthy();
+  expect(screen.getByRole('status')).toHaveTextContent('Praxis approvals could not be loaded');
+});
+test.each([[true,'Approve','Approved in Praxis.'],[false,'Reject','Rejected in Praxis.']])('deciding a Praxis approval (approved=%s) sends effect, version, attempt and reason, then reloads', async (approved,button,notice) => {
+  praxis.pendingApprovals.mockResolvedValueOnce({configured:true,complete:true,approvals:[effect]});
+  praxis.decide.mockResolvedValue({});
+  inbox();
+  const action = await screen.findByRole('button',{name:button});expect(action).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(/Reason \(required/),{target:{value:'  Checked the diff  '}});
+  fireEvent.click(action);
+  await waitFor(() => expect(praxis.decide).toHaveBeenCalledWith('p-1',{effect_id:'e-1',version:3,attempt_id:'a-2'},approved,'Checked the diff'));
+  expect(await screen.findByText(notice)).toHaveAttribute('role','status');
+  await waitFor(() => expect(praxis.pendingApprovals).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.queryByText('Praxis task approval')).toBeNull());
+});
+test('a stale-attempt conflict (409) is shown clearly and the inbox reloads', async () => {
+  const moved = {...effect,attemptId:'a-3'};
+  praxis.pendingApprovals.mockResolvedValueOnce({configured:true,complete:true,approvals:[effect]}).mockResolvedValue({configured:true,complete:true,approvals:[moved]});
+  praxis.decide.mockRejectedValueOnce(new PraxisError('stale_process_attempt',409));
+  inbox();
+  fireEvent.change(await screen.findByLabelText(/Reason \(required/),{target:{value:'Looks right'}});
+  fireEvent.click(screen.getByRole('button',{name:'Approve'}));
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('stale_process_attempt');expect(alert).toHaveTextContent('task moved on');expect(alert).toHaveTextContent('The task changed since you loaded it');
+  await waitFor(() => expect(praxis.pendingApprovals).toHaveBeenCalledTimes(2));
+  // The refreshed approval starts without a reason, so nothing is re-sent by accident.
+  await waitFor(() => expect(screen.getByLabelText(/Reason \(required/)).toHaveValue(''));
+  fireEvent.change(screen.getByLabelText(/Reason \(required/),{target:{value:'Looks right'}});
+  praxis.decide.mockResolvedValue({});
+  fireEvent.click(screen.getByRole('button',{name:'Approve'}));
+  await waitFor(() => expect(praxis.decide).toHaveBeenLastCalledWith('p-1',{effect_id:'e-1',version:3,attempt_id:'a-3'},true,'Looks right'));
 });

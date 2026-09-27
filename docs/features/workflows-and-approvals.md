@@ -336,6 +336,42 @@ unauthorized id and an unknown id return the same response. The actor, owner,
 policy, binding, and time are always derived on the server. Client fields that
 claim them are ignored.
 
+### Praxis approvals in the inbox
+
+The **Approvals** inbox also lists the pending approvals of Praxis tasks you
+submitted (see [Praxis](integrations.md#praxis)). Each row is labeled with its
+source: **Workflow approval** or **Praxis task approval**. The two kinds are
+merged newest first. Praxis approvals appear only with the **Pending** filter on
+the first page, because Praxis keeps their decision history, not Modulo's
+request list.
+
+A Praxis approval is decided in the row: enter a reason (required, sent to
+Praxis) and choose **Approve** or **Reject**. The decision is bound to the
+effect id, its version and the attempt it was proposed in. If the task has
+moved to a new attempt, Praxis answers `409 stale_process_attempt`; the inbox
+says so in an alert, reloads, and the refreshed row starts with an empty reason
+so nothing is re-sent by accident.
+
+Modulo relays the decision to Praxis with your delegated identity and, only
+after Praxis accepts it, records it in the audit trail (`audit_events`, event
+type `PRAXIS_APPROVAL_DECISION`, outcome `APPROVED` or `REJECTED`, actor = your
+account id). The entry's `detail` is JSON with `source: "praxis"`, `ownerId`,
+`processId`, `effectId`, `version`, `attemptId`, `decision`, `reason` and
+`decidedAt`. A decision Praxis refuses (a stale attempt, `approval_rejected`,
+`403`, `404`) is not audited. Read your entries with
+`GET /api/audit?eventType=PRAXIS_APPROVAL_DECISION`. Workflow approvals keep
+their own history in `approval_events` and `approval_decisions`, which are
+tied to a Modulo approval request; a Praxis approval has no such request, so it
+uses the general audit trail instead of a new table. If writing the audit entry
+fails after Praxis accepted, the decision still stands (Praxis applied it) and
+the server logs an error with the decision's binding.
+
+When Praxis is not configured, the inbox shows only workflow approvals. When
+Praxis cannot be reached, workflow approvals still load and a notice says the
+Praxis approvals could not be loaded. The **Approvals** panel in Praxis Tasks
+shows how many approvals a task is waiting on and links here; it no longer
+keeps its own list.
+
 ### Rules enforced when a decision commits
 
 The decision transaction locks the request and re-checks all of the following
@@ -485,4 +521,6 @@ tampered, unsupported, and mismatched-root packages.
 | `cd backend && mvn -q test -Dtest=WorkflowRunServiceTest,ApprovalRuntimeTest,DecisionStatementTest` | Runs, retries, schedules, waits, approvals, signing, and bundle export against real PostgreSQL through Testcontainers |
 | `node --test shared/approval/verification.test.mjs` | Canonical statement and signature vectors |
 | `python3 scripts/test-evidence-bundle.py` | Bundle verifier |
+| `cd frontend && npx vitest run src/features/approvals` | The inbox, including merged Praxis approvals, both Praxis decision paths and the `409` handling |
+| `cd backend && mvn -q test -Dtest=PraxisApprovalsTest,PraxisControllerTest` | Praxis approval listing and decision auditing against a loopback Praxis stand-in, without Docker |
 | `cd frontend && npx playwright test --config playwright.approvals.config.ts` | Keyboard and mobile checks for the approval inbox. It uses a mocked service. |

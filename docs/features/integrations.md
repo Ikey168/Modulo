@@ -258,6 +258,7 @@ Praxis ties process ownership to it and accounts can be renamed.
 | Live progress | `GET /api/praxis/processes/{id}/events` (SSE, `Last-Event-ID` or `after`) | `GET /v1/processes/{id}/events` |
 | Cancel / suspend / resume / retry | `POST /api/praxis/processes/{id}/control` with `attemptId` | `POST /v1/processes/{id}/control` |
 | Approvals | `GET`/`POST /api/praxis/processes/{id}/approvals` | same path |
+| Pending approvals for the inbox | `GET /api/praxis/approvals` | `GET /v1/processes/{id}/approvals` for each process in `praxis_submissions` |
 | Publish to knowledge base | `POST /api/praxis/processes/{id}/publication` | same path |
 
 - **Submission.** One idempotency key per task form; a retry after a lost
@@ -280,6 +281,28 @@ Praxis ties process ownership to it and accounts can be renamed.
   stream with `fetch` (because `EventSource` cannot send the session token),
   advances its cursor only after handling an event, and reconnects with
   `Last-Event-ID`.
+- **Pending approvals.** `GET /api/praxis/approvals` asks Praxis for the
+  pending approvals of each process the user submitted through Modulo (the
+  newest 200 in `praxis_submissions`), with the user's delegated identity, and
+  returns `{configured, complete, approvals}`. Each approval carries `source:
+  "praxis"`, `processId` (the submitted process, used for the decision),
+  `effectProcessId`, `effectId`, `version`, `attemptId`, `kind`, `target`,
+  `reversible`, `title`, `summary` (the task objective), `requestedAt` (when
+  Praxis reports it, otherwise `null`) and `submittedAt`. Processes Praxis
+  answers `403`/`404` for are skipped; other failures set `complete: false`
+  and keep the approvals that did load. With Praxis not configured the route
+  answers `200` with `configured: false` and an empty list.
+- **Unified inbox.** The workspace **Approvals** inbox merges these with
+  workflow approvals, each row labeled with its source, and decides a Praxis
+  approval in place through `POST /api/praxis/processes/{id}/approvals` with
+  `effectId`, `version`, `attemptId`, `approved` and a required `reason`. A
+  `409 stale_process_attempt` is shown as an alert and the inbox reloads. The
+  Approvals panel in Praxis Tasks shows a count and links to the inbox instead
+  of keeping its own list. A decision Praxis accepts through either route is
+  recorded in Modulo's audit trail as `PRAXIS_APPROVAL_DECISION` (owner,
+  source, process, effect, version, attempt, decision, reason, time); a refused
+  or stale one is not. See
+  [Praxis approvals in the inbox](workflows-and-approvals.md#praxis-approvals-in-the-inbox).
 - **Errors.** Praxis codes pass through (`404`, `409`, `422`, `429` with
   `Retry-After`, `503`). A Praxis `401` means Modulo's own credentials are
   wrong, so it becomes `502 praxis_authentication_failed` and never signs the
@@ -291,6 +314,10 @@ Praxis ties process ownership to it and accounts can be renamed.
 - `PraxisClientTest`, `PraxisCredentialsTest`, `PraxisControllerTest` cover the
   wire contract, TLS material, token handling, identity forwarding, controls
   and error mapping.
+- `PraxisApprovalsTest` runs against a loopback Praxis stand-in and covers the
+  inbox listing (only submitted processes, delegated identity, not configured)
+  and decision auditing (accepted decisions audited, refused and stale ones
+  not).
 - `PraxisHostIntegrationTest` runs against a real Praxis host with the `fake`
   executor. [`scripts/praxis-host-it.sh`](../../scripts/praxis-host-it.sh)
   `[praxis-checkout]` generates an internal CA, server and client
@@ -298,7 +325,11 @@ Praxis ties process ownership to it and accounts can be renamed.
   `praxis.host serve` with mutual TLS and runs the test. CI runs it as
   **Praxis host integration**, with Praxis pinned by `PRAXIS_REF`.
 - `frontend/src/features/praxis/__tests__` covers SSE parsing and resume,
-  submission keys and the separate execution and verification panels.
+  submission keys, the separate execution and verification panels and the
+  link from a task's Approvals panel to the inbox.
+- `frontend/src/features/approvals/__tests__/ApprovalInbox.test.tsx` covers the
+  merged inbox, both Praxis decision paths, the `409` handling and the inbox
+  without Praxis.
 
 ## Gmail newsletter connection
 
