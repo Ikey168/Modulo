@@ -195,8 +195,6 @@ See [Plugins](../features/plugins.md).
 | `azure.storage.cdn-endpoint` | `AZURE_CDN_ENDPOINT` | empty | |
 | `azure.storage.max-file-size` | `AZURE_STORAGE_MAX_FILE_SIZE` | `10485760` | |
 | `azure.storage.allowed-content-types` | `AZURE_STORAGE_ALLOWED_CONTENT_TYPES` | images, PDF, text, Word | The code default also allows WebP, Markdown, `message/rfc822` and audio types; `application.properties` narrows it. |
-| `app.offline.database.enabled` | | `false` | SQLite offline store. |
-| `app.offline.database.path` | | `./data/offline.db` | |
 
 ## Integrations
 
@@ -310,6 +308,6 @@ effect.
 | `modulo.auth.conflict-resolution-strategy`, `auto-migrate-legacy-users`, `require-manual-review-threshold` | `application.properties` |
 | `modulo.security.headers.*`, `csp.*`, `cors.*`, `session.*`, `oauth2.*`, `audit.*` | `application-security.properties` |
 | `modulo.performance.monitoring.*`, `modulo.cache.*` | `application-performance.properties` |
-| `app.upload.dir`, `app.upload.max-file-size`, `app.offline.sync.*` | `application.properties` |
+| `app.upload.dir`, `app.upload.max-file-size` | `application.properties` |
 | `azure.application-insights.*` | `application.properties`, `azure` |
 | `otel.traces.sampler*`, `otel.instrumentation.*`, `otel.propagators`, `otel.resource.attributes*` | see [Observability](#observability) |

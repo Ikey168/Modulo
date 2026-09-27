@@ -42,7 +42,7 @@ layered `controller` / `service` / `repository` / `entity` split.
 
 | Package | Responsibility |
 | --- | --- |
-| `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, offline notes, conflicts, health, performance |
+| `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, conflicts, health, performance |
 | `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, `CloudSecurityConfig`, audit logger, security-testing endpoints |
 | `config` | Security chains, WebSocket, gRPC, Neo4j driver, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
 | `auth`, `backend` | OAuth2 login success handler (provider migration); `oidc`-profile security config and `/api/me` |
@@ -147,7 +147,7 @@ The plugin-state contract is documented in
 | `/api/me` | JWT claims (`oidc` profile only) |
 | `/auth/migration/**` | Provider migration administration |
 | `/api/audit` | Audit event queries |
-| `/api/v2/performance`, `/api/network`, `/api/security/testing`, `/chaos` | Diagnostics and test hooks |
+| `/api/v2/performance`, `/api/security/testing`, `/chaos` | Diagnostics and test hooks |
 
 ## Realtime: STOMP over WebSocket
 

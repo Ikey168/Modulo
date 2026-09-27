@@ -32,7 +32,7 @@ and `SimpleHealthController` are permitted without authentication in `SecurityCo
 | Endpoint | Checks | Status codes |
 |----------|--------|--------------|
 | `GET /api/health` | Application is up | 200, 503 |
-| `GET /api/health/detailed` | Database connection, network detection service, offline sync service, JVM memory (warning at 90 % of max heap) | 200 when all are `UP`, else 503 |
+| `GET /api/health/detailed` | Database connection, JVM memory (warning at 90 % of max heap) | 200 when all are `UP`, else 503 |
 | `GET /api/health/ready` | Database connection valid within 2 s | 200, 503 |
 | `GET /api/health/live` | Process responds | 200 |
 | `GET /api/health/uptime` | Uptime and start time | 200 |

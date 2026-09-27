@@ -5,7 +5,6 @@ import com.modulo.entity.Note;
 import com.modulo.repository.NoteRepository;
 import com.modulo.service.ConflictResolutionService;
 import com.modulo.service.IpfsService;
-import com.modulo.service.OfflineSyncService;
 import com.modulo.service.TagService;
 import com.modulo.service.WebSocketNotificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,8 +48,6 @@ class NoteControllerTest {
     private WebSocketNotificationService webSocketNotificationService;
     @MockBean
     private ConflictResolutionService conflictResolutionService;
-    @MockBean
-    private OfflineSyncService offlineSyncService;
     @MockBean
     private IpfsService ipfsService;
 

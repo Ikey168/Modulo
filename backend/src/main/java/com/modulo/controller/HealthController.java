@@ -1,7 +1,5 @@
 package com.modulo.controller;
 
-import com.modulo.service.NetworkDetectionService;
-import com.modulo.service.OfflineSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +26,6 @@ public class HealthController {
 
     @Autowired(required = false)
     private DataSource dataSource;
-
-    @Autowired(required = false)
-    private NetworkDetectionService networkDetectionService;
-
-    @Autowired(required = false)
-    private OfflineSyncService offlineSyncService;
 
     /**
      * Simple health check for basic uptime monitoring
@@ -73,20 +65,6 @@ public class HealthController {
             Map<String, Object> dbCheck = checkDatabaseHealth();
             checks.put("database", dbCheck);
             if (!"UP".equals(dbCheck.get("status"))) {
-                overallHealthy = false;
-            }
-
-            // Network service check
-            Map<String, Object> networkCheck = checkNetworkServiceHealth();
-            checks.put("network", networkCheck);
-            if (!"UP".equals(networkCheck.get("status"))) {
-                overallHealthy = false;
-            }
-
-            // Sync service check
-            Map<String, Object> syncCheck = checkSyncServiceHealth();
-            checks.put("sync", syncCheck);
-            if (!"UP".equals(syncCheck.get("status"))) {
                 overallHealthy = false;
             }
 
@@ -231,47 +209,6 @@ public class HealthController {
         } catch (Exception e) {
             check.put("status", "DOWN");
             check.put("message", "Database connection failed: " + e.getMessage());
-        }
-        
-        return check;
-    }
-
-    private Map<String, Object> checkNetworkServiceHealth() {
-        Map<String, Object> check = new HashMap<>();
-        
-        try {
-            if (networkDetectionService != null) {
-                boolean online = networkDetectionService.isOnline();
-                check.put("status", "UP");
-                check.put("online", online);
-                check.put("message", online ? "Network service operational" : "Network service reports offline");
-            } else {
-                check.put("status", "UP");
-                check.put("message", "Network service not configured");
-            }
-        } catch (Exception e) {
-            check.put("status", "DOWN");
-            check.put("message", "Network service check failed: " + e.getMessage());
-        }
-        
-        return check;
-    }
-
-    private Map<String, Object> checkSyncServiceHealth() {
-        Map<String, Object> check = new HashMap<>();
-        
-        try {
-            if (offlineSyncService != null) {
-                check.put("status", "UP");
-                check.put("message", "Sync service available");
-                // Add sync-specific health metrics if available
-            } else {
-                check.put("status", "UP");
-                check.put("message", "Sync service not configured");
-            }
-        } catch (Exception e) {
-            check.put("status", "DOWN");
-            check.put("message", "Sync service check failed: " + e.getMessage());
         }
         
         return check;

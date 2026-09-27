@@ -399,12 +399,9 @@ safe to retry:
 The mapping from legacy keys to namespaces is
 [`legacyKeyRegistry.ts`](../../frontend/src/services/legacy/legacyKeyRegistry.ts).
 
-### Backend SQLite offline store
-
-The backend also contains an older SQLite offline note store
-(`OfflineDataSourceConfig`, `OfflineSyncService`, `/api/offline/notes`), gated by
-`app.offline.database.enabled`, which `application.properties` sets to `false`.
-The client-side queue above is the supported offline path.
+The client-side queue above is the only offline path. The backend has no
+offline store of its own; the `offline_notes` table left by early migrations is
+unused.
 
 ## Backups, exports and encryption
 
