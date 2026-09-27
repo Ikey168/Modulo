@@ -50,7 +50,7 @@ layered `controller` / `service` / `repository` / `entity` split.
 | `config` | Security chains, WebSocket, gRPC, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
 | `backend` | `/api/me` (token claims) |
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
-| `blueprint.interpreter` | `BlueprintInterpreterService`: executes Blueprint IR graphs |
+| `blueprint.interpreter` | `BlueprintInterpreterService` (public API) executes Blueprint IR graphs: `BlueprintTriggerRegistrar` wires triggers, `BlueprintGraphRunner` walks the graph, `BuiltInNodeExecutor` dispatches built-in nodes to one class per node family |
 | `blueprint.execution` | Workflow runs, steps, checkpoints, scheduler, retention, recovery, operations, trace policy |
 | `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles |
 | `blueprint.sandbox`, `blueprint.wasm` | `ScriptSandbox` seam (local WASM engine or remote workload); WASM module validation and execution |

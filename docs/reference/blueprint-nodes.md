@@ -15,7 +15,9 @@ truth for pins and titles:
 
 Execution is in
 [`BlueprintInterpreterService`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintInterpreterService.java),
-and capabilities in
+which dispatches built-in nodes through
+[`BuiltInNodeExecutor`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BuiltInNodeExecutor.java)
+to one class per node family, and capabilities in
 [`BlueprintNodeRegistry`](../../backend/src/main/java/com/modulo/blueprint/BlueprintNodeRegistry.java).
 All nodes listed here are version 1.
 
@@ -153,8 +155,9 @@ editor labels each capability through `CAPABILITY_LABELS` in
    generic workflow primitives. Anything domain-specific goes in a plugin's node
    list and is registered with `ctx.addBlueprintNode` in the plugin's `activate`.
 2. Add a label to `CAPABILITY_LABELS` if the node introduces a capability.
-3. Implement execution. A built-in node needs a `case` in
-   `BlueprintInterpreterService.executeBuiltInNode` and an entry in
+3. Implement execution. A built-in node needs a method in its node family class
+   (`NoteNodes`, `AuditNodes`, `BookkeepingNodes`, `ServiceNodes`, `SandboxNodes`
+   or `LogicNodes`), a `case` in `BuiltInNodeExecutor.execute` and an entry in
    `BlueprintNodeRegistry.CORE_CAPABILITIES` (core) or
    `LEGACY_BUILTIN_CAPABILITIES`. A backend plugin node uses a
    `BlueprintNodeProvider` instead; see

@@ -78,8 +78,9 @@ mvn -q -o test -Dtest=Foo               # offline, after a prior compile
 1. Add the descriptor to `frontend/src/features/blueprint/nodeCatalog.ts` and its
    capability to `frontend/src/features/blueprint/capabilities.ts`.
 2. Backend: for an always-available core node, add its capability to
-   `BlueprintNodeRegistry.CORE_CAPABILITIES` and implement it in
-   `BlueprintInterpreterService.executeBuiltInNode`. A plugin-contributed node
+   `BlueprintNodeRegistry.CORE_CAPABILITIES`, implement it in the node family
+   class it belongs to (`NoteNodes`, `LogicNodes`, … in `blueprint/interpreter/`)
+   and map its type in `BuiltInNodeExecutor.execute`. A plugin-contributed node
    registers a `BlueprintNodeRegistration` with a `BlueprintNodeHandler` instead.
 3. Update the `listByCategory()` counts in
    `frontend/src/features/blueprint/__tests__/nodeModel.test.ts`.

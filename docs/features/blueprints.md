@@ -36,7 +36,7 @@ flowchart LR
 | Editor | [`frontend/src/features/blueprint/editor/`](../../frontend/src/features/blueprint/editor/) |
 | REST API | [`BlueprintController`](../../backend/src/main/java/com/modulo/blueprint/BlueprintController.java), [`ManualBlueprintController`](../../backend/src/main/java/com/modulo/blueprint/ManualBlueprintController.java), [`BlueprintWebhookController`](../../backend/src/main/java/com/modulo/blueprint/BlueprintWebhookController.java) |
 | Persistence | [`BlueprintRepository`](../../backend/src/main/java/com/modulo/blueprint/BlueprintRepository.java) |
-| Interpreter | [`BlueprintInterpreterService`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintInterpreterService.java) |
+| Interpreter | [`BlueprintInterpreterService`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintInterpreterService.java) (public API), [`BlueprintTriggerRegistrar`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintTriggerRegistrar.java) (triggers and webhooks), [`BlueprintGraphRunner`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BlueprintGraphRunner.java) (graph walking), [`BuiltInNodeExecutor`](../../backend/src/main/java/com/modulo/blueprint/interpreter/BuiltInNodeExecutor.java) (built-in node families) |
 | Node registry | [`BlueprintNodeRegistry`](../../backend/src/main/java/com/modulo/blueprint/BlueprintNodeRegistry.java) |
 | Capabilities | [`BlueprintCapabilityService`](../../backend/src/main/java/com/modulo/blueprint/BlueprintCapabilityService.java) |
 
