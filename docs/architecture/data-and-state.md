@@ -47,8 +47,8 @@ shared-workspace tenancy yet.
 
 | Profile | Database | Schema management |
 | --- | --- | --- |
-| default (no profile) | H2 in memory (`application.yml`) | Hibernate `ddl-auto: update`; Flyway off |
-| `docker`, `production` | PostgreSQL from `SPRING_DATASOURCE_URL` | Flyway on; Hibernate `validate` |
+| default (no profile) | H2 in memory (`application.properties`) | Hibernate `ddl-auto: update`; Flyway off |
+| `docker`, `dev` | PostgreSQL from `SPRING_DATASOURCE_URL` (`dev` defaults to `localhost:5432/modulodb`) | Flyway on; Hibernate `validate` |
 
 Flyway settings (`application.properties`): locations
 `classpath:db/postgresql`, history table `modulo_schema_history`, schemas

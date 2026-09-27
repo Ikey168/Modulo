@@ -460,8 +460,7 @@ captures made through `/api/remote`) use the separate
 
 The backend runs a gRPC server for plugins on port 9090 with reflection
 enabled (`grpc.server.port`). Services are registered only when
-`modulo.features.enable-grpc=true`, which every profile in `application.yml`
-sets. Protos are in [`backend/src/main/proto/`](../../backend/src/main/proto/)
+`modulo.features.enable-grpc=true`, which `application.properties` sets. Protos are in [`backend/src/main/proto/`](../../backend/src/main/proto/)
 (package `com.modulo.plugin.grpc`); generated classes are excluded from
 coverage.
 

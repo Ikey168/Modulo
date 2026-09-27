@@ -27,6 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @Import(SecurityConfig.class)
 @ActiveProfiles("oidc")
+@org.springframework.test.context.TestPropertySource(properties = {
+    "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:8080/auth/realms/modulo",
+    "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:8080/auth/realms/modulo/protocol/openid-connect/certs"})
 public class MeControllerTest {
 
     @Autowired

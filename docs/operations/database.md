@@ -7,7 +7,7 @@ For the data model itself see [Data and state](../architecture/data-and-state.md
 
 ## Schema ownership: Flyway owns PostgreSQL DDL
 
-Every PostgreSQL profile (`docker`, `staging`, `production`, `kubernetes`) runs
+Both PostgreSQL profiles (`docker` and `dev`) run
 Flyway at startup and then Hibernate with `ddl-auto=validate`. Hibernate never
 creates or alters PostgreSQL tables. H2 (the no-profile default for local runs and
 most tests) keeps Hibernate schema generation.

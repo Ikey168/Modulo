@@ -20,8 +20,7 @@ settings behind each piece are in the
 ## Health endpoints
 
 Paths below are as served when the context path is `/` (every Compose
-deployment). Under the default `/api` context path (the `kubernetes` and `azure`
-profiles), the custom endpoints move to `/api/api/health...` and actuator is at
+deployment). Under the base `/api` context path (no profile), the custom endpoints move to `/api/api/health...` and actuator is at
 `/api/actuator/...` on the server port or `/actuator/...` on the management port.
 
 ### Custom endpoints (`HealthController`)
@@ -44,8 +43,7 @@ nginx.
 
 ### Actuator
 
-Actuator runs on `management.server.port` (8081 by default; 8080 under the
-`azure` profile) at base path `/actuator`.
+Actuator runs on `management.server.port` (8081 by default) at base path `/actuator`.
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -171,8 +169,7 @@ the trace MDC fields. The dedicated `SECURITY_AUDIT` logger
 ([`SecurityAuditLogger`](../../backend/src/main/java/com/modulo/security/SecurityAuditLogger.java))
 records authentication success and failure, authorization failures, rate-limit
 hits, suspicious activity, security-config changes, session events and data
-access. Under the `security` profile, the log pattern adds `eventType`, `eventId`
-and `riskLevel`. User-supplied values pass through `LogSanitizer` before
+access. User-supplied values pass through `LogSanitizer` before
 logging.
 
 ## Audit trails

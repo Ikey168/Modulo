@@ -224,7 +224,7 @@ All workers use Spring `@Scheduled` (task scheduler pool size 4).
 
 ## Persistence conventions
 
-- **Flyway owns DDL** in the `docker` and `production` profiles; Hibernate runs in
+- **Flyway owns DDL** in the `docker` and `dev` profiles; Hibernate runs in
   `validate` mode. Add a new `V<n>__<Description>.sql` under
   `src/main/resources/db/postgresql/`; never edit a deployed migration. The
   default (no profile) run uses in-memory H2 with `ddl-auto: update` for quick

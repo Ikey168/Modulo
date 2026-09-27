@@ -188,8 +188,7 @@ check an opaque engine binary into the repository.
 
 `modulo.blueprint.sandbox` (environment variable `MODULO_BLUEPRINT_SANDBOX`)
 selects the in-process engine. The only accepted value is `wasm`, which is the
-default in `application.yml`, the development compose file, and the Kubernetes
-config map. Any other value fails startup, so a typo can never silently pick a
+default in `application.properties` and the development compose file. Any other value fails startup, so a typo can never silently pick a
 different isolation engine.
 
 The selected engine is wrapped in `RemoteScriptSandbox`:

@@ -107,7 +107,7 @@ jobs:
           POSTGRES_DB=modulodb_staging
           POSTGRES_USER=postgres_staging
           POSTGRES_PASSWORD=postgres_staging_$(openssl rand -hex 16)
-          SPRING_PROFILES_ACTIVE=staging
+          SPRING_PROFILES_ACTIVE=docker
           VITE_API_URL=http://localhost:8080
           
           # Spring Boot Configuration for Staging

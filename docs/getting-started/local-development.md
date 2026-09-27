@@ -70,7 +70,7 @@ imported realm and holds the `admin` realm role.
 
 Things to know about the compose stack:
 
-- The backend runs with `SERVER_SERVLET_CONTEXT_PATH=/`. `application.yml` sets a
+- The backend runs with `SERVER_SERVLET_CONTEXT_PATH=/`. `application.properties` sets a
   `/api` context path, and the controllers already map `/api/...`, so without the
   override every endpoint would live under `/api/api/...`. The override must be
   `/`, not empty: the app's own `ServerProperties` validation rejects a blank
@@ -102,32 +102,27 @@ Docker, then run the two apps on the host.
 ### Backend
 
 ```sh
-docker compose up -d db keycloak     # optional; see below
-cd backend
-SERVER_SERVLET_CONTEXT_PATH=/ mvn spring-boot:run
+docker compose up -d db keycloak
 ```
 
-With no profile the backend uses an in-memory H2 database (Hibernate creates the
-schema, Flyway is off), serves on port 8080, and exposes actuator on the
-management port 8081. To run against the compose PostgreSQL instead, activate
-the `docker` profile and pass the datasource:
+With the `dev` profile
+([`application-dev.properties`](../../backend/src/main/resources/application-dev.properties))
+the backend serves on port 8080 with context path `/`, uses PostgreSQL on
+`localhost:5432/modulodb` (`postgres`/`postgres`, Flyway on), and trusts bearer
+tokens from the Keycloak realm on `localhost:8180`, which is what the compose `db`
+and `keycloak` services provide. Override any of these with the usual
+environment variables (`SPRING_DATASOURCE_*`, `MODULO_SECURITY_KEYCLOAK_*`).
+Actuator is on the management port 8081.
 
 ```sh
-SPRING_PROFILES_ACTIVE=docker \
-SERVER_SERVLET_CONTEXT_PATH=/ \
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/modulodb \
-SPRING_DATASOURCE_USERNAME=postgres SPRING_DATASOURCE_PASSWORD=postgres \
-MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=http://localhost:8180/realms/modulo/protocol/openid-connect/certs \
-MODULO_SECURITY_KEYCLOAK_ISSUER_URI=http://localhost:8180/realms/modulo \
-mvn spring-boot:run
+cd backend
+SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
 ```
 
-The `dev` profile ([`application-dev.properties`](../../backend/src/main/resources/application-dev.properties))
-moves the server to port 8081, turns on debug logging and disables the graph
-projection. Its `modulo.security.*` placeholders do not satisfy the
-`ModuloProperties` validation patterns (JWT secret must be base64 of at least 32
-characters; API key must match `mod_` plus 16 or more alphanumerics), so set
-`MODULO_SECURITY_JWT_SECRET` and `MODULO_SECURITY_API_KEY` when you use it.
+With no profile the backend uses an in-memory H2 database instead (Hibernate
+creates the schema, Flyway is off); pass `SERVER_SERVLET_CONTEXT_PATH=/` so the
+`/api` routes are not prefixed twice. The `docker` profile is what the Compose
+deployments use; it needs `SPRING_DATASOURCE_*` from the environment.
 
 Remote debugging: add
 `-Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"`.
