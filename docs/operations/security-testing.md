@@ -18,7 +18,7 @@ vulnerability is described in [`SECURITY.md`](../../SECURITY.md).
 | Static analysis (SAST) | CodeQL | CodeQL CLI | GitHub default code scanning (see below) | |
 | Penetration tests | [`security-penetration-testing/`](../../security-penetration-testing) | `npm run test:security:all` | Manual | |
 | In-app probes | `/api/security/testing/*` | [`scripts/security-assessment.sh`](../../scripts/security-assessment.sh) | Manual, non-production only | |
-| Image signatures | Cosign, Kyverno | | see [Releases](releases-and-supply-chain.md) | |
+| Image signatures | Cosign | | see [Releases](releases-and-supply-chain.md) | |
 | Dependency and image SBOMs | Syft, BuildKit | | release and signed builds | |
 
 ## Secret scanning
@@ -155,7 +155,7 @@ Only scan systems you own. Active scans send attack payloads.
 
 [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml)
 configures the `security-and-quality` suite for `backend/src` and `frontend/src`
-and ignores build output, `node_modules`, `.github`, `k8s` and `azure`. No
+and ignores build output, `node_modules`, `.github`, `k8s` and `scripts`. No
 workflow in `.github/workflows` runs CodeQL. Analysis comes from GitHub's
 default code-scanning setup in the repository settings, which runs `Analyze`
 jobs on pull requests for `actions`, `go`, `javascript-typescript` and `python`.

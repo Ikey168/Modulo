@@ -1,9 +1,9 @@
 # Deployment
 
 This page is for operators choosing and running a Modulo deployment. It covers
-the supported targets (a single OCI host, a Raspberry Pi, and Kubernetes with
-Helm and Argo CD), what each one runs, how secrets reach the backend, and the
-known gaps in each path. How images are built, signed and promoted is in
+the supported targets (a single OCI host and a Raspberry Pi, plus the Kubernetes
+pieces that run external plugins), what each one runs, how secrets reach the
+backend, and the known gaps in each path. How images are built, signed and promoted is in
 [Releases and supply chain](releases-and-supply-chain.md); backups are in
 [Database operations](database.md); every backend key is in the
 [configuration reference](../reference/configuration.md).
@@ -14,10 +14,14 @@ known gaps in each path. How images are built, signed and promoted is in
 |--------|-------|--------|-----------|
 | OCI host (Oracle A1, ARM64) | [`deploy/oci/`](../../deploy/oci) | Production path. Digest-pinned releases, verified backups, automated rollback. | The running personal deployment. |
 | Raspberry Pi 5 | [`deploy/pi/`](../../deploy/pi) | Minimal self-hosted stack, builds on the device. | A home server on a LAN or tailnet. |
-| Kubernetes (plain manifests) | [`k8s/`](../../k8s) | Reference manifests; need adaptation (see gaps below). | A cluster you run yourself. |
-| Kubernetes (Helm + Argo CD) | [`helm/`](../../helm), [`argocd/`](../../argocd), [`rollouts/`](../../rollouts) | GitOps scaffolding; values contain placeholders. | Clusters managed through Argo CD. |
-| Azure (AKS / App Service) | [`azure/`](../../azure), [`terraform/`](../../terraform), `aks-deploy.yml`, `azure-deploy.yml` | Workflows contain placeholder resource names; Terraform references a missing module. | Starting point only. |
+| External plugins on Kubernetes | [`helm/plugin/`](../../helm/plugin), [`argocd/`](../../argocd), [`k8s/nats/`](../../k8s/nats) | Plugin workloads and their broker only; the core is not deployed to Kubernetes. | Running external plugins ([ADR 0004](../architecture/decisions.md#adr-0004)). |
 | Local stack | [`docker-compose.yml`](../../docker-compose.yml) | Development. | See [Local development](../getting-started/local-development.md). |
+
+The cluster and cloud stacks that used to sit alongside these (plain `k8s/`
+manifests for the core, the `api`/`web`/`worker`/`keycloak` Helm charts, Argo
+Rollouts, Azure scripts and workflows, Terraform) were unused and did not work
+as committed. They were removed in #540 and are preserved at the Git tag
+[`archive/cloud-deployments`](#archived-cloud-deployments).
 
 Every target runs the same two application images (frontend nginx and Spring
 Boot backend) plus PostgreSQL, Neo4j and Keycloak. The backend is always started
@@ -220,105 +224,54 @@ Known limits:
   `BLOCKCHAIN_RPC_URL` (and a valid `BLOCKCHAIN_NETWORK`) in `.env`. Left empty,
   anchoring is unavailable and everything else works.
 
-## Kubernetes with plain manifests
+## Kubernetes for external plugins
 
-[`k8s/`](../../k8s) is numbered in apply order. [`k8s/deploy.sh`](../../k8s/deploy.sh)
-applies them and waits for PostgreSQL; [`k8s/setup-production.sh`](../../k8s/setup-production.sh)
-installs prerequisites.
+External plugins ([ADR 0004](../architecture/decisions.md#adr-0004)) run as
+Kubernetes workloads next to a core that runs elsewhere. Only the pieces they
+need are kept:
 
-| File | Contents |
-|------|----------|
-| `00-namespace.yaml`, `01-resourcequota.yaml` | `modulo` namespace and quota |
-| `01.5-postgres-deployment.yaml` | Single PostgreSQL pod with a 10 Gi PVC |
-| `02-api-configmap.yaml` | `SPRING_PROFILES_ACTIVE=kubernetes`, actuator and metrics settings |
-| `03-api-secret.yaml` | `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` (mapped to `SPRING_DATASOURCE_*`) |
-| `04-api-deployment.yaml`, `05-api-service.yaml` | Backend, 512 Mi/250 m requests, 2 Gi/1 CPU limits |
-| `06`–`08` | Frontend config, deployment, service |
-| `09-ingress.yaml`, `cert-manager-issuers.yaml` | nginx ingress with cert-manager TLS |
-| `10-api-hpa.yaml`, `vpa-config.yaml` | Autoscaling |
-| `11-network-policies.yaml` | Namespace network policies |
-| `postgresql-cluster.yaml`, `postgres-read-replicas.yaml` | Alternatives to the single PostgreSQL pod |
-| `external-secrets/` | External Secrets Operator (see [Secrets](#secrets)) |
-| `policies/` | Kyverno image-signature policies (see [Releases](releases-and-supply-chain.md#enforcing-signatures-in-kubernetes)) |
-| `observability/` | Prometheus, Grafana, Loki, Tempo, OTel collector, SLO rules |
-| `nats/` | NATS for the external-plugin broker |
-| `incident-response/` | PagerDuty, Alertmanager and status-page manifests |
+| Path | Purpose |
+|------|---------|
+| [`helm/plugin`](../../helm/plugin) | One external plugin workload (ServiceAccount, Deployment, Service, deny-by-default NetworkPolicy). Also what [`scripts/deploy-marketplace-release.mjs`](../../scripts/deploy-marketplace-release.mjs) installs with `helm upgrade --install`. |
+| [`argocd/app-of-apps.yaml`](../../argocd/app-of-apps.yaml) | Syncs everything under `argocd/apps/` (recursively) from `main` |
+| [`argocd/apps/plugins/`](../../argocd/apps/plugins) | One Argo CD Application per plugin; [`script-sandbox.yaml`](../../argocd/apps/plugins/script-sandbox.yaml) is the reference |
+| [`argocd/apps/nats.yaml`](../../argocd/apps/nats.yaml), [`k8s/nats/`](../../k8s/nats) | NATS broker for the plugin event bridge |
 
-Before using these manifests, fix the following:
+All Applications deploy to the `modulo` namespace with automated sync, prune and
+self-heal. How to build, deploy and attach a plugin is in
+[Plugins](../features/plugins.md#deploying-external-plugins).
 
-- **Secrets.** `03-api-secret.yaml` contains `postgres`/`postgres` in base64.
-  Replace it, or use External Secrets. The `MODULO_SECURITY_*` secrets are not
-  set at all; the `kubernetes` profile falls back to placeholders that fail
-  validation, so the backend will not start until you provide them.
-- **Probe port.** `application.properties` sets `management.server.port=8081`
-  and the `kubernetes` profile does not change it, while the probes call
-  `/api/actuator/health/*` on port 8080. Set `MANAGEMENT_SERVER_PORT=8080` in the
-  ConfigMap, or move the probes to 8081 with path `/actuator/health/*`.
-- **Images.** The manifests reference `ghcr.io/ikey168/modulo/*:latest`. Pin
-  digests from a signed release instead.
+## Archived cloud deployments
 
-## Kubernetes with Helm, Argo CD and Rollouts
+The tag `archive/cloud-deployments` points at the last commit that contained the
+retired cluster and cloud stacks:
 
-| Chart | Purpose |
-|-------|---------|
-| [`helm/api`](../../helm/api) | Backend Deployment or Argo Rollout, Service, Ingress, HPA. Probes on `/actuator/health/liveness` and `/readiness`, metrics on `/actuator/prometheus`. |
-| [`helm/web`](../../helm/web) | Frontend |
-| [`helm/worker`](../../helm/worker) | Background worker |
-| [`helm/plugin`](../../helm/plugin) | One external plugin workload; see [Plugins](../features/plugins.md) |
-| [`helm/keycloak`](../../helm/keycloak), [`infra/keycloak/chart`](../../infra/keycloak/chart) | Keycloak (`make keycloak-up` installs the latter with dev values) |
+| Removed | What it was |
+|---------|-------------|
+| `k8s/` (except `k8s/nats/`) | Plain manifests for the core, PostgreSQL, ingress and autoscaling; Kyverno image-signature policies; External Secrets with Azure Key Vault; Prometheus, Grafana, Loki and Tempo with SLO recording and burn-rate rules and dashboards; PagerDuty, Alertmanager and status-page manifests; Litmus chaos experiments; cost management |
+| `helm/api`, `helm/web`, `helm/worker`, `helm/keycloak`, `helm/environments` | Application Helm charts and their values |
+| `argocd/apps/{api,web,worker,dev,prod,rollouts}.yaml`, `rollouts/` | Argo CD applications for the core, and Argo Rollouts canary and blue-green |
+| `azure/`, `terraform/` | Azure scripts (ACR, AKS, App Service) and Terraform for Azure resources |
+| `aks-deploy.yml`, `azure-deploy.yml`, `terraform.yml`, `test-image-signing.yml` | Their GitHub workflows |
+| `scripts/setup-image-signing.sh`, `validate-image-signing.sh`, `test-image-signing-comprehensive.sh`, `deploy-autoscaling.sh`, `deploy-external-secrets.sh`, `setup-azure-keyvault.sh`, `rotate-secrets.sh` | Helper scripts for those stacks |
 
-Environment overrides live in [`helm/environments`](../../helm/environments)
-(`api-dev`, `api-prod`, `web-dev`, `web-prod`). Test locally with
-`helm lint helm/api/` and `helm template helm/api/ -f helm/environments/api-dev.yaml`.
+Known problems at archive time: the Azure workflows used placeholder resource
+names and waited forever for environment approval, `terraform/main.tf`
+referenced a missing `./modules/storage`, the core manifests probed port 8080
+while actuator listens on 8081, and the Kyverno policies expected the
+`docker-build.yml` signer instead of `signed-production.yml`.
 
-Argo CD uses an app-of-apps: [`argocd/app-of-apps.yaml`](../../argocd/app-of-apps.yaml)
-syncs everything under `argocd/apps/` from `main`.
+To look at or restore a piece:
 
-| Application | Source | Branch | Namespace |
-|-------------|--------|--------|-----------|
-| `api`, `web`, `worker` | `helm/*` | `main` | `modulo` |
-| `dev` (api + web) | `helm/*` with dev values | `develop` | `modulo-dev` |
-| `prod` (api + web) | `helm/*` with prod values | `main` | `modulo-prod` |
-| `nats` | `k8s/nats` | `main` | `modulo` |
-| `rollouts` | `rollouts/` | `main` | `modulo` |
-| `plugins/script-sandbox` | `helm/plugin` | `main` | `modulo` |
+```sh
+git fetch origin tag archive/cloud-deployments
+git show archive/cloud-deployments:k8s/README.md
+git checkout archive/cloud-deployments -- k8s/observability    # restore a directory into the working tree
+```
 
-All use automated sync with self-heal. Everything except `prod` also prunes automatically; `prod` leaves pruning to a manual sync. Inspect or roll back with
-`argocd app get|sync|rollback <app>`.
-
-Progressive delivery: set `rollout.enabled=true` in `helm/api` values
-(`strategy: canary` or `blueGreen`). The canary in
-[`rollouts/api-rollout.yaml`](../../rollouts/api-rollout.yaml) steps through
-10, 20, 40, 60, 80 and 100 % with 30 s pauses. Analysis starts at the 20 % step
-and aborts when the Prometheus success rate drops below 95 % or p95 latency
-exceeds 500 ms ([`analysis-templates.yaml`](../../rollouts/analysis-templates.yaml)).
-[`rollouts/demo.sh`](../../rollouts/demo.sh) walks through promote and abort.
-
-Chart values still carry placeholders (`image.repository: moduloapi`,
-`tag: latest` / `prod-v1.0.0`). Point them at signed GHCR digests before use.
-
-## Azure
-
-- [`terraform/`](../../terraform) defines a resource group, virtual network,
-  PostgreSQL Flexible Server, Blob Storage, Application Insights and Log Analytics
-  with alerts, with `environments/dev` and `environments/prod` variable files.
-  `main.tf` references `./modules/storage`, which does not exist, so
-  `terraform init` fails until that module is added or the block removed. The
-  [`terraform.yml`](../../.github/workflows/terraform.yml) workflow plans and
-  applies dev from `develop` and prod from `main`, with GitHub environments as
-  approval gates, and offers a manual destroy.
-- [`azure/`](../../azure) holds imperative scripts (ACR build and push, AKS and
-  App Service deployment, Blob Storage and monitoring setup).
-- [`aks-deploy.yml`](../../.github/workflows/aks-deploy.yml) (on `backend/**` or
-  `k8s/**` changes to `main`) and
-  [`azure-deploy.yml`](../../.github/workflows/azure-deploy.yml) (on
-  `backend/**`) use placeholder values (`your-acr-name`,
-  `your-resource-group`) and need `AZURE_CREDENTIALS`. Replace the placeholders
-  or disable them.
-- The `azure` Spring profile reads `DATABASE_URL`, `DATABASE_USERNAME`,
-  `DATABASE_PASSWORD`, `GOOGLE_*`/`AZURE_*` OAuth secrets, `FRONTEND_URL` and
-  `APPLICATIONINSIGHTS_CONNECTION_STRING`. It does not enable Flyway; add
-  `SPRING_FLYWAY_ENABLED=true` for PostgreSQL.
+The backend's `kubernetes` and `azure` Spring profiles are still in
+`backend/src/main/resources/`; see the
+[configuration reference](../reference/configuration.md#profiles).
 
 ## Secrets
 
@@ -326,47 +279,8 @@ Chart values still carry placeholders (`image.repository: moduloapi`,
 |--------|-------------------|---------------------------|
 | OCI | `deploy/oci/.env` (mode 0600, generated), `/etc/modulo/backup.env`, restic password file | Compose environment |
 | Pi | `deploy/pi/.env` | Compose environment |
-| Kubernetes | Azure Key Vault via External Secrets Operator, or plain Secrets | `envFrom`/`secretKeyRef` |
+| Kubernetes (plugin workloads) | Plain Secrets you create | The plugin's `env` values in its Application or Helm release |
 | Local | Compose defaults; optional SOPS files | See [Local development](../getting-started/local-development.md#local-secrets) |
-
-### External Secrets Operator (Kubernetes)
-
-[`k8s/external-secrets/`](../../k8s/external-secrets) installs the operator
-(Flux `HelmRelease`), a `SecretStore` and a `ClusterSecretStore` for
-`https://modulo-keyvault.vault.azure.net/`, RBAC, and `ExternalSecret` resources.
-
-```sh
-./scripts/setup-azure-keyvault.sh       # create vault + service principal, seed secrets
-./scripts/deploy-external-secrets.sh    # operator, RBAC, stores, ExternalSecrets
-kubectl get externalsecrets -n modulo -o wide
-```
-
-| Key Vault secret | Kubernetes secret | Refresh |
-|------------------|-------------------|---------|
-| `modulo-database-host`, `-port`, `-name`, `-username`, `-password` | `api-secret` | 5 min |
-| `modulo-jwt-secret`, `modulo-api-key` | `api-application-secret` | 10 min |
-| `modulo-app-insights-connection-string` | `app-insights-secret` | 15 min |
-| `modulo-acr-password` | `acr-secret` (`.dockerconfigjson`) | 30 min |
-
-The operator updates the Kubernetes Secret on its refresh interval, but Spring
-reads environment variables only at startup: pods must be restarted to use a
-rotated value. [`scripts/rotate-secrets.sh`](../../scripts/rotate-secrets.sh)
-(`jwt`, `api-key`, `database`, or an interactive menu) writes the new value to
-Key Vault, waits for the sync, verifies it in a pod and runs
-`kubectl rollout restart`. Rotating the database password also requires changing
-it in PostgreSQL itself.
-
-Troubleshooting:
-
-```sh
-kubectl describe secretstore azure-keyvault-store -n modulo
-kubectl describe externalsecret api-database-secret -n modulo
-kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secrets
-kubectl annotate externalsecret api-database-secret -n modulo force-sync="$(date)" --overwrite
-```
-
-Back up Key Vault secrets before rotating or deleting them; a deleted secret is
-recoverable only while soft-delete retention lasts.
 
 ## Environments at a glance
 

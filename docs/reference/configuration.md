@@ -50,6 +50,12 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 | `cloud` | none | Activates `CloudSecurityConfig` (security headers, CORS from `modulo.security.allowed-origins`). |
 | `test` | test resources | Disables schedulers such as workflow retention and the plugin-state outbox. |
 
+The `kubernetes` and `azure` profiles were written for the cluster and Azure
+deployments that were retired in #540. No kept deployment activates them; the
+manifests and scripts that did are preserved at the Git tag
+`archive/cloud-deployments` (see
+[Deployment](../operations/deployment.md#archived-cloud-deployments)).
+
 ## Server and management
 
 | Key | Env var | Default | Notes |

@@ -169,46 +169,16 @@ On the OCI host, `release.sh deploy` refuses non-digest references and runs
 
 ## Enforcing signatures in Kubernetes
 
-[Kyverno](https://kyverno.io/) policies in [`k8s/policies`](../../k8s/policies)
-admit only signed Modulo images:
-
-| Policy | Scope | Action |
-|--------|-------|--------|
-| [`verify-image-signatures.yaml`](../../k8s/policies/verify-image-signatures.yaml) | ClusterPolicy `verify-container-signatures`: keyless verification of `ghcr.io/ikey168/modulo/*` and a rule blocking unsigned images; ClusterPolicy `allow-system-images` for system registries in system namespaces | `Enforce` / `Audit` |
-| [`modulo-namespace-policy.yaml`](../../k8s/policies/modulo-namespace-policy.yaml) | Policy `modulo-require-signed-images` in `modulo` (signed `backend`/`frontend`, block other registries); Policy `modulo-image-pull-policy` (sets `imagePullPolicy: Always`) | `Enforce` |
-
-Install:
-
-```sh
-./scripts/setup-image-signing.sh
-```
-
-or by hand:
-
-```sh
-helm repo add kyverno https://kyverno.github.io/kyverno/
-helm repo update
-helm install kyverno kyverno/kyverno --namespace kyverno --create-namespace
-kubectl apply -f k8s/policies/verify-image-signatures.yaml
-kubectl apply -f k8s/policies/modulo-namespace-policy.yaml
-```
-
-Check the result with [`scripts/validate-image-signing.sh`](../../scripts/validate-image-signing.sh)
-(prerequisites, Kyverno pods, policies, a blocked unsigned pod, an allowed signed
-pod, policy reports).
-[`test-image-signing.yml`](../../.github/workflows/test-image-signing.yml)
-checks, when they, these scripts or this page change, that the policies are
-valid Kyverno resources, that the scripts parse and are executable, and that this
-page keeps its Overview, Setup Instructions, Verification and Troubleshooting
-sections. It does not run Kyverno.
-
-**Known mismatch.** Both policies expect the signer subject
-`https://github.com/Ikey168/Modulo/.github/workflows/docker-build.yml@refs/heads/main`.
-Images are now signed by `signed-production.yml`, so the policies as written
-reject current images. Update the `subject` in both files to the
-`signed-production.yml` identity before enforcing. The validate script also
-checks `ghcr.io/ikey168/modulo-frontend:latest`, which is not the published
-image path (`ghcr.io/ikey168/modulo/frontend`).
+Kyverno admission policies that admitted only signed Modulo images
+(`k8s/policies`, with `scripts/setup-image-signing.sh`,
+`scripts/validate-image-signing.sh` and the `test-image-signing.yml` workflow)
+belonged to the retired cluster deployment. They were removed in #540 and are
+preserved at the Git tag
+[`archive/cloud-deployments`](deployment.md#archived-cloud-deployments). They
+still expected the `docker-build.yml` signer; if you restore them, change the
+`subject` to the `signed-production.yml` identity shown under
+[Verify an image signature](#verify-an-image-signature), and allow the registries
+your external plugins use.
 
 ## Troubleshooting
 
@@ -217,8 +187,6 @@ image path (`ghcr.io/ikey168/modulo/frontend`).
 | `promote` never starts | The `production` environment is waiting for a reviewer. |
 | `cosign verify` fails with "no matching signatures" | You verified a tag that moved, or used the wrong identity. Verify by digest with the `signed-production.yml` identity above. |
 | Signing step fails with an OIDC error | The job lacks `id-token: write`, or the run is from a fork. |
-| Pods rejected by Kyverno although the image is signed | The policy subject still names `docker-build.yml` (see above), or the image is referenced by a tag Kyverno cannot resolve. `kubectl describe clusterpolicy verify-container-signatures`. |
-| Kyverno not enforcing | `kubectl get pods -n kyverno`; `kubectl get validatingwebhookconfigurations`; `kubectl logs -n kyverno -l app.kubernetes.io/name=kyverno`. Test with `kubectl apply --dry-run=server -f <manifest>`. |
 | Release Please did nothing | It only runs after `CI` succeeded on a push to `main` from this repository, and only when the triggering run's head SHA is the current `main`. |
 | `build-and-attach` failed on the SHA check | The release tag does not point at the commit CI verified. Do not bypass it; re-run from a verified commit. |
 | Frontend lint fails on an unrelated file | A new finding versus `frontend/eslint-baseline.json`. Fix it; do not regenerate the baseline to accept it. |

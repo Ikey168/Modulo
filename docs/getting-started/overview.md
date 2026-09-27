@@ -37,7 +37,7 @@ across devices through the server.
 | Android app | Capacitor wrapper around the shared frontend | [`mobile/`](../../mobile/) |
 | Shared pack manifests | JSON, consumed by backend and frontend | [`shared/packs/`](../../shared/packs/) |
 | Smart contracts | Solidity, Hardhat | [`smart-contracts/`](../../smart-contracts/) |
-| Deployment | Compose, Helm, Kubernetes, Argo CD, Oracle A1 host | [`deploy/`](../../deploy/), [`helm/`](../../helm/), [`k8s/`](../../k8s/) |
+| Deployment | Compose on an Oracle A1 host or a Raspberry Pi; Helm and Argo CD for external plugins | [`deploy/`](../../deploy/), [`helm/plugin/`](../../helm/plugin/), [`argocd/`](../../argocd/) |
 | Personal infrastructure | Ansible | [`infra/personal/`](../../infra/personal/) |
 
 For how requests and data flow between these parts, see the
