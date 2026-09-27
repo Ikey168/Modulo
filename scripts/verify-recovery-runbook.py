@@ -6,7 +6,7 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNBOOK = ROOT / "docs/infrastructure/recovery/README.md"
+RUNBOOK = ROOT / "docs/infrastructure/recovery.md"
 REQUIRED_HEADINGS = {
     "Rules for every incident",
     "Choose the recovery path",
@@ -26,8 +26,8 @@ REQUIRED_HEADINGS = {
     "Evidence record",
 }
 REQUIRED_REFERENCES = (
-    "../records/disaster-recovery-2026-09-20.md",
-    "../../../deploy/oci/README.md",
+    "records.md#paperless-off-site-restore-drill-2026-09-20",
+    "../../deploy/oci/README.md",
     "./scripts/paperless-offsite-restore-drill.sh",
     "./restore-drill.sh",
 )

@@ -34,6 +34,6 @@ for (const [device, viewport] of Object.entries(DEVICES)) {
   }
   await browser.close();
 }
-writeFileSync(join(ROOT, 'docs/mobile/android-accessibility.json'), `${JSON.stringify({ generatedBy: 'frontend/scripts/phoneA11y.mjs', rules: 'WCAG 2.1 A/AA (axe-core)', results }, null, 2)}\n`);
+writeFileSync(join(ROOT, 'docs/reference/generated/android/android-accessibility.json'), `${JSON.stringify({ generatedBy: 'frontend/scripts/phoneA11y.mjs', rules: 'WCAG 2.1 A/AA (axe-core)', results }, null, 2)}\n`);
 const blocking = results.flatMap(r => r.violations.filter(v => BLOCKING.has(v.impact)).map(v => `${r.device} ${r.screen}: ${v.id} — ${v.help} (${v.sample})`));
 if (blocking.length) { console.error(`\n${blocking.length} blocking accessibility violations:\n${[...new Set(blocking)].join('\n')}`); process.exit(1); }

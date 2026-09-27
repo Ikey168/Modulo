@@ -1,7 +1,7 @@
 # Modulo plugin contract (v1)
 
 The versioned gRPC contract between the Modulo core and EXTERNAL plugin
-workloads ([ADR 0004](../docs/architecture/adr-0004-external-plugin-tier.md),
+workloads ([ADR 0004](../docs/architecture/decisions.md#adr-0004),
 issue #390). This module publishes the generated Java stubs so a plugin
 author can implement or call the contract **without depending on the core**:
 

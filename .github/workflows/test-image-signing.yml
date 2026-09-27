@@ -102,7 +102,7 @@ jobs:
           echo "Checking documentation completeness..."
           
           # Check if documentation file exists
-          if [ ! -f "docs/CONTAINER_IMAGE_SIGNING.md" ]; then
+          if [ ! -f "docs/operations/releases-and-supply-chain.md" ]; then
             echo "❌ Documentation file missing"
             exit 1
           fi
@@ -110,7 +110,7 @@ jobs:
           # Check for required sections
           required_sections=("Overview" "Setup Instructions" "Verification" "Troubleshooting")
           for section in "${required_sections[@]}"; do
-            if ! grep -q "$section" docs/CONTAINER_IMAGE_SIGNING.md; then
+            if ! grep -q "$section" docs/operations/releases-and-supply-chain.md; then
               echo "❌ Missing section: $section"
               exit 1
             fi

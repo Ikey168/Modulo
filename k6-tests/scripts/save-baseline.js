@@ -15,7 +15,7 @@ const BASELINES_DIR = path.join(__dirname, '..', 'baselines');
 const RESULTS_DIR = path.join(__dirname, '..', 'results');
 const BASELINE_FILE = path.join(BASELINES_DIR, 'performance-baselines.json');
 
-// 🎯 SLO Thresholds from docs/SLO_SPECIFICATION.md
+// 🎯 SLO Thresholds from docs/operations/observability.md
 const SLO_THRESHOLDS = {
   read_latency_p95: 200,      // ms
   write_latency_p95: 500,     // ms

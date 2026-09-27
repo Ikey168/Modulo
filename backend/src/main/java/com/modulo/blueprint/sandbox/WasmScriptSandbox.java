@@ -30,7 +30,7 @@ import run.endive.wasm.types.MemoryLimits;
  *   to JVM bytecode by the Endive (Chicory-family) compiler and executed by
  *   the pure-Java Endive runtime. No native code, no JNI — works on the
  *   standard JDK 17 baseline and on arm64 (Pi path, #386) unchanged.
- *   See docs/blueprint/wasm-sandbox.md for the full provenance chain.
+ *   See docs/reference/wasm-node-abi.md for the full provenance chain.
  *
  * Isolation model:
  *   - Deny-by-default: the WASM instance is linked with no host imports beyond
@@ -45,7 +45,7 @@ import run.endive.wasm.types.MemoryLimits;
  *     interrupting the engine thread (see SCRIPT_EXECUTOR). Deviation from
  *     Rhino (#399): the module is AOT-compiled, so per-instruction fuel
  *     metering is not available — the wall-clock budget is the CPU bound.
- *     Calibration (docs/blueprint/wasm-sandbox.md): a simple transform
+ *     Calibration (docs/reference/wasm-node-abi.md): a simple transform
  *     completes in ~15 ms, a 20k-iteration string loop in ~230 ms; 2s
  *     corresponds to far more work than Rhino's 500k-instruction budget allowed.
  *   - Isolation between runs: a fresh Engine + Runner (fresh linear memory)

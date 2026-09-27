@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = ROOT / "docs/infrastructure/data/retention-policy.md"
+POLICY = ROOT / "docs/infrastructure/data-lifecycle.md"
 
 
 def main() -> None:

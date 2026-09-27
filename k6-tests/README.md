@@ -28,7 +28,7 @@
 
 ## 🎯 SLO-Aligned Thresholds
 
-All k6 tests are configured with thresholds that directly map to our SLOs defined in `docs/SLO_SPECIFICATION.md`:
+All k6 tests are configured with thresholds that directly map to our SLOs defined in `docs/operations/observability.md`:
 
 | SLO Metric | Threshold | k6 Threshold |
 |------------|-----------|--------------|
@@ -208,4 +208,4 @@ modulo.chaos.opa-failure-rate=0.1
 modulo.chaos.keycloak-failure-rate=0.05
 ```
 
-See `docs/perf/authz-benchmark.md` for detailed results and analysis.
+See `docs/reference/generated/authz-benchmark.md` for detailed results and analysis.

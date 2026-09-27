@@ -17,4 +17,4 @@ replaced (#497) by checks that run against the real app:
 
 Real-device checks (TalkBack walk-through, cold start and memory on a
 physical phone) are part of the release checklist in
-[docs/mobile/android-release.md](../../docs/mobile/android-release.md).
+[docs/features/mobile-and-desktop.md](../../docs/features/mobile-and-desktop.md).

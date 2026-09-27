@@ -379,7 +379,7 @@ export function handleSummary(data) {
   return {
     'stdout': generateTextSummary(results),
     'results/authz-performance-results.json': JSON.stringify(results, null, 2),
-    'docs/perf/authz-benchmark.md': generateMarkdownReport(results, data),
+    'docs/reference/generated/authz-benchmark.md': generateMarkdownReport(results, data),
   };
 }
 

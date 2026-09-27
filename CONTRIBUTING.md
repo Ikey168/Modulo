@@ -1,63 +1,75 @@
 # Contributing to Modulo
 
-Thanks for contributing! This guide covers the conventions a change is expected
-to follow, plus the architectural constraints that pull requests are reviewed
-against.
+This guide covers how to set up, what a change must pass, and the architectural
+rules reviewers enforce.
 
-## Getting set up
+## Set up
 
-- **Backend:** Spring Boot 2.7 / Java 17 / Maven (`backend/`).
-- **Frontend:** React 18 + TypeScript / Vite / Vitest (`frontend/`).
-- See the root [README](README.md) for quick start and local development, and
-  the [docs hub](docs/README.md) for topic guides.
+Install [mise](https://mise.jdx.dev/) and run `mise install` in the repository
+root. It provides the pinned Java 17, Node 22 and Python toolchains from
+[`.mise.toml`](.mise.toml). Then follow
+[Local development](docs/getting-started/local-development.md).
 
-## Running tests and lint
+## Before you open a pull request
+
+`mise run check` is the acceptance gate. It runs:
+
+| Task | What it checks |
+|---|---|
+| `check-repository` | `git diff --check` (whitespace and conflict markers) |
+| `check-frontend` | Typecheck, strict boundary lint, Vitest, strict production build |
+| `check-backend` | `mvn -B verify`, including the coverage gate |
+| `check-wasm` | Rebuilds the example WASM nodes and compares them to the checked-in fixtures |
+| `check-infrastructure` | Structural gate for `infra/personal/` |
+
+While iterating, run the smallest relevant test first:
 
 ```sh
-# Frontend (from frontend/)
-npx vitest run                 # all tests
-npm run lint                   # full lint
-npm run lint:boundary:ci       # strict core/experience boundary check (mirrors CI)
-
-# Backend (from backend/)
-mvn test
+cd frontend && npx vitest run src/core/          # one directory
+cd backend  && mvn -q test -Dtest=Foo,Bar        # named test classes
 ```
 
-## Commit conventions
+Before declaring a change complete, run the affected parts of `mise run check`,
+and say in the pull request which gates you did not run.
 
-Modulo uses [Conventional Commits](docs/CONVENTIONAL_COMMITS.md)
-(`feat:`, `fix:`, `docs:`, …). Releases are derived from commit history, so
-the prefix matters.
+## Commits
 
-## Architectural constraints
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
+(`feat(scope): …`, `fix: …`, `docs: …`). Commitlint enforces this in the
+`commit-msg` hook, and release notes are generated from commit history, so the
+type matters.
 
-These are reviewed on every PR. A change that violates one is rejected until it
-is brought back into line (or the governing decision record is superseded).
+## Architectural rules
 
-### Core / experience boundary
+Reviewers reject a change that breaks one of these rules, unless it also
+supersedes the governing decision in the
+[decision log](docs/architecture/decisions.md).
 
-Feature-pack code consumes the public **`@modulo/core`** API surface
-(`frontend/src/core/index.ts`) — it must **not** import workspace internals
-(`features/workspace/workspaceApi`, `features/workspace/types`,
-`features/workspace/useWorkspaceData`) directly. This is enforced by the
-`no-restricted-imports` ESLint rule (`error`) and the `boundary-lint` CI job.
-Background: [B2 boundary audit](docs/architecture/B2-boundary-audit.md).
+1. **Feature code uses `@modulo/core`.** Feature-pack and plugin code must not
+   import workspace internals (`features/workspace/workspaceApi`,
+   `features/workspace/types`, `features/workspace/useWorkspaceData`). Use the
+   public surface in `frontend/src/core/index.ts`. The ESLint
+   `no-restricted-imports` rule enforces this as an error, and so does the
+   `boundary-lint` CI job. See [Frontend](docs/architecture/frontend.md).
+2. **The core stays concrete.** `note`, `link`, `tag` and `user` are first-class
+   core types. Don't generalize the core into a typeless property graph, and don't
+   move the node catalog's built-in type system into plugins. See
+   [ADR 0002](docs/architecture/decisions.md#adr-0002).
+3. **Plugins persist through plugin state.** Plugin data goes through the
+   versioned plugin state API. ESLint forbids browser `localStorage` and
+   `sessionStorage` in frontend code. Device-local documents go through
+   `services/deviceDocuments`, and legacy migration reads live in
+   `services/legacy`. See [Data and state](docs/architecture/data-and-state.md).
+4. **Schema changes are additive, numbered Flyway migrations.** Never edit a
+   migration that has shipped. See [Database](docs/operations/database.md).
+5. **Every resource is owner-scoped.** New endpoints and queries must enforce the
+   authenticated owner. See [Security model](docs/architecture/security-model.md).
+6. **No secrets in the repository.** Document variable names and where each
+   secret is kept, never values.
 
-### The core stays concrete (non-goal guard)
+## Documentation
 
-`note`, `link`, `tag`, and `user` are **first-class core types** and stay that
-way. Do **not** generalize the core into a typeless property graph, and do
-**not** move the node catalog's built-in type system into plugins. This is a
-deliberate, binding decision — read it before proposing any "make the core
-generic" refactor:
-
-> **[ADR 0002 — The core keeps first-class `note`/`link`/`tag`/`user` types](docs/architecture/adr-0002-core-keeps-first-class-types.md)**
-
-Reopening it requires superseding the ADR with a new one, not a speculative PR.
-
-## Architecture decision records
-
-Significant architectural decisions are recorded as ADRs under
-[`docs/architecture/`](docs/architecture/). Browse the
-[docs hub](docs/README.md#architecture) for the current list. When a change
-makes or reverses such a decision, add or supersede an ADR in the same PR.
+Update the docs page that covers the behavior you change, in the same pull
+request. Add new pages to the index in [docs/README.md](docs/README.md). When a
+change makes or reverses an architectural decision, add an entry to the
+[decision log](docs/architecture/decisions.md).

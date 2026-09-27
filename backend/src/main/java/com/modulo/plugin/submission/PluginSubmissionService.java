@@ -156,7 +156,7 @@ public class PluginSubmissionService {
                 submission.setApprovedAt(LocalDateTime.now());
                 // #395: approval of an image submission produces the EXTERNAL
                 // registry entry (endpoint pending) that the workload
-                // machinery consumes — see docs/deploying-external-plugins.md.
+                // machinery consumes — see docs/features/plugins.md.
                 if (submission.getImageReference() != null && !submission.getImageReference().isBlank()
                         && pluginRegistry != null) {
                     try {

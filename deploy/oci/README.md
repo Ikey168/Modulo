@@ -43,7 +43,7 @@ sudo systemctl enable --now modulo-backup.timer
 ## Validated releases and rollback
 
 Existing Hibernate-managed installations must complete the explicit adoption in
-[the migration runbook](../../docs/operations/schema-migrations.md) before starting
+[the migration runbook](../../docs/operations/database.md) before starting
 this backend version. Fresh databases are migrated automatically.
 
 CI publishes AMD64/ARM64 images only after the main-branch CI succeeds. Download

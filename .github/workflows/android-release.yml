@@ -191,5 +191,5 @@ jobs:
           (cd evidence && zip -qr ../release/test-evidence.zip .)
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
             --title "Modulo Android ${TAG#android-v}" \
-            --notes "Signed Android build. Verify with SHA256SUMS and the build provenance attestation. Test evidence: test-evidence.zip. Install and upgrade notes: docs/mobile/android-release.md." \
+            --notes "Signed Android build. Verify with SHA256SUMS and the build provenance attestation. Test evidence: test-evidence.zip. Install and upgrade notes: docs/features/mobile-and-desktop.md." \
             release/modulo-*.apk release/modulo-*.aab release/SHA256SUMS release/provenance.json release/signature.txt release/test-evidence.zip

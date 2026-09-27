@@ -59,7 +59,7 @@ Import everything from `./viewkit` (or `../viewkit`). Reference implementation:
 13. For screen-only migrations, preserve store schemas, plugin registration, and
     public exports. Shared behavior changes belong in the view kit or shared store
     helpers and require regression tests; follow
-    [ADR 0006](../../../../../docs/architecture/adr-0006-workspace-behavior.md).
+    [ADR 0006](../../../../../docs/architecture/decisions.md#adr-0006).
     `RecordSheet.onSave` may return false or reject to retain a failed draft.
     Use `EmptyPanel.onReset` for filtered empty lists and the shared `SearchInput`
     for keyboard-accessible clearing.
