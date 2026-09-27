@@ -13,7 +13,6 @@ the [features](../features/) pages; every configuration key is in
 | --- | --- |
 | Runtime | Java 17, Spring Boot 2.7.18 (Maven, parent POM at repo root) |
 | Persistence | Spring Data JPA/Hibernate and `JdbcTemplate` on PostgreSQL; Flyway migrations |
-| Graph read model | Neo4j Java driver (Bolt) |
 | Auth | Spring Security OAuth2 resource server (Keycloak JWT) and OAuth2 login |
 | Realtime | STOMP over WebSocket (`/ws`, SockJS fallback) |
 | Plugin RPC | gRPC server (`net.devh` starter, port 9090) |
@@ -44,7 +43,7 @@ layered `controller` / `service` / `repository` / `entity` split.
 | --- | --- |
 | `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, conflicts, health, performance |
 | `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, `CloudSecurityConfig`, audit logger, security-testing endpoints |
-| `config` | Security chains, WebSocket, gRPC, Neo4j driver, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
+| `config` | Security chains, WebSocket, gRPC, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
 | `auth`, `backend` | OAuth2 login success handler (provider migration); `oidc`-profile security config and `/api/me` |
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
 | `blueprint.interpreter` | `BlueprintInterpreterService`: executes Blueprint IR graphs |
@@ -56,7 +55,7 @@ layered `controller` / `service` / `repository` / `entity` split.
 | `state` | Plugin state store, schemas, grants, workloads, outbox; Gmail newsletter connection |
 | `pack` | Pack manifests (v1/v2), validation, workspace pack plan/apply, Pack Studio, audit pack |
 | `knowledge` | Typed note properties, saved property queries, semantic search and embeddings, document text extraction |
-| `graph` | Neo4j projection, backfill and graph queries |
+| `graph` | DTOs for the unlinked-mentions endpoint |
 | `collab` | Comments, notifications, presence and Yjs document relay over STOMP |
 | `sharing` | Public share links |
 | `editor` | Note templates, Markdown/HTML/ZIP export, note-local files |
@@ -82,7 +81,7 @@ the generated OpenAPI document (springdoc: `/api-docs`, `/swagger-ui`).
 | `/api/v2/notes` | `OptimizedNoteController` | Paged/optimized note reads |
 | `/api/note-links` | `NoteLinkController` | Explicit links between notes |
 | `/api/tags` | `TagController` | Owner-scoped tags |
-| `/api/graph` | `GraphController` | Backlinks, unlinked mentions, related, neighbourhood, backfill, status |
+| `/api/graph` | `GraphController` | Unlinked mentions, and turning a mention into a link |
 | `/api/note-properties`, `/api/property-queries` | `NotePropertyController`, `SavedPropertyQueryController` | Typed properties and saved queries |
 | `/api/knowledge`, `/api/knowledge/workspace-search`, `/api/knowledge/extract` | `SemanticKnowledgeController`, `WorkspaceSearchController`, `DocumentTextController` | Semantic search, suggested links, document text |
 | `/api/templates` | `NoteTemplateController` | Note templates |
@@ -186,7 +185,6 @@ polls their health every `modulo.plugins.external.health-interval-ms` (30 s). Se
 ```mermaid
 flowchart LR
   svc[Note / link / tag services] -->|publishAsync| bus[PluginEventBus]
-  bus --> graph[GraphProjectionEventListener → Neo4j]
   bus --> triggers[Blueprint triggers → interpreter]
   bus --> plugins[INTERNAL plugins]
   bus <-->|modulo.plugins.broker.enabled| nats[(NATS: modulo.events.*)]
@@ -238,7 +236,6 @@ All workers use Spring `@Scheduled` (task scheduler pool size 4).
   idempotency (`(run, sequence, attempt)`, request idempotency keys).
 - **Bounded payloads.** Metadata columns have explicit byte caps; raw note
   content, credentials and exception messages are not written to traces.
-- Neo4j is a derived projection and must never be the only copy of anything.
 
 Schema reference and migration list: [data-and-state.md](data-and-state.md).
 Operating migrations: [database.md](../operations/database.md).

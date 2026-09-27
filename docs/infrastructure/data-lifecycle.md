@@ -111,9 +111,8 @@ outside both.
 1. takes a single-instance lock and writes into a hidden partial directory;
 2. dumps PostgreSQL separately (`pg_dumpall` to `postgres.sql.gz`, checked with
    `gzip -t`);
-3. stops Neo4j and Noesis before archiving their `/data` volumes
-   (`neo4j-data.tar.gz`, `noesis-data.tar.gz`), preventing a torn DuckDB or
-   graph snapshot;
+3. stops Noesis before archiving its `/data` volume (`noesis-data.tar.gz`),
+   preventing a torn DuckDB snapshot;
 4. excludes the Noesis model-cache volume;
 5. validates each archive with `gzip -t` and a tar listing, writes `SHA256SUMS`
    and checks it with `sha256sum -c`, then marks the snapshot `VERIFIED`;

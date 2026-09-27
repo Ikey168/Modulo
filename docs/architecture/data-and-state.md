@@ -12,7 +12,6 @@ restores. Migration procedures, backups and restore drills are in
 | Store | Role | Source of truth? | Code |
 | --- | --- | --- | --- |
 | PostgreSQL | Notes, links, tags, users, plugin state, workflows, approvals, packs, knowledge index, files | Yes | JPA entities in [`entity/`](../../backend/src/main/java/com/modulo/entity/), JDBC stores in [`state/`](../../backend/src/main/java/com/modulo/state/), [`blueprint/`](../../backend/src/main/java/com/modulo/blueprint/) |
-| Neo4j | `(:Note)-[:LINKS_TO]->(:Note)` read model for backlinks, related notes, neighbourhoods | No, derived and rebuildable | [`graph/`](../../backend/src/main/java/com/modulo/graph/) |
 | Azure Blob Storage | Note attachment binaries (metadata in `application.attachments`) | Yes, for blobs | [`AttachmentService`](../../backend/src/main/java/com/modulo/service/AttachmentService.java) |
 | IPFS | Published or encrypted note payloads | No (public; see [security-model.md](security-model.md#encrypted-note-sharing)) | [`IpfsService`](../../backend/src/main/java/com/modulo/service/IpfsService.java) |
 | Client IndexedDB / Android SQLite | Offline queues and caches, device documents | No; the server is authoritative for acknowledged state | [`frontend/src/services/`](../../frontend/src/services/) |
@@ -121,27 +120,13 @@ protection as notes. Behavior and APIs are in
 | Note attachments (`/api/attachments`) | Azure Blob Storage (`azure.storage.*`), metadata in `application.attachments` | `azure.storage.max-file-size` (default 10 MiB) and an allowed content-type list |
 | Note-local files (`/api/notes/{noteId}/files`) | Local directory `modulo.upload.dir` (default `${java.io.tmpdir}/modulo-uploads`) | Owner-checked through the note |
 
-## Neo4j knowledge-graph projection
+## Note link graph
 
-Neo4j holds a derived, eventually consistent copy of the note link graph.
-PostgreSQL remains the source of truth.
+Links between notes are rows in `application.note_links`. Backlinks, the
+workspace Graph view and unlinked mentions all read them from PostgreSQL; the
+graph layout is computed in the client. There is no separate graph store.
 
-- [`GraphProjectionEventListener`](../../backend/src/main/java/com/modulo/graph/GraphProjectionEventListener.java)
-  subscribes to note and link events on `PluginEventBus` and upserts or removes
-  `(:Note)` nodes and `[:LINKS_TO]` edges.
-- Every projection call tolerates Neo4j being unavailable: writes log and
-  continue, reads return empty results. A note save never fails because of Neo4j.
-- The driver bean exists only when `modulo.graph.enabled=true` (default). It
-  connects lazily, so the app boots without Neo4j.
-- Rebuild the projection with `POST /api/graph/backfill`, or on startup with
-  `modulo.graph.backfill-on-startup=true` (default `false`; Compose and OCI set it
-  to `true`). `GET /api/graph/status` reports availability.
-- Graph queries: `GET /api/graph/notes/{id}/backlinks`, `/unlinked-mentions`,
-  `/related`, `/neighborhood`, and `POST /api/graph/notes/{id}/link-from/{sourceId}`.
-- Connection: `spring.neo4j.uri`, `spring.neo4j.authentication.username` and
-  `.password`.
-
-Semantic search uses PostgreSQL, not Neo4j: note changes enqueue work in
+Semantic search also uses PostgreSQL: note changes enqueue work in
 `application.knowledge_index_queue` in the same transaction, and a scheduled
 drainer (`modulo.knowledge.index-interval-ms`, default 2000) processes up to 25
 notes per tick. See [knowledge.md](../features/knowledge.md).

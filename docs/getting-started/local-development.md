@@ -55,7 +55,6 @@ docker compose up --build          # or: npm start
 | backend (Spring Boot) | 8080 | `SPRING_PROFILES_ACTIVE=docker`, context path `/` |
 | keycloak | 8180 | `start-dev --import-realm` with [`keycloak/realm-modulo.json`](../../keycloak/realm-modulo.json); admin `admin`/`admin` |
 | db (PostgreSQL 16) | 5432 | `modulodb`, user/password `postgres`/`postgres` |
-| neo4j 5.15 | 7474, 7687 | Knowledge-graph projection; `neo4j`/`stagingpassword123` |
 | ipfs (kubo) | 4001, 5001, 8082 | Encrypted note sharing |
 | otel-collector | 4317, 4318, 8889, 13133 | Receives backend traces |
 | jaeger | 16686 | Trace UI |
@@ -103,7 +102,7 @@ Docker, then run the two apps on the host.
 ### Backend
 
 ```sh
-docker compose up -d db neo4j keycloak     # optional; see below
+docker compose up -d db keycloak     # optional; see below
 cd backend
 SERVER_SERVLET_CONTEXT_PATH=/ mvn spring-boot:run
 ```
@@ -118,8 +117,6 @@ SPRING_PROFILES_ACTIVE=docker \
 SERVER_SERVLET_CONTEXT_PATH=/ \
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/modulodb \
 SPRING_DATASOURCE_USERNAME=postgres SPRING_DATASOURCE_PASSWORD=postgres \
-SPRING_NEO4J_URI=bolt://localhost:7687 \
-SPRING_NEO4J_AUTHENTICATION_PASSWORD=stagingpassword123 \
 MODULO_SECURITY_KEYCLOAK_JWK_SET_URI=http://localhost:8180/realms/modulo/protocol/openid-connect/certs \
 MODULO_SECURITY_KEYCLOAK_ISSUER_URI=http://localhost:8180/realms/modulo \
 mvn spring-boot:run
@@ -333,8 +330,6 @@ Key Vault); see [Deployment](../operations/deployment.md#secrets).
 | Log floods with `Failed to export spans` | No collector at `OTEL_EXPORTER_OTLP_ENDPOINT` (default `localhost:4317`). Start `otel-collector` or point the variable at a reachable collector. |
 | Login redirects fail or tokens are rejected | Issuer mismatch. The frontend and `MODULO_SECURITY_KEYCLOAK_ISSUER_URI` must both use the browser-facing URL (`http://localhost:8180/realms/modulo`). |
 | Keycloak will not start on 8080 | It is mapped to host 8180 on purpose; 8080 and 8081 belong to the backend and audit-collector. |
-| Neo4j crash-loops with "Neo4j is already running" | A stale pid after an unclean shutdown. The compose command removes it on start; if it persists, `docker compose rm -f neo4j` and start again (data is in the `neo4j_data` volume). |
-| Graph panels (backlinks, related, local graph) are empty | `modulo.graph.enabled=false` (the `dev` profile) or Neo4j unreachable. The projection degrades to empty states rather than failing. |
 | Backend refuses to start against an existing PostgreSQL | Flyway validation against a schema that Hibernate created earlier. Follow the adoption procedure in [Database operations](../operations/database.md#adopting-an-existing-database). |
 | `docker compose -f docker-compose.dev.yml` fails | The overlay is stale (see above). |
 | Upload of a large file fails with 413 or multipart errors | Multipart limit is 25 MB per file and 100 MB per request (`spring.servlet.multipart.*`); attachments are further limited to 10 MB by the app. |

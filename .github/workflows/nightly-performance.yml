@@ -109,15 +109,14 @@ jobs:
         
       - name: 🐳 Start Services with Docker Compose
         run: |
-          # Start services with timeout to handle Neo4j startup issues
+          # Start services with a timeout so a stuck service does not hang the job
           timeout 300 docker compose up -d --build || {
             echo "Docker compose failed, checking service status..."
             docker compose ps
             docker compose logs db
-            docker compose logs neo4j
             
-            # Try to continue with just PostgreSQL if Neo4j fails
-            echo "Attempting to start without Neo4j dependency..."
+            # Try to continue with just PostgreSQL
+            echo "Attempting to start only the database..."
             docker compose up -d db flyway
             docker compose ps
           }

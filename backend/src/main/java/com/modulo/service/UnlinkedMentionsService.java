@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 /**
  * Finds "unlinked mentions" (#252): notes whose text mentions the current note's title
  * (or aliases) but do not yet {@code [[link]]} it. Runs entirely against Postgres (the
- * source of truth) — no Neo4j dependency.
+ * source of truth).
  *
  * <p>Matching is case-insensitive and word-boundary aware. Performance is guarded by
  * pushing a {@code LIKE} pre-filter to the database (so only candidate notes are scanned

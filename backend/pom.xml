@@ -120,14 +120,6 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- Neo4j Java Driver for the knowledge-graph projection (derived read model).
-             We use the raw driver (not Spring Data Neo4j) so the JPA Note entity is
-             untouched and Neo4j stays an optional, eventually-consistent read model. -->
-        <dependency>
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

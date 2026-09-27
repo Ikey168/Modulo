@@ -31,7 +31,6 @@ across devices through the server.
 | Web frontend | React 18, TypeScript, Vite, Redux Toolkit, React Flow | [`frontend/`](../../frontend/) |
 | Backend | Spring Boot 2.7, Java 17, Maven | [`backend/`](../../backend/) |
 | Primary database | PostgreSQL, schema owned by Flyway migrations | [`backend/src/main/resources/db/postgresql/`](../../backend/src/main/resources/db/postgresql/) |
-| Knowledge graph store | Neo4j | configured in [`docker-compose.yml`](../../docker-compose.yml) |
 | Identity | Keycloak (OIDC) | [`keycloak/`](../../keycloak/) |
 | Desktop shell | Electron | [`desktop/`](../../desktop/) |
 | Android app | Capacitor wrapper around the shared frontend | [`mobile/`](../../mobile/) |

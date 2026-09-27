@@ -32,8 +32,7 @@ public abstract class LinkEvent extends PluginEvent {
 
     /**
      * Fired when a link between two notes is deleted. Carries the endpoint ids only,
-     * since the {@link NoteLink} row is gone by the time consumers (e.g. the Neo4j
-     * projection) handle the event.
+     * since the {@link NoteLink} row is gone by the time consumers handle the event.
      */
     public static class LinkDeleted extends LinkEvent {
 

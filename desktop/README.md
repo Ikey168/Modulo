@@ -36,7 +36,7 @@ npm run deploy:desktop
 ```
 
 builds the frontend, starts the backend stack with Docker Compose (backend +
-db, neo4j, keycloak), waits for the backend health endpoint, and launches the
+db, keycloak), waits for the backend health endpoint, and launches the
 app. The stack keeps running after the window closes (relaunches are instant);
 `npm run deploy:desktop -- --stop` shuts it down. Other flags: `--no-build`
 (skip frontend/image rebuilds), `--stack-only`, `--app-only`. See

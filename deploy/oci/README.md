@@ -101,7 +101,7 @@ inside a restricted directory. Provision `/srv/backups/modulo` writable by ubunt
 explicit device-only snapshot use `./backup.sh --local-only`. It detects failed
 dumps even when gzip succeeds, verifies archive integrity and SHA-256 checksums,
 restarts only services it stopped, and never prunes previous backups after a
-failed upload. Neo4j and Noesis are briefly stopped while their data is archived.
+failed upload. Noesis is briefly stopped while its data is archived.
 A lock prevents overlapping backup runs.
 
 Successful uploads retain seven daily, four weekly, and twelve monthly restic
@@ -120,12 +120,10 @@ sudo systemctl enable --now modulo-backup.timer modulo-restore-drill.timer
 `./offsite-drill.sh` checks the encrypted repository, restores its latest snapshot,
 and runs `restore-drill.sh` against an isolated PostgreSQL container. No production
 database or volume is overwritten. PostgreSQL SQL import and application table
-queries must succeed; Neo4j/Noesis archives receive checksum and archive-integrity
-checks. These archive checks do not prove those two applications can boot after a
-restore. Alerts can use the nonzero systemd service result; inspect runs with
+queries must succeed; the Noesis archive receives checksum and archive-integrity
+checks. These archive checks do not prove Noesis can boot after a restore. Alerts can use the nonzero systemd service result; inspect runs with
 `journalctl -u modulo-backup -u modulo-restore-drill`.
 
-Backups cover PostgreSQL (including Keycloak's database), Neo4j data, and Noesis
-data. Keep deployment secrets, realm configuration, external attachment stores,
+Backups cover PostgreSQL (including Keycloak's database) and Noesis data. Keep deployment secrets, realm configuration, external attachment stores,
 and device-local workspace exports backed up separately. Nightly dumps provide
 roughly a one-day recovery point, not continuous point-in-time recovery.

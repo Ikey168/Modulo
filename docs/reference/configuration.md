@@ -43,7 +43,7 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 | `production` | `application-production.properties` | PostgreSQL from required `SPRING_DATASOURCE_*`, Flyway on. |
 | `kubernetes` | `application-kubernetes.properties` | PostgreSQL, Flyway on, OTel endpoint and Kubernetes resource attributes from env. |
 | `azure` | `application-azure.properties` | Azure App Service/AKS: `DATABASE_URL`, OAuth client secrets from env, secure cookies, management on 8080. Flyway is not enabled by this profile. |
-| `dev` | `application-dev.properties` | Port 8081, debug logging, graph projection off. Its `modulo.security.*` placeholders fail validation; override them. |
+| `dev` | `application-dev.properties` | Port 8081, debug logging. Its `modulo.security.*` placeholders fail validation; override them. |
 | `oidc` | `application.yml` (`oidc` document) | Resource-server issuer for the Envoy/OPA overlay. |
 | `security` | `application-security.properties` | Hardened preset: TLS on, actuator reduced to `health,info`, rate limiting, audit logging flags. Combine with a data profile. |
 | `performance` | `application-performance.properties` | Hikari, Hibernate batching, response compression, async pool tuning. |
@@ -89,15 +89,10 @@ Select with `SPRING_PROFILES_ACTIVE` (comma-separated).
 
 See [Database operations](../operations/database.md).
 
-## Knowledge graph (Neo4j)
+## Knowledge indexing
 
 | Key | Env var | Default | Notes |
 |-----|---------|---------|-------|
-| `spring.neo4j.uri` | `SPRING_NEO4J_URI` | `bolt://localhost:7687` | |
-| `spring.neo4j.authentication.username` | `SPRING_NEO4J_AUTHENTICATION_USERNAME` | `neo4j` | |
-| `spring.neo4j.authentication.password` | `SPRING_NEO4J_AUTHENTICATION_PASSWORD` | `test` | |
-| `modulo.graph.enabled` | `MODULO_GRAPH_ENABLED` | `true` | `false` under `dev`. When off or Neo4j is unreachable, graph panels show empty states. |
-| `modulo.graph.backfill-on-startup` | `MODULO_GRAPH_BACKFILL_ON_STARTUP` | `false` | Projects all notes and links from PostgreSQL at startup. On demand: `POST /api/graph/backfill`. |
 | `modulo.knowledge.index-interval-ms` | | `2000` | Embedding indexer poll interval. |
 | `modulo.knowledge.index-initial-delay-ms` | | `10000` | |
 

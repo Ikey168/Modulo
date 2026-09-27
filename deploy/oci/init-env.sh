@@ -31,7 +31,6 @@ umask 077
   printf 'POSTGRES_USER=modulo\n'
   printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 32)"
   printf 'KEYCLOAK_DB_PASSWORD=%s\n' "$(openssl rand -hex 32)"
-  printf 'NEO4J_PASSWORD=%s\n' "$(openssl rand -hex 32)"
   printf 'KEYCLOAK_ADMIN=admin\n'
   printf 'KEYCLOAK_ADMIN_PASSWORD=%s\n' "$(openssl rand -hex 32)"
   printf 'MODULO_SECURITY_JWT_SECRET=%s\n' "$(openssl rand -base64 48 | tr -d '\n')"

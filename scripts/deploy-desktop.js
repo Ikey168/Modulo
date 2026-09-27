@@ -8,7 +8,7 @@
  *
  * 1. builds the frontend (Vite -> frontend/dist)
  * 2. starts the backend stack with Docker Compose (backend + its
- *    dependencies: db, neo4j, keycloak — not the web frontend container)
+ *    dependencies: db, keycloak — not the web frontend container)
  * 3. waits until the backend answers on MODULO_BACKEND_URL
  * 4. launches the Electron shell (desktop/), which serves frontend/dist
  *    and proxies API/WebSocket traffic to the backend
@@ -37,7 +37,7 @@ const FRONTEND = path.join(ROOT, 'frontend');
 const DESKTOP = path.join(ROOT, 'desktop');
 const BACKEND_URL = process.env.MODULO_BACKEND_URL || 'http://localhost:8080';
 const HEALTH_TIMEOUT_MS = Number(process.env.MODULO_DEPLOY_TIMEOUT_MS || 5 * 60 * 1000);
-// Compose services the desktop app needs; depends_on pulls in db/neo4j/keycloak.
+// Compose services the desktop app needs; depends_on pulls in db/keycloak.
 const STACK_SERVICES = ['backend'];
 
 const args = process.argv.slice(2);

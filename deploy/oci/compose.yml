@@ -55,11 +55,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-modulo}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      SPRING_NEO4J_URI: bolt://neo4j:7687
-      SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
-      SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
-      MODULO_GRAPH_ENABLED: "true"
-      MODULO_GRAPH_BACKFILL_ON_STARTUP: "true"
       MODULO_SECURITY_JWT_SECRET: ${MODULO_SECURITY_JWT_SECRET:?set MODULO_SECURITY_JWT_SECRET in .env}
       MODULO_SECURITY_API_KEY: ${MODULO_SECURITY_API_KEY:?set MODULO_SECURITY_API_KEY in .env}
       MODULO_GMAIL_CLIENT_ID: ${MODULO_GMAIL_CLIENT_ID:-}
@@ -75,8 +70,6 @@ services:
       JAVA_OPTS: -XX:+UseContainerSupport -Xms256m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
     depends_on:
       db:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
       keycloak:
         condition: service_healthy
@@ -160,28 +153,6 @@ services:
     networks:
       - internal
 
-  neo4j:
-    image: neo4j:5.26.12-community
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
-      NEO4J_server_memory_heap_initial__size: 256m
-      NEO4J_server_memory_heap_max__size: 512m
-      NEO4J_server_memory_pagecache_size: 128m
-      NEO4J_server_default__listen__address: 0.0.0.0
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    mem_limit: 1280m
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1;' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 90s
-    networks:
-      - internal
-
   noesis:
     build:
       context: ${NOESIS_CONTEXT:-../../../Noesis}
@@ -220,8 +191,6 @@ services:
 
 volumes:
   postgres_data:
-  neo4j_data:
-  neo4j_logs:
   noesis_data:
   noesis_models:
   caddy_data:

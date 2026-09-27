@@ -9,7 +9,6 @@ Parse $ARGUMENTS for: [service] [--dev|--full] [--lines=N]
 
 **Full stack services** (docker-compose.yml — adds):
 - keycloak
-- neo4j
 - audit-collector
 - otel-collector
 - jaeger

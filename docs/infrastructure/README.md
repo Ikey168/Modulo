@@ -51,7 +51,7 @@ flowchart LR
 | desktop | personal | engineering work, network administration keys, monitoring timers, encrypted recovery vault |
 | laptop, phone | personal | no unique services; phone is the authentication and capture device |
 | home-pi | home infrastructure | Paperless records, Matrix/Synapse and bridges, Uptime Kuma, private services |
-| prod-oracle | production | Modulo, Keycloak, Noesis, Neo4j, Praxis, Caddy; WireGuard rendezvous |
+| prod-oracle | production | Modulo, Keycloak, Noesis, Praxis, Caddy; WireGuard rendezvous |
 | dev-netcup | development | disposable build/test/agent compute; never production credentials |
 
 ## Operating rules that apply everywhere

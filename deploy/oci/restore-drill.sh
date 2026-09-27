@@ -5,7 +5,7 @@ umask 077
 snapshot=$(realpath "${1:?Usage: restore-drill.sh SNAPSHOT_DIRECTORY}")
 [[ -f $snapshot/VERIFIED || -f $snapshot/COMPLETE ]] || { echo 'Snapshot is incomplete' >&2; exit 1; }
 (cd "$snapshot" && sha256sum -c SHA256SUMS)
-for file in neo4j-data noesis-data; do tar -tzf "$snapshot/$file.tar.gz" >/dev/null; done
+for file in noesis-data; do tar -tzf "$snapshot/$file.tar.gz" >/dev/null; done
 container="modulo-restore-drill-$$"
 network=none
 cleanup() {

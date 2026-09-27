@@ -110,7 +110,7 @@ new rule has a deny test as well as an allow test.
 ## Dynamic scanning with OWASP ZAP
 
 [`owasp-zap.yml`](../../.github/workflows/owasp-zap.yml) stands up the full stack
-(PostgreSQL, Neo4j, backend, frontend) with a staging `.env` and scans it. Because
+(PostgreSQL, backend, frontend) with a staging `.env` and scans it. Because
 that takes tens of minutes it is not a per-PR gate.
 
 - Triggers: pushes to `main`, `develop`, `feature/*`, `release/*`; Sundays 03:00

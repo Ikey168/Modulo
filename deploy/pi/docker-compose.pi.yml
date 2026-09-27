@@ -1,9 +1,9 @@
 # Minimal Modulo deployment for a Raspberry Pi 5 home server (arm64), #386.
 #
 # Core stack only: Caddy (the single exposed service) → frontend / backend /
-# Keycloak, with Postgres and Neo4j internal to the compose network. No
+# Keycloak, with Postgres internal to the compose network. No
 # observability sidecars, no IPFS node, no OPA — the backend runs with the
-# OTel SDK disabled and IPFS integration off. Memory limits total ~4 GB so an
+# OTel SDK disabled and IPFS integration off. Memory limits total ~3 GB so an
 # 8 GB Pi keeps comfortable headroom.
 #
 # Usage (from deploy/pi/):
@@ -11,7 +11,7 @@
 #   docker compose -f docker-compose.pi.yml up -d --build
 #
 # All builds and images here are arm64-ready (Temurin, node:alpine, nginx,
-# postgres:16-alpine, neo4j:5.15, Keycloak 24, Caddy 2).
+# postgres:16-alpine, Keycloak 24, Caddy 2).
 
 name: modulo-pi
 
@@ -63,11 +63,6 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-modulo}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      - SPRING_NEO4J_URI=bolt://neo4j:7687
-      - SPRING_NEO4J_AUTHENTICATION_USERNAME=neo4j
-      - SPRING_NEO4J_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
-      - MODULO_GRAPH_ENABLED=true
-      - MODULO_GRAPH_BACKFILL_ON_STARTUP=true
       # Secrets — no working defaults on purpose; generate per README.
       - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:?set MODULO_SECURITY_JWT_SECRET in .env}
       - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:?set MODULO_SECURITY_API_KEY in .env}
@@ -88,8 +83,6 @@ services:
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0
     depends_on:
       db:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
       keycloak:
         condition: service_started
@@ -135,34 +128,7 @@ services:
       timeout: 5s
       retries: 5
 
-  neo4j:
-    image: neo4j:5.15-community
-    # Remove a stale pid left by an unclean shutdown (power cut — it's a Pi)
-    # so the container doesn't crash-loop on restart.
-    command: ["bash", "-c", "rm -f /data/run/neo4j.pid /var/lib/neo4j/run/neo4j.pid 2>/dev/null || true; exec /startup/docker-entrypoint.sh neo4j"]
-    environment:
-      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
-      # Tuned down for the Pi: the knowledge graph of a single vault is small.
-      - NEO4J_dbms_memory_heap_initial__size=256m
-      - NEO4J_dbms_memory_heap_max__size=512m
-      - NEO4J_dbms_memory_pagecache_size=128m
-      - NEO4J_dbms_default__listen__address=0.0.0.0
-      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    mem_limit: 1g
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1;' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 90s
-
 volumes:
   postgres_data:
-  neo4j_data:
-  neo4j_logs:
   caddy_data:
   caddy_config:

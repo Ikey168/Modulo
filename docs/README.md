@@ -20,7 +20,7 @@ the page is the bug: fix it in the same change.
 | [System overview](architecture/README.md) | Components, how they talk, where each concern lives |
 | [Backend](architecture/backend.md) | Spring Boot application, package layout, API surface, events |
 | [Frontend](architecture/frontend.md) | React app, `@modulo/core`, feature packs, boundary lint, plugin runtime |
-| [Data and state](architecture/data-and-state.md) | PostgreSQL/Flyway, Neo4j, plugin state API, sync and offline, tenancy |
+| [Data and state](architecture/data-and-state.md) | PostgreSQL/Flyway, plugin state API, sync and offline, tenancy |
 | [Security model](architecture/security-model.md) | Authentication, authorization, encryption, sharing |
 | [Decision log](architecture/decisions.md) | Every architecture decision record (ADR), binding until superseded |
 

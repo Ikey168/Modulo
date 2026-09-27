@@ -46,13 +46,6 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-modulodb}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      # Knowledge-graph projection (Neo4j). Credentials must match the neo4j service's
-      # NEO4J_AUTH below; the projection degrades gracefully if Neo4j is unreachable.
-      - SPRING_NEO4J_URI=${SPRING_NEO4J_URI:-bolt://neo4j:7687}
-      - SPRING_NEO4J_AUTHENTICATION_USERNAME=${NEO4J_USER:-neo4j}
-      - SPRING_NEO4J_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD:-stagingpassword123}
-      - MODULO_GRAPH_ENABLED=${MODULO_GRAPH_ENABLED:-true}
-      - MODULO_GRAPH_BACKFILL_ON_STARTUP=${MODULO_GRAPH_BACKFILL_ON_STARTUP:-true}
       # Dev-only defaults that satisfy ModuloProperties validation. Override in production.
       - MODULO_SECURITY_JWT_SECRET=${MODULO_SECURITY_JWT_SECRET:-ZGV2LW9ubHktSldULXNlY3JldC1jaGFuZ2UtbWUtaW4tcHJvZHVjdGlvbg==}
       - MODULO_SECURITY_API_KEY=${MODULO_SECURITY_API_KEY:-mod_devLocalApiKeyChangeMe123456}
@@ -71,8 +64,6 @@ services:
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
     depends_on:
       db:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
       keycloak:
         condition: service_started
@@ -125,36 +116,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  neo4j:
-    image: neo4j:5.15-community
-    # Remove a stale pid left by an unclean shutdown (Ctrl+C) so the container
-    # doesn't crash-loop with "Neo4j is already running (pid:N)" on restart.
-    command: ["bash", "-c", "rm -f /data/run/neo4j.pid /var/lib/neo4j/run/neo4j.pid 2>/dev/null || true; exec /startup/docker-entrypoint.sh neo4j"]
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    environment:
-      - NEO4J_AUTH=neo4j/stagingpassword123
-      - NEO4J_dbms_memory_heap_initial__size=512m
-      - NEO4J_dbms_memory_heap_max__size=1G
-      - NEO4J_dbms_memory_pagecache_size=256m
-      - NEO4J_dbms_default__listen__address=0.0.0.0
-      - NEO4J_dbms_connector_bolt_listen__address=:7687
-      - NEO4J_dbms_connector_http_listen__address=:7474
-      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    networks:
-      - modulo-network
-    healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p stagingpassword123 'MATCH (n) RETURN count(n) LIMIT 1;' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
-    restart: unless-stopped
 
   # Audit logging and monitoring services
   audit-collector:
@@ -338,10 +299,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  neo4j_data:
-    driver: local
-  neo4j_logs:
     driver: local
   backup_data:
     driver: local

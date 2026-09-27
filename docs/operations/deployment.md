@@ -20,7 +20,7 @@ known gaps in each path. How images are built, signed and promoted is in
 | Local stack | [`docker-compose.yml`](../../docker-compose.yml) | Development. | See [Local development](../getting-started/local-development.md). |
 
 Every target runs the same two application images (frontend nginx and Spring
-Boot backend) plus PostgreSQL, Neo4j and Keycloak. The backend is always started
+Boot backend) plus PostgreSQL and Keycloak. The backend is always started
 with `SERVER_SERVLET_CONTEXT_PATH=/` in Compose-based targets because the
 controllers carry their own `/api` prefix.
 
@@ -37,7 +37,6 @@ through an SSH tunnel.
 | backend | built or digest-pinned | 1.5 GB | `docker` profile, Flyway, OTel disabled, IPFS off |
 | keycloak | [`keycloak.Containerfile`](../../deploy/oci/keycloak.Containerfile) | 1.25 GB | Production mode (`start --optimized`), served at `/auth`, PostgreSQL-backed |
 | db | `postgres:16.10-alpine` | 768 MB | Also hosts the `keycloak` database ([`postgres-init/10-keycloak.sh`](../../deploy/oci/postgres-init/10-keycloak.sh)) |
-| neo4j | `neo4j:5.26.12-community` | 1.25 GB | |
 | noesis | built from `NOESIS_CONTEXT` | 5 GB | Bound to localhost only |
 
 Networks: `edge` (Caddy, frontend), `internal` (everything), `egress` (backend
@@ -87,7 +86,6 @@ curl http://127.0.0.1:8012/health
 | `NOESIS_CONTEXT` | Absolute path of the Noesis checkout on the server |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Application database |
 | `KEYCLOAK_DB_PASSWORD`, `KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD` | Keycloak |
-| `NEO4J_PASSWORD` | Neo4j |
 | `MODULO_SECURITY_JWT_SECRET`, `MODULO_SECURITY_API_KEY`, `MODULO_SECURITY_ENCRYPTION_KEY` | Required backend secrets |
 | `NOESIS_JWT_SECRET`, `NOESIS_API_KEY_SALT` | Noesis |
 | `MODULO_REMOTE_CREDENTIAL_KEY` | Optional. Base64 32-byte key; empty disables stored service credentials. |
@@ -158,11 +156,11 @@ Backups and restore drills for this host are in
 
 ## Raspberry Pi
 
-The minimal stack (Caddy, frontend, backend, Keycloak, PostgreSQL, Neo4j) tuned
+The minimal stack (Caddy, frontend, backend, Keycloak, PostgreSQL) tuned
 for an 8 GB Pi 5. No observability sidecars and no IPFS node.
 
 Hardware: Raspberry Pi 5 with 8 GB. Boot from NVMe or a USB SSD, not an SD card:
-PostgreSQL and Neo4j write constantly and SD cards are slow and wear out. Use
+PostgreSQL writes constantly and SD cards are slow and wear out. Use
 64-bit Raspberry Pi OS (Bookworm) or another arm64 Debian/Ubuntu, with Docker.
 
 ```sh
@@ -192,9 +190,8 @@ Choose how the Pi is reached; this sets `MODULO_URL` and `MODULO_DOMAIN`:
 | backend | 1.5 GB |
 | keycloak | 768 MB |
 | db | 512 MB |
-| neo4j (512 MB heap, 128 MB page cache) | 1 GB |
 
-About 4 GB is committed, leaving half of an 8 GB Pi for page cache and builds.
+About 3 GB is committed, leaving more than half of an 8 GB Pi for page cache and builds.
 Only Caddy publishes ports; Keycloak is served through Caddy at `/auth`.
 
 First login: open `MODULO_URL`. The `modulo` realm is imported on first start;

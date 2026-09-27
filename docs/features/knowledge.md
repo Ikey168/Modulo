@@ -1,10 +1,10 @@
 # Knowledge
 
 This page covers how Modulo connects and retrieves what is in your notes: the
-Neo4j knowledge graph, semantic search with local embeddings, Ask Modulo cited
+note link graph, semantic search with local embeddings, Ask Modulo cited
 answers, suggested links, AI summaries, the Knowledge navigation by
 information mode, and the Awareness plugins. It is for users of those features
-and for operators who configure the graph and the indexing worker.
+and for operators who configure the indexing worker.
 
 Typed properties and saved queries are part of the [Workspace](workspace.md#typed-note-properties).
 The Noesis bridge that drives the Information Intake modes, and the Gmail
@@ -12,68 +12,27 @@ newsletter connector, are in [Integrations](integrations.md).
 
 ## Knowledge graph
 
-PostgreSQL is the source of truth for notes and links. Neo4j holds a derived,
-eventually consistent projection, `(:Note)-[:LINKS_TO]->(:Note)`, used for
-graph queries. Neo4j can be down without affecting note writes.
+PostgreSQL stores notes and their links (`application.note_links`), and every
+graph feature reads from there. There is no separate graph database.
 
-```mermaid
-flowchart LR
-  W[Note / link write<br/>PostgreSQL] -- note.* / link.* events --> L[GraphProjectionEventListener]
-  L --> P[GraphProjectionService]
-  P --> N[(Neo4j)]
-  C[GraphController<br/>/api/graph] --> P
-  C --> U[UnlinkedMentionsService<br/>PostgreSQL scan]
-```
-
-The projection uses the Neo4j Java driver with raw Cypher, not Spring Data
-Neo4j, so the JPA `Note` entity is unaffected and Neo4j stays optional. Code:
-[`graph/`](../../backend/src/main/java/com/modulo/graph/),
-[`GraphController`](../../backend/src/main/java/com/modulo/controller/GraphController.java),
-[`GraphProjectionConfig`](../../backend/src/main/java/com/modulo/config/GraphProjectionConfig.java).
-
-### Configuration
-
-| Property / env | Default | Purpose |
-| --- | --- | --- |
-| `modulo.graph.enabled` / `MODULO_GRAPH_ENABLED` | `true` (`false` in the `dev` profile) | When off, no Neo4j driver bean exists and all graph operations are no-ops |
-| `modulo.graph.backfill-on-startup` / `MODULO_GRAPH_BACKFILL_ON_STARTUP` | `false` (`true` in `docker-compose.yml`) | Project all existing notes and links at startup |
-| `spring.neo4j.uri` | `bolt://localhost:7687` | Bolt URI |
-| `spring.neo4j.authentication.username` / `.password` | `neo4j` / `test` | Credentials; override per environment |
-
-The `dev` profile disables the projection because the dev stack does not run
-Neo4j; run the full `docker-compose.yml` stack to exercise the graph end to
-end. Full configuration reference: [Configuration](../reference/configuration.md).
-
-### Resilience
-
-- Projection writes are best effort: failures are logged and swallowed, so
-  note and link operations never fail because Neo4j is unavailable.
-- Graph reads return empty results when Neo4j is down or disabled.
-- Backfill uses Cypher `MERGE` and is safe to re-run: `POST /api/graph/backfill`.
+- The note panels show **Links to** and **Backlinks** from the note's link
+  records (`/api/note-links`).
+- The workspace **Graph** view (`graph-view` plugin) is built client-side from
+  notes and links through `@modulo/core` graph queries (`buildGraph`,
+  `neighbours`, `subgraph`, `filterGraphByTags`).
 
 ### Backlinks, mentions and related notes
 
 | Endpoint | Returns |
 | --- | --- |
-| `GET /api/graph/notes/{id}/backlinks` | Notes linking to this note, with snippets |
-| `GET /api/graph/notes/{id}/unlinked-mentions` | Notes that mention this note's title without linking (PostgreSQL full-text scan, no Neo4j; word-boundary matching, excludes self and already-linked notes) |
+| `GET /api/graph/notes/{id}/unlinked-mentions` | Notes that mention this note's title without linking (PostgreSQL scan; word-boundary matching, excludes self and already-linked notes) |
 | `POST /api/graph/notes/{id}/link-from/{sourceId}` | Turns a mention into a link |
-| `GET /api/graph/notes/{id}/related` | Notes sharing neighbours (shared-neighbour Cypher) |
-| `GET /api/graph/notes/{id}/neighborhood?depth=1` | Local subgraph within `depth` hops |
-| `GET /api/graph/status` | Projection status |
-| `POST /api/graph/backfill` | Re-project all data |
 
-The React panels for these endpoints live in
-[`features/notes/graph/`](../../frontend/src/features/notes/graph/)
-(`BacklinksPanel`, `UnlinkedMentionsPanel`, `RelatedNotesPanel`,
-`LocalGraphPanel` with `savedViews.ts`, tabbed in `GraphPanels`). The current
-workspace Notes view does not mount them: it shows **Links to** and
-**Backlinks** from the note's link records directly, and the workspace
-**Graph** view (`graph-view` plugin) is built client-side from notes and links
-through `@modulo/core` graph queries (`buildGraph`, `neighbours`, `subgraph`).
-
-For development, `.mcp.json` wires a read-only Neo4j Cypher MCP server
-(`neo4j`) for inspecting the projection against the full stack.
+Both endpoints are in
+[`GraphController`](../../backend/src/main/java/com/modulo/controller/GraphController.java)
+and
+[`UnlinkedMentionsService`](../../backend/src/main/java/com/modulo/service/UnlinkedMentionsService.java).
+No shipped client screen calls them at the moment.
 
 ## Semantic search and embeddings
 

@@ -3,9 +3,6 @@ package com.modulo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-// import org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration; // No longer needed
-// import org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration; // No longer needed
-// import org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration; // No longer needed
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;

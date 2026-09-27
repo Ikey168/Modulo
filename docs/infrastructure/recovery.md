@@ -152,7 +152,7 @@ custody, DNS access and a replacement ARM64 Linux host.
    Compose before starting services.
 7. Start with a temporary private/test hostname. Run `status.sh` and
    `verify-deployment.py` with a short-lived test token.
-8. Change DNS only after Modulo, Keycloak, Noesis, Neo4j and Praxis are healthy.
+8. Change DNS only after Modulo, Keycloak, Noesis and Praxis are healthy.
 9. Restore the WireGuard relay (`/etc/wireguard/wg-home.conf`) as described in
    [home-network.md](home-network.md#restoring-wireguard).
 

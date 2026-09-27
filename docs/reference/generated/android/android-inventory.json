@@ -8762,11 +8762,6 @@
       "owned": true
     },
     {
-      "file": "frontend/src/features/notes/graph/savedViews.ts",
-      "key": "modulo.graph.savedViews",
-      "owned": true
-    },
-    {
       "file": "frontend/src/features/workspace/SelfHostedToolView.tsx",
       "key": "modulo-self-hosted-settings-v1",
       "owned": true

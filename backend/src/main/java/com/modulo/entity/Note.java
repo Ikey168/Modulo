@@ -1,10 +1,5 @@
 package com.modulo.entity;
 
-// import org.springframework.data.neo4j.core.schema.GeneratedValue; // Neo4j
-// import org.springframework.data.neo4j.core.schema.Id; // Neo4j
-// import org.springframework.data.neo4j.core.schema.Node; // Neo4j
-// import org.springframework.data.neo4j.core.schema.Relationship; // Neo4j
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*; // JPA
@@ -14,15 +9,12 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 
-// @Node // Neo4j
 @Entity // JPA
 @Table(name = "notes", schema = "application")
 public class Note {
 
     @Id // JPA
     @GeneratedValue(strategy = GenerationType.AUTO) // JPA
-    // @org.springframework.data.neo4j.core.schema.Id // Neo4j - specific import to avoid clash
-    // @org.springframework.data.neo4j.core.schema.GeneratedValue // Neo4j - specific import
     @Column(name = "note_id")
     private Long id;
 
@@ -122,12 +114,10 @@ public class Note {
     // unaffected; @JsonIgnore also means the lazy fields aren't touched during
     // serialization, so no lazy load is triggered.
 
-        // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
     @JsonIgnore
     @OneToMany(mappedBy = "sourceNote", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<NoteLink> outgoingLinks = new HashSet<>();
 
-    // @Relationship(type = "LINKED_TO", direction = Relationship.Direction.INCOMING) // Neo4j
     @JsonIgnore
     @OneToMany(mappedBy = "targetNote", fetch = FetchType.LAZY)
     private Set<NoteLink> incomingLinks = new HashSet<>();
@@ -148,13 +138,9 @@ public class Note {
     )
     private Set<Task> tasks = new HashSet<>();
 
-    // @Relationship(type = "LINKS_TO", direction = Relationship.Direction.OUTGOING) // Neo4j
-    // private Set<NoteLink> links; // Neo4j specific, and NoteLink is commented out
-
     public Note() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        // this.links = new HashSet<>(); // Neo4j specific
     }
 
     public Note(String title, String content) {
@@ -163,7 +149,6 @@ public class Note {
         this.markdownContent = content; // Default to content for backward compatibility
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        // this.links = new HashSet<>(); // Neo4j specific
     }
 
     public Note(String title, String content, String markdownContent) {
@@ -172,7 +157,6 @@ public class Note {
         this.markdownContent = markdownContent;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        // this.links = new HashSet<>(); // Neo4j specific
     }
 
     @PreUpdate
@@ -456,21 +440,4 @@ public class Note {
         this.tasks.remove(task);
         task.getLinkedNotes().remove(this);
     }
-
-    /* // Neo4j specific
-    public Set<NoteLink> getLinks() {
-        return links;
-    }
-
-    public void setLinks(Set<NoteLink> links) {
-        this.links = links;
-    }
-
-    public void addLink(NoteLink link) {
-        if (this.links == null) {
-            this.links = new HashSet<>();
-        }
-        this.links.add(link);
-    }
-    */
 }

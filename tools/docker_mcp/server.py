@@ -35,7 +35,7 @@ def compose_status(dev: bool = True) -> str:
     """
     Show status of all docker-compose services.
     dev=True uses docker-compose.dev.yml (frontend, backend, db).
-    dev=False uses docker-compose.yml (full stack including keycloak, neo4j, monitoring).
+    dev=False uses docker-compose.yml (full stack including keycloak, monitoring).
     """
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE
     return _run(["docker-compose", "-f", compose_file, "ps"])
@@ -46,7 +46,7 @@ def get_logs(service: str, dev: bool = True, lines: int = 100) -> str:
     """
     Get recent logs from a docker-compose service.
     Dev services: frontend, backend, db.
-    Full stack adds: keycloak, neo4j, audit-collector, otel-collector,
+    Full stack adds: keycloak, audit-collector, otel-collector,
                      jaeger, prometheus, grafana, loki, elasticsearch, opa.
     """
     compose_file = DEV_COMPOSE if dev else FULL_COMPOSE

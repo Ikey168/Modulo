@@ -1,7 +1,7 @@
 name: OWASP ZAP Security Scan
 
 on:
-  # Full-stack DAST stands up the whole app (Postgres, Neo4j, backend, frontend)
+  # Full-stack DAST stands up the whole app (Postgres, backend, frontend)
   # and can run for tens of minutes, so it is not used as a per-PR gate. It runs
   # on pushes to long-lived branches, on a weekly schedule, and on demand.
   push:
@@ -176,16 +176,6 @@ jobs:
             exit 1
           }
           
-          # Wait for Neo4j
-          echo "Waiting for Neo4j..."
-          timeout 180 bash -c '
-            until [ "$(docker inspect --format='\''{{.State.Health.Status}}'\'' modulo-neo4j-1 2>/dev/null || echo unhealthy)" == "healthy" ]; do
-              echo "Neo4j not healthy, waiting..."
-              docker logs modulo-neo4j-1 --tail 10 2>/dev/null || true
-              sleep 10
-            done
-          '
-          
           # Wait for backend
           echo "Waiting for backend..."
           timeout 180 bash -c '
@@ -220,9 +210,6 @@ jobs:
           
           echo "=== Flyway Logs ==="
           docker compose --env-file .env.staging logs flyway --tail 50
-          
-          echo "=== Neo4j Logs ==="
-          docker compose --env-file .env.staging logs neo4j --tail 50
           
           echo "=== Backend Logs ==="
           docker compose --env-file .env.staging logs backend --tail 50

@@ -10,7 +10,7 @@ For anything deeper, start at [docs/README.md](docs/README.md).
 |---|---|
 | Backend | Spring Boot 2.7, Java 17, Maven (`backend/`, package `com.modulo`) |
 | Frontend | React 18 + TypeScript, Vite 5, Vitest, Playwright (`frontend/`) |
-| Data | PostgreSQL with Flyway migrations (`backend/src/main/resources/db/postgresql/`), Neo4j |
+| Data | PostgreSQL with Flyway migrations (`backend/src/main/resources/db/postgresql/`) |
 | Auth | Keycloak OIDC (code + PKCE), Spring Security, owner-scoped resources |
 | Sandbox | QuickJS on WASM (`WasmScriptSandbox`): no host access, 32 MiB memory cap, wall-clock timeout |
 | Clients | Browser, Electron (`desktop/`, standalone package), Android via Capacitor (`mobile/`) |

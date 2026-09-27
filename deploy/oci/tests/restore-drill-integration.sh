@@ -13,8 +13,8 @@ done
 docker exec "$source_container" psql -X -U backup_fixture -d modulodb -v ON_ERROR_STOP=1 -c "CREATE SCHEMA application; CREATE TABLE application.notes(note_id BIGINT PRIMARY KEY, content TEXT); INSERT INTO application.notes VALUES (1,'restore fixture'); CREATE TABLE public.plugin_registry(id BIGINT);"
 docker exec "$source_container" pg_dumpall -U backup_fixture | gzip > "$work/postgres.sql.gz"
 printf 'archive fixture' > "$work/data"
-for name in neo4j noesis; do tar -C "$work" -czf "$work/$name-data.tar.gz" data; done
-(cd "$work" && sha256sum postgres.sql.gz neo4j-data.tar.gz noesis-data.tar.gz > SHA256SUMS)
+for name in noesis; do tar -C "$work" -czf "$work/$name-data.tar.gz" data; done
+(cd "$work" && sha256sum postgres.sql.gz noesis-data.tar.gz > SHA256SUMS)
 touch "$work/VERIFIED"
 "$(dirname "$0")/../restore-drill.sh" "$work"
 # A damaged dump must be rejected before it can be treated as restorable.
