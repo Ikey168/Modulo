@@ -1,5 +1,6 @@
 package com.modulo.config;
 
+import jakarta.servlet.DispatcherType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -26,7 +27,7 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthen
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.Collection;
@@ -54,10 +55,16 @@ import java.util.stream.Collectors;
  * (fail closed) and only the public routes answer.</p>
  *
  * <p>Method security ({@code @PreAuthorize}) is enabled here for every profile.</p>
+ *
+ * <p>Written against the Spring Security 6 API: {@code authorizeHttpRequests} with
+ * {@link PathPatternRequestMatcher}s and {@code @EnableMethodSecurity}. Security 6
+ * authorizes every dispatch, not only the first; forwards, async re-dispatches and
+ * error dispatches of an already authorized request are let through, as Security 5
+ * did (it authorized once per request).</p>
  */
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
@@ -78,10 +85,15 @@ public class SecurityConfig {
         "/error"
     };
 
-    private static RequestMatcher[] publicRoutes() {
+    /**
+     * Public routes as path-pattern matchers. They match the path inside the servlet
+     * context (the same part {@code antMatchers} matched), whichever servlet serves it.
+     */
+    static RequestMatcher[] publicRoutes() {
+        PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
         RequestMatcher[] matchers = new RequestMatcher[PUBLIC_ROUTES.length];
         for (int i = 0; i < PUBLIC_ROUTES.length; i++) {
-            matchers[i] = AntPathRequestMatcher.antMatcher(PUBLIC_ROUTES[i]);
+            matchers[i] = paths.matcher(PUBLIC_ROUTES[i]);
         }
         return matchers;
     }
@@ -98,7 +110,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
         http
-            .authorizeRequests(authz -> authz
+            .authorizeHttpRequests(authz -> authz
+                .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers(publicRoutes()).permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth2 -> oauth2
