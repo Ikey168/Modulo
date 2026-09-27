@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.grpc.service.PluginHostServiceImpl;
 import com.modulo.grpc.service.PluginServiceImpl;
 import com.modulo.plugin.api.HealthCheck;

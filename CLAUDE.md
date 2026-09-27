@@ -26,11 +26,13 @@ frontend/src/
   features/workspace/plugins/   plugin runtime, catalog (catalog.ts) and core built-in plugins
   packs/<pack>/  domain pack views, pack-only helpers, plugins/ entry modules, tests
   services/      low-level REST/WS clients, deviceDocuments, legacy migration readers
-backend/src/main/java/com/modulo/
+backend/src/main/java/com/modulo/   one package per feature (controller, service, repository, entity, DTOs)
+  note/ tag/ link/ attachment/ task/ user/   core notes domain, users and /api/me
   blueprint/     interpreter, node registry, sandbox, execution (workflow runs), approval
   pack/ plugin/  pack install lifecycle, plugin manager, submission, marketplace trust
   state/         versioned plugin state API
-  integrations/  Noesis, Praxis
+  integrations/  Noesis, Praxis, OpenAI, VIES, Google Calendar clients
+  config/ security/ aspect/ filter/ util/   cross-cutting code
   knowledge/     embeddings, semantic search, Ask Modulo
 shared/          pack manifests and approval canonicalization shared by both sides
 docs/            see docs/README.md; docs/reference/generated/ is machine-written
@@ -78,8 +80,9 @@ mvn -q -o test -Dtest=Foo               # offline, after a prior compile
 1. Add the descriptor to `frontend/src/features/blueprint/nodeCatalog.ts` and its
    capability to `frontend/src/features/blueprint/capabilities.ts`.
 2. Backend: for an always-available core node, add its capability to
-   `BlueprintNodeRegistry.CORE_CAPABILITIES` and implement it in
-   `BlueprintInterpreterService.executeBuiltInNode`. A plugin-contributed node
+   `BlueprintNodeRegistry.CORE_CAPABILITIES`, implement it in the node family
+   class it belongs to (`NoteNodes`, `LogicNodes`, … in `blueprint/interpreter/`)
+   and map its type in `BuiltInNodeExecutor.execute`. A plugin-contributed node
    registers a `BlueprintNodeRegistration` with a `BlueprintNodeHandler` instead.
 3. Update the `listByCategory()` counts in
    `frontend/src/features/blueprint/__tests__/nodeModel.test.ts`.

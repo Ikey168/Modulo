@@ -3,51 +3,51 @@ package com.modulo.blueprint.interpreter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.BlueprintCapabilityService;
 import com.modulo.blueprint.BlueprintEntry;
-import com.modulo.blueprint.BlueprintNodeExecutionContext;
-import com.modulo.blueprint.BlueprintNodeHandler;
 import com.modulo.blueprint.BlueprintNodeRegistration;
 import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.blueprint.BlueprintNodeResult;
 import com.modulo.blueprint.BlueprintRepository;
-import com.modulo.blueprint.BlueprintTriggerContext;
-import com.modulo.blueprint.BlueprintTriggerHandler;
+import com.modulo.blueprint.approval.ApprovalService;
+import com.modulo.blueprint.execution.WorkflowCheckpointService;
+import com.modulo.blueprint.execution.WorkflowRunService;
+import com.modulo.blueprint.execution.WorkflowScheduler;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
-import com.modulo.blueprint.wasm.WasmModuleValidator;
-import com.modulo.blueprint.wasm.WasmNodeExecutor;
-import com.modulo.entity.Note;
-import com.modulo.entity.Tag;
-import com.modulo.plugin.event.LinkEvent;
-import com.modulo.plugin.event.NoteEvent;
-import com.modulo.plugin.event.PluginEvent;
+import com.modulo.note.Note;
 import com.modulo.plugin.event.PluginEventBus;
-import com.modulo.plugin.event.PluginEventListener;
-import com.modulo.service.BlockchainService;
-import com.modulo.service.NoesisBriefService;
-import com.modulo.service.NoteService;
-import com.modulo.service.OpenAIService;
-import com.modulo.service.TagService;
-import com.modulo.service.ViesService;
+import com.modulo.blockchain.BlockchainService;
+import com.modulo.integrations.noesis.NoesisBriefService;
+import com.modulo.note.NoteService;
+import com.modulo.integrations.openai.OpenAIService;
+import com.modulo.tag.TagService;
+import com.modulo.integrations.vies.ViesService;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Blueprint interpreter (#273): executes blueprint IR when trigger events fire on the
  * PluginEventBus. Each saved blueprint is loaded on startup and its trigger nodes are
- * wired to the bus. Execution follows exec edges topologically and resolves data pin
- * values between nodes. Every run has structured workflow_runs and workflow_steps records.
+ * wired to the bus. Every run has structured workflow_runs and workflow_steps records.
  *
- * Execution safety:
+ * <p>This bean is the interpreter's public API. The work is split by responsibility:
+ * <ul>
+ *   <li>{@link BlueprintTriggerRegistrar}: trigger registration (event listeners,
+ *       webhooks, schedules);</li>
+ *   <li>{@link BlueprintGraphRunner}: walks the IR graph for one run;</li>
+ *   <li>{@link BuiltInNodeExecutor}: the built-in nodes, one class per node family.</li>
+ * </ul>
+ * Run bookkeeping stays in {@link WorkflowRunService}.
+ *
+ * <p>Execution safety:
  * - MAX_STEPS (100) prevents infinite exec loops.
  * - Async actions (AI, blockchain) time out after 30 seconds.
  */
@@ -55,14 +55,12 @@ import java.util.stream.Collectors;
 public class BlueprintInterpreterService implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(BlueprintInterpreterService.class);
-    private static final long ACTION_TIMEOUT_SECS = 30;
 
-    @Autowired private com.modulo.blueprint.execution.WorkflowCheckpointService checkpoints;
-    @Autowired private com.modulo.blueprint.approval.ApprovalService approvals;
-    @Autowired(required=false) private com.modulo.blueprint.execution.WorkflowScheduler workflowScheduler;
+    @Autowired private WorkflowCheckpointService checkpoints;
+    @Autowired private ApprovalService approvals;
+    @Autowired(required = false) private WorkflowScheduler workflowScheduler;
     @Autowired private BlueprintRepository blueprintRepository;
-    @Autowired private com.modulo.blueprint.execution.WorkflowRunService workflowRuns;
-    private final Map<Long, BlueprintEntry> runtimeEntries = new ConcurrentHashMap<>();
+    @Autowired private WorkflowRunService workflowRuns;
     @Autowired private BlueprintCapabilityService capabilityService;
     @Autowired private PluginEventBus eventBus;
     @Autowired private NoteService noteService;
@@ -75,13 +73,11 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     @Autowired private ObjectMapper objectMapper;
     @Autowired(required = false) private BlueprintNodeRegistry nodeRegistry;
 
-    // Per-blueprint listener registrations so they can be removed on unregister.
-    private final Map<String, List<ListenerRegistration>> registeredListeners = new ConcurrentHashMap<>();
-
-    // Webhook trigger registrations (#363): "<registryId>:<nodeId>" → registration,
-    // plus per-blueprint keys so unregister removes exactly its endpoints.
-    private final Map<String, WebhookRegistration> webhooks = new ConcurrentHashMap<>();
-    private final Map<String, List<String>> webhookKeysByBlueprint = new ConcurrentHashMap<>();
+    // The parts read the injected fields above at call time through this view.
+    private final InterpreterDependencies deps = new Dependencies();
+    private final BuiltInNodeExecutor builtIns = new BuiltInNodeExecutor(deps);
+    private final BlueprintGraphRunner runner = new BlueprintGraphRunner(deps, builtIns);
+    private final BlueprintTriggerRegistrar triggers = new BlueprintTriggerRegistrar(deps, runner);
 
     /** Attach the existing core switch to the registry used by plugin nodes. */
     @PostConstruct
@@ -98,8 +94,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
             nodeRegistry.register(
                 BlueprintNodeRegistry.CORE_OWNER,
                 BlueprintNodeRegistration.action(type, 1, capability, context -> {
-                    NodeResult result = executeBuiltInNode(
-                        context.node(), context.inputs(), context.blueprintId(), context.lease());
+                    NodeResult result = builtIns.execute(context.node(), context.inputs(), context.lease());
                     return new BlueprintNodeResult(result.outputs(), result.nextExecOut(), result.skipped());
                 }));
         }
@@ -112,7 +107,7 @@ public class BlueprintInterpreterService implements ApplicationRunner {
     }
 
     private void refreshRegisteredBlueprints() {
-        new ArrayList<>(runtimeEntries.values()).forEach(this::registerBlueprint);
+        triggers.registeredEntries().forEach(this::registerBlueprint);
     }
 
     /** Load and register all blueprints when the application is ready. */
@@ -128,130 +123,12 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * (or schedule a cron job for trigger.schedule). Safe to call again after an update.
      */
     public void registerBlueprint(BlueprintEntry entry) {
-        // Remove previous registrations for this blueprint in case of re-register.
-        unregisterBlueprint(Long.toString(entry.getId()));
-        if (entry.getOwnerId() == null) return;
-        runtimeEntries.put(entry.getId(),entry);
-
-        BlueprintIRGraph graph;
-        try {
-            graph = objectMapper.convertValue(entry.getIr(), BlueprintIRGraph.class);
-            if(graph.getNodes()==null || graph.getEdges()==null || graph.getNodes().size()>1000 || graph.getEdges().size()>5000) throw new IllegalArgumentException("Invalid Blueprint graph");
-        } catch (Exception e) {
-            logger.error("Blueprint IR rejected");
-            return;
-        }
-
-        Long registryId = entry.getId();
-        boolean manualOnly = "MANUAL".equals(entry.getAutonomyLevel());
-        List<ListenerRegistration> listeners = new ArrayList<>();
-
-        for (BlueprintIRGraph.IRNode node : graph.getNodes()) {
-            if (!node.getType().startsWith("trigger.")) continue;
-            if (manualOnly && !"trigger.manual".equals(node.getType())) continue;
-
-            switch (node.getType()) {
-                case "trigger.manual":
-                    // Manual triggers are invoked through fireManual().
-                    break;
-                case "trigger.note.saved": {
-                    String triggerId = node.getId();
-                    PluginEventListener<NoteEvent> listener = event ->
-                        { if (ownedNote(event.getNote(),entry.getOwnerId())) executeBlueprint(graph, registryId, triggerId, Map.of("note", event.getNote()),event.getId()); };
-                    eventBus.subscribe("note.created", listener);
-                    eventBus.subscribe("note.updated", listener);
-                    listeners.add(new ListenerRegistration("note.created", listener));
-                    listeners.add(new ListenerRegistration("note.updated", listener));
-                    break;
-                }
-                case "trigger.link.created": {
-                    String triggerId = node.getId();
-                    PluginEventListener<LinkEvent.LinkCreated> listener = event ->
-                        { if (ownedNote(event.getSourceNote(),entry.getOwnerId()) && ownedNote(event.getTargetNote(),entry.getOwnerId())) executeBlueprint(graph, registryId, triggerId, Map.of(
-                            "link", event.getLink(), "source", event.getSourceNote(), "target", event.getTargetNote()),event.getId()); };
-                    eventBus.subscribe("link.created", listener);
-                    listeners.add(new ListenerRegistration("link.created", listener));
-                    break;
-                }
-                case "trigger.schedule": {
-                    String cron = node.getConfig() != null
-                        ? (String) node.getConfig().get("cron") : null;
-                    if (cron == null || cron.isBlank()) {
-                        logger.warn("Blueprint schedule missing cron configuration");
-                        break;
-                    }
-                    // Persisted scheduler registration occurs once the graph is registered.
-                    break;
-                }
-                case "trigger.webhook": {
-                    String secret = node.getConfig() != null
-                        ? (String) node.getConfig().get("secret") : null;
-                    if (secret == null || secret.isBlank()) {
-                        logger.warn("Blueprint webhook missing secret configuration");
-                        break;
-                    }
-                    String key = registryId + ":" + node.getId();
-                    webhooks.put(key, new WebhookRegistration(graph, registryId, node.getId(), secret));
-                    webhookKeysByBlueprint.computeIfAbsent(Long.toString(entry.getId()), k -> new ArrayList<>()).add(key);
-                    logger.info("Blueprint webhook registered");
-                    break;
-                }
-                default: {
-                    if (!registerPluginTrigger(node, graph, registryId, entry.getOwnerId(), listeners)) {
-                        logger.warn("Blueprint trigger type unsupported");
-                    }
-                    break;
-                }
-            }
-        }
-
-        registeredListeners.put(Long.toString(entry.getId()), listeners);
-        if(workflowScheduler!=null) workflowScheduler.sync(entry,graph);
-        logger.info("Blueprint registered");
-    }
-
-    private boolean registerPluginTrigger(
-            BlueprintIRGraph.IRNode node,
-            BlueprintIRGraph graph,
-            Long registryId,
-            long ownerId,
-            List<ListenerRegistration> listeners) {
-        if (nodeRegistry == null) return false;
-        Optional<BlueprintNodeRegistration> registration =
-            nodeRegistry.trigger(node.getType(), node.getNodeVersion());
-        if (registration.isEmpty()) return false;
-
-        BlueprintTriggerHandler handler = registration.get().triggerHandler();
-        for (String eventType : registration.get().triggerEventTypes()) {
-            PluginEventListener<PluginEvent> listener = event -> {
-                Map<String, Object> outputs = handler.outputs(new BlueprintTriggerContext(
-                    event,
-                    node.getId(),
-                    node.getType(),
-                    node.getNodeVersion(),
-                    node.getConfig(),
-                    ownerId));
-                if (outputs != null) {
-                    executeBlueprint(graph, registryId, node.getId(), outputs, event.getId());
-                }
-            };
-            eventBus.subscribe(eventType, listener);
-            listeners.add(new ListenerRegistration(eventType, listener));
-        }
-        return true;
+        triggers.register(entry);
     }
 
     /** Unregister instance-local event and webhook listeners. */
     public void unregisterBlueprint(String name) {
-        try { runtimeEntries.remove(Long.parseLong(name)); } catch(NumberFormatException ignored) { return; }
-        List<ListenerRegistration> listeners = registeredListeners.remove(name);
-        if (listeners != null) {
-            listeners.forEach(r -> eventBus.unsubscribe(r.eventType(), r.listener()));
-        }
-        List<String> webhookKeys = webhookKeysByBlueprint.remove(name);
-        if (webhookKeys != null) {
-            webhookKeys.forEach(webhooks::remove);
-        }
+        triggers.unregister(name);
     }
 
     // -------------------------------------------------------------------------
@@ -266,569 +143,54 @@ public class BlueprintInterpreterService implements ApplicationRunner {
      * to the caller.
      */
     public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload) {
-        return fireWebhook(registryId,nodeId,secret,payload,java.util.UUID.randomUUID().toString());
+        return fireWebhook(registryId, nodeId, secret, payload, UUID.randomUUID().toString());
     }
-    public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload,String deliveryId) {
-        if(deliveryId==null || deliveryId.isBlank() || deliveryId.length()>128 || deliveryId.chars().anyMatch(Character::isISOControl)) return WebhookResult.REJECTED;
-        WebhookRegistration reg = webhooks.get(registryId + ":" + nodeId);
-        if (reg == null || secret == null) return WebhookResult.REJECTED;
-        boolean valid = java.security.MessageDigest.isEqual(
-            reg.secret().getBytes(java.nio.charset.StandardCharsets.UTF_8),
-            secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        if (!valid) {
-            logger.warn("Blueprint webhook authentication rejected");
-            return WebhookResult.REJECTED;
-        }
-        executeBlueprint(reg.graph(), reg.registryId(), reg.triggerNodeId(), Map.of("payload", payload),"webhook:"+deliveryId);
-        return WebhookResult.ACCEPTED;
+
+    public WebhookResult fireWebhook(Long registryId, String nodeId, String secret, String payload, String deliveryId) {
+        return triggers.fireWebhook(registryId, nodeId, secret, payload, deliveryId);
     }
 
     // -------------------------------------------------------------------------
-    // Graph execution
+    // Runs started or continued outside the event bus
     // -------------------------------------------------------------------------
 
-    private boolean ownedNote(com.modulo.entity.Note note, Long owner) {
-        return note != null && java.util.Objects.equals(note.getUserId(),owner);
+    public UUID fireManual(BlueprintEntry entry, String nodeId, Note note, UUID requestId) {
+        if (!BlueprintTriggerRegistrar.ownedNote(note, entry.getOwnerId()) || requestId == null) throw new IllegalArgumentException("INVALID_MANUAL_INPUT");
+        var graph = objectMapper.convertValue(entry.getIr(), BlueprintIRGraph.class);
+        if (graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.manual".equals(node.getType()))) throw new IllegalArgumentException("MANUAL_TRIGGER_UNAVAILABLE");
+        return runner.execute(graph, entry, nodeId, Map.of("note", note), "manual:" + requestId);
     }
 
-    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, Long registryId,
-                                   String triggerNodeId, Map<String, Object> triggerOutputs, String triggerKey) {
-        BlueprintEntry entry=runtimeEntries.get(registryId);
-        if(entry==null || entry.getOwnerId()==null) return null;
-        return executeBlueprint(graph,entry,triggerNodeId,triggerOutputs,triggerKey);
-    }
-    private java.util.UUID executeBlueprint(BlueprintIRGraph graph, BlueprintEntry entry,String triggerNodeId,Map<String,Object> triggerOutputs,String triggerKey) {
-        Long registryId=entry.getId();
-        String digest;
-        try {
-            String canonical=objectMapper.copy().enable(com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).writeValueAsString(entry.getIr());
-            digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        } catch(Exception invalid) { throw new IllegalArgumentException("Invalid Blueprint snapshot",invalid); }
-        var trigger=graph.getNodes().stream().filter(node->node.getId().equals(triggerNodeId)).findFirst().orElseThrow();
-        var lease=workflowRuns.create(registryId,entry.getOwnerId(),entry.getVersion()==null?"1":entry.getVersion(),digest,triggerNodeId,trigger.getType(),triggerKey);
-        if(!lease.created()) return lease.id();
-        workflowRuns.begin(lease);
-        BlueprintExecutionContext ctx=new BlueprintExecutionContext(lease);
-        ctx.setRegistryId(registryId);
-        try {
-            workflowRuns.asOwner(lease,()->{
-                try (var trace = com.modulo.observability.ExecutionTraceContext.open(lease.id(), java.util.UUID.randomUUID(), true)) {
-                long started = System.nanoTime();
-                var step=workflowRuns.startStep(lease,1,triggerNodeId,trigger.getType(),Map.of());
-                triggerOutputs.forEach((pin,value)->ctx.setPinValue(triggerNodeId,pin,value));
-                ctx.recordExecutedNode(triggerNodeId);
-                workflowRuns.finishStep(lease,step,"SUCCEEDED",triggerOutputs,null,elapsed(started));
-                }
-                if(checkpoints!=null) checkpoints.save(lease,0,graph,triggerNodeId,"then",ctx.checkpointPins());
-                workflowRuns.checkCancellation(lease);
-                executeExecFlow(graph,ctx,triggerNodeId,"then");
-                return null;
-            });
-            workflowRuns.checkCancellation(lease);
-            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
-            logger.info("Workflow run {} finished",lease.id());
-        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
-            // The scheduler will resume the persisted boundary.
-        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
-            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
-            logger.info("Workflow run {} cancelled",lease.id());
-        } catch(Exception failure) {
-            String classification=failure instanceof BlueprintLoopGuardException?"LOOP_GUARD":failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
-            workflowRuns.transition(lease,"RUNNING","FAILED",classification);
-            logger.warn("Workflow run {} failed: {}",lease.id(),classification);
-        }
-        return lease.id();
+    public UUID fireScheduled(BlueprintEntry entry, String nodeId, String key, String firedAt) {
+        var graph = objectMapper.convertValue(entry.getIr(), BlueprintIRGraph.class);
+        if (graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.schedule".equals(node.getType()))) throw new IllegalArgumentException("SCHEDULE_REMOVED");
+        return runner.execute(graph, entry, nodeId, Map.of("firedAt", firedAt), key);
     }
 
-    public java.util.UUID fireManual(BlueprintEntry entry,String nodeId,Note note,java.util.UUID requestId) {
-        if(!ownedNote(note,entry.getOwnerId())||requestId==null)throw new IllegalArgumentException("INVALID_MANUAL_INPUT");
-        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
-        if(graph.getNodes().stream().noneMatch(node->nodeId.equals(node.getId())&&"trigger.manual".equals(node.getType())))throw new IllegalArgumentException("MANUAL_TRIGGER_UNAVAILABLE");
-        return executeBlueprint(graph,entry,nodeId,Map.of("note",note),"manual:"+requestId);
+    public UUID retryRun(UUID parent, long owner, UUID requestId, int sequence, boolean confirmed) {
+        return runner.retry(parent, owner, requestId, sequence, confirmed);
     }
 
-    public java.util.UUID fireScheduled(BlueprintEntry entry,String nodeId,String key,String firedAt) {
-        var graph=objectMapper.convertValue(entry.getIr(),BlueprintIRGraph.class);
-        if(graph.getNodes().stream().noneMatch(node -> nodeId.equals(node.getId()) && "trigger.schedule".equals(node.getType()))) throw new IllegalArgumentException("SCHEDULE_REMOVED");
-        return executeBlueprint(graph,entry,nodeId,Map.of("firedAt",firedAt),key);
+    public void resumeWaiting(UUID run, long owner, int checkpoint) {
+        runner.resume(run, owner, checkpoint);
     }
 
-    public java.util.UUID retryRun(java.util.UUID parent,long owner,java.util.UUID requestId,int sequence,boolean confirmed) {
-        var snapshot=checkpoints.load(parent,owner,sequence);
-        var lease=workflowRuns.createRetry(parent,owner,requestId,sequence,confirmed);
-        if(!lease.created()) return lease.id();
-        workflowRuns.begin(lease);
-        var ctx=new BlueprintExecutionContext(lease);
-        try {
-            workflowRuns.asOwner(lease,()->{
-                // The persisted graph is replayed with current capability grants.
-                Long registryId=workflowRuns.registryId(lease.id(),owner);
-                ctx.setRegistryId(registryId);
-                ctx.restorePins(snapshot.pins(),Math.max(0,sequence-1));
-                checkpoints.save(lease,sequence,snapshot.graph(),snapshot.fromNode(),snapshot.outPin(),snapshot.pins());
-                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
-                workflowRuns.checkCancellation(lease);
-                return null;
-            });
-            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
-        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
-            // The scheduler will resume the persisted boundary.
-        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
-            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
-        } catch(Exception failure) {
-            workflowRuns.transition(lease,"RUNNING","FAILED","NODE_FAILURE");
-        }
-        return lease.id();
+    /** Reads the injected fields at call time, so the parts see the current collaborators. */
+    private final class Dependencies implements InterpreterDependencies {
+        @Override public WorkflowCheckpointService checkpoints() { return checkpoints; }
+        @Override public ApprovalService approvals() { return approvals; }
+        @Override public WorkflowScheduler workflowScheduler() { return workflowScheduler; }
+        @Override public WorkflowRunService workflowRuns() { return workflowRuns; }
+        @Override public BlueprintCapabilityService capabilityService() { return capabilityService; }
+        @Override public PluginEventBus eventBus() { return eventBus; }
+        @Override public NoteService noteService() { return noteService; }
+        @Override public TagService tagService() { return tagService; }
+        @Override public OpenAIService openAIService() { return openAIService; }
+        @Override public BlockchainService blockchainService() { return blockchainService; }
+        @Override public ScriptSandbox scriptSandbox() { return scriptSandbox; }
+        @Override public ViesService viesService() { return viesService; }
+        @Override public NoesisBriefService noesisBriefService() { return noesisBriefService; }
+        @Override public ObjectMapper objectMapper() { return objectMapper; }
+        @Override public BlueprintNodeRegistry nodeRegistry() { return nodeRegistry; }
     }
-
-    public void resumeWaiting(java.util.UUID run,long owner,int checkpoint) {
-        var lease=new com.modulo.blueprint.execution.WorkflowRunService.Lease(run,owner,false);
-        if(!workflowRuns.resumeWaiting(lease)) return;
-        try {
-            workflowRuns.asOwner(lease,()->{
-                if(approvals!=null) approvals.verifyResume(lease);
-                var snapshot=checkpoints.load(run,owner,checkpoint);
-                var ctx=new BlueprintExecutionContext(lease);
-                ctx.setRegistryId(workflowRuns.registryId(run,owner));
-                ctx.restorePins(snapshot.pins(),Math.max(0,checkpoint-1));
-                executeExecFlow(snapshot.graph(),ctx,snapshot.fromNode(),snapshot.outPin());
-                workflowRuns.checkCancellation(lease);
-                return null;
-            });
-            workflowRuns.transition(lease,"RUNNING","SUCCEEDED",null);
-        } catch(com.modulo.blueprint.execution.WorkflowPausedException paused) {
-            // A later wait has its own committed checkpoint.
-        } catch(com.modulo.blueprint.execution.WorkflowCancelledException cancelled) {
-            workflowRuns.transition(lease,"RUNNING","CANCELLED",null);
-        } catch(Exception invalid) {
-            workflowRuns.transition(lease,"RUNNING","DEAD_LETTER","RESUME_FAILED");
-        }
-    }
-
-    /** Follow exec edges depth-first until there are no more. */
-    private void executeExecFlow(BlueprintIRGraph graph, BlueprintExecutionContext ctx,
-                                  String fromNodeId, String execOutPin) {
-        // Find the exec edge leaving fromNodeId on execOutPin.
-        Optional<BlueprintIRGraph.IREdge> execEdge = graph.getEdges().stream()
-            .filter(e -> "exec".equals(e.getKind())
-                      && fromNodeId.equals(e.getFromNode())
-                      && execOutPin.equals(e.getFromPin()))
-            .findFirst();
-
-        if (!execEdge.isPresent()) return; // end of flow
-
-        String targetId = execEdge.get().getToNode();
-        BlueprintIRGraph.IRNode target = graph.getNodes().stream()
-            .filter(n -> targetId.equals(n.getId()))
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Edge references unknown node: " + targetId));
-
-        workflowRuns.checkCancellation(ctx.getLease());
-        if(checkpoints!=null) checkpoints.save(ctx.getLease(),ctx.getStepCount()+1,graph,fromNodeId,execOutPin,ctx.checkpointPins());
-        ctx.incrementStep(); // throws BlueprintLoopGuardException when > MAX_STEPS
-        ctx.recordExecutedNode(targetId);
-
-        Map<String, Object> inputs = resolveInputs(graph, ctx, targetId);
-        NodeResult result;
-        String capability = capabilityFor(target);
-        boolean allowed = capability == null || capabilityService.isGranted(ctx.getRegistryId(), capability);
-        try (var trace = com.modulo.observability.ExecutionTraceContext.open(ctx.getLease().id(), java.util.UUID.randomUUID(), allowed)) {
-            var step=workflowRuns.startStep(ctx.getLease(),ctx.getStepCount()+1,targetId,target.getType(),inputs);
-            long started = System.nanoTime();
-            try {
-                result = executeNode(target, inputs, ctx.getRegistryId(),ctx.getLease());
-            } catch(Exception failure) {
-                workflowRuns.finishStep(ctx.getLease(),step,"FAILED",Map.of(),failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE",elapsed(started));
-                throw failure;
-            }
-            if("logic.approval.wait".equals(target.getType())) {
-                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
-                int checkpoint=ctx.getStepCount()+1;
-                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
-                try {approvals.waitFor(ctx.getLease(),step,java.util.UUID.fromString((String)result.outputs().get("request")),checkpoint,elapsed(started));}
-                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
-                throw new com.modulo.blueprint.execution.WorkflowPausedException();
-            }
-            if("logic.wait".equals(target.getType())) {
-                int seconds=((Number)(target.getConfig()==null?60:target.getConfig().getOrDefault("seconds",60))).intValue();
-                result.outputs().forEach((pin,value)->ctx.setPinValue(targetId,pin,value));
-                int checkpoint=ctx.getStepCount()+1;
-                checkpoints.save(ctx.getLease(),checkpoint,graph,targetId,"then",ctx.checkpointPins());
-                try {workflowRuns.pause(ctx.getLease(),step,checkpoint,seconds,elapsed(started));}
-                catch(Exception failure) {finishPauseFailure(ctx.getLease(),step,failure,started);throw failure;}
-                throw new com.modulo.blueprint.execution.WorkflowPausedException();
-            }
-            workflowRuns.finishStep(ctx.getLease(),step,result.skipped()?"SKIPPED":"SUCCEEDED",target.getType().contains(".approval.")?approvals.traceOutputs(ctx.getLease(),result.outputs()):result.outputs(),result.skipped()?"CAPABILITY_DENIED":null,elapsed(started));
-        }
-        result.outputs().forEach((pinId, value) -> ctx.setPinValue(targetId, pinId, value));
-
-        if (result.nextExecOut() != null) {
-            executeExecFlow(graph, ctx, targetId, result.nextExecOut());
-        }
-    }
-
-    private void finishPauseFailure(com.modulo.blueprint.execution.WorkflowRunService.Lease lease,java.util.UUID step,Exception failure,long started) {
-        boolean cancelled=failure instanceof com.modulo.blueprint.execution.WorkflowCancelledException;
-        String code=cancelled?null:failure instanceof com.modulo.blueprint.approval.ApprovalFailure approval?approval.getReason():"NODE_FAILURE";
-        workflowRuns.finishStep(lease,step,cancelled?"CANCELLED":"FAILED",Map.of(),code,elapsed(started));
-    }
-
-    /** Collect values for all data edges flowing INTO the given node. */
-    private Map<String, Object> resolveInputs(BlueprintIRGraph graph,
-                                               BlueprintExecutionContext ctx, String nodeId) {
-        Map<String, Object> inputs = new HashMap<>();
-        graph.getEdges().stream()
-            .filter(e -> "data".equals(e.getKind()) && nodeId.equals(e.getToNode()))
-            .forEach(e -> {
-                Object value = ctx.getPinValue(e.getFromNode(), e.getFromPin());
-                if (value != null) inputs.put(e.getToPin(), value);
-            });
-        return inputs;
-    }
-
-    /**
-     * Execute a single action or logic node. Returns output pin values and the next exec-out name.
-     * Capability checks (#275): if the node declares a required capability and the blueprint does
-     * not have a grant for it, execution is skipped (empty outputs, flow continues via 'then').
-     */
-    private NodeResult executeNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
-        String requiredCap = capabilityFor(node);
-        if (requiredCap != null && !capabilityService.isGranted(registryId, requiredCap)) {
-            logger.warn("Workflow node skipped: capability denied");
-            return new NodeResult(new HashMap<>(), "then", true);
-        }
-
-        if (nodeRegistry != null) {
-            Optional<BlueprintNodeHandler> handler =
-                nodeRegistry.handler(node.getType(), node.getNodeVersion());
-            if (handler.isPresent()) {
-                BlueprintNodeResult result = handler.get().execute(
-                    new BlueprintNodeExecutionContext(node, inputs, registryId, lease.owner(), lease));
-                return new NodeResult(result.outputs(), result.nextExecOut(), result.skipped());
-            }
-        }
-        return executeBuiltInNode(node, inputs, registryId, lease);
-    }
-
-    private String capabilityFor(BlueprintIRGraph.IRNode node) {
-        if (nodeRegistry != null) {
-            return nodeRegistry.capability(node.getType(), node.getNodeVersion())
-                .orElse(BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType()));
-        }
-        return BlueprintCapabilityService.NODE_CAPABILITY_MAP.get(node.getType());
-    }
-
-    private NodeResult executeBuiltInNode(BlueprintIRGraph.IRNode node, Map<String, Object> inputs, Long registryId,com.modulo.blueprint.execution.WorkflowRunService.Lease lease) {
-        Map<String, Object> outputs = new HashMap<>();
-
-        switch (node.getType()) {
-
-            case "action.note.create": {
-                Note note = new Note();
-                note.setTitle((String) inputs.getOrDefault("title", "Untitled"));
-                note.setContent((String) inputs.getOrDefault("content", ""));
-                note = noteService.save(note);
-                outputs.put("note", note);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.tag.add": {
-                Note note = (Note) inputs.get("note");
-                String tagName = (String) inputs.get("tag");
-                if (note != null && tagName != null && !tagName.isBlank()) {
-                    Tag tag = tagService.createOrGetTag(tagName);
-                    note.getTags().add(tag);
-                    note = noteService.save(note);
-                }
-                outputs.put("note", note);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.note.anchor": {
-                Note note = (Note) inputs.get("note");
-                String txHash = "";
-                if (note != null) {
-                    try {
-                        Map<String, Object> result = blockchainService.registerNote(
-                            note.getContent() != null ? note.getContent() : "",
-                            note.getTitle() != null ? note.getTitle() : "Untitled",
-                            "system"
-                        ).get(ACTION_TIMEOUT_SECS, TimeUnit.SECONDS);
-                        Object hash = result.get("transactionHash");
-                        txHash = hash != null ? hash.toString() : "";
-                    } catch (Exception e) {
-                        throw new IllegalStateException("BLOCKCHAIN_FAILURE");
-                    }
-                }
-                outputs.put("txHash", txHash);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.ai.summarize": {
-                Note note = (Note) inputs.get("note");
-                String summary = "";
-                if (note != null && note.getContent() != null && !note.getContent().isBlank()) {
-                    try {
-                        OpenAIService.SummaryOptions opts = OpenAIService.SummaryOptions.builder().build();
-                        OpenAIService.SummaryResponse resp = openAIService.generateSummary(note.getContent(), opts);
-                        summary = resp.getSummary() != null ? resp.getSummary() : "";
-                    } catch (Exception e) {
-                        throw new IllegalStateException("AI_FAILURE");
-                    }
-                }
-                outputs.put("summary", summary);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.code.execute": {
-                String code = node.getConfig() != null
-                    ? (String) node.getConfig().get("code") : null;
-                if (code == null || code.isBlank()) {
-                    throw new IllegalArgumentException("INVALID_SCRIPT_CONFIG");
-                }
-                Note note = (Note) inputs.get("note");
-                String title   = note != null && note.getTitle()   != null ? note.getTitle()   : "";
-                String content = note != null && note.getContent() != null ? note.getContent() : "";
-                String output;
-                try {
-                    output = scriptSandbox.execute(code, title, content);
-                } catch (ScriptSandbox.ScriptExecutionException e) {
-                    throw new IllegalStateException("SCRIPT_FAILURE");
-                }
-                outputs.put("output", output);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.wasm.execute": {
-                String moduleB64 = node.getConfig() != null
-                    ? (String) node.getConfig().get("module") : null;
-                if (moduleB64 == null || moduleB64.isBlank()) {
-                    throw new IllegalArgumentException("INVALID_WASM_CONFIG");
-                }
-                Note wasmNote = (Note) inputs.get("note");
-                String wasmTitle   = wasmNote != null && wasmNote.getTitle()   != null ? wasmNote.getTitle()   : "";
-                String wasmContent = wasmNote != null && wasmNote.getContent() != null ? wasmNote.getContent() : "";
-                String wasmOutput;
-                try {
-                    wasmOutput = WasmNodeExecutor.execute(
-                        validatedWasmModule(moduleB64), wasmTitle, wasmContent);
-                } catch (WasmModuleValidator.WasmModuleValidationException
-                        | WasmNodeExecutor.WasmExecutionException | IllegalArgumentException e) {
-                    throw new IllegalStateException("WASM_FAILURE");
-                }
-                outputs.put("output", wasmOutput);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.audit.reaudit": {
-                // Re-audit intake (#363): a fix-review note for the engagement,
-                // tagged so it lands in the pipeline's Fix Review column.
-                String engagement = String.valueOf(inputs.getOrDefault("engagement", "")).trim();
-                Note note = new Note();
-                note.setTitle("Re-audit — " + engagement + " (" + java.time.LocalDate.now() + ")");
-                note.setContent("## Re-audit intake\n\nClient pushed fixes for `" + engagement
-                    + "`.\n\nWebhook payload:\n\n```\n"
-                    + String.valueOf(inputs.getOrDefault("payload", "")) + "\n```\n\n- [ ] Verify each fixed finding\n");
-                if (!engagement.isEmpty()) {
-                    note.getTags().add(tagService.createOrGetTag("engagement/" + engagement));
-                }
-                note.getTags().add(tagService.createOrGetTag("stage/fix-review"));
-                note = noteService.save(note);
-                outputs.put("note", note);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.audit.digest": {
-                // Status digest (#363): finding counts by status for one engagement,
-                // written as a digest note (delivery beyond the vault is a follow-up).
-                String engagement = String.valueOf(inputs.getOrDefault("engagement", "")).trim();
-                List<Note> engagementNotes = engagement.isEmpty()
-                    ? Collections.emptyList()
-                    : noteService.findByTag("engagement/" + engagement);
-                Map<String, Integer> counts = AuditFenceParser.countByStatus(engagementNotes);
-                String summary = AuditFenceParser.digestMarkdown(engagement, counts);
-                Note digest = new Note();
-                digest.setTitle("Status digest — " + engagement + " (" + java.time.LocalDate.now() + ")");
-                digest.setContent(summary);
-                if (!engagement.isEmpty()) {
-                    digest.getTags().add(tagService.createOrGetTag("engagement/" + engagement));
-                }
-                digest = noteService.save(digest);
-                outputs.put("summary", summary);
-                outputs.put("note", digest);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.tax.deadline.reminder": {
-                // Tax deadline reminder (#367): next USt-VA and ZM deadlines from
-                // configured cadence; one reminder note per deadline (deduped by title).
-                boolean quarterly = node.getConfig() != null
-                    && "quarterly".equals(node.getConfig().get("cadence"));
-                boolean dauerfrist = node.getConfig() != null
-                    && Boolean.TRUE.equals(node.getConfig().get("dauerfrist"));
-                java.time.LocalDate today = java.time.LocalDate.now();
-                TaxDeadlines.Deadline ustva = TaxDeadlines.nextUstVa(today, quarterly, dauerfrist);
-                TaxDeadlines.Deadline zm = TaxDeadlines.nextZm(today, false);
-                String deadlines = "USt-VA " + ustva.period() + " fällig " + ustva.due()
-                    + "; ZM " + zm.period() + " fällig " + zm.due();
-                String title = "Steuertermine — USt-VA " + ustva.period() + " fällig " + ustva.due();
-                Note reminder = null;
-                if (noteService.searchNotes(title, null, null, 1, 0).isEmpty()) {
-                    reminder = new Note();
-                    reminder.setTitle(title);
-                    reminder.setContent("## Steuertermine\n\n- USt-VA " + ustva.period() + ": fällig " + ustva.due()
-                        + (dauerfrist ? " (mit Dauerfristverlängerung)" : "")
-                        + "\n- Zusammenfassende Meldung " + zm.period() + ": fällig " + zm.due()
-                        + "\n\nMechanik, keine Steuerberatung — Termine mit dem Steuerberater abgleichen.\n");
-                    reminder.getTags().add(tagService.createOrGetTag("tax/deadline"));
-                    reminder = noteService.save(reminder);
-                }
-                outputs.put("deadlines", deadlines);
-                outputs.put("note", reminder);
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.invoice.chase": {
-                // Payment chase (#367): draft Zahlungserinnerungen for past-due
-                // invoices. Drafts only — nothing is ever sent automatically.
-                java.time.LocalDate today = java.time.LocalDate.now();
-                List<Note> allNotes = noteService.findAll(0, 500);
-                List<InvoiceFenceParser.ParsedInvoice> overdueInvoices =
-                    InvoiceFenceParser.overdue(allNotes, today);
-                int created = 0;
-                for (InvoiceFenceParser.ParsedInvoice invoice : overdueInvoices) {
-                    String title = "Zahlungserinnerung — Rechnung " + invoice.number();
-                    if (!noteService.searchNotes(title, null, null, 1, 0).isEmpty()) continue;
-                    Note draft = new Note();
-                    draft.setTitle(title);
-                    draft.setContent("## Zahlungserinnerung (Entwurf)\n\nRechnung " + invoice.number()
-                        + " an " + invoice.client() + " war am " + invoice.due()
-                        + " fällig und ist noch offen.\n\n"
-                        + "Sehr geehrte Damen und Herren,\n\n"
-                        + "auf unsere Rechnung " + invoice.number() + " vom Fälligkeitsdatum " + invoice.due()
-                        + " ist bisher kein Zahlungseingang zu verzeichnen. Wir bitten um Ausgleich "
-                        + "innerhalb von 7 Tagen. Sollte sich die Zahlung mit dieser Erinnerung "
-                        + "überschnitten haben, betrachten Sie dieses Schreiben als gegenstandslos.\n\n"
-                        + "Mit freundlichen Grüßen\n");
-                    draft.getTags().add(tagService.createOrGetTag("invoice/chase"));
-                    noteService.save(draft);
-                    created++;
-                }
-                outputs.put("overdueCount", String.valueOf(overdueInvoices.size()));
-                outputs.put("draftsCreated", String.valueOf(created));
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.vies.check": {
-                // VIES USt-IdNr validation (#367); degrades to 'unverified' when
-                // the service is unreachable — never blocks the flow.
-                String vatId = String.valueOf(inputs.getOrDefault("vatId", "")).trim();
-                ViesService.ViesResult result = viesService.check(vatId);
-                String status;
-                switch (result) {
-                    case VALID: status = "valid"; break;
-                    case INVALID: status = "invalid"; break;
-                    default: status = "unverified"; break;
-                }
-                outputs.put("valid", result == ViesService.ViesResult.VALID);
-                outputs.put("status", status);
-                outputs.put("checkedAt", LocalDateTime.now().toString());
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.noesis.brief": {
-                // Daily knowledge brief from a Noesis instance (news, economics,
-                // tech, web3, research publications). Degrades to status
-                // "unavailable" with empty content when Noesis is unreachable —
-                // never blocks the flow.
-                String briefDomains = String.valueOf(inputs.getOrDefault("domains", "")).trim();
-                String briefSince = String.valueOf(inputs.getOrDefault("since", "")).trim();
-                NoesisBriefService.Brief brief = noesisBriefService.fetchBrief(
-                    briefDomains.isEmpty() ? null : briefDomains,
-                    briefSince.isEmpty() ? null : briefSince);
-                outputs.put("title", brief.title());
-                outputs.put("markdown", brief.markdown());
-                outputs.put("status", brief.status());
-                outputs.put("itemCount", String.valueOf(brief.itemCount()));
-                return new NodeResult(outputs, "then");
-            }
-
-            case "action.approval.request": {
-                var trace=com.modulo.observability.ExecutionTraceContext.current();
-                var request=approvals.request(lease,trace.stepId(),node.getId(),node.getConfig()==null?Map.of():node.getConfig(),inputs);
-                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
-            }
-            case "logic.approval.wait": {
-                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
-                outputs.put("request",request.toString());return new NodeResult(outputs,"then");
-            }
-            case "logic.approval.result": {
-                var request=java.util.UUID.fromString(String.valueOf(inputs.get("request")));
-                outputs.putAll(approvals.result(lease,request));
-                return new NodeResult(outputs,outputs.get("outcome").toString().toLowerCase(java.util.Locale.ROOT));
-            }
-
-            case "logic.wait": {
-                Object value=node.getConfig()==null?60:node.getConfig().getOrDefault("seconds",60);
-                if(!(value instanceof Number number) || number.intValue()<1 || number.intValue()>86400 || number.doubleValue()!=number.intValue()) throw new IllegalArgumentException("INVALID_WAIT");
-                return new NodeResult(outputs,"then");
-            }
-
-            case "logic.branch": {
-                Boolean condition = (Boolean) inputs.getOrDefault("condition", Boolean.FALSE);
-                return new NodeResult(outputs, Boolean.TRUE.equals(condition) ? "true" : "false");
-            }
-
-            case "logic.notes.filter": {
-                @SuppressWarnings("unchecked")
-                List<Note> notes = (List<Note>) inputs.getOrDefault("notes", Collections.emptyList());
-                String tag = (String) inputs.getOrDefault("tag", "");
-                List<Note> filtered = notes.stream()
-                    .filter(n -> n.getTags().stream().anyMatch(t -> tag.equals(t.getName())))
-                    .collect(Collectors.toList());
-                outputs.put("result", filtered);
-                return new NodeResult(outputs, "then");
-            }
-
-            default:
-                throw new UnsupportedOperationException("Unknown node type: " + node.getType());
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Execution logging
-    // -------------------------------------------------------------------------
-
-    /**
-     * Decode, validate, and cache an action.wasm.execute module (#403).
-     * Re-validating and re-parsing on every trigger firing would dominate
-     * execution time for hot blueprints, so parsed modules are cached against
-     * the config's base64 string (already retained by the registered IR — the
-     * key adds no new memory). Bounded crudely: registered blueprints hold a
-     * handful of modules; a full cache means churn, so start over.
-     */
-    private com.dylibso.chicory.wasm.WasmModule validatedWasmModule(String moduleB64) {
-        if (wasmModuleCache.size() > 64) {
-            wasmModuleCache.clear();
-        }
-        return wasmModuleCache.computeIfAbsent(moduleB64,
-            b64 -> WasmModuleValidator.validate(java.util.Base64.getDecoder().decode(b64)).module());
-    }
-
-    private final java.util.concurrent.ConcurrentHashMap<String, com.dylibso.chicory.wasm.WasmModule>
-        wasmModuleCache = new java.util.concurrent.ConcurrentHashMap<>();
-
-    // -------------------------------------------------------------------------
-    // Support types
-    // -------------------------------------------------------------------------
-
-    private static long elapsed(long started) { return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started); }
-
-    private record NodeResult(Map<String, Object> outputs, String nextExecOut, boolean skipped) {
-        NodeResult(Map<String,Object> outputs,String nextExecOut) { this(outputs,nextExecOut,false); }
-    }
-
-    private record ListenerRegistration(String eventType, PluginEventListener<? extends PluginEvent> listener) {}
-
-    private record WebhookRegistration(BlueprintIRGraph graph, Long registryId, String triggerNodeId, String secret) {}
 }

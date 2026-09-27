@@ -1,6 +1,6 @@
 package com.modulo.config;
 
-import com.modulo.service.TracingService;
+import com.modulo.observability.TracingService;
 import io.opentelemetry.api.trace.SpanKind;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

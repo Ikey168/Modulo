@@ -5,7 +5,7 @@ import com.modulo.blueprint.*;
 import com.modulo.blueprint.approval.*;
 import com.modulo.blueprint.interpreter.BlueprintInterpreterService;
 import com.modulo.knowledge.NotePropertyService;
-import com.modulo.service.NoteService;
+import com.modulo.note.NoteService;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;

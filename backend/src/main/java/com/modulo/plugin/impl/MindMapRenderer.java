@@ -4,7 +4,7 @@ import com.modulo.plugin.api.renderer.NoteRenderer;
 import com.modulo.plugin.api.renderer.RendererOutput;
 import com.modulo.plugin.api.renderer.RendererOption;
 import com.modulo.plugin.api.renderer.RendererEventResponse;
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

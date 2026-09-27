@@ -1,8 +1,8 @@
 package com.modulo.security;
 
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
-import com.modulo.service.AuthMigrationService;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
+import com.modulo.user.AuthMigrationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;

@@ -1,9 +1,9 @@
 package com.modulo.editor;
 
-import com.modulo.entity.Attachment;
-import com.modulo.entity.Note;
-import com.modulo.repository.AttachmentRepository;
-import com.modulo.repository.NoteRepository;
+import com.modulo.attachment.Attachment;
+import com.modulo.note.Note;
+import com.modulo.attachment.AttachmentRepository;
+import com.modulo.note.NoteRepository;
 import com.modulo.util.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

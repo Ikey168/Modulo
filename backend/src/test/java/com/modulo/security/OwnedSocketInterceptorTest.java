@@ -1,7 +1,8 @@
 package com.modulo.security;
 
-import com.modulo.entity.*;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.Note;
+import com.modulo.user.User;
+import com.modulo.note.NoteRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.messaging.*;

@@ -1,6 +1,6 @@
 package com.modulo.plugin.api;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

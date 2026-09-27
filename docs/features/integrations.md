@@ -394,7 +394,7 @@ per-revision history.
 | Piece | Location |
 | --- | --- |
 | Contracts (`NoteRegistry`, `NoteRegistryWithAccessControl`, `ModuloToken`, `NoteMonetization`, optimized variants) | [`smart-contracts/contracts/`](../../smart-contracts/contracts/) |
-| Backend | [`BlockchainService`](../../backend/src/main/java/com/modulo/service/BlockchainService.java) (web3j), [`BlockchainConfig`](../../backend/src/main/java/com/modulo/config/BlockchainConfig.java), [`IpfsService`](../../backend/src/main/java/com/modulo/service/IpfsService.java) |
+| Backend | [`BlockchainService`](../../backend/src/main/java/com/modulo/blockchain/BlockchainService.java) (web3j), [`BlockchainConfig`](../../backend/src/main/java/com/modulo/config/BlockchainConfig.java), [`IpfsService`](../../backend/src/main/java/com/modulo/blockchain/IpfsService.java) |
 | Frontend | the **On-Chain** section of a note, the `timestamp-proofs` and `ipfs-attach` note panels, the `web3-id` view (MetaMask) |
 
 | Endpoint | Purpose |
@@ -433,9 +433,9 @@ network URL from the environment.
 
 Note attachments are stored in Azure Blob Storage, with metadata in the
 `attachments` table and optional CDN URLs. Code:
-[`AttachmentService`](../../backend/src/main/java/com/modulo/service/AttachmentService.java),
+[`AttachmentService`](../../backend/src/main/java/com/modulo/attachment/AttachmentService.java),
 [`AzureBlobStorageConfig`](../../backend/src/main/java/com/modulo/config/AzureBlobStorageConfig.java),
-[`AttachmentController`](../../backend/src/main/java/com/modulo/controller/AttachmentController.java).
+[`AttachmentController`](../../backend/src/main/java/com/modulo/attachment/AttachmentController.java).
 
 | Endpoint | Purpose |
 | --- | --- |

@@ -1,8 +1,8 @@
 package com.modulo.sharing;
 
 import com.modulo.audit.AuditEventService;
-import com.modulo.entity.Note;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;

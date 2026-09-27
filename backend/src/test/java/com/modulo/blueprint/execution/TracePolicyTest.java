@@ -2,7 +2,7 @@ package com.modulo.blueprint.execution;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.observability.ExecutionTraceContext;
 import java.util.*;
 import org.junit.jupiter.api.Test;

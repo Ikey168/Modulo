@@ -2,11 +2,11 @@ package com.modulo.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.ModuloApplication;
-import com.modulo.dto.NoteDto;
-import com.modulo.dto.TaskDto;
-import com.modulo.dto.UserDto;
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.note.NoteDto;
+import com.modulo.task.TaskDto;
+import com.modulo.user.UserDto;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

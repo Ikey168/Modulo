@@ -27,14 +27,14 @@ import static org.mockito.Mockito.*;
 @DisplayName("NotificationService Tests (#263)")
 class NotificationServiceTest {
     @Mock private com.modulo.security.AuthenticatedUserService users;
-    @Mock private com.modulo.repository.NoteRepository notes;
+    @Mock private com.modulo.note.NoteRepository notes;
     @org.junit.jupiter.api.BeforeEach void owner() {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "users", users);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "notes", notes);
 
         lenient().when(users.actor()).thenReturn("alice");
         lenient().when(users.requireUserId()).thenReturn(1L);
-        lenient().when(notes.findByIdAndUserId(any(), eq(1L))).thenReturn(Optional.of(new com.modulo.entity.Note()));
+        lenient().when(notes.findByIdAndUserId(any(), eq(1L))).thenReturn(Optional.of(new com.modulo.note.Note()));
     }
 
     @Mock

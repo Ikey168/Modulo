@@ -1,6 +1,6 @@
 package com.modulo.config;
 
-import com.modulo.service.AttachmentService;
+import com.modulo.attachment.AttachmentService;
 import com.modulo.util.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

@@ -1,8 +1,8 @@
 package com.modulo.sharing;
 
 import com.modulo.audit.AuditEventService;
-import com.modulo.entity.Note;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

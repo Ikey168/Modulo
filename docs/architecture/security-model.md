@@ -201,7 +201,7 @@ query filters on the authenticated owner.
 - JPA repositories filter with the SpEL extension `tenant.ownerId`
   ([`TenantQueryExtension`](../../backend/src/main/java/com/modulo/security/TenantQueryExtension.java)),
   including overridden `findById`, `findAll`, `count` and `existsById` on
-  [`NoteRepository`](../../backend/src/main/java/com/modulo/repository/NoteRepository.java).
+  [`NoteRepository`](../../backend/src/main/java/com/modulo/note/NoteRepository.java).
   Background and cached callers resolve the owner at execution time.
 - Services that take a client-supplied owner call `requireOwner()`, which answers
   404 on mismatch.
@@ -217,7 +217,7 @@ query filters on the authenticated owner.
 Keycloak realm roles arrive as upper-cased `ROLE_<NAME>` authorities (realm role
 `admin` becomes `ROLE_ADMIN`). The backend checks `ADMIN` with
 `@PreAuthorize("hasRole('ADMIN')")` on plugin administration
-([`PluginController`](../../backend/src/main/java/com/modulo/controller/PluginController.java)),
+([`PluginController`](../../backend/src/main/java/com/modulo/plugin/PluginController.java)),
 auth migration, chaos testing, and marketplace trust operations (publisher
 verification and revocation, deployment records). Most other controllers only
 require `isAuthenticated()` and rely on ownership.

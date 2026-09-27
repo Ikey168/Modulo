@@ -1,7 +1,7 @@
 package com.modulo.blueprint.execution;
 
 import com.modulo.observability.ExecutionTraceContext;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.UserRepository;
 import java.util.*;
 import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;

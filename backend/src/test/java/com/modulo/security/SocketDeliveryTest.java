@@ -1,9 +1,10 @@
 package com.modulo.security;
 
+import com.modulo.note.Note;
+import com.modulo.user.User;
 import com.modulo.config.WebSocketConfig;
 import com.modulo.collab.ydoc.YDocController;
-import com.modulo.entity.*;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;

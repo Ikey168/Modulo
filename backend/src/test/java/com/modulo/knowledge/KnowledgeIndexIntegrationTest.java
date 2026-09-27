@@ -2,11 +2,11 @@ package com.modulo.knowledge;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.migration.SchemaMigrationTool;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import com.modulo.security.AuthenticatedUserService;
-import com.modulo.service.NoteLinkService;
+import com.modulo.link.NoteLinkService;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;

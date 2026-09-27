@@ -3,7 +3,7 @@ package com.modulo.pack;
 import com.fasterxml.jackson.databind.*;
 import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.blueprint.approval.ApprovalService;
-import com.modulo.service.IpfsService;
+import com.modulo.blockchain.IpfsService;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;

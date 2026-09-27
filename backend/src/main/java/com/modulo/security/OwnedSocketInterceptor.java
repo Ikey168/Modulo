@@ -1,6 +1,6 @@
 package com.modulo.security;
 
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.NoteRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;

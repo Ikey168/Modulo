@@ -1,7 +1,7 @@
 package com.modulo.blueprint.execution;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;

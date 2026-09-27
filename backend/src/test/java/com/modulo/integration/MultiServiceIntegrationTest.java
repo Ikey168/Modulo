@@ -1,14 +1,19 @@
 package com.modulo.integration;
 
+import com.modulo.blockchain.BlockchainService;
+import com.modulo.blockchain.IpfsService;
+import com.modulo.integrations.openai.OpenAIService;
+import com.modulo.note.NoteService;
+import com.modulo.note.WebSocketNotificationService;
+import com.modulo.task.TaskService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.modulo.ModuloApplication;
-import com.modulo.dto.NoteDto;
-import com.modulo.dto.TaskDto;
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
-import com.modulo.service.*;
+import com.modulo.note.NoteDto;
+import com.modulo.task.TaskDto;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -2,8 +2,8 @@ package com.modulo.blueprint.execution;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.interpreter.BlueprintIRGraph;
-import com.modulo.entity.Note;
-import com.modulo.service.NoteService;
+import com.modulo.note.Note;
+import com.modulo.note.NoteService;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;

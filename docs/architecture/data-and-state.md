@@ -11,9 +11,9 @@ restores. Migration procedures, backups and restore drills are in
 
 | Store | Role | Source of truth? | Code |
 | --- | --- | --- | --- |
-| PostgreSQL | Notes, links, tags, users, plugin state, workflows, approvals, packs, knowledge index, files | Yes | JPA entities in [`entity/`](../../backend/src/main/java/com/modulo/entity/), JDBC stores in [`state/`](../../backend/src/main/java/com/modulo/state/), [`blueprint/`](../../backend/src/main/java/com/modulo/blueprint/) |
-| Azure Blob Storage | Note attachment binaries (metadata in `application.attachments`) | Yes, for blobs | [`AttachmentService`](../../backend/src/main/java/com/modulo/service/AttachmentService.java) |
-| IPFS | Published or encrypted note payloads | No (public; see [security-model.md](security-model.md#encrypted-note-sharing)) | [`IpfsService`](../../backend/src/main/java/com/modulo/service/IpfsService.java) |
+| PostgreSQL | Notes, links, tags, users, plugin state, workflows, approvals, packs, knowledge index, files | Yes | JPA entities in the feature packages ([`note/`](../../backend/src/main/java/com/modulo/note/), [`tag/`](../../backend/src/main/java/com/modulo/tag/), [`link/`](../../backend/src/main/java/com/modulo/link/), [`attachment/`](../../backend/src/main/java/com/modulo/attachment/), [`task/`](../../backend/src/main/java/com/modulo/task/), [`user/`](../../backend/src/main/java/com/modulo/user/), …), JDBC stores in [`state/`](../../backend/src/main/java/com/modulo/state/), [`blueprint/`](../../backend/src/main/java/com/modulo/blueprint/) |
+| Azure Blob Storage | Note attachment binaries (metadata in `application.attachments`) | Yes, for blobs | [`AttachmentService`](../../backend/src/main/java/com/modulo/attachment/AttachmentService.java) |
+| IPFS | Published or encrypted note payloads | No (public; see [security-model.md](security-model.md#encrypted-note-sharing)) | [`IpfsService`](../../backend/src/main/java/com/modulo/blockchain/IpfsService.java) |
 | Client IndexedDB / Android SQLite | Offline queues and caches, device documents | No; the server is authoritative for acknowledged state | [`frontend/src/services/`](../../frontend/src/services/) |
 
 ## Ownership and tenancy

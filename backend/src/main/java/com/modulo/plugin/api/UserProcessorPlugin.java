@@ -1,6 +1,6 @@
 package com.modulo.plugin.api;
 
-import com.modulo.entity.User;
+import com.modulo.user.User;
 import java.util.Map;
 
 /**

@@ -1,7 +1,7 @@
 package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.service.IpfsService;
+import com.modulo.blockchain.IpfsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

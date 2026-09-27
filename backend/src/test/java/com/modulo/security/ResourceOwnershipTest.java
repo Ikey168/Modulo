@@ -1,10 +1,17 @@
 package com.modulo.security;
 
-import com.modulo.entity.*;
-import com.modulo.entity.Tag;
-import com.modulo.repository.*;
-import com.modulo.repository.jpa.OptimizedNoteRepository;
-import com.modulo.service.*;
+import com.modulo.link.NoteLinkRepository;
+import com.modulo.link.NoteLinkService;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
+import com.modulo.note.OptimizedNoteService;
+import com.modulo.tag.TagRepository;
+import com.modulo.tag.TagService;
+import com.modulo.task.Task;
+import com.modulo.task.TaskRepository;
+import com.modulo.task.TaskService;
+import com.modulo.tag.Tag;
+import com.modulo.note.OptimizedNoteRepository;
 import com.modulo.plugin.event.PluginEventBus;
 import org.junit.jupiter.api.*;
 import org.springframework.context.annotation.*;
@@ -37,9 +44,9 @@ class ResourceOwnershipTest {
     @Configuration
     @Import(TenantQueryExtension.class)
     @org.springframework.data.jpa.repository.config.EnableJpaRepositories(
-        basePackages = "com.modulo.repository",
+        basePackages = {"com.modulo.note", "com.modulo.tag", "com.modulo.task", "com.modulo.link"},
         excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX,
-            pattern = "com\\.modulo\\.repository\\.(?!(NoteRepository|TagRepository|TaskRepository|NoteLinkRepository)$|jpa\\.OptimizedNoteRepository$).*"))
+            pattern = "com\\.modulo\\.(note|tag|task|link)\\.(?!(NoteRepository|TagRepository|TaskRepository|NoteLinkRepository|OptimizedNoteRepository)$).*"))
     @org.springframework.cache.annotation.EnableCaching
     static class Config {
         @Bean DataSource dataSource() { return new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()); }

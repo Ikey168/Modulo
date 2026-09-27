@@ -2,8 +2,8 @@ package com.modulo.integration;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.modulo.service.IpfsService;
-import com.modulo.service.OpenAIService;
+import com.modulo.blockchain.IpfsService;
+import com.modulo.integrations.openai.OpenAIService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

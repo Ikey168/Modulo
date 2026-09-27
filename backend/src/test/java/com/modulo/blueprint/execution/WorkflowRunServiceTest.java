@@ -5,8 +5,8 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.*;
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import com.modulo.security.AuthenticatedUserService;
 import java.util.*;
 import java.util.concurrent.*;
@@ -146,10 +146,10 @@ class WorkflowRunServiceTest {
 
   @Test
   void checkpointsRejectChangedNotesAndDoNotExposePrivatePayloads() {
-    var notes=mock(com.modulo.service.NoteService.class);
+    var notes=mock(com.modulo.note.NoteService.class);
     var checkpoints=new WorkflowCheckpointService(jdbc,new ObjectMapper(),notes);
     var lease=create(blueprint("checkpoint").getId(),"event");runs.begin(lease);
-    var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);note.setVersion(3L);
+    var note=new com.modulo.note.Note();note.setId(10L);note.setUserId(1L);note.setVersion(3L);
     when(notes.findById(10L)).thenReturn(Optional.of(note));
     checkpoints.save(lease,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("trigger:note",note,"trigger:payload","PRIVATE_WEBHOOK"));
     assertSame(note,checkpoints.load(lease.id(),1,0).pins().get("trigger:note"));
@@ -171,8 +171,8 @@ class WorkflowRunServiceTest {
       Map.of("kind","exec","fromNode","write","fromPin","then","toNode","script","toPin","in"))));
     var entry=blueprints.create(request,"ignored");
     var interpreter=new com.modulo.blueprint.interpreter.BlueprintInterpreterService();
-    var notes=mock(com.modulo.service.NoteService.class);
-    var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);note.setVersion(1L);
+    var notes=mock(com.modulo.note.NoteService.class);
+    var note=new com.modulo.note.Note();note.setId(10L);note.setUserId(1L);note.setVersion(1L);
     when(notes.save(any())).thenReturn(note);when(notes.findById(10L)).thenReturn(Optional.of(note));
     var sandbox=mock(com.modulo.blueprint.sandbox.ScriptSandbox.class);
     when(sandbox.execute(anyString(),anyString(),anyString())).thenThrow(new com.modulo.blueprint.sandbox.ScriptSandbox.ScriptExecutionException("private failure")).thenReturn("recovered");
@@ -236,7 +236,7 @@ class WorkflowRunServiceTest {
       Map.of("kind","exec","fromNode","trigger","fromPin","then","toNode","wait","toPin","in"),
       Map.of("kind","exec","fromNode","wait","fromPin","then","toNode","write","toPin","in"))));
     var entry=blueprints.create(request,"ignored");
-    var notes=mock(com.modulo.service.NoteService.class);var note=new com.modulo.entity.Note();note.setId(10L);note.setUserId(1L);when(notes.save(any())).thenReturn(note);
+    var notes=mock(com.modulo.note.NoteService.class);var note=new com.modulo.note.Note();note.setId(10L);note.setUserId(1L);when(notes.save(any())).thenReturn(note);
     var capabilities=mock(com.modulo.blueprint.BlueprintCapabilityService.class);when(capabilities.isGranted(anyLong(),anyString())).thenReturn(true);
     java.util.function.Supplier<com.modulo.blueprint.interpreter.BlueprintInterpreterService> factory=()->{
       var interpreter=new com.modulo.blueprint.interpreter.BlueprintInterpreterService();
@@ -324,7 +324,7 @@ class WorkflowRunServiceTest {
   @Test
   void retentionPurgesTerminalPayloadsAndKeepsRetryReferencesAndActiveCheckpoints() {
     var operations=new WorkflowOperationsService(jdbc,new DataSourceTransactionManager(source),new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
-    var checkpoints=new WorkflowCheckpointService(jdbc,new ObjectMapper(),mock(com.modulo.service.NoteService.class));
+    var checkpoints=new WorkflowCheckpointService(jdbc,new ObjectMapper(),mock(com.modulo.note.NoteService.class));
     long id=blueprint("retained").getId();operations.policy(1,id,new WorkflowOperationsService.Policy(7,1,2,15,"NONE"));
     var parent=create(id,"parent");runs.begin(parent);checkpoints.save(parent,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("payload","private"));runs.transition(parent,"RUNNING","FAILED","NODE_FAILURE");
     var child=runs.createRetry(parent.id(),1,UUID.randomUUID(),0,false);runs.begin(child);checkpoints.save(child,0,new com.modulo.blueprint.interpreter.BlueprintIRGraph(),"trigger","then",Map.of("payload","active"));
@@ -544,7 +544,7 @@ class WorkflowRunServiceTest {
     ReflectionTestUtils.setField(interpreter, "eventBus", bus);
     ReflectionTestUtils.setField(interpreter, "objectMapper", new ObjectMapper());
     interpreter.registerBlueprint(blueprint);
-    var note = new com.modulo.entity.Note();
+    var note = new com.modulo.note.Note();
     note.setUserId(2L);
     note.setId(22L);
     listeners
