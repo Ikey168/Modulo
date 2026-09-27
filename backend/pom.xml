@@ -532,11 +532,11 @@
                                      bit-rotted against the current service/entity APIs -->
                                 <testExclude>com/modulo/integration/**</testExclude>
                                 <!-- Pre-existing bitrot vs. current entity model -->
-                                <testExclude>com/modulo/repository/TagRepositoryTest.java</testExclude>
-                                <testExclude>com/modulo/repository/TaskRepositoryTest.java</testExclude>
-                                <testExclude>com/modulo/repository/NoteRepositoryTest.java</testExclude>
-                                <testExclude>com/modulo/repository/jpa/UserRepositoryTest.java</testExclude>
-                                <testExclude>com/modulo/service/TaskServiceTest.java</testExclude>
+                                <testExclude>com/modulo/tag/TagRepositoryTest.java</testExclude>
+                                <testExclude>com/modulo/task/TaskRepositoryTest.java</testExclude>
+                                <testExclude>com/modulo/note/NoteRepositoryTest.java</testExclude>
+                                <testExclude>com/modulo/user/UserRepositoryTest.java</testExclude>
+                                <testExclude>com/modulo/task/TaskServiceTest.java</testExclude>
                             </testExcludes>
                         </configuration>
                     </execution>
@@ -579,11 +579,11 @@
                              alongside the integration suite. -->
                         <exclude>**/contract/**</exclude>
                         <exclude>**/integration/**</exclude>
-                        <exclude>**/repository/TagRepositoryTest.java</exclude>
-                        <exclude>**/repository/TaskRepositoryTest.java</exclude>
-                        <exclude>**/repository/NoteRepositoryTest.java</exclude>
-                        <exclude>**/repository/jpa/UserRepositoryTest.java</exclude>
-                        <exclude>**/service/TaskServiceTest.java</exclude>
+                        <exclude>**/tag/TagRepositoryTest.java</exclude>
+                        <exclude>**/task/TaskRepositoryTest.java</exclude>
+                        <exclude>**/note/NoteRepositoryTest.java</exclude>
+                        <exclude>**/user/UserRepositoryTest.java</exclude>
+                        <exclude>**/task/TaskServiceTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -609,7 +609,15 @@
                         <exclude>com/modulo/ModuloApplication.class</exclude>
                         <exclude>com/modulo/config/**/*</exclude>
                         <!-- Exclude DTOs and entities (focus on business logic) -->
-                        <exclude>com/modulo/dto/**/*</exclude>
+                        <exclude>com/modulo/attachment/AttachmentDto*.class</exclude>
+                        <exclude>com/modulo/attachment/AttachmentUploadResponse*.class</exclude>
+                        <exclude>com/modulo/note/ConflictResolutionDto*.class</exclude>
+                        <exclude>com/modulo/note/NoteDto*.class</exclude>
+                        <exclude>com/modulo/note/NoteExportDto*.class</exclude>
+                        <exclude>com/modulo/note/NoteImportDto*.class</exclude>
+                        <exclude>com/modulo/note/NoteUpdateMessage*.class</exclude>
+                        <exclude>com/modulo/task/TaskDto*.class</exclude>
+                        <exclude>com/modulo/user/UserDto*.class</exclude>
                         <!-- Exclude generated protobuf classes -->
                         <exclude>**/generated/**/*</exclude>
                         <!-- Exclude exception classes and constants -->
@@ -742,9 +750,12 @@
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
-                                        <include>com.modulo.service.*</include>
-                                        <include>com.modulo.controller.*</include>
-                                        <include>com.modulo.repository.*</include>
+                                        <include>com.modulo.note.*</include>
+                                        <include>com.modulo.tag.*</include>
+                                        <include>com.modulo.link.*</include>
+                                        <include>com.modulo.attachment.*</include>
+                                        <include>com.modulo.task.*</include>
+                                        <include>com.modulo.user.*</include>
                                     </includes>
                                     <limits>
                                         <limit>

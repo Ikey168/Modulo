@@ -3,7 +3,7 @@ package com.modulo.blueprint.interpreter;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.blueprint.wasm.WasmModuleValidator;
 import com.modulo.blueprint.wasm.WasmNodeExecutor;
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 
 import java.util.HashMap;
 import java.util.Map;

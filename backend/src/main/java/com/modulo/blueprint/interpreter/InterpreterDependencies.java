@@ -9,12 +9,12 @@ import com.modulo.blueprint.execution.WorkflowRunService;
 import com.modulo.blueprint.execution.WorkflowScheduler;
 import com.modulo.blueprint.sandbox.ScriptSandbox;
 import com.modulo.plugin.event.PluginEventBus;
-import com.modulo.service.BlockchainService;
-import com.modulo.service.NoesisBriefService;
-import com.modulo.service.NoteService;
-import com.modulo.service.OpenAIService;
-import com.modulo.service.TagService;
-import com.modulo.service.ViesService;
+import com.modulo.blockchain.BlockchainService;
+import com.modulo.integrations.noesis.NoesisBriefService;
+import com.modulo.note.NoteService;
+import com.modulo.integrations.openai.OpenAIService;
+import com.modulo.tag.TagService;
+import com.modulo.integrations.vies.ViesService;
 
 /**
  * The collaborators injected into {@link BlueprintInterpreterService}. The

@@ -12,7 +12,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
     @org.springframework.beans.factory.annotation.Autowired private com.modulo.security.AuthenticatedUserService users;
-    @org.springframework.beans.factory.annotation.Autowired private com.modulo.repository.NoteRepository notes;
+    @org.springframework.beans.factory.annotation.Autowired private com.modulo.note.NoteRepository notes;
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 

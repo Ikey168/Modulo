@@ -1,7 +1,7 @@
 package com.modulo.security;
 
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

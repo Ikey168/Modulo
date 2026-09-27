@@ -5,7 +5,7 @@ import com.modulo.blueprint.BlueprintNodeRegistration;
 import com.modulo.blueprint.BlueprintNodeRegistry;
 import com.modulo.blueprint.BlueprintTriggerContext;
 import com.modulo.blueprint.BlueprintTriggerHandler;
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.plugin.event.LinkEvent;
 import com.modulo.plugin.event.NoteEvent;
 import com.modulo.plugin.event.PluginEvent;

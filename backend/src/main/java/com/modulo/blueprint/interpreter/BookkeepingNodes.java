@@ -1,7 +1,7 @@
 package com.modulo.blueprint.interpreter;
 
-import com.modulo.entity.Note;
-import com.modulo.service.ViesService;
+import com.modulo.note.Note;
+import com.modulo.integrations.vies.ViesService;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;

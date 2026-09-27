@@ -1,8 +1,8 @@
 package com.modulo.config;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import com.modulo.plugin.api.*;
-import com.modulo.service.NoteService;
+import com.modulo.note.NoteService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 

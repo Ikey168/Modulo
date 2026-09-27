@@ -29,9 +29,9 @@ graph feature reads from there. There is no separate graph database.
 | `POST /api/graph/notes/{id}/link-from/{sourceId}` | Turns a mention into a link |
 
 Both endpoints are in
-[`GraphController`](../../backend/src/main/java/com/modulo/controller/GraphController.java)
+[`GraphController`](../../backend/src/main/java/com/modulo/graph/GraphController.java)
 and
-[`UnlinkedMentionsService`](../../backend/src/main/java/com/modulo/service/UnlinkedMentionsService.java).
+[`UnlinkedMentionsService`](../../backend/src/main/java/com/modulo/graph/UnlinkedMentionsService.java).
 No shipped client screen calls them at the moment.
 
 ## Semantic search and embeddings
@@ -139,7 +139,7 @@ type `semantic-suggestion`. Decided suggestions leave the pending list.
 The **AI Summary** note panel (`ai-summary` plugin) calls
 `/api/plugin/ai-notes-summarization` (summarize, key points, insights,
 analyze, batch). It is backed by
-[`OpenAIService`](../../backend/src/main/java/com/modulo/service/OpenAIService.java),
+[`OpenAIService`](../../backend/src/main/java/com/modulo/integrations/openai/OpenAIService.java),
 which sends note content to the configured chat-completions endpoint. Unlike
 the semantic path above, this **does** transmit note text to a remote
 provider when configured.

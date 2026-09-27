@@ -33,7 +33,7 @@ public class PerformanceMonitoringAspect {
     /**
      * Monitor all controller methods for API response time tracking
      */
-    @Around("execution(* com.modulo.controller.OptimizedNoteController.*(..))")
+    @Around("execution(* com.modulo.note.OptimizedNoteController.*(..))")
     public Object monitorOptimizedControllerMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         return monitorExecution(joinPoint, "API");
     }
@@ -41,7 +41,7 @@ public class PerformanceMonitoringAspect {
     /**
      * Monitor service layer methods for business logic performance
      */
-    @Around("execution(* com.modulo.service.OptimizedNoteService.*(..))")
+    @Around("execution(* com.modulo.note.OptimizedNoteService.*(..))")
     public Object monitorOptimizedServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         return monitorExecution(joinPoint, "SERVICE");
     }
@@ -49,7 +49,7 @@ public class PerformanceMonitoringAspect {
     /**
      * Monitor repository methods for database query performance
      */
-    @Around("execution(* com.modulo.repository.jpa.OptimizedNoteRepository.*(..))")
+    @Around("execution(* com.modulo.note.OptimizedNoteRepository.*(..))")
     public Object monitorOptimizedRepositoryMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         return monitorExecution(joinPoint, "REPOSITORY");
     }

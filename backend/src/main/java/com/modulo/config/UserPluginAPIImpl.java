@@ -1,9 +1,9 @@
 package com.modulo.config;
 
-import com.modulo.entity.User;
+import com.modulo.user.User;
 import com.modulo.plugin.api.UserPluginAPI;
 import com.modulo.plugin.api.UserPreferences;
-import com.modulo.service.UserService;
+import com.modulo.user.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;

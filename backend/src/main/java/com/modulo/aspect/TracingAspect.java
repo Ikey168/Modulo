@@ -1,6 +1,6 @@
 package com.modulo.aspect;
 
-import com.modulo.service.TracingService;
+import com.modulo.observability.TracingService;
 import io.opentelemetry.api.trace.SpanKind;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,8 +62,8 @@ public class TracingAspect {
 
     @Around("@within(org.springframework.stereotype.Service) && " +
             "!@annotation(com.modulo.aspect.NoTrace) && " +
-            "!target(com.modulo.service.TracingService) && " +
-            "!target(com.modulo.service.ObservabilityService) && " +
+            "!target(com.modulo.observability.TracingService) && " +
+            "!target(com.modulo.observability.ObservabilityService) && " +
             "execution(public * *(..))")
     public Object traceServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         String className = joinPoint.getTarget().getClass().getSimpleName();

@@ -50,7 +50,7 @@ The following components are excluded from coverage measurement to focus on busi
 - **Generated gRPC Classes**: `com/modulo/grpc/**/*`
 - **Main Application Class**: `com/modulo/ModuloApplication.class`
 - **Configuration Classes**: `com/modulo/config/**/*`
-- **Data Transfer Objects**: `com/modulo/dto/**/*`
+- **Data Transfer Objects**: the DTO classes in the feature packages (listed in `pom.xml`)
 - **Generated Protobuf Classes**: `**/generated/**/*`
 
 ## Integration with CI/CD

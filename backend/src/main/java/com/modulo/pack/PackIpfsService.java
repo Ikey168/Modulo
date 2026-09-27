@@ -1,7 +1,7 @@
 package com.modulo.pack;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.service.IpfsService;
+import com.modulo.blockchain.IpfsService;
 import com.modulo.util.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

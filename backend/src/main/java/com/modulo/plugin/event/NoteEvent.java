@@ -1,6 +1,6 @@
 package com.modulo.plugin.event;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import java.util.Map;
 
 /**

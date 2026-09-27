@@ -30,7 +30,7 @@ deployment). Under the base `/api` context path (no profile), the custom endpoin
 
 ### Custom endpoints (`HealthController`)
 
-[`HealthController`](../../backend/src/main/java/com/modulo/controller/HealthController.java)
+[`HealthController`](../../backend/src/main/java/com/modulo/health/HealthController.java)
 and `SimpleHealthController` are permitted without authentication in `SecurityConfig`, as are `/actuator/**` and `/api/actuator/**`. Restrict actuator at the network level (separate management port, no public route).
 
 | Endpoint | Checks | Status codes |
@@ -341,7 +341,7 @@ relying on it.
 
 ### Backend response-time tooling
 
-- `/api/v2/notes/*` ([`OptimizedNoteController`](../../backend/src/main/java/com/modulo/controller/OptimizedNoteController.java))
+- `/api/v2/notes/*` ([`OptimizedNoteController`](../../backend/src/main/java/com/modulo/note/OptimizedNoteController.java))
   serves cached, paginated note queries: by ID, by user, recent, search, advanced
   search, by tag, stats, counts, titles, and a per-user cache warm-up.
 - [`PerformanceMonitoringAspect`](../../backend/src/main/java/com/modulo/aspect/PerformanceMonitoringAspect.java)

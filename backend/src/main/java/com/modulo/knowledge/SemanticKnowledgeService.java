@@ -1,9 +1,9 @@
 package com.modulo.knowledge;
 
-import com.modulo.entity.Note;
-import com.modulo.repository.NoteRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
 import com.modulo.security.AuthenticatedUserService;
-import com.modulo.service.NoteLinkService;
+import com.modulo.link.NoteLinkService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;

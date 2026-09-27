@@ -40,36 +40,39 @@ trailing slash; keep it that way.
 ## Package layout
 
 All code lives under [`com.modulo`](../../backend/src/main/java/com/modulo/).
-Newer features are organized by domain package; older code still follows the
-layered `controller` / `service` / `repository` / `entity` split.
+Code is organized by feature package: each package holds its controllers,
+services, repositories, entities and DTOs. Cross-cutting code lives in
+`config`, `security`, `aspect`, `filter` and `util`.
 
 | Package | Responsibility |
 | --- | --- |
-| `controller`, `service`, `repository`, `entity`, `dto` | Original layered core: notes, tags, links, tasks, attachments, users, blockchain/IPFS, conflicts, health, performance |
+| `note` | Notes (`/api/notes`, `/api/v2/notes`), conflict resolution, export/import, note update broadcasts |
+| `tag`, `link`, `attachment`, `task` | Tags, note links, attachments (Azure Blob), tasks |
+| `user` | Users, `/api/me` (token claims), logout, auth migration |
+| `blockchain` | Blockchain note registry, access control, IPFS |
 | `security` | `AuthenticatedUserService` (principal → owner), `TenantQueryExtension`, `OwnedSocketInterceptor`, `RateLimitingFilter`, audit logger, security-testing endpoints |
 | `config` | Security chains, WebSocket, gRPC, caches, OpenTelemetry, Azure Blob, plugin wiring, validation |
-| `backend` | `/api/me` (token claims) |
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
 | `blueprint.interpreter` | `BlueprintInterpreterService` (public API) executes Blueprint IR graphs: `BlueprintTriggerRegistrar` wires triggers, `BlueprintGraphRunner` walks the graph, `BuiltInNodeExecutor` dispatches built-in nodes to one class per node family |
 | `blueprint.execution` | Workflow runs, steps, checkpoints, scheduler, retention, recovery, operations, trace policy |
 | `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles. `ApprovalService` is the API and request state machine; reviewer grants, evidence, decisions, expiry and the inbox read model are package-private collaborators |
 | `blueprint.sandbox`, `blueprint.wasm` | `ScriptSandbox` seam (local WASM engine or remote workload); WASM module validation and execution |
-| `plugin.*` | Plugin API, manager/loader, registry, event bus and NATS bridge, submissions, marketplace trust |
+| `plugin`, `plugin.*` | Plugin and renderer endpoints, plugin API, manager/loader, registry, event bus and NATS bridge, submissions, marketplace trust; built-in plugins and their endpoints in `plugin.impl` |
 | `grpc.service` | gRPC `PluginService` and `PluginHostService` implementations |
 | `state` | Plugin state store, schemas, grants, workloads, outbox; Gmail newsletter connection |
 | `pack` | Pack manifests (v1/v2), validation, workspace pack plan/apply, Pack Studio, audit pack |
 | `knowledge` | Typed note properties, saved property queries, semantic search and embeddings, document text extraction |
-| `graph` | DTOs for the unlinked-mentions endpoint |
+| `graph` | Graph and unlinked-mentions endpoints |
 | `collab` | Comments, notifications, presence and Yjs document relay over STOMP |
 | `sharing` | Public share links |
 | `editor` | Note templates, Markdown/HTML/ZIP export, note-local files |
 | `files` | Owner-scoped workspace files |
 | `remote` | Remote service calls with encrypted credentials, safe HTTP fetcher, PDF tools |
-| `integrations.noesis`, `integrations.praxis` | Noesis intake bridge; Praxis client |
+| `integrations.*` | Noesis intake bridge and brief client; Praxis client; OpenAI, VIES and Google Calendar clients |
 | `audit` | Audit events and note audit interceptor |
-| `observability`, `aspect`, `filter`, `health` | Execution trace context, tracing/performance aspects, tracing filter, health indicators |
+| `observability`, `aspect`, `filter`, `health` | Execution trace context, tracing services, performance and observability endpoints, tracing/performance aspects, tracing filter, health endpoints and indicators |
 | `migration` | Operator tools for schema migration and ownership backfill |
-| `chaos` | Chaos-engineering filter (off by default, `modulo.chaos.enabled`) |
+| `chaos` | Chaos-engineering filter and endpoints (off by default, `modulo.chaos.enabled`) |
 
 ## API surface
 

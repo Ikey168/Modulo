@@ -120,7 +120,7 @@ GitHub identity providers, see
 ## Identity provider migration (legacy OAuth to Keycloak)
 
 Use when users who signed in with the older Google or Azure OAuth login move to
-Keycloak. [`AuthMigrationService`](../../backend/src/main/java/com/modulo/service/AuthMigrationService.java)
+Keycloak. [`AuthMigrationService`](../../backend/src/main/java/com/modulo/user/AuthMigrationService.java)
 links provider subjects to existing users on login.
 
 Settings: `modulo.auth.dual-auth-enabled` (true in `application.properties`),
@@ -138,7 +138,7 @@ Keycloak subject):
 | Known user matched by a verified email, new provider, dual-auth off | Providers replaced by the new one | `MIGRATED` |
 | Several users share the email | Canonical user chosen, data merged, duplicates removed | `CONFLICT_RESOLVED` or `MANUAL_REVIEW` |
 
-Admin endpoints ([`AuthMigrationController`](../../backend/src/main/java/com/modulo/controller/AuthMigrationController.java),
+Admin endpoints ([`AuthMigrationController`](../../backend/src/main/java/com/modulo/user/AuthMigrationController.java),
 `ADMIN` role). The controller maps `/auth/migration`, so the full path is
 `/api/auth/migration/...` under the default `/api` context path and
 `/auth/migration/...` where the context path is `/` (the Compose deployments,

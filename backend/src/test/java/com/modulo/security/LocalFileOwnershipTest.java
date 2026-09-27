@@ -1,8 +1,11 @@
 package com.modulo.security;
 
+import com.modulo.attachment.Attachment;
+import com.modulo.attachment.AttachmentRepository;
+import com.modulo.note.Note;
+import com.modulo.note.NoteRepository;
+import com.modulo.user.User;
 import com.modulo.editor.LocalFileController;
-import com.modulo.entity.*;
-import com.modulo.repository.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.util.ReflectionTestUtils;

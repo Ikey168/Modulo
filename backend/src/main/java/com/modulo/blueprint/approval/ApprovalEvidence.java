@@ -6,8 +6,8 @@ import static com.modulo.blueprint.approval.ApprovalErrors.unavailable;
 
 import com.modulo.blueprint.execution.TracePolicy;
 import com.modulo.blueprint.execution.WorkflowRunService;
-import com.modulo.entity.Note;
-import com.modulo.service.NoteService;
+import com.modulo.note.Note;
+import com.modulo.note.NoteService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

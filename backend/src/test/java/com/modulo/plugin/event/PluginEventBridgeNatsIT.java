@@ -3,7 +3,7 @@ package com.modulo.plugin.event;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;

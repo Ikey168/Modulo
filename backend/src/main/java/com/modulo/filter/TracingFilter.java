@@ -1,6 +1,6 @@
 package com.modulo.filter;
 
-import com.modulo.service.TracingService;
+import com.modulo.observability.TracingService;
 import com.modulo.util.LogSanitizer;
 import io.opentelemetry.api.trace.Span;
 import lombok.RequiredArgsConstructor;

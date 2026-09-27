@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.entity.User;
-import com.modulo.repository.jpa.UserRepository;
+import com.modulo.user.User;
+import com.modulo.user.UserRepository;
 import com.modulo.security.AuthenticatedUserService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -87,7 +87,7 @@ class StateAcceptanceTest {
         when(repository.findByKeycloakSubject("owner-" + id)).thenReturn(Optional.of(user));
       }
       return new AuthenticatedUserService(
-          repository, mock(com.modulo.service.AuthMigrationService.class), ISSUER, "");
+          repository, mock(com.modulo.user.AuthMigrationService.class), ISSUER, "");
     }
 
     @Bean

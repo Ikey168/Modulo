@@ -26,11 +26,13 @@ frontend/src/
   features/workspace/plugins/   plugin runtime, catalog (catalog.ts) and core built-in plugins
   packs/<pack>/  domain pack views, pack-only helpers, plugins/ entry modules, tests
   services/      low-level REST/WS clients, deviceDocuments, legacy migration readers
-backend/src/main/java/com/modulo/
+backend/src/main/java/com/modulo/   one package per feature (controller, service, repository, entity, DTOs)
+  note/ tag/ link/ attachment/ task/ user/   core notes domain, users and /api/me
   blueprint/     interpreter, node registry, sandbox, execution (workflow runs), approval
   pack/ plugin/  pack install lifecycle, plugin manager, submission, marketplace trust
   state/         versioned plugin state API
-  integrations/  Noesis, Praxis
+  integrations/  Noesis, Praxis, OpenAI, VIES, Google Calendar clients
+  config/ security/ aspect/ filter/ util/   cross-cutting code
   knowledge/     embeddings, semantic search, Ask Modulo
 shared/          pack manifests and approval canonicalization shared by both sides
 docs/            see docs/README.md; docs/reference/generated/ is machine-written

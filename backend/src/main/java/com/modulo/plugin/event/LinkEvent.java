@@ -1,7 +1,7 @@
 package com.modulo.plugin.event;
 
-import com.modulo.entity.NoteLink;
-import com.modulo.entity.Note;
+import com.modulo.link.NoteLink;
+import com.modulo.note.Note;
 
 /**
  * Events related to note-to-note link operations.

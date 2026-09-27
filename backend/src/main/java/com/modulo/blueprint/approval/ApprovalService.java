@@ -4,7 +4,7 @@ import static com.modulo.blueprint.approval.ApprovalErrors.conflict;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modulo.blueprint.execution.*;
-import com.modulo.service.NoteService;
+import com.modulo.note.NoteService;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;

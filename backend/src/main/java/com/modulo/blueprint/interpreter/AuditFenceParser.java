@@ -1,6 +1,6 @@
 package com.modulo.blueprint.interpreter;
 
-import com.modulo.entity.Note;
+import com.modulo.note.Note;
 
 import java.util.ArrayList;
 import java.util.Collection;

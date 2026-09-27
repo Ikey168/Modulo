@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.modulo.service.IpfsService;
+import com.modulo.blockchain.IpfsService;
 import java.nio.file.*;
 import java.util.*;
 import org.flywaydb.core.Flyway;

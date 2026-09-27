@@ -1,7 +1,7 @@
 package com.modulo.blueprint.interpreter;
 
-import com.modulo.entity.Note;
-import com.modulo.entity.Tag;
+import com.modulo.note.Note;
+import com.modulo.tag.Tag;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,8 +1,8 @@
 package com.modulo.blueprint.interpreter;
 
-import com.modulo.entity.Note;
-import com.modulo.service.NoesisBriefService;
-import com.modulo.service.OpenAIService;
+import com.modulo.note.Note;
+import com.modulo.integrations.noesis.NoesisBriefService;
+import com.modulo.integrations.openai.OpenAIService;
 
 import java.util.HashMap;
 import java.util.Map;
