@@ -15,7 +15,7 @@ vulnerability is described in [`SECURITY.md`](../../SECURITY.md).
 | Secrets in commits | Gitleaks | `pre-commit` hook, `gitleaks detect` | [`secret-scanning.yml`](../../.github/workflows/secret-scanning.yml) (see note) | Blocks PR |
 | Authorization policy tests | OPA, Conftest | `make policy-ci` | [`policy-ci.yml`](../../.github/workflows/policy-ci.yml) (see note) | Blocks PR |
 | Dynamic scan (DAST) | OWASP ZAP | Docker | [`owasp-zap.yml`](../../.github/workflows/owasp-zap.yml) | Fails on any High |
-| Static analysis (SAST) | CodeQL | CodeQL CLI | Not wired (see below) | |
+| Static analysis (SAST) | CodeQL | CodeQL CLI | GitHub default code scanning (see below) | |
 | Penetration tests | [`security-penetration-testing/`](../../security-penetration-testing) | `npm run test:security:all` | Manual | |
 | In-app probes | `/api/security/testing/*` | [`scripts/security-assessment.sh`](../../scripts/security-assessment.sh) | Manual, non-production only | |
 | Image signatures | Cosign, Kyverno | | see [Releases](releases-and-supply-chain.md) | |
@@ -151,8 +151,12 @@ Only scan systems you own. Active scans send attack payloads.
 [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml)
 configures the `security-and-quality` suite for `backend/src` and `frontend/src`
 and ignores build output, `node_modules`, `.github`, `k8s` and `azure`. No
-workflow in `.github/workflows` runs CodeQL analysis, so it only runs if GitHub
-code scanning is enabled in the repository settings with this config file.
+workflow in `.github/workflows` runs CodeQL. Analysis comes from GitHub's
+default code-scanning setup in the repository settings, which runs `Analyze`
+jobs on pull requests for `actions`, `go`, `javascript-typescript` and `python`.
+Default setup does not read this config file, and it does not analyze Java, so
+the backend has no SAST coverage. To cover it, switch to advanced setup with a
+workflow that uses this config and adds `java`.
 [`custom-queries.yml`](../../.github/codeql/custom-queries.yml) lists patterns of
 interest (Spring Security misconfiguration, string-built queries, and similar)
 but is not in CodeQL query-pack format and is not executed.

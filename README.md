@@ -7,7 +7,6 @@ packs. The same frontend runs in the browser, as an Electron desktop app, and as
 an Android app.
 
 [![CI](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ikey168/Modulo/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Highlights
