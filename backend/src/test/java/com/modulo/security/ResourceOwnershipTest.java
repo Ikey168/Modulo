@@ -55,7 +55,10 @@ class ResourceOwnershipTest {
             var emf = new LocalContainerEntityManagerFactoryBean(); emf.setDataSource(dataSource); emf.setPackagesToScan("com.modulo");
             emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             emf.setJpaPropertyMap(Map.of("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect", "hibernate.hbm2ddl.auto", "none",
-                "hibernate.physical_naming_strategy", "org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy"));
+                // Boot 3's defaults, as used by the application and SchemaMigrationTool.
+                "hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy",
+                "hibernate.implicit_naming_strategy", "org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy",
+                "hibernate.type.preferred_instant_jdbc_type", "TIMESTAMP"));
             return emf;
         }
         @Bean PlatformTransactionManager transactionManager(EntityManagerFactory emf) { return new JpaTransactionManager(emf); }
