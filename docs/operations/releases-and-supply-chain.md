@@ -197,7 +197,10 @@ Check the result with [`scripts/validate-image-signing.sh`](../../scripts/valida
 (prerequisites, Kyverno pods, policies, a blocked unsigned pod, an allowed signed
 pod, policy reports).
 [`test-image-signing.yml`](../../.github/workflows/test-image-signing.yml)
-exercises the policies in a kind cluster when they or these scripts change.
+checks, when they, these scripts or this page change, that the policies are
+valid Kyverno resources, that the scripts parse and are executable, and that this
+page keeps its Overview, Setup Instructions, Verification and Troubleshooting
+sections. It does not run Kyverno.
 
 **Known mismatch.** Both policies expect the signer subject
 `https://github.com/Ikey168/Modulo/.github/workflows/docker-build.yml@refs/heads/main`.
