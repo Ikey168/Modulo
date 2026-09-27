@@ -185,6 +185,7 @@ See [Plugins](../features/plugins.md).
 | `azure.storage.use-managed-identity` | `AZURE_STORAGE_USE_MANAGED_IDENTITY` | `true` | |
 | `azure.storage.container-name` | `AZURE_STORAGE_CONTAINER_NAME` | `attachments` | |
 | `azure.storage.cdn-endpoint` | `AZURE_CDN_ENDPOINT` | empty | |
+| `azure.storage.initialize-container` | `AZURE_STORAGE_INITIALIZE_CONTAINER` | `true` | Creates the container at startup (not in the `test` profile). Tests set it to `false` so profile boot tests don't wait on a storage emulator. |
 | `azure.storage.max-file-size` | `AZURE_STORAGE_MAX_FILE_SIZE` | `10485760` | |
 | `azure.storage.allowed-content-types` | `AZURE_STORAGE_ALLOWED_CONTENT_TYPES` | images, PDF, text, Word | The code default also allows WebP, Markdown, `message/rfc822` and audio types; `application.properties` narrows it. |
 
