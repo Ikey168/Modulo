@@ -111,3 +111,16 @@ description = "Machine-written reference files (regenerated from source)"
 paths = [
     '''^docs/reference/generated/''',
 ]
+
+[[allowlists]]
+description = "Public local-development defaults (never valid outside a local stack)"
+regexTarget = "match"
+regexes = [
+    # Hardhat's well-known account #0 key and its first deployed contract address
+    '''ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80''',
+    '''0x5FbDB2315678afecb367f032d93F642f64180aa3''',
+    # base64 of "dev-only-JWT-secret-change-me-in-production" and "test-jwt-secret-for-validation-testing-1234567890"
+    '''ZGV2LW9ubHktSldULXNlY3JldC1jaGFuZ2UtbWUtaW4tcHJvZHVjdGlvbg==''',
+    '''dGVzdC1qd3Qtc2VjcmV0LWZvci12YWxpZGF0aW9uLXRlc3RpbmctMTIzNDU2Nzg5MA==''',
+    '''default-encryption-key-32-chars-long''',
+]

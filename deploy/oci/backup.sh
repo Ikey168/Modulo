@@ -33,7 +33,8 @@ trap 'exit 143' TERM
 # shellcheck disable=SC2016
 "${compose[@]}" exec -T db sh -ec 'pg_dumpall -U "$POSTGRES_USER"' | gzip -9 > "$target/postgres.sql.gz"
 gzip -t "$target/postgres.sql.gz"
-for service in noesis; do
+volume_services=(noesis)
+for service in "${volume_services[@]}"; do
   container=$("${compose[@]}" ps -aq "$service")
   [[ -n $container ]] || { echo "Missing $service container" >&2; exit 1; }
   volume=$(docker inspect "$container" --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{if eq .Type "volume"}}{{.Name}}{{end}}{{end}}{{end}}')
