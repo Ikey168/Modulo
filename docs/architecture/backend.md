@@ -52,7 +52,7 @@ layered `controller` / `service` / `repository` / `entity` split.
 | `blueprint` | Blueprint CRUD, node registry, capability grants, triggers and webhooks |
 | `blueprint.interpreter` | `BlueprintInterpreterService` (public API) executes Blueprint IR graphs: `BlueprintTriggerRegistrar` wires triggers, `BlueprintGraphRunner` walks the graph, `BuiltInNodeExecutor` dispatches built-in nodes to one class per node family |
 | `blueprint.execution` | Workflow runs, steps, checkpoints, scheduler, retention, recovery, operations, trace policy |
-| `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles |
+| `blueprint.approval` | Human approval requests, decisions, signing, evidence bundles. `ApprovalService` is the API and request state machine; reviewer grants, evidence, decisions, expiry and the inbox read model are package-private collaborators |
 | `blueprint.sandbox`, `blueprint.wasm` | `ScriptSandbox` seam (local WASM engine or remote workload); WASM module validation and execution |
 | `plugin.*` | Plugin API, manager/loader, registry, event bus and NATS bridge, submissions, marketplace trust |
 | `grpc.service` | gRPC `PluginService` and `PluginHostService` implementations |
