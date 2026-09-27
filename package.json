@@ -16,7 +16,7 @@
     "desktop": "cd desktop && npm start",
     "desktop:dev": "cd desktop && npm run dev",
     "start": "docker-compose up",
-    "start:dev": "docker-compose -f docker-compose.dev.yml up",
+    "start:dev": "docker compose -f docker-compose.dev.yml up -d",
     "test": "cd smart-contracts && npx hardhat test",
     "test:coverage": "cd smart-contracts && npx hardhat coverage",
     "test:gas": "cd smart-contracts && REPORT_GAS=true npx hardhat test",
