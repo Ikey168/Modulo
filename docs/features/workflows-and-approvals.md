@@ -336,6 +336,28 @@ unauthorized id and an unknown id return the same response. The actor, owner,
 policy, binding, and time are always derived on the server. Client fields that
 claim them are ignored.
 
+### Praxis approvals in the inbox
+
+The **Approvals** inbox also lists the pending approvals of Praxis tasks you
+submitted (see [Praxis](integrations.md#praxis)). Each row is labeled with its
+source: **Workflow approval** or **Praxis task approval**. The two kinds are
+merged newest first. Praxis approvals appear only with the **Pending** filter on
+the first page, because Praxis keeps their decision history, not Modulo's
+request list.
+
+A Praxis approval is decided in the row: enter a reason (required, sent to
+Praxis) and choose **Approve** or **Reject**. The decision is bound to the
+effect id, its version and the attempt it was proposed in. If the task has
+moved to a new attempt, Praxis answers `409 stale_process_attempt`; the inbox
+says so in an alert, reloads, and the refreshed row starts with an empty reason
+so nothing is re-sent by accident.
+
+When Praxis is not configured, the inbox shows only workflow approvals. When
+Praxis cannot be reached, workflow approvals still load and a notice says the
+Praxis approvals could not be loaded. The **Approvals** panel in Praxis Tasks
+shows how many approvals a task is waiting on and links here; it no longer
+keeps its own list.
+
 ### Rules enforced when a decision commits
 
 The decision transaction locks the request and re-checks all of the following

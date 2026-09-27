@@ -4,40 +4,103 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ApprovalError, decideApproval, getApproval, getApprovalEvidence, getDecisionSignature, listApprovals, type Approval } from './approvalService';
 const field = 'border border-border bg-background px-3 py-2 text-sm rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
 import { signatureLabel } from './signatureLabel';
+import { praxisApi, PraxisError, type PendingPraxisApproval } from '../praxis/praxisApi';
 const date = (value: string) => new Date(value).toLocaleString();
+/** One inbox row: a Modulo workflow approval or a Praxis task approval, labeled with its source. */
+type InboxItem = {source: 'workflow'; at: string; approval: Approval} | {source: 'praxis'; at: string; approval: PendingPraxisApproval};
+const newestFirst = (a: InboxItem, b: InboxItem) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0);
 export function ApprovalInbox() {
   const [params, setParams] = useSearchParams();
   const id = params.get('request');
   const [state, setState] = useState('PENDING');
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<Approval[]>([]);
+  const [praxis, setPraxis] = useState<PendingPraxisApproval[]>([]);
+  const [praxisNotice, setPraxisNotice] = useState('');
+  // Survives the reload that follows a Praxis decision; the decided row itself is gone by then.
+  const [outcome, setOutcome] = useState<{text: string; conflict: boolean}>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
+  // Praxis approvals are pending by definition, so they join the pending filter on its first page.
+  const withPraxis = state === 'PENDING' && page === 0;
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError(''); setItems([]);
-    listApprovals(state, page, controller.signal).then(setItems).catch(e => {if (!controller.signal.aborted) setError(e.message);}).finally(() => {if (!controller.signal.aborted) setLoading(false);});
+    const controller = new AbortController(); setLoading(true); setError(''); setItems([]); setPraxis([]); setPraxisNotice('');
+    const workflow = listApprovals(state, page, controller.signal).then(setItems).catch(e => {if (!controller.signal.aborted) setError(e.message);});
+    // Praxis never blocks workflow approvals: not configured is an empty list, a failure is a notice.
+    const tasks = !withPraxis ? Promise.resolve() : praxisApi.pendingApprovals().then(result => {
+      if (controller.signal.aborted) return;
+      setPraxis(result.approvals);
+      if (!result.complete) setPraxisNotice('Some Praxis tasks could not be checked for approvals. Refresh to try again.');
+    }).catch(e => {if (!controller.signal.aborted) setPraxisNotice(`Praxis approvals could not be loaded: ${e instanceof Error ? e.message : 'unknown error'}`);});
+    void Promise.all([workflow, tasks]).finally(() => {if (!controller.signal.aborted) setLoading(false);});
     return () => controller.abort();
-  }, [state, page, refresh]);
+  }, [state, page, refresh, withPraxis]);
+  const merged: InboxItem[] = [
+    ...items.map(approval => ({source: 'workflow' as const, at: approval.createdAt, approval})),
+    ...praxis.map(approval => ({source: 'praxis' as const, at: approval.requestedAt ?? approval.submittedAt ?? '', approval})),
+  ].sort(newestFirst);
   return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
     <h1 className="text-xl font-semibold">Approvals</h1>
     {id ? <ApprovalDetail key={id} id={id} onBack={() => {setParams({}); setRefresh(n => n + 1);}} /> : <>
       <div className="my-5 flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">Status<select className={field} value={state} onChange={e => {setState(e.target.value); setPage(0);}}>
+        <label className="flex flex-col gap-1 text-sm">Status<select className={field} value={state} onChange={e => {setState(e.target.value); setPage(0); setOutcome(undefined);}}>
           <option value="PENDING">Pending</option><option value="">All history</option>{['APPROVED','REJECTED','EXPIRED','CANCELLED','SUPERSEDED'].map(value => <option key={value}>{value}</option>)}
         </select></label>
         <button className={field} onClick={() => setRefresh(n => n + 1)}>Refresh</button>
       </div>
       {error && <p role="alert">{error}</p>}
-      {loading ? <p role="status">Loading approvals…</p> : !items.length ? <p role="status">No approvals match this filter.</p> : <ul className="divide-y divide-border border-y border-border">
-        {items.map(item => <li key={item.id} className="py-4"><Link className="font-medium underline" to={`?request=${encodeURIComponent(item.id)}`}>{item.blueprintName || 'Blueprint approval'}</Link>
-          <p className="mt-1 text-sm">{item.state} · Requested by user {item.requester}</p>
-          <p className="text-sm text-muted-foreground">{Date.parse(item.expiresAt) <= Date.now() ? 'Expiry reached' : 'Due'}: <time dateTime={item.expiresAt}>{date(item.expiresAt)}</time></p>
-        </li>)}
+      {outcome && <p role={outcome.conflict ? 'alert' : 'status'} className="my-2">{outcome.text}</p>}
+      {praxisNotice && <p role="status" className="my-2 text-sm">{praxisNotice}</p>}
+      {loading ? <p role="status">Loading approvals…</p> : !merged.length ? <p role="status">No approvals match this filter.</p> : <ul className="divide-y divide-border border-y border-border">
+        {merged.map(entry => entry.source === 'praxis'
+          ? <PraxisApprovalItem key={`praxis-${entry.approval.processId}-${entry.approval.effectId}-${entry.approval.version}-${entry.approval.attemptId}`} approval={entry.approval} onDecided={(text, conflict) => {setOutcome({text, conflict: Boolean(conflict)}); setRefresh(n => n + 1);}} />
+          : <li key={entry.approval.id} className="py-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workflow approval</p>
+            <Link className="font-medium underline" to={`?request=${encodeURIComponent(entry.approval.id)}`}>{entry.approval.blueprintName || 'Blueprint approval'}</Link>
+            <p className="mt-1 text-sm">{entry.approval.state} · Requested by user {entry.approval.requester}</p>
+            <p className="text-sm text-muted-foreground">{Date.parse(entry.approval.expiresAt) <= Date.now() ? 'Expiry reached' : 'Due'}: <time dateTime={entry.approval.expiresAt}>{date(entry.approval.expiresAt)}</time></p>
+          </li>)}
       </ul>}
       <nav aria-label="Approval pages" className="mt-4 flex items-center gap-3"><button className={field} disabled={page === 0 || loading} onClick={() => setPage(n => n - 1)}>Previous</button><span>Page {page + 1}</span><button className={field} disabled={items.length < 25 || loading} onClick={() => setPage(n => n + 1)}>Next</button></nav>
     </>}
   </main>;
+}
+/**
+ * A pending Praxis approval, decided in place. The decision is bound to the effect's
+ * version and the attempt it was proposed in; if the task moved on, Praxis answers 409
+ * and the inbox reloads so the reviewer sees the current approval before deciding again.
+ */
+function PraxisApprovalItem({approval, onDecided}: {approval: PendingPraxisApproval; onDecided: (text: string, conflict?: boolean) => void}) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const reasonId = `praxis-reason-${approval.processId}-${approval.effectId}`;
+  async function decide(approved: boolean) {
+    if (busy || !reason.trim()) return;
+    setBusy(true); setError('');
+    try {
+      await praxisApi.decide(approval.processId, {effect_id: approval.effectId, version: approval.version, attempt_id: approval.attemptId}, approved, reason.trim());
+      onDecided(approved ? 'Approved in Praxis.' : 'Rejected in Praxis.');
+    } catch (e) {
+      if (e instanceof PraxisError && e.status === 409) {
+        onDecided(`Praxis refused the decision on "${approval.title}" because the task moved on since it was loaded (${e.code}). ${e.message} Review the refreshed approval before deciding again.`, true);
+      } else setError(e instanceof Error ? e.message : 'Unable to record decision.');
+    } finally {setBusy(false);}
+  }
+  return <li className="py-4">
+    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Praxis task approval</p>
+    <p className="font-medium">{approval.title}</p>
+    {approval.summary && <p className="mt-1 text-sm">Task: {approval.summary}</p>}
+    <p className="text-sm text-muted-foreground">{approval.reversible ? 'Reversible' : 'Not reversible'} · version {approval.version}
+      {approval.requestedAt && <> · Requested <time dateTime={approval.requestedAt}>{date(approval.requestedAt)}</time></>}</p>
+    {error && <p role="alert" className="my-2">{error}</p>}
+    <label htmlFor={reasonId} className="mt-2 block text-sm">Reason (required, sent to Praxis)</label>
+    <textarea id={reasonId} className={`${field} min-h-16 w-full max-w-xl`} value={reason} maxLength={2000} disabled={busy} onChange={e => setReason(e.target.value)} />
+    <div className="mt-2 flex gap-2">
+      <button className={field} disabled={busy || !reason.trim()} onClick={() => void decide(true)}>Approve</button>
+      <button className={field} disabled={busy || !reason.trim()} onClick={() => void decide(false)}>Reject</button>
+    </div>
+  </li>;
 }
 function ApprovalDetail({id,onBack}: {id: string; onBack: () => void}) {
   const [request, setRequest] = useState<Approval>();
