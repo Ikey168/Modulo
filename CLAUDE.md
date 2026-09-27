@@ -43,6 +43,10 @@ docs/            see docs/README.md; docs/reference/generated/ is machine-writte
   `@modulo/core` (alias in both `vite.config.ts` and `tsconfig.json`). Enforced
   by ESLint (`error`) and the `boundary-lint` CI job. `npm run lint:boundary:ci`
   is the strict check.
+- **Pack boundary.** Code in `src/packs/<a>/` must not import `src/packs/<b>/`.
+  Shared code goes in `features/workspace/` (or `@modulo/core`, `@/ui`,
+  `services/`). Same ESLint rule and CI job as the core boundary; the
+  per-pack overrides are generated in `frontend/.eslintrc.boundary.cjs`.
 - **No browser storage.** ESLint forbids `localStorage` and `sessionStorage`.
   Plugin data uses plugin state. Device-only documents use
   `services/deviceDocuments`.

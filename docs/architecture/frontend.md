@@ -187,7 +187,8 @@ the domain models and stores (`para.ts`, `hobbies.ts`, `useHobbyStore.ts`, …).
 The models stay shared because the planner, calendar, search index and
 portable backup read every pack's records. A pack imports them from
 `features/workspace/`; the catalog still lazy-loads each pack's entry modules
-by path, so every pack remains its own chunk.
+by path, so every pack remains its own chunk. Packs never import each other;
+see [Pack boundary](#pack-boundary).
 
 ## Lint rules that hold the architecture
 
@@ -218,6 +219,28 @@ CI runs `lint:boundary:ci` in the `boundary-lint` job of
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). The separate
 boundary config ignores all other rules, so unrelated lint debt cannot mask or
 fake a boundary failure.
+
+<a id="pack-boundary"></a>
+### Pack boundary
+
+Code in `src/packs/<a>/` must not import from `src/packs/<b>/`. A pack may
+import `@modulo/core`, `@/ui`, the view kit, plugin types, the shared modules in
+`features/workspace/` and `services/`. Code that two packs need moves to one of
+those shared places first.
+
+The rule lives in [`.eslintrc.boundary.cjs`](../../frontend/.eslintrc.boundary.cjs),
+and `.eslintrc.cjs` reuses it, so `npm run lint`, `lint:boundary:ci` and the
+`boundary-lint` CI job all enforce it. The config reads the directories under
+`src/packs/` at lint time and adds one `no-restricted-imports` override per
+pack that forbids every other pack, so a new pack is covered without editing
+the config. Each override repeats the core boundary patterns, because an
+override replaces the rule's options rather than merging them.
+
+`no-restricted-imports` checks `import` and `export … from` statements, including
+type-only imports, in every spelling that reaches another pack (`../b/…`,
+`../../b/…`, `@/packs/b/…`, `../../packs/b/…`). It does not check dynamic
+`import()`; only the plugin catalog in `features/workspace/plugins/` lazy-loads
+pack modules.
 
 ### No browser Storage
 
