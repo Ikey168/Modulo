@@ -21,7 +21,7 @@ The cluster and cloud stacks that used to sit alongside these (plain `k8s/`
 manifests for the core, the `api`/`web`/`worker`/`keycloak` Helm charts, Argo
 Rollouts, Azure scripts and workflows, Terraform) were unused and did not work
 as committed. They were removed in #540 and are preserved at the Git tag
-[`archive/cloud-deployments`](#archived-cloud-deployments).
+commit [`86644da`](#archived-cloud-deployments).
 
 Every target runs the same two application images (frontend nginx and Spring
 Boot backend) plus PostgreSQL, Neo4j and Keycloak. The backend is always started
@@ -243,8 +243,8 @@ self-heal. How to build, deploy and attach a plugin is in
 
 ## Archived cloud deployments
 
-The tag `archive/cloud-deployments` points at the last commit that contained the
-retired cluster and cloud stacks:
+Commit `86644da` on `main` is the last commit that contained the retired
+cluster and cloud stacks. It stays reachable through `main`'s history:
 
 | Removed | What it was |
 |---------|-------------|
@@ -264,9 +264,8 @@ while actuator listens on 8081, and the Kyverno policies expected the
 To look at or restore a piece:
 
 ```sh
-git fetch origin tag archive/cloud-deployments
-git show archive/cloud-deployments:k8s/README.md
-git checkout archive/cloud-deployments -- k8s/observability    # restore a directory into the working tree
+git show 86644da:k8s/README.md
+git checkout 86644da -- k8s/observability    # restore a directory into the working tree
 ```
 
 The backend's `kubernetes` and `azure` Spring profiles are still in

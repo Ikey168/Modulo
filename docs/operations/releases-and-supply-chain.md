@@ -174,7 +174,7 @@ Kyverno admission policies that admitted only signed Modulo images
 `scripts/validate-image-signing.sh` and the `test-image-signing.yml` workflow)
 belonged to the retired cluster deployment. They were removed in #540 and are
 preserved at the Git tag
-[`archive/cloud-deployments`](deployment.md#archived-cloud-deployments). They
+commit [`86644da`](deployment.md#archived-cloud-deployments). They
 still expected the `docker-build.yml` signer; if you restore them, change the
 `subject` to the `signed-production.yml` identity shown under
 [Verify an image signature](#verify-an-image-signature), and allow the registries

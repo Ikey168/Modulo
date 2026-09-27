@@ -75,7 +75,7 @@ in `backend/`.
 | `examples/` | Example WASM Blueprint nodes (AssemblyScript, Rust) |
 | `smart-contracts/` | Solidity contracts (Hardhat) |
 | `deploy/` | Deployment definitions: the OCI production host and the Raspberry Pi |
-| `helm/plugin/`, `argocd/`, `k8s/nats/` | Kubernetes deployment of external plugins and their NATS broker. Retired cloud stacks are at the tag `archive/cloud-deployments`. |
+| `helm/plugin/`, `argocd/`, `k8s/nats/` | Kubernetes deployment of external plugins and their NATS broker. Retired cloud stacks are in commit `86644da`. |
 | `infra/personal/` | Ansible for the owner's personal infrastructure |
 | `tools/` | MCP servers for Modulo and Docker |
 | `docs/` | Documentation. Start at [docs/README.md](docs/README.md). |

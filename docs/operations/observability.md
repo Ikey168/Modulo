@@ -20,7 +20,7 @@ settings behind each piece are in the
 The Kubernetes observability stack (Prometheus, Grafana, Loki, Tempo, SLO rules
 and dashboards under `k8s/observability`) was retired with the cluster
 deployment and is preserved at the Git tag
-[`archive/cloud-deployments`](deployment.md#archived-cloud-deployments).
+commit [`86644da`](deployment.md#archived-cloud-deployments).
 
 ## Health endpoints
 
@@ -125,7 +125,7 @@ What to do when a workflow alert fires is in [Runbooks](runbooks.md#workflow-ope
   through the UI. Move it back once Grafana fixes the provisioner.
 - The application performance, JVM, database, SLO overview, sync/blockchain and
   cost dashboards of the retired Kubernetes stack are in the
-  [`archive/cloud-deployments`](deployment.md#archived-cloud-deployments) tag
+  commit [`86644da`](deployment.md#archived-cloud-deployments)
   (`k8s/observability/dashboards`).
 
 ## Tracing
@@ -252,7 +252,7 @@ Recording rules `modulo:sli:*`, `modulo:slo:*_compliance` and
 `modulo:slo:*_burn_rate_{5m,30m,1h,6h,24h}` and the burn-rate alerts were
 defined only for the retired Kubernetes Prometheus
 (`k8s/observability/prometheus-slo-rules.yaml`, preserved at the
-[`archive/cloud-deployments`](deployment.md#archived-cloud-deployments) tag). No
+commit [`86644da`](deployment.md#archived-cloud-deployments)). No
 running Prometheus loads them. Before porting them to
 `monitoring/prometheus/rules/`, fix the alert annotations: they call a `div`
 template function that Prometheus does not have, so `promtool check rules`
