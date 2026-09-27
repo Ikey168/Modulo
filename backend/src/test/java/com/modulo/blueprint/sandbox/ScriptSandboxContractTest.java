@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * assertions of the retired Rhino-only test surface unchanged.
  *
  * Engine-specific differences that are intentional (not parity bugs) live in
- * docs/blueprint/wasm-sandbox-drift.md; anything asserted here must hold for
+ * docs/reference/wasm-node-abi.md; anything asserted here must hold for
  * every implementation.
  */
 @DisplayName("ScriptSandbox contract — every implementation")

@@ -192,7 +192,7 @@ out-of-band recovery path.
 
 Application topology stays in `deploy/oci`, `deploy/pi` and service-specific
 repositories. Secrets remain in protected host/provider custody. Recovery uses
-`docs/infrastructure/recovery/README.md`.
+`docs/infrastructure/recovery.md`.
 
 ## Verification
 

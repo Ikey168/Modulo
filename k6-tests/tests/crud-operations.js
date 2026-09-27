@@ -7,7 +7,7 @@ const errorRate = new Rate('slo_error_rate');
 const readLatency = new Trend('slo_read_latency');
 const writeLatency = new Trend('slo_write_latency');
 
-// 🎯 SLO-Aligned Thresholds (from docs/SLO_SPECIFICATION.md)
+// 🎯 SLO-Aligned Thresholds (from docs/operations/observability.md)
 export const thresholds = {
   // Read Performance SLO: P95 < 200ms, 99% success rate
   'slo_read_latency': ['p(95)<200'],

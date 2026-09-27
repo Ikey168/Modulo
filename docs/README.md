@@ -1,127 +1,87 @@
-# Modulo Documentation
+# Modulo documentation
 
-This is the documentation hub for Modulo. Topic-specific guides live in the
-themed folders below; component-local docs (backend, smart contracts, infra)
-are linked from the [Component & infrastructure docs](#component--infrastructure-docs)
-section at the bottom.
+This is the map of Modulo's documentation. Pages are grouped by what you are
+trying to do. The code is the source of truth. When a page and the code disagree,
+the page is the bug: fix it in the same change.
 
-> New here? Start with the root [README](../README.md) for the project
-> overview, quick start, and architecture summary.
+## Start here
 
-## Roadmap
+| If you want to… | Read |
+|---|---|
+| Understand what Modulo is and the vocabulary it uses | [Overview](getting-started/overview.md) |
+| Run the stack locally, run tests, manage local secrets | [Local development](getting-started/local-development.md) |
+| Contribute a change | [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Know what's planned | [Roadmap](project/roadmap.md) |
 
-- [Feature ideas & roadmap](roadmap/feature-ideas.md)
+## Architecture — how the system is built
 
-## Architecture
+| Page | Covers |
+|---|---|
+| [System overview](architecture/README.md) | Components, how they talk, where each concern lives |
+| [Backend](architecture/backend.md) | Spring Boot application, package layout, API surface, events |
+| [Frontend](architecture/frontend.md) | React app, `@modulo/core`, feature packs, boundary lint, plugin runtime |
+| [Data and state](architecture/data-and-state.md) | PostgreSQL/Flyway, Neo4j, plugin state API, sync and offline, tenancy |
+| [Security model](architecture/security-model.md) | Authentication, authorization, encryption, sharing |
+| [Decision log](architecture/decisions.md) | Every architecture decision record (ADR), binding until superseded |
 
-- [B2 — Core/Experience boundary audit](architecture/B2-boundary-audit.md)
-- [ADR 0001 — Encryption key derivation](architecture/adr-0001-encryption-key-derivation.md)
-- [ADR 0002 — Core keeps first-class note/link/tag/user types](architecture/adr-0002-core-keeps-first-class-types.md)
-- [Knowledge graph milestone](plugins/knowledge/knowledge-graph.md)
+## Features — what Modulo does and how to use or extend it
 
-## Plugins
-- [Knowledge Base — note properties, property queries, and semantic knowledge](plugins/knowledge/README.md)
-- [Plugin system architecture & API design](plugins/architecture.md)
-- [Plugin development guide](plugins/development-guide.md)
-- [Plugin system summary](plugins/system-summary.md)
-- [Plugin manager UI](plugins/manager-ui.md)
-- [Plugin marketplace UI](plugins/marketplace.md)
-- [Plugin submission system](plugins/submission.md)
-- [Third-party plugin hosting](plugins/third-party-hosting.md)
-- [gRPC plugin service](plugins/grpc-service.md)
-- Frontend plugin module: [`frontend/src/features/plugins/README.md`](../frontend/src/features/plugins/README.md)
+| Page | Covers |
+|---|---|
+| [Workspace](features/workspace.md) | Notes, views, planner, canvas, embedded databases, properties and queries |
+| [Knowledge](features/knowledge.md) | Knowledge graph, semantic search, Ask Modulo, suggested links |
+| [Blueprints](features/blueprints.md) | Visual workflow editor, interpreter, triggers, WASM sandbox |
+| [Workflows and approvals](features/workflows-and-approvals.md) | Workflow runs, Execution Center, human approvals, signing, evidence bundles |
+| [Plugins](features/plugins.md) | Plugin model, development, external plugins, marketplace, Trust Center |
+| [Packs](features/packs.md) | Pack manifest, install lifecycle, Pack Studio |
+| [Integrations](features/integrations.md) | Noesis, Praxis, Gmail, blockchain/IPFS, Azure Blob, gRPC |
+| [Mobile and desktop](features/mobile-and-desktop.md) | Android app, Electron desktop shell |
 
-## Blueprint system
+## Reference — look things up
 
-- [Visual editor](blueprint/editor.md)
-- [Interpreter](blueprint/interpreter.md)
-- [Node catalog](blueprint/node-catalog.md)
+| Page | Covers |
+|---|---|
+| [Blueprint nodes](reference/blueprint-nodes.md) | Every node in the catalog |
+| [WASM node ABI](reference/wasm-node-abi.md) | Module contract for custom WASM nodes and sandbox behavior |
+| [Pack catalog](reference/pack-catalog.md) | The domain packs that ship with Modulo |
+| [Configuration](reference/configuration.md) | Backend and frontend configuration keys and environment variables |
+| [`examples/`](reference/examples/) | Worked example files used by tests |
+| [`generated/`](reference/generated/) | Machine-written evidence (Android parity/performance/accessibility, authz benchmark). Regenerate these with their scripts. Don't edit them by hand. |
 
-## Mobile
+## Operations — run Modulo in production
 
-- [Mobile OAuth & blockchain authentication](mobile/oauth.md)
-- [Mobile responsiveness](mobile/responsiveness.md)
-- [Mobile performance testing & debugging](mobile/performance-testing.md)
+| Page | Covers |
+|---|---|
+| [Deployment](operations/deployment.md) | Docker Compose, Kubernetes/Helm/Argo CD, the Oracle production host |
+| [Releases and supply chain](operations/releases-and-supply-chain.md) | Release pipeline, image signing, SBOMs, promotion |
+| [Database](operations/database.md) | Flyway migrations, backup and restore |
+| [Observability](operations/observability.md) | Health endpoints, OpenTelemetry, audit logging, SLOs, load testing |
+| [Security testing](operations/security-testing.md) | CodeQL, OWASP ZAP, secret scanning, policy CI, vulnerability handling |
+| [Runbooks](operations/runbooks.md) | Step-by-step operator procedures |
 
-## Sync & offline storage
+## Personal infrastructure and security
 
-- [Conflict resolution for simultaneous edits](sync/conflict-resolution.md)
-- [Network reconnection & auto-sync](sync/network-sync.md)
-- [SQLite offline storage](sync/sqlite-offline.md)
+The devices, network and recovery procedures that host Modulo, Noesis and Praxis.
+Scripts in `scripts/verify-*.py` check these pages, so keep their required
+headings intact.
 
-## Attachments & storage
+| Page | Covers |
+|---|---|
+| [Infrastructure overview](infrastructure/README.md) | Hosts, trust boundaries, how the pieces fit |
+| [Devices](infrastructure/devices.md) | Device inventory and rebuild procedures |
+| [Home network](infrastructure/home-network.md) | Topology, addressing, WireGuard, monitoring, recovery |
+| [Data lifecycle](infrastructure/data-lifecycle.md) | Retention classes and the Noesis data lifecycle |
+| [Recovery](infrastructure/recovery.md) | Disaster-recovery entry point for every loss scenario |
+| [Records](infrastructure/records.md) | Dated acceptance and verification evidence |
+| [Incident response](security/incident-response.md) | Playbooks for account, device and credential compromise |
+| [Identity recovery](security/identity-recovery.md) | Tier-0 identity roots, recovery factors, remediation plan |
 
-- [Azure Blob Storage for attachments](storage/azure-blob-storage.md)
+## Conventions for these docs
 
-## Authentication & authorization
-
-- [Frontend PKCE login flow](auth/pkce-login-flow.md)
-- [Role/claim matrix & least-privilege defaults](authz/role-matrix.md)
-- [Custom role migration guide](authz/migration-guide.md)
-- [OAuth migration documentation](authz/migration.md)
-- [Role implementation examples](authz/examples.md)
-- [Admin & operator playbook](authz/operator-playbook.md)
-- [Smoke-test checklist](authz/smoke-test-checklist.md)
-- [Role matrix documentation tests](authz/test-coverage.md)
-
-## Security
-
-- [Encrypted note sharing — security model](security/encrypted-sharing.md)
-- [Security testing & cloud deployment hardening](security/testing-and-cloud-hardening.md)
-- [Security testing guide](SECURITY_TESTING_GUIDE.md)
-- [Security findings remediation](SECURITY_FINDINGS.md)
-- [Vulnerability remediation playbook](VULNERABILITY_REMEDIATION.md)
-- [CodeQL code scanning](CODEQL_SECURITY_SCANNING.md)
-- [OWASP ZAP scanning](OWASP_ZAP_SECURITY_SCANNING.md)
-- [Secret scanning & pre-commit hooks](SECRET_SCANNING_IMPLEMENTATION.md)
-- [Container image signing with Cosign](CONTAINER_IMAGE_SIGNING.md)
-- Repo-wide [security policy](../SECURITY.md)
-
-## Secrets management
-
-- [Local development secrets (SOPS + direnv)](LOCAL_DEVELOPMENT_SECRETS.md)
-- [External Secrets Operator](EXTERNAL_SECRETS_IMPLEMENTATION.md)
-
-## Observability & operations
-
-- [OpenTelemetry implementation](observability/opentelemetry.md)
-- [Audit logging & decision tracing](AUDIT_LOGGING_DECISION_TRACING.md)
-- [Health endpoints & Kubernetes probes](HEALTH_ENDPOINTS.md)
-- [Service Level Objectives (SLOs)](SLO_SPECIFICATION.md)
-- [Database backup & restore](operations/database-backup.md)
-
-## Performance
-
-- [Performance testing](PERFORMANCE_TESTING.md)
-- [AuthN/Z performance & resilience benchmark](perf/authz-benchmark.md)
-- [API response time optimization](perf/api-response-time-optimization.md)
-- [Mobile performance testing](mobile/performance-testing.md)
-
-## Deployment
-
-- [Kubernetes deployment](deployment/kubernetes.md)
-
-## CI, policy & release process
-
-- [Policy CI gate](POLICY_CI_IMPLEMENTATION.md)
-- [Policy directory](policy/README.md)
-- [Conventional commits guide](CONVENTIONAL_COMMITS.md)
-- [Release workflow test](RELEASE_TEST.md)
-
-## Component & infrastructure docs
-
-These live next to the code they describe:
-
-- Backend: [Blockchain integration](../backend/BLOCKCHAIN_INTEGRATION.md) ·
-  [IPFS integration](../backend/IPFS_INTEGRATION.md) ·
-  [Config validation](../backend/CONFIG_VALIDATION_IMPLEMENTATION.md) ·
-  [JaCoCo coverage guide](../backend/JACOCO_COVERAGE_GUIDE.md)
-- Smart contracts: [README](../smart-contracts/README.md) ·
-  [Deployment](../smart-contracts/DEPLOYMENT.md) ·
-  [Polygon mainnet deployment](../smart-contracts/POLYGON_MAINNET_DEPLOYMENT_README.md) ·
-  [Security audit report](../smart-contracts/SECURITY_AUDIT_REPORT.md)
-- Azure: [Setup overview](../azure/README.md) ·
-  [Application Insights setup](../azure/setup-app-insights.md)
-- Kubernetes / infra: see the `README.md` in each [`k8s/`](../k8s) subfolder
-  (observability, chaos-engineering, incident-response, cost-management, …)
-- Load testing: [`k6-tests/`](../k6-tests)
+- One topic, one page. Extend the page that covers the topic before starting a
+  new one, and add every new page to this index.
+- Link to code with repo-relative paths so links survive refactors that keep the file.
+- Record architecture decisions in the [decision log](architecture/decisions.md).
+  Record dated acceptance evidence in [records](infrastructure/records.md) or in
+  the relevant pull request, not in feature pages.
+- Never put secret values in docs. Document variable names and where each secret is kept.

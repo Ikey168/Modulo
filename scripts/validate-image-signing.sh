@@ -214,7 +214,7 @@ show_configuration() {
     echo "  1. Run CI/CD pipeline to sign new images"
     echo "  2. Deploy signed images to test signature verification"
     echo "  3. Monitor policy reports for violations"
-    echo "  4. Review documentation in docs/CONTAINER_IMAGE_SIGNING.md"
+    echo "  4. Review documentation in docs/operations/releases-and-supply-chain.md"
 }
 
 # Main execution

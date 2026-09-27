@@ -78,7 +78,7 @@ services:
         condition: service_started
       ipfs:
         condition: service_healthy
-      # Flyway owns PostgreSQL DDL; see docs/operations/schema-migrations.md.
+      # Flyway owns PostgreSQL DDL; see docs/operations/database.md.
     networks:
       - modulo-network
     restart: unless-stopped

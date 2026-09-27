@@ -9,7 +9,7 @@
  *   - persisted: for plugins with record schemas, tapping the view's primary
  *     create control (and submitting its form, if one opens) wrote to the
  *     plugin-state API.
- * Writes docs/mobile/android-parity-evidence.json and exits 1 when any view
+ * Writes docs/reference/generated/android/android-parity-evidence.json and exits 1 when any view
  * fails to render or is not interactive.
  *   node scripts/phoneParity.mjs <baseUrl> [viewId ...]
  */
@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { openPhone } from './phoneHarness.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const inventory = JSON.parse(readFileSync(join(ROOT, 'docs/mobile/android-inventory.json'), 'utf8'));
+const inventory = JSON.parse(readFileSync(join(ROOT, 'docs/reference/generated/android/android-inventory.json'), 'utf8'));
 const [base = 'http://127.0.0.1:5188', ...only] = process.argv.slice(2);
 
 const plugins = inventory.plugins.filter((plugin) => plugin.runnable);
@@ -124,7 +124,7 @@ const summary = {
   persisted: results.filter((result) => result.create === 'persisted').length,
 };
 if (!only.length && !storageThrows) {
-  writeFileSync(join(ROOT, 'docs/mobile/android-parity-evidence.json'), `${JSON.stringify({
+  writeFileSync(join(ROOT, 'docs/reference/generated/android/android-parity-evidence.json'), `${JSON.stringify({
     generatedBy: 'frontend/scripts/phoneParity.mjs',
     note: 'Phone-viewport (412x883, touch) sweep of every contributed view with the whole catalog installed against an in-memory plugin-state API. Device runs are recorded by the android-emulator CI job.',
     summary, results,

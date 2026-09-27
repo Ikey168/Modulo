@@ -8,7 +8,7 @@ const catalog = createCoreCatalog();
 // worked example (which uses note triggers/actions) resolves against the catalog.
 NOTES_NODES.forEach((n) => catalog.register(n));
 
-// The worked example from docs/blueprint/node-catalog.md:
+// The worked example from docs/features/blueprints.md:
 // trigger.note.saved → action.ai.summarize → action.tag.add → action.note.anchor
 const FULL_PIPELINE: BlueprintIR = {
   irVersion: IR_VERSION,

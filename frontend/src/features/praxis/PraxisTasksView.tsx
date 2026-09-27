@@ -265,7 +265,7 @@ export function PraxisTasksView() {
       )}
       {status && !status.configured && (
         <EmptyState icon={<CircleSlash aria-hidden className="size-6" />} title="Praxis is not connected"
-          description="This Modulo server has no Praxis host configured. An administrator can enable it with the settings in docs/integrations/praxis.md."
+          description="This Modulo server has no Praxis host configured. An administrator can enable it with the settings in docs/features/integrations.md (Praxis section)."
           action={<Button variant="outline" size="sm" onClick={() => void load()}>Check again</Button>} />
       )}
 

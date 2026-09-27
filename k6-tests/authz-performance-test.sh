@@ -230,7 +230,7 @@ main() {
     echo -e "${GREEN}🎉 Performance testing completed!${NC}"
     echo ""
     echo "Results available in: $RESULTS_DIR"
-    echo "View the benchmark documentation: docs/perf/authz-benchmark.md"
+    echo "View the benchmark documentation: docs/reference/generated/authz-benchmark.md"
     echo ""
     echo -e "${BLUE}To view detailed results:${NC}"
     echo "  cat $RESULTS_DIR/authz-performance-report-${TIMESTAMP}.md"

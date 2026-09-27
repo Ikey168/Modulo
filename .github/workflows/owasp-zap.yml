@@ -519,8 +519,7 @@ jobs:
             ### 🔗 Resources
             
             - [OWASP ZAP Documentation](https://owasp.org/www-project-zap/)
-            - [Security Findings Guide](./docs/SECURITY_FINDINGS.md)
-            - [Vulnerability Remediation](./docs/VULNERABILITY_REMEDIATION.md)
+            - [Security testing and vulnerability handling](./docs/operations/security-testing.md)
             
             ---
             

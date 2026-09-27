@@ -46,7 +46,7 @@ interface SubmissionResponse {
 }
 
 const EXTERNAL_PLUGINS_DOC_URL =
-  'https://github.com/Ikey168/Modulo/blob/main/docs/deploying-external-plugins.md';
+  'https://github.com/Ikey168/Modulo/blob/main/docs/features/plugins.md#deploying-external-plugins';
 
 const CATEGORIES = [
   'Development Tools',

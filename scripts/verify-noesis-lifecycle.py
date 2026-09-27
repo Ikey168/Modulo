@@ -4,7 +4,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = ROOT / "docs/infrastructure/data/noesis-lifecycle.md"
+POLICY = ROOT / "docs/infrastructure/data-lifecycle.md"
 BACKUP = ROOT / "deploy/oci/backup.sh"
 COMPOSE = ROOT / "deploy/oci/compose.yml"
 

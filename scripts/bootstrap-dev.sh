@@ -781,8 +781,8 @@ $(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
 
 ## Support
 For issues or questions, refer to the operator playbook:
-- docs/authz/operator-playbook.md
-- docs/authz/smoke-test-checklist.md
+- docs/operations/runbooks.md
+- docs/architecture/security-model.md
 EOF
     
     log_success "Summary report generated: $report_file"

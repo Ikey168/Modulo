@@ -1,8 +1,8 @@
 # Example `action.wasm.execute` modules
 
 Reference implementations of the WASM blueprint-node ABI
-([ADR 0003](../../docs/architecture/adr-0003-wasm-execute-module-contract.md);
-author guide: [docs/blueprint/wasm-nodes.md](../../docs/blueprint/wasm-nodes.md)).
+([ADR 0003](../../docs/architecture/decisions.md#adr-0003);
+author guide: [docs/reference/wasm-node-abi.md](../../docs/reference/wasm-node-abi.md)).
 
 | Directory | Language | Node behavior | Build |
 |-----------|----------|---------------|-------|

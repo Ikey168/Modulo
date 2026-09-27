@@ -6,7 +6,7 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAYBOOK = ROOT / "docs/security/incident-response/README.md"
+PLAYBOOK = ROOT / "docs/security/incident-response.md"
 REQUIRED = {
     "Universal first response",
     "Lost or stolen hardware security key",

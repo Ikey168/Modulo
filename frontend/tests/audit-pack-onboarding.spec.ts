@@ -65,7 +65,7 @@ test('fresh workspace completes the guided Security Audit journey', async ({ pag
   await page.getByRole('button', { name: 'Create privacy-safe demo engagement' }).click();
   await expect(page.getByText('Demo security review · Demo')).toBeVisible();
   if (process.env.UPDATE_DOC_SCREENSHOTS === '1') {
-    await page.screenshot({ path: '../docs/images/security-audit-guided-journey.png', fullPage: true });
+    await page.screenshot({ path: '../docs/reference/images/security-audit-guided-journey.png', fullPage: true });
   }
   await page.getByRole('button', { name: 'Generate report snapshot' }).click();
   await page.getByLabel('Share this exact report with the configured reviewer for approval.').check();

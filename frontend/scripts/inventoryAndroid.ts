@@ -247,8 +247,8 @@ const matrix = [
   '',
 ].join('\n');
 
-const inventoryPath = resolve(repository, 'docs/mobile/android-inventory.json');
-const matrixPath = resolve(repository, 'docs/mobile/android-parity-matrix.md');
+const inventoryPath = resolve(repository, 'docs/reference/generated/android/android-inventory.json');
+const matrixPath = resolve(repository, 'docs/reference/generated/android/android-parity-matrix.md');
 const serialized = JSON.stringify(inventory, null, 2) + '\n';
 if (process.argv.includes('--check')) {
   const problems: string[] = [];
@@ -281,11 +281,11 @@ if (process.argv.includes('--check')) {
     }
   }
   if (inventory.totals.unownedDeclaredKeys) problems.push(`Storage keys without a registered owner: ${declaredKeys.filter(item => !item.owned).map(item => item.key).join(', ')}`);
-  if (!existsSync(inventoryPath) || readFileSync(inventoryPath, 'utf8') !== serialized) problems.push('docs/mobile/android-inventory.json is stale. Regenerate it with scripts/inventoryAndroid.ts.');
-  if (!existsSync(matrixPath) || readFileSync(matrixPath, 'utf8') !== matrix) problems.push('docs/mobile/android-parity-matrix.md is stale. Regenerate it with scripts/inventoryAndroid.ts.');
+  if (!existsSync(inventoryPath) || readFileSync(inventoryPath, 'utf8') !== serialized) problems.push('docs/reference/generated/android/android-inventory.json is stale. Regenerate it with scripts/inventoryAndroid.ts.');
+  if (!existsSync(matrixPath) || readFileSync(matrixPath, 'utf8') !== matrix) problems.push('docs/reference/generated/android/android-parity-matrix.md is stale. Regenerate it with scripts/inventoryAndroid.ts.');
   // Adding a plugin view requires phone parity evidence for it (#497): regenerate with `npm run phone:parity`.
-  const evidencePath = resolve(repository, 'docs/mobile/android-parity-evidence.json');
-  if (!existsSync(evidencePath)) problems.push('docs/mobile/android-parity-evidence.json is missing. Run npm run phone:parity.');
+  const evidencePath = resolve(repository, 'docs/reference/generated/android/android-parity-evidence.json');
+  if (!existsSync(evidencePath)) problems.push('docs/reference/generated/android/android-parity-evidence.json is missing. Run npm run phone:parity.');
   else {
     const evidence = JSON.parse(readFileSync(evidencePath, 'utf8')) as { results: Array<{ view: string; rendered: boolean; interactive: boolean }> };
     const checked = new Map(evidence.results.map(result => [result.view, result]));

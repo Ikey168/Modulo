@@ -75,7 +75,7 @@ public class PluginValidationService {
             } else if (submission.getJarFilePath() != null) {
                 result.addError("[POLICY] Marketplace submissions run as EXTERNAL workloads and must be "
                     + "container images — JAR submissions are no longer accepted. Submit an image "
-                    + "reference pinned by digest (see docs/deploying-external-plugins.md).");
+                    + "reference pinned by digest (see docs/features/plugins.md).");
                 // Legacy validation still runs so reviewers see the full picture on old rows.
                 validateJarFile(submission.getJarFilePath(), result);
                 performSecurityCheck(submission.getJarFilePath(), result);

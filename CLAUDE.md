@@ -1,120 +1,107 @@
-# Modulo — Claude Code Context
+# Modulo — Claude Code context
+
+Read [AGENTS.md](AGENTS.md) first. Its rules on acceptance, safety and generated
+files apply here too. This file adds the working details a coding agent needs.
+For anything deeper, start at [docs/README.md](docs/README.md).
 
 ## Stack
 
 | Layer | Tech |
-|-------|------|
-| Backend | Spring Boot 2.7.18, Java 17, Maven |
-| Frontend | React 18 + TypeScript, Vite 5, Vitest |
-| Databases | PostgreSQL (primary), Neo4j (knowledge graph) |
-| Blockchain | Hardhat (Ethereum local node) |
-| Auth | Keycloak (OIDC), Spring Security |
+|---|---|
+| Backend | Spring Boot 2.7, Java 17, Maven (`backend/`, package `com.modulo`) |
+| Frontend | React 18 + TypeScript, Vite 5, Vitest, Playwright (`frontend/`) |
+| Data | PostgreSQL with Flyway migrations (`backend/src/main/resources/db/postgresql/`), Neo4j |
+| Auth | Keycloak OIDC (code + PKCE), Spring Security, owner-scoped resources |
+| Sandbox | QuickJS on WASM (`WasmScriptSandbox`): no host access, 32 MiB memory cap, wall-clock timeout |
+| Clients | Browser, Electron (`desktop/`, standalone package), Android via Capacitor (`mobile/`) |
+| Toolchain | `mise` pins Java 17, Node 22, Python (`.mise.toml`) |
 
-## Repository layout
+## Where things live
 
 ```
-backend/          Spring Boot app (Maven, src/main/java/com/modulo/)
-frontend/         React/TS app (src/ tree below)
-  src/
-    core/         @modulo/core — the public API surface for feature packs
-    features/     Feature modules (workspace, notes, auth, blueprint, plugins…)
-    components/   Shared UI (common/, layout/, mobile/)
-    services/     Low-level REST/WS clients (api.ts, websocket.ts, …)
-    store/        Redux store
-desktop/          Electron shell (standalone package, NOT an npm workspace;
-                  serve.js = embedded static+proxy server, main.js = main process)
-docs/             Architecture docs, ADRs
-  architecture/   ADRs, boundary audit (B2-boundary-audit.md)
-  blueprint/      Blueprint system docs
+frontend/src/
+  core/          @modulo/core — the only API feature code may use
+  features/      workspace, notes, blueprint, executions, approvals, packs, knowledge, praxis, …
+  features/workspace/plugins/   plugin catalog (catalog.ts) and built-in plugins
+  services/      low-level REST/WS clients, deviceDocuments, legacy migration readers
+backend/src/main/java/com/modulo/
+  blueprint/     interpreter, node registry, sandbox, execution (workflow runs), approval
+  pack/ plugin/  pack install lifecycle, plugin manager, submission, marketplace trust
+  state/         versioned plugin state API
+  integrations/  Noesis, Praxis
+  knowledge/     embeddings, semantic search, Ask Modulo
+shared/          pack manifests and approval canonicalization shared by both sides
+docs/            see docs/README.md; docs/reference/generated/ is machine-written
 ```
 
-## Key architectural concepts
+## Rules that fail builds
 
-### @modulo/core (B0 milestone — in progress)
-The single public API surface that feature packs use instead of importing
-from workspace internals. Entry point: `frontend/src/core/index.ts`.  
-**Never import from `features/workspace/workspaceApi`, `features/workspace/types`,
-or `features/workspace/useWorkspaceData` in feature-pack code. Use `@modulo/core`
-instead.**
+- **Boundary.** Feature code must not import `features/workspace/workspaceApi`,
+  `features/workspace/types` or `features/workspace/useWorkspaceData`. Use
+  `@modulo/core` (alias in both `vite.config.ts` and `tsconfig.json`). Enforced
+  by ESLint (`error`) and the `boundary-lint` CI job. `npm run lint:boundary:ci`
+  is the strict check.
+- **No browser storage.** ESLint forbids `localStorage` and `sessionStorage`.
+  Plugin data uses plugin state. Device-only documents use
+  `services/deviceDocuments`.
+- **Android inventory.** Adding or changing a plugin can make
+  `docs/reference/generated/android/*` stale. Regenerate with
+  `npm run inventory:android --workspace=frontend`. CI runs the `:check` variant.
+- **Migrations are additive.** Add a new `V<n>__*.sql`. Never edit a shipped one.
+- **Docs verifiers.** `scripts/verify-*.py` check required headings in
+  `docs/infrastructure/*` and `docs/security/incident-response.md`.
 
-- `ModuloCoreAPI` interface — `src/core/ModuloCoreAPI.ts`
-- `CoreAPIImpl` — the implementation, wraps `workspaceApi`
-- `createCoreAPI()` — factory exported from the barrel
-- Graph queries: `buildGraph`, `filterGraphByTags`, `neighbours`, `subgraph`
-- Types: `CoreNote`, `CoreLink`, `CoreTag`, `GraphQueryResult`
-
-### Blueprint system
-- Node descriptors in `frontend/src/features/blueprint/nodeCatalog.ts`
-- Interpreter in `backend/.../blueprint/interpreter/BlueprintInterpreterService.java`
-- Capability map in `BlueprintCapabilityService.java`
-- Sandboxed JS nodes: `SandboxedScriptService.java` (Rhino engine, 500k instruction limit, 2s wall timeout)
-
-### Boundary enforcement (B9 #302)
-ESLint `no-restricted-imports` rule in `frontend/.eslintrc.cjs` — **`error`** since B9.
-All violations cleared in B4–B7. CI gate: `boundary-lint` job in `.github/workflows/ci.yml`.
-- `npm run lint:boundary` — human-readable grep filter (always exits 0)
-- `npm run lint:boundary:ci` — strict CI check (exits 1 on any violation)
-
-## How to run tests
+## Running tests
 
 ```sh
+mise run check                          # full acceptance gate
+
 # Frontend (from frontend/)
-npx vitest run                   # all tests
-npx vitest run src/core/         # just core tests
+npx vitest run                          # all unit tests
+npx vitest run src/core/                # one directory
+npm run typecheck
 
 # Backend (from backend/)
-mvn test -pl . -Dtest=MyTest     # single test class
-mvn -q test -Dtest=Foo,Bar       # multiple classes
-mvn -q -o test -Dtest=Foo        # offline mode (faster, needs prior compile)
+mvn -q test -Dtest=Foo,Bar              # named classes
+mvn -q -o test -Dtest=Foo               # offline, after a prior compile
+```
+
+## Common patterns
+
+### Adding a Blueprint node
+1. Add the descriptor to `frontend/src/features/blueprint/nodeCatalog.ts` and its
+   capability to `frontend/src/features/blueprint/capabilities.ts`.
+2. Backend: for an always-available core node, add its capability to
+   `BlueprintNodeRegistry.CORE_CAPABILITIES` and implement it in
+   `BlueprintInterpreterService.executeBuiltInNode`. A plugin-contributed node
+   registers a `BlueprintNodeRegistration` with a `BlueprintNodeHandler` instead.
+3. Update the `listByCategory()` counts in
+   `frontend/src/features/blueprint/__tests__/nodeModel.test.ts`.
+4. Add the node to `docs/reference/blueprint-nodes.md`.
+
+### Mocking the workspace API in Vitest
+Use `vi.hoisted()` so the mocks exist before `vi.mock()` runs:
+```ts
+const { mockNotesApi } = vi.hoisted(() => ({ mockNotesApi: { list: vi.fn() } }));
+vi.mock('../../features/workspace/workspaceApi', () => ({ notesApi: mockNotesApi }));
 ```
 
 ## Git protocol
 
-- **Always use `--no-verify`** with commits (pre-commit hooks may block CI-only checks)
-- Committer identity: `prod-claude@krasnjanski-mail.com` / `Ikey168`
-- Branch naming: `claude/issues-NNN` or `claude/issues-NNN-MMM` for multi-issue branches
-
-The shell has no global git identity configured, so always pass `-c` flags:
+- Commit with `--no-verify`. The pre-commit hooks can block on CI-only checks.
+- Use Conventional Commits: `type(#issue): description`.
+- Branches: `claude/issues-NNN`, or `claude/issues-NNN-MMM` for work spanning several issues.
+- The shell has no global git identity, so pass it on each commit:
 
 ```sh
 git add <specific files>
 git -c user.email="prod-claude@krasnjanski-mail.com" -c user.name="Ikey168" \
   commit --no-verify -m "feat(#NNN): description
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+Co-Authored-By: <the model's attribution line>"
 ```
 
-## Active milestone
+## Current focus
 
-**Milestone 16 — Core/Experience Boundary Refactor (B0)**
-
-| Issue | Title | Status |
-|-------|-------|--------|
-| #294 / B1 | Define public `ModuloCoreAPI` interface | Done |
-| #295 / B2 | Boundary audit & inventory | Done |
-| #296 / B3 | Feature-pack contract (FeatureRegistry) | Done |
-| #297 / B4 | Wire workspace route to CoreAPIImpl | Done |
-| #298 / B5 | Wire link parser to CoreAPIImpl | Done |
-| #299 / B6 | Wire graph views to CoreAPIImpl | Done |
-| #300 / B7 | Register note-workbench feature pack | Done |
-| #301 / B8 | Decision record: core keeps first-class note types (non-goal guard) | Done (this branch) |
-| #302 / B9 | Flip lint rule to `error`, add CI gate | Done |
-
-## Common patterns
-
-### Adding a blueprint node
-1. Add descriptor to `frontend/src/features/blueprint/nodeCatalog.ts`
-2. Add capability entry to `frontend/src/features/blueprint/capabilities.ts`
-3. Add `case` to `BlueprintInterpreterService.java` → `executeNode()`
-4. Add capability to `BlueprintCapabilityService.NODE_CAPABILITY_MAP`
-5. Update test expectation for `listByCategory()` count
-
-### Mocking workspace API in Vitest
-Use `vi.hoisted()` to declare mocks before `vi.mock()` runs:
-```ts
-const { mockNotesApi } = vi.hoisted(() => ({ mockNotesApi: { list: vi.fn() } }));
-vi.mock('../../features/workspace/workspaceApi', () => ({ notesApi: mockNotesApi }));
-```
-
-### TypeScript path alias
-`@modulo/core` → `src/core/index.ts` (wired in both `vite.config.ts` and `tsconfig.json`)
+No epics are open. See [docs/project/roadmap.md](docs/project/roadmap.md) for
+what has shipped and the candidate next work.

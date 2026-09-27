@@ -93,7 +93,7 @@ export const CORE_NODES: NodeDescriptor[] = [
     title: 'WASM Module',
     description:
       'Runs a compiled WebAssembly module (Rust, AssemblyScript, …) with the note as input. ' +
-      'The module must follow the ABI in docs/blueprint/wasm-nodes.md: exports memory/alloc/execute, ' +
+      'The module must follow the ABI in docs/reference/wasm-node-abi.md: exports memory/alloc/execute, ' +
       'no imports, declared memory maximum ≤ 32 MiB, binary ≤ 512 KiB. ' +
       'Same sandbox limits as Custom Code.',
     execIn: true,

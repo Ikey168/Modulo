@@ -420,7 +420,7 @@
 
         <!-- QuickJS-on-WASM: sandboxed JS execution, wasm engine (#398).
              Pure-Java runtime (Endive/Chicory family), no JNI — arm64-safe.
-             Provenance: docs/blueprint/wasm-sandbox.md -->
+             Provenance: docs/reference/wasm-node-abi.md -->
         <dependency>
             <groupId>io.roastedroot</groupId>
             <artifactId>quickjs4j</artifactId>

@@ -9,7 +9,7 @@
 // / eth_decrypt RPCs, a recipient derives a stable X25519 keypair from a
 // signature over a fixed message (see deriveEncryptionKeyPair). This works with
 // any wallet that can sign a message. See
-// docs/architecture/adr-0001-encryption-key-derivation.md for the rationale and
+// docs/architecture/decisions.md#adr-0001 for the rationale and
 // the determinism caveat.
 
 import nacl from 'tweetnacl';

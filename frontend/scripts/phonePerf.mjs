@@ -2,7 +2,7 @@
  * Phone performance budget (#492). Renders the heavy views with a large
  * workspace (2,000 notes, 4,000 links) at a Pixel-class viewport with the CPU
  * throttled 4x (a mid-range phone relative to a CI runner) and fails when a
- * budget is exceeded. Writes docs/mobile/android-performance.json.
+ * budget is exceeded. Writes docs/reference/generated/android/android-performance.json.
  *   node scripts/phonePerf.mjs <baseUrl>
  */
 import { writeFileSync } from 'node:fs';
@@ -16,7 +16,7 @@ const NOTE_COUNT = 2000;
 const LINK_COUNT = 4000;
 const CPU_THROTTLE = 4;
 
-// Budgets for a throttled run; see docs/mobile/android-performance.md.
+// Budgets for a throttled run; see docs/features/mobile-and-desktop.md.
 const BUDGET = {
   notesListMs: 5000,
   noteOpenMs: 2500,
@@ -92,7 +92,7 @@ console.log(`longest task         ${results.longestTaskMs} ms\nJS heap          
 await browser.close();
 
 const failures = Object.entries(BUDGET).filter(([key, limit]) => results[key] > limit).map(([key, limit]) => `${key} ${results[key]} > ${limit}`);
-writeFileSync(join(ROOT, 'docs/mobile/android-performance.json'), `${JSON.stringify({
+writeFileSync(join(ROOT, 'docs/reference/generated/android/android-performance.json'), `${JSON.stringify({
   generatedBy: 'frontend/scripts/phonePerf.mjs', dataset: { notes: NOTE_COUNT, links: LINK_COUNT }, cpuThrottle: CPU_THROTTLE,
   viewport: '412x883 touch', budget: BUDGET, results, pageErrors: [...new Set(errors)].slice(0, 5),
 }, null, 2)}\n`);

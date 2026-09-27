@@ -143,7 +143,7 @@ public class PluginManager {
         if (!isFirstPartyOrigin(remoteUrl)) {
             throw new PluginException("Refusing in-process install from non-first-party origin '"
                 + remoteUrl + "' — third-party plugins run as EXTERNAL workloads (#395; "
-                + "see docs/deploying-external-plugins.md)");
+                + "see docs/features/plugins.md)");
         }
 
         try {

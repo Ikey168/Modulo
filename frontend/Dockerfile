@@ -10,7 +10,7 @@ COPY frontend frontend
 COPY shared shared
 COPY backend/src/main/resources/pack-manifest-v2.schema.json backend/src/main/resources/pack-manifest-v2.schema.json
 # build:strict typechecks tests too; one reads an example request from the docs.
-COPY docs/blueprint/examples docs/blueprint/examples
+COPY docs/reference/examples docs/reference/examples
 RUN npm run build:strict --workspace=frontend
 
 FROM nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284
