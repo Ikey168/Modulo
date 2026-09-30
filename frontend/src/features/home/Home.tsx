@@ -11,34 +11,34 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    title: 'Linked notes',
-    desc: 'Write in Markdown and connect ideas with wiki-style [[links]] that build automatically.',
+    title: 'Linked knowledge',
+    desc: 'Markdown notes with [[wiki links]], typed properties and a knowledge graph. Ask questions and get answers cited from your own notes.',
     icon: <LinkIcon size={18} className="text-primary-hover" />,
   },
   {
-    title: 'Knowledge graph',
-    desc: 'See your entire network of notes as an interactive force-directed graph.',
-    icon: <GraphIcon size={18} className="text-primary-hover" />,
-  },
-  {
-    title: 'Real-time sync',
-    desc: 'Changes propagate live across every device over WebSocket, with offline support.',
-    icon: <SyncIcon size={18} className="text-primary-hover" />,
-  },
-  {
-    title: 'On-chain anchoring',
-    desc: 'Timestamp and prove authorship of any note on Ethereum, with IPFS content addressing.',
-    icon: <AnchorIcon size={18} className="text-success" />,
-  },
-  {
-    title: 'Plugins',
-    desc: 'Extend Modulo with renderers, integrations, and tools from the marketplace.',
+    title: 'Plugins and packs',
+    desc: 'Around 130 plugins, from planner and canvas to finance, research and homelab. A pack sets up a whole area of your life in one step.',
     icon: <PluginIcon size={18} className="text-primary-hover" />,
   },
   {
-    title: 'Flexible auth',
-    desc: 'Sign in with Keycloak (OIDC), Google, Azure AD, or a MetaMask wallet.',
+    title: 'Accountable automation',
+    desc: 'Build workflows visually. Every run is recorded step by step, and any step can wait for your signed approval.',
+    icon: <GraphIcon size={18} className="text-primary-hover" />,
+  },
+  {
+    title: 'Private by default',
+    desc: 'Your data belongs to your account on your server. Search runs locally, and custom code runs in a WebAssembly sandbox.',
     icon: <ShieldIcon size={18} className="text-primary-hover" />,
+  },
+  {
+    title: 'Every device',
+    desc: 'The browser, desktop and Android apps share one workspace, sync live, and keep working offline.',
+    icon: <SyncIcon size={18} className="text-primary-hover" />,
+  },
+  {
+    title: 'Verifiable trust',
+    desc: 'See signatures, SBOMs and scan results before you install anything. Optionally anchor note hashes on Ethereum.',
+    icon: <AnchorIcon size={18} className="text-success" />,
   },
 ];
 
@@ -73,16 +73,16 @@ const Home: React.FC = () => {
         <div className="relative z-10 animate-fade-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-xs text-subtle-foreground">
             <span className="size-1.5 rounded-full bg-success" />
-            Local-first knowledge, verifiable on-chain
+            Self-hosted and open source
           </div>
           <h1 className="mb-5 text-5xl font-semibold leading-[1.05] tracking-tight md:text-[52px]">
-            Own your knowledge.
+            Your life, one workspace.
             <br />
-            <span className="text-primary-hover">Connect every idea.</span>
+            <span className="text-primary-hover">On a server you control.</span>
           </h1>
           <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-subtle-foreground">
-            Modulo is a decentralized knowledge-management workspace. Write linked Markdown notes,
-            explore them as a graph, sync in real time, and anchor authorship on-chain.
+            Modulo is a self-hosted personal operating system. Keep your notes, the records of
+            every area of your life, and the automations that act on them in one place.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
@@ -118,9 +118,9 @@ const Home: React.FC = () => {
       {/* Closing CTA */}
       <section className="mx-auto max-w-5xl px-7 pb-16 pt-10">
         <div className="rounded-2xl border border-border bg-gradient-to-b from-surface-2 to-surface p-12 text-center">
-          <h2 className="mb-2.5 text-2xl font-semibold tracking-tight md:text-3xl">Start building your knowledge base</h2>
+          <h2 className="mb-2.5 text-2xl font-semibold tracking-tight md:text-3xl">Start building your workspace</h2>
           <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-subtle-foreground">
-            Free your notes from silos. Create, link, and verify your ideas in one workspace.
+            Install a pack or start with a blank note. Everything you add stays on your server.
           </p>
           <Button asChild size="lg">
             <Link to="/app/notes">Get started</Link>
