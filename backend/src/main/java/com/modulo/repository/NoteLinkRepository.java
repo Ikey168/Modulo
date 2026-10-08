@@ -34,4 +34,11 @@ public interface NoteLinkRepository extends JpaRepository<NoteLink, UUID> {
     
     @Query("SELECT nl FROM NoteLink nl WHERE nl.sourceNote.userId = :#{tenant.ownerId} AND nl.targetNote.userId = :#{tenant.ownerId} AND (nl.linkType = :linkType)")
     List<NoteLink> findByLinkType(@Param("linkType") String linkType);
+
+    /**
+     * Links between notes of the same owner, across all owners. Only for the startup graph
+     * backfill, which runs without a signed-in user; never expose through a request path.
+     */
+    @Query("SELECT nl FROM NoteLink nl JOIN FETCH nl.sourceNote JOIN FETCH nl.targetNote WHERE nl.sourceNote.userId IS NOT NULL AND nl.sourceNote.userId = nl.targetNote.userId")
+    List<NoteLink> findAllOwnedForGraphProjection();
 }

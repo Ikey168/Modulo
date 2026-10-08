@@ -127,6 +127,17 @@ class ResourceOwnershipTest {
         assertThrows(ResponseStatusException.class, () -> transaction.execute(status -> tasks.createTask(child)));
         assertThrows(ResponseStatusException.class, () -> tasks.findSubtasks(id));
     }
+    @Test void graphProjectionQueriesSpanOwnersButKeepLegacyAndCrossOwnerRowsOut() {
+        jdbc.update("INSERT INTO application.notes(note_id,user_id,title,content,version) VALUES (204,2,'Bob 2','',0)");
+        jdbc.update("INSERT INTO application.note_links(link_id,source_note_id,target_note_id,link_type) VALUES (?,202,204,'REFERENCE'),(?,101,202,'LEGACY'),(?,303,101,'LEGACY')",
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        var projected = transaction.execute(status -> notes.findAllOwnedForGraphProjection().stream().map(Note::getId).sorted().toList());
+        assertEquals(List.of(101L, 202L, 204L), projected);
+        var linkRepository = context.getBean(NoteLinkRepository.class);
+        var projectedLinks = transaction.execute(status -> linkRepository.findAllOwnedForGraphProjection().stream()
+            .map(l -> l.getSourceNote().getId() + "->" + l.getTargetNote().getId()).toList());
+        assertEquals(List.of("202->204"), projectedLinks);
+    }
     @Test void noteRelationshipsRequireBothOwnersIncludingLegacyCrossOwnerLinks() {
         assertThrows(ResponseStatusException.class, () -> transaction.execute(status -> links.createLink(101L, 202L, "REFERENCE")));
         jdbc.update("INSERT INTO application.note_links(link_id,source_note_id,target_note_id,link_type) VALUES (?,101,202,'LEGACY')", UUID.randomUUID());
