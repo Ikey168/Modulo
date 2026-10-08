@@ -20,9 +20,10 @@ import java.util.List;
  * Backfills the Neo4j projection from the Postgres source of truth: projects every note as
  * a {@code (:Note)} node and every {@link NoteLink} as a {@code [:LINKS_TO]} edge.
  *
- * <p>Can be triggered on demand via {@code POST /api/graph/backfill} or automatically on
- * startup when {@code modulo.graph.backfill-on-startup=true} (default false, to keep
- * startup fast). Safe to run repeatedly — projection writes are idempotent MERGEs.</p>
+ * <p>Can be triggered on demand via {@code POST /api/graph/backfill} (the caller's notes) or
+ * automatically on startup when {@code modulo.graph.backfill-on-startup=true} (default false,
+ * to keep startup fast; every owner's notes, since no user is signed in). Safe to run
+ * repeatedly — projection writes are idempotent MERGEs, and graph reads filter by owner.</p>
  */
 @Service
 public class GraphBackfillService {
@@ -46,7 +47,7 @@ public class GraphBackfillService {
     }
 
     /**
-     * Project all notes and links into Neo4j.
+     * Project the signed-in user's notes and links into Neo4j.
      * @return number of notes and links projected.
      */
     @Transactional(readOnly = true)
@@ -55,13 +56,28 @@ public class GraphBackfillService {
             logger.info("Backfill skipped: graph projection is disabled");
             return new BackfillResult(0, 0, false);
         }
+        return project(noteRepository.findAll(), noteLinkRepository.findAll());
+    }
 
-        List<Note> notes = noteRepository.findAll();
+    /**
+     * Project every owner's notes and links into Neo4j. For the startup backfill, which has no
+     * signed-in user, so the owner-scoped {@code findAll()} queries cannot be used.
+     */
+    @Transactional(readOnly = true)
+    public BackfillResult backfillAllOwners() {
+        if (!projection.isAvailable()) {
+            logger.info("Backfill skipped: graph projection is disabled");
+            return new BackfillResult(0, 0, false);
+        }
+        return project(noteRepository.findAllOwnedForGraphProjection(),
+                       noteLinkRepository.findAllOwnedForGraphProjection());
+    }
+
+    private BackfillResult project(List<Note> notes, List<NoteLink> links) {
         for (Note note : notes) {
             projection.upsertNote(note.getId(), note.getTitle());
         }
 
-        List<NoteLink> links = noteLinkRepository.findAll();
         for (NoteLink link : links) {
             if (link.getSourceNote() != null && link.getTargetNote() != null) {
                 projection.upsertLink(
@@ -81,7 +97,7 @@ public class GraphBackfillService {
         if (backfillOnStartup && projection.isAvailable()) {
             logger.info("modulo.graph.backfill-on-startup=true: running graph backfill");
             try {
-                backfill();
+                backfillAllOwners();
             } catch (Exception e) {
                 logger.warn("Startup graph backfill failed: {}", e.getMessage());
             }

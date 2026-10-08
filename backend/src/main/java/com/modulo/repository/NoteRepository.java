@@ -50,4 +50,11 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     // closes (open-in-view=false) without a LazyInitializationException.
     @Query("SELECT n FROM Note n LEFT JOIN FETCH n.tags WHERE n.id = :id AND n.userId = :#{tenant.ownerId}")
     Optional<Note> findByIdWithTags(@Param("id") Long id);
+
+    /**
+     * Notes of every owner (unowned legacy rows stay quarantined). Only for the startup graph
+     * backfill, which runs without a signed-in user; never expose through a request path.
+     */
+    @Query("SELECT n FROM Note n WHERE n.userId IS NOT NULL")
+    List<Note> findAllOwnedForGraphProjection();
 }
